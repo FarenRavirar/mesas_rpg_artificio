@@ -1,0 +1,86 @@
+services:
+  # FRONTEND (Nginx servindo build estático do React/Vite)
+  mesas-beta-app:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: mesas-beta-app
+    restart: always
+    ports:
+      - "30302:80"
+    networks:
+      - gerenciador_telegram_default
+    environment:
+      - NODE_ENV=production
+      - VITE_ENV=beta
+      - API_UPSTREAM=mesas-beta-api
+    depends_on:
+      - mesas-beta-api
+
+  # BACKEND (Node.js API + AggregatorBot + CleanupWorker via node-cron)
+  mesas-beta-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: mesas-beta-api
+    restart: always
+    expose:
+      - "3000"
+    networks:
+      - gerenciador_telegram_default
+    environment:
+      - NODE_ENV=production
+      - APP_ENV=beta
+      - PORT=3000
+      # Banco de dados
+      - DB_HOST=mesas-beta-db
+      - POSTGRES_USER=${POSTGRES_USER:-admin}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=mesas_rpg
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD}@mesas-beta-db:5432/mesas_rpg
+      # Autenticação
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_CALLBACK_URL=https://mesasbeta.artificiorpg.com/auth/google/callback
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_EXPIRES_IN=15m
+      - JWT_REFRESH_EXPIRES_IN=7d
+      # App
+      - FRONTEND_URL=https://mesasbeta.artificiorpg.com
+      # Imgur
+      - IMGUR_CLIENT_ID=${IMGUR_CLIENT_ID}
+      # AggregatorBot
+      - AGGREGATOR_CRON_SCHEDULE=0 6 * * *
+      - AGGREGATOR_DRY_RUN=false
+    depends_on:
+      mesas-beta-db:
+        condition: service_healthy
+
+  # DATABASE (PostgreSQL)
+  mesas-beta-db:
+    image: postgres:16-alpine
+    container_name: mesas-beta-db
+    restart: always
+    networks:
+      - gerenciador_telegram_default
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: mesas_rpg
+    volumes:
+      - pgdata_mesas_beta:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/00_init.sql
+      - ./database/migration_01_base_schema.sql:/docker-entrypoint-initdb.d/01_base_schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d mesas_rpg"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata_mesas_beta:
+
+networks:
+  gerenciador_telegram_default:
+    external: true
