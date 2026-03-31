@@ -1,0 +1,41 @@
+name: Deploy Beta
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  deploy:
+    name: Deploy para mesasbeta.artificiorpg.com
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Copiar arquivos para a VM via rsync
+        uses: burnett01/rsync-deployments@7.0.1
+        with:
+          switches: -avz --delete --exclude='.git' --exclude='node_modules' --exclude='.env'
+          path: ./
+          remote_path: /opt/mesas-beta/
+          remote_host: ${{ secrets.SSH_HOST }}
+          remote_user: ${{ secrets.SSH_USER }}
+          remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Rebuild e restart dos containers no beta
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /opt/mesas-beta
+            docker compose -f docker-compose.beta.yml down
+            docker compose -f docker-compose.beta.yml build --no-cache
+            docker compose -f docker-compose.beta.yml up -d
+            echo "--- Aguardando containers estabilizarem ---"
+            sleep 10
+            docker compose -f docker-compose.beta.yml ps
+            docker compose -f docker-compose.beta.yml logs --tail=30 mesas-beta-app
