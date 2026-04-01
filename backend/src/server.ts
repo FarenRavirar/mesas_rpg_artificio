@@ -3,6 +3,9 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import tablesRoutes from './routes/tables';
+import gmRoutes from './routes/gm';
+import gmPanelRoutes from './routes/gmPanel';
+import systemsRoutes from './routes/systems';
 import 'express-async-errors'; // Adiciona handler global automatico para promises
 import { db } from './db';
 
@@ -32,9 +35,14 @@ app.get('/api/v1/health', async (req, res) => {
   }
 });
 
-// Rotas Principais Fase 1 e 2
+// Rotas Principais Fase 1, 2 e 3
+// Compatibilidade OAuth: mantém rota canônica em /api/v1/auth e aceita callback legado em /auth
 app.use('/api/v1/auth', authRoutes);
+app.use('/auth', authRoutes);
 app.use('/api/v1/tables', tablesRoutes);
+app.use('/api/v1/systems', systemsRoutes);
+app.use('/api/v1/gm', gmPanelRoutes);  // Painel autenticado do mestre
+app.use('/api/v1/gm', gmRoutes);       // Perfil público do mestre
 
 // Custom Error Handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
