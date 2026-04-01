@@ -35,13 +35,14 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
   }
 };
 
-export const requireRole = (roles: UserRole[]) => {
+export const requireRole = (roles: UserRole | UserRole[]) => {
+  const rolesArr = Array.isArray(roles) ? roles : [roles];
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({ error: 'Não autenticado.' });
     }
 
-    if (!roles.includes(req.user.role)) {
+    if (!rolesArr.includes(req.user.role)) {
       return res.status(403).json({ error: 'Acesso negado para o seu perfil.' });
     }
 
