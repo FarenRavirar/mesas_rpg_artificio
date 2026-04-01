@@ -52,9 +52,75 @@ export interface GmProfilesTable {
   updated_at: Generated<Date>;
 }
 
+export interface SystemsTable {
+  id: Generated<string>;
+  name: string;
+  slug: string;
+  description: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface TagsTable {
+  id: Generated<string>;
+  name: string;
+  slug: string;
+  created_at: Generated<Date>;
+}
+
+export interface PlatformsTable {
+  id: Generated<string>;
+  name: string;
+  slug: string;
+  created_at: Generated<Date>;
+}
+
+export type TableStatus = 'draft' | 'active' | 'full' | 'cancelled' | 'ended' | 'pending_review';
+export type TableType = 'campanha' | 'one-shot' | 'oneshot-serie' | 'aberta';
+export type TableAudience = 'livre' | 'adultos';
+export type TableModality = 'online' | 'presencial' | 'hibrida';
+export type PriceType = 'gratuita' | 'paga';
+export type PriceFrequency = 'sessao' | 'mes' | 'campanha';
+export type ExperienceLevel = 'todos' | 'iniciante' | 'intermediario' | 'veterano';
+
+export interface TablesTable {
+  id: Generated<string>;
+  slug: string;
+  gm_id: string | null;
+  system_id: string | null;
+  title: string;
+  description: string | null;
+  cover_url: string | null;
+  cover_deletehash: string | null;
+  cover_imgur_id: string | null;
+  status: Generated<TableStatus>;
+  type: TableType;
+  audience: Generated<TableAudience>;
+  modality: Generated<TableModality>;
+  price_type: Generated<PriceType>;
+  price_value: number | null;
+  price_frequency: PriceFrequency | null;
+  slots_total: Generated<number>;
+  slots_filled: Generated<number>;
+  language: Generated<string>;
+  experience_level: Generated<ExperienceLevel>;
+  starts_at: Date | null;
+  city: string | null;
+  state: string | null;
+  content_warnings: Generated<string[]>;
+  safety_tools: Generated<string[]>;
+  source_url: string | null;
+  source_id: string | null;
+  featured: Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
 export interface Database {
   users: UsersTable;
   profiles: ProfilesTable;
   gm_profiles: GmProfilesTable;
-  // TODO: Add other tables from base_schema
+  systems: SystemsTable;
+  tags: TagsTable;
+  platforms: PlatformsTable;
+  tables: TablesTable;
 }

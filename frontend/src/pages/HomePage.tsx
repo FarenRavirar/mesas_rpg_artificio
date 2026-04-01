@@ -1,17 +1,118 @@
+import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Search, Compass, LogIn } from 'lucide-react';
+import { useFetchTables } from '../hooks/useFetchTables';
+import type { TableCard } from '../types/tables';
+import { Search, Compass, LogIn, Users, Dice1, Globe, MapPin } from 'lucide-react';
+
+// ───── Sub-componente: Card de Mesa ──────────────────────────────────────────
+
+const modalityLabels: Record<string, string> = {
+  online: 'Online',
+  presencial: 'Presencial',
+  hibrida: 'Híbrida',
+};
+
+const experienceLabels: Record<string, string> = {
+  todos: 'Todos os Níveis',
+  iniciante: 'Iniciante',
+  intermediario: 'Intermediário',
+  veterano: 'Veterano',
+};
+
+function TableCardSkeleton() {
+  return (
+    <div className="w-full h-[340px] rounded-2xl bg-white/5 border border-white/10 animate-pulse" />
+  );
+}
+
+function TableCardComponent({ table }: { table: TableCard }) {
+  const slotsLeft = table.slots_total - table.slots_filled;
+  const isFull = slotsLeft <= 0;
+
+  return (
+    <div className="group relative w-full h-[340px] rounded-2xl overflow-hidden bg-[#1B2A4A] border border-white/10 hover:border-[var(--color-artificio-orange)]/40 transition-all duration-300 cursor-pointer shadow-lg hover:shadow-[0_0_30px_rgba(232,82,26,0.15)] hover:-translate-y-1">
+      {/* Background cover ou gradiente padrão */}
+      {table.cover_url ? (
+        <img
+          src={table.cover_url}
+          alt={table.title}
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-br from-[#2A3F6D] to-[#1B2A4A]" />
+      )}
+
+      {/* Gradiente de overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-[#0d1a30] via-[#0d1a30]/70 to-transparent z-10" />
+
+      {/* Badge Destaque */}
+      {table.featured && (
+        <div className="absolute top-3 right-3 z-20 px-2 py-1 bg-[var(--color-artificio-orange)] rounded-md text-xs font-bold text-white">
+          ★ Destaque
+        </div>
+      )}
+
+      {/* Conteúdo inferior */}
+      <div className="absolute bottom-0 left-0 p-5 z-20 w-full space-y-3">
+        <div className="flex flex-wrap gap-2">
+          {table.system_name && (
+            <span className="flex items-center gap-1 px-2 py-1 bg-black/40 backdrop-blur-sm rounded-md text-xs font-semibold text-[var(--color-artificio-orange)] border border-white/10">
+              <Dice1 className="w-3 h-3" />
+              {table.system_name}
+            </span>
+          )}
+          <span className="flex items-center gap-1 px-2 py-1 bg-black/40 backdrop-blur-sm rounded-md text-xs font-semibold text-white border border-white/10">
+            {table.modality === 'online' ? <Globe className="w-3 h-3" /> : <MapPin className="w-3 h-3" />}
+            {modalityLabels[table.modality] ?? table.modality}
+          </span>
+          <span className={`px-2 py-1 rounded-md text-xs font-bold border ${isFull ? 'bg-red-900/50 text-red-300 border-red-700/50' : 'bg-emerald-900/50 text-emerald-300 border-emerald-700/50'}`}>
+            {isFull ? 'Lotada' : `${slotsLeft} vaga${slotsLeft !== 1 ? 's' : ''}`}
+          </span>
+        </div>
+
+        <h3 className="text-lg font-bold text-white group-hover:text-[var(--color-artificio-orange)] transition-colors line-clamp-2 leading-tight">
+          {table.title}
+        </h3>
+
+        {table.description && (
+          <p className="text-xs text-white/60 line-clamp-2">{table.description}</p>
+        )}
+
+        <div className="flex items-center justify-between text-xs text-white/40 pt-1 border-t border-white/5">
+          <span className="flex items-center gap-1">
+            <Users className="w-3 h-3" />
+            {table.slots_filled}/{table.slots_total}
+          </span>
+          <span>{experienceLabels[table.experience_level] ?? table.experience_level}</span>
+          <span className={table.price_type === 'gratuita' ? 'text-emerald-400 font-semibold' : 'text-yellow-400 font-semibold'}>
+            {table.price_type === 'gratuita' ? 'Gratuita' : `R$ ${table.price_value}`}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ───── Página Principal ───────────────────────────────────────────────────────
 
 export const HomePage = () => {
   const { user } = useAuth();
+  const [searchInput, setSearchInput] = useState('');
+  const [activeSearch, setActiveSearch] = useState('');
+
+  const { tables, isLoading, error } = useFetchTables({ limit: 12, search: activeSearch || undefined });
 
   const handleLoginClick = () => {
-    // Redireciona para nosso endpoint do servidor que inicia o handshake Google OAuth
     window.location.href = '/api/v1/auth/google';
+  };
+
+  const handleSearch = () => {
+    setActiveSearch(searchInput.trim());
   };
 
   return (
     <div className="min-h-screen bg-[var(--color-artificio-blue)] font-sans text-white">
-      {/* Header Premium Glassmorphism */}
+      {/* Header Glassmorphism */}
       <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-[#1B2A4A]/80 border-b border-white/5 shadow-2xl">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-2 text-[var(--color-artificio-orange)] font-bold text-xl tracking-wide">
@@ -25,15 +126,16 @@ export const HomePage = () => {
                 <div className="w-8 h-8 rounded-full bg-[var(--color-artificio-orange)] text-sm flex items-center justify-center font-bold">
                   {user.role[0].toUpperCase()}
                 </div>
-                <span className="text-sm font-medium">Logado</span>
+                <span className="text-sm font-medium capitalize">{user.role}</span>
               </div>
             ) : (
-              <button 
+              <button
+                id="btn-login-google"
                 onClick={handleLoginClick}
                 className="group relative cursor-pointer px-5 py-2 overflow-hidden rounded-full font-medium text-white shadow-lg transition-transform hover:scale-105 active:scale-95"
               >
-                <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-[var(--color-artificio-orange-hover)] to-[var(--color-artificio-orange)]"></div>
-                <div className="absolute inset-0 w-0 h-full transition-all duration-300 ease-out bg-white/20 group-hover:w-full"></div>
+                <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-[var(--color-artificio-orange)] to-[var(--color-artificio-orange-hover)]" />
+                <div className="absolute inset-0 w-0 h-full transition-all duration-300 ease-out bg-white/20 group-hover:w-full" />
                 <span className="relative flex items-center space-x-2 text-sm font-semibold tracking-wide">
                   <LogIn className="w-4 h-4" />
                   <span>Entrar com o Google</span>
@@ -44,54 +146,67 @@ export const HomePage = () => {
         </div>
       </header>
 
-      {/* Hero Interativo */}
+      {/* Hero */}
       <section className="relative w-full py-16 lg:py-24 overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[var(--color-artificio-orange)] rounded-full blur-[150px] opacity-10 pointer-events-none"></div>
-        
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[var(--color-artificio-orange)] rounded-full blur-[150px] opacity-10 pointer-events-none" />
         <div className="container mx-auto px-6 text-center space-y-8 relative z-10">
           <h1 className="text-5xl lg:text-7xl font-extrabold tracking-tight">
-            Descubra Sua Próxima <br className="hidden lg:block"/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r gap-2 from-[var(--color-artificio-orange)] to-yellow-400">Aventura</span>
+            Descubra Sua Próxima<br className="hidden lg:block" />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--color-artificio-orange)] to-yellow-400"> Aventura</span>
           </h1>
           <p className="max-w-2xl mx-auto text-[#a8b8d8] text-lg lg:text-xl font-light">
-            O catálogo oficial, 100% gratuito e organizado de mesas de RPG. Junte-se à maior comunidade de construtores de mundos independente do Brasil.
+            O catálogo oficial, 100% gratuito e organizado de mesas de RPG. Junte-se à maior comunidade de construtores de mundos do Brasil.
           </p>
 
           <div className="max-w-2xl mx-auto mt-10 p-2 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full flex items-center shadow-2xl focus-within:ring-2 focus-within:ring-[var(--color-artificio-orange)]/50 transition-all">
             <Search className="w-6 h-6 text-white/50 ml-4 hidden sm:block" />
-            <input 
-              type="text" 
-              placeholder="Buscar mesas por série, sistema ou mestre..."
+            <input
+              id="input-busca-mesas"
+              type="text"
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSearch()}
+              placeholder="Buscar mesas por nome, sistema ou mestre..."
               className="flex-1 bg-transparent border-none outline-none px-4 py-2 text-white placeholder-white/50"
             />
-            <button className="bg-[var(--color-artificio-orange)] hover:bg-[var(--color-artificio-orange-hover)] text-white px-6 py-3 rounded-full font-semibold transition-colors duration-200">
+            <button
+              id="btn-buscar-mesas"
+              onClick={handleSearch}
+              className="bg-[var(--color-artificio-orange)] hover:bg-[var(--color-artificio-orange-hover)] text-white px-6 py-3 rounded-full font-semibold transition-colors duration-200 cursor-pointer"
+            >
               Procurar
             </button>
           </div>
         </div>
       </section>
 
-      {/* Catálogo Grid (Placeholder Rápido Fase 1) */}
+      {/* Catálogo */}
       <section className="container mx-auto px-6 pb-24">
         <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl font-bold tracking-wide">Abertas Recentemente</h2>
+          <h2 className="text-2xl font-bold tracking-wide">
+            {activeSearch ? `Resultados para "${activeSearch}"` : 'Abertas Recentemente'}
+          </h2>
         </div>
-        
+
+        {error && (
+          <div className="text-center py-20 text-red-400">
+            <p>{error}</p>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Skeleton Cards simulando as mesas que virão do Backend na Fase 2 */}
-          {[1,2,3,4,5,6].map(i => (
-            <div key={i} className="group relative w-full h-[340px] rounded-2xl overflow-hidden bg-white/5 border border-white/10 hover:border-white/20 transition-all cursor-pointer">
-              <div className="absolute inset-0 bg-gradient-to-t from-[#1B2A4A] via-[#1B2A4A]/50 to-transparent z-10"></div>
-              <div className="absolute bottom-0 left-0 p-6 z-20 w-full space-y-3">
-                <div className="flex items-center space-x-2">
-                  <span className="px-2 py-1 bg-white/10 backdrop-blur-sm rounded-md text-xs font-semibold text-[var(--color-artificio-orange)] border border-white/5">D&D 5e</span>
-                  <span className="px-2 py-1 bg-white/10 backdrop-blur-sm rounded-md text-xs font-semibold text-white border border-white/5">Online</span>
+          {isLoading
+            ? Array.from({ length: 6 }).map((_, i) => <TableCardSkeleton key={i} />)
+            : tables.length > 0
+              ? tables.map(t => <TableCardComponent key={t.id} table={t} />)
+              : !error && (
+                <div className="col-span-3 text-center py-20 text-white/40">
+                  <p className="text-4xl mb-4">🗺️</p>
+                  <p className="text-lg font-medium">Nenhuma mesa encontrada.</p>
+                  <p className="text-sm mt-2">Seja o primeiro a publicar uma aventura!</p>
                 </div>
-                <h3 className="text-xl font-bold text-white group-hover:text-[var(--color-artificio-orange)] transition-colors line-clamp-2">Lendários Espinhosos: A Queda do Império</h3>
-                <p className="text-sm text-[#a8b8d8] line-clamp-2">Campanha de fantasia medieval dark, iniciantes bem-vindos. Foco em RP.</p>
-              </div>
-            </div>
-          ))}
+              )
+          }
         </div>
       </section>
     </div>

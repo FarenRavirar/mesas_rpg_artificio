@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
+import tablesRoutes from './routes/tables';
 import 'express-async-errors'; // Adiciona handler global automatico para promises
 import { db } from './db';
 
@@ -31,8 +32,9 @@ app.get('/api/v1/health', async (req, res) => {
   }
 });
 
-// Rotas Principais Fase 1
+// Rotas Principais Fase 1 e 2
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/tables', tablesRoutes);
 
 // Custom Error Handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
