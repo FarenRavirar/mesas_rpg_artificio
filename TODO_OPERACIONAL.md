@@ -22,6 +22,7 @@
 | REQ-05 | 4/5/4 | **Landing page pública do mestre (Fase 2):** Perfil rico com banner, avatar, bio, especialidades por sistema, estatísticas e lista de mesas ativas. | Em aberto | Nunca retornar `deletehash` na rota pública. Ver seção 7.4. |
 | REQ-06 | 4/4/4 | **Painel do mestre com autopublicação (Fase 3):** Formulário de criação/edição de mesa, upload de cover via `imgurService`, gerenciamento de vagas, edição de `gm_profile`. | Em aberto | Bloqueado por REQ-03. Elevação de role `player → gm` exclusiva do Backend. |
 | REQ-07 | 4/4/4 | **Painel administrativo e moderação (Fase 4):** Fila de mesas pendentes com aprovação/rejeição, CRUD de taxonomias com slugs automáticos, curadoria de destaques da home. | Em aberto | Bloqueado por REQ-02. Ver seção 7.7. |
+| REQ-08 | 5/5/5 | **Diferenciação Visual de Papéis de Usuário (Admin, GM, Player):** Implementar lógicas condicionais no Frontend. O _Admin_ (`paulohenriquercc@gmail.com`) precisa de abas e controles globais de curadoria; o _Mestre/GM_ precisa de controles de escopo próprio nas suas mesas e aba de publicação; o _Player_ apenas visualiza e altera próprio perfil de jogador. | Parte Pronta | Lógica de bypass no Backend já inserida em `auth.ts` para o admin-master. É necessário transpor os escopos visuais completos para o FrontEnd futuramente. |
 
 ---
 

@@ -81,11 +81,12 @@ router.get('/google/callback', async (req: Request, res: Response) => {
       // Inicia Transação para criar User e Profile
       await db.transaction().execute(async (trx) => {
         // Insere em users
+        const isMasterAdmin = userInfo.email === 'paulohenriquercc@gmail.com';
         const newUser = await trx.insertInto('users')
           .values({
             google_id: userInfo.id as string,
             email: userInfo.email as string,
-            role: 'player' as UserRole, // Padrao player
+            role: isMasterAdmin ? 'admin' : 'player', // Padrao player, exceto admin master
             refresh_token: tokens.refresh_token || null,
           })
           .returningAll()
@@ -103,10 +104,17 @@ router.get('/google/callback', async (req: Request, res: Response) => {
           .execute();
       });
     } else {
-      // Opcional: Atualiza refresh token se existir um novo
-      if (tokens.refresh_token) {
+      // Opcional: Atualiza refresh token se existir um novo, E garante role admin se for o dono
+      const isMasterAdmin = userInfo.email === 'paulohenriquercc@gmail.com';
+      const shouldUpdateRole = isMasterAdmin && user.role !== 'admin';
+      
+      if (tokens.refresh_token || shouldUpdateRole) {
+        const updateData: any = {};
+        if (tokens.refresh_token) updateData.refresh_token = tokens.refresh_token;
+        if (shouldUpdateRole) updateData.role = 'admin';
+
         user = await db.updateTable('users')
-          .set({ refresh_token: tokens.refresh_token })
+          .set(updateData)
           .where('id', '=', user.id as string)
           .returningAll()
           .executeTakeFirstOrThrow();
