@@ -43,18 +43,27 @@ router.get('/google/callback', async (req: Request, res: Response) => {
   try {
     // 1. Trocar code por tokens
     const { tokens } = await oauth2Client.getToken(code);
-    oauth2Client.setCredentials(tokens);
 
-    // 2. Buscar perfil do usuário no Google
-    const oauth2 = require('google-auth-library').google.oauth2({
-      auth: oauth2Client,
-      version: 'v2'
+    // 2. Buscar perfil do usuário no Google via endpoint de userinfo
+    const userinfoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { Authorization: `Bearer ${tokens.access_token}` },
     });
-    
-    const { data: userInfo } = await oauth2.userinfo.get();
-    
+
+    if (!userinfoRes.ok) {
+      console.error('[OAuth] Falha ao buscar userinfo:', userinfoRes.status, await userinfoRes.text());
+      return res.status(502).json({ error: 'Falha ao recuperar informações do Google.' });
+    }
+
+    const userInfo = await userinfoRes.json() as {
+      id: string;
+      email: string;
+      name?: string;
+      given_name?: string;
+      picture?: string;
+    };
+
     if (!userInfo.email || !userInfo.id) {
-       return res.status(400).json({ error: 'Falha ao recuperar informações básicas do Google.' });
+      return res.status(400).json({ error: 'Falha ao recuperar informações básicas do Google.' });
     }
 
     // 3. Upsert no Banco de Dados
