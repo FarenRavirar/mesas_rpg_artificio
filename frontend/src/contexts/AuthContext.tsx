@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 
 export interface User {
@@ -50,17 +50,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(false);
   }, []);
 
-  const login = (newToken: string, userPayload: User) => {
+  const login = useCallback((newToken: string, userPayload: User) => {
     setToken(newToken);
     setUser(userPayload);
     localStorage.setItem('@ArtificioMesas:token', newToken);
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setToken(null);
     setUser(null);
     localStorage.removeItem('@ArtificioMesas:token');
-  };
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>
