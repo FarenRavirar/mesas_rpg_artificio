@@ -22,8 +22,8 @@ FROM nginx:alpine AS production
 # Remover config padrão do Nginx
 RUN rm /etc/nginx/conf.d/default.conf
 
-# Copiar config customizada (proxy para a API)
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copiar config customizada (proxy para a API com substituição de ENV)
+COPY nginx.conf /etc/nginx/templates/default.conf.template
 
 # Copiar build do Vite
 COPY --from=builder /app/dist /usr/share/nginx/html
