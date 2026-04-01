@@ -55,30 +55,31 @@ Não é necessário em tarefas fora do modo lote.
 
 ## Itens da fila — Lote: infraestrutura-base (Fase 0)
 
-| ID | Fase | Tipo | Titulo | Descrição objetiva | Arquivos esperados | Status | Observação |
-|---|---|---|---|---|---|---|---|
-| 001 | Fase 0 | infra | Criar repositório GitHub | Criar `mesas_rpg_artificio` na conta `FarenRavirar`, criar branch `dev` como padrão, proteger `main` | — | pendente | Manual pelo responsável |
-| 002 | Fase 0 | infra | Configurar Secrets no GitHub | Adicionar `SSH_PRIVATE_KEY`, `SSH_HOST`, `SSH_USER` nos Secrets do repositório | — | pendente | Manual pelo responsável |
-| 003 | Fase 0 | infra | Criar estrutura de pastas na Oracle | Criar `/opt/mesas-beta/` e `/opt/mesas/` com `.env` preenchido em cada uma | — | pendente | Ver variáveis obrigatórias em `PRE-FLIGHT_CHECKLIST.md` passo 5 |
-| 004 | Fase 0 | infra | Criar docker-compose.beta.yml | Compose com serviços: `mesas-beta-app` (Node API + React build), `mesas-beta-db` (PostgreSQL), porta `30302` | `docker-compose.beta.yml` | pendente | Baseado no padrão do Glossário |
-| 005 | Fase 0 | infra | Criar docker-compose.prod.yml | Compose de produção sem porta pública, roteado via Cloudflare Tunnel existente | `docker-compose.prod.yml` | pendente | Nunca criar novo túnel |
-| 006 | Fase 0 | infra | Configurar Public Hostname no Cloudflare | Adicionar entradas no túnel existente para `mesasbeta.artificiorpg.com` e `mesas.artificiorpg.com` | — | pendente | Manual no painel Cloudflare pelo responsável |
-| 007 | Fase 0 | infra | Criar workflows de CI/CD | Criar `deploy-beta.yml` (trigger: push `dev`) e `deploy-production.yml` (trigger: push `main`) com rsync + rebuild Docker | `.github/workflows/deploy-beta.yml`, `.github/workflows/deploy-production.yml` | pendente | — |
+| ID  | Fase | Tipo | GUT | Titulo | Descrição objetiva | Arquivos esperados | Status | Observação |
+|---|---|---|---|---|---|---|---|---|
+| 001 | 0 | infra | 5/5/5 | Criar repositório GitHub | Criar `mesas_rpg_artificio` na conta `FarenRavirar`, criar branch `dev` como padrão, proteger `main` | — | concluido | Manual pelo responsável |
+| 002 | 0 | infra | 5/5/5 | Configurar Secrets no GitHub | Adicionar `SSH_PRIVATE_KEY`, `SSH_HOST`, `SSH_USER` nos Secrets do repositório | — | concluido | Manual pelo responsável |
+| 003 | 0 | infra | 5/5/5 | Criar estrutura de pastas na Oracle | Criar `/opt/mesas-beta/` e `/opt/mesas/` com `.env` preenchido em cada uma | — | concluido | Ver variáveis obrigatórias em checklist |
+| 004 | 0 | infra | 5/5/5 | Criar docker-compose.beta.yml | Compose com serviços: `mesas-beta-app` (Node API + React build), `mesas-beta-db` (PostgreSQL), porta `30302` | `docker-compose.beta.yml` | concluido | Baseado no padrão do Glossário |
+| 005 | 0 | infra | 4/5/5 | Criar docker-compose.prod.yml | Compose de produção sem porta pública, roteado via Cloudflare Tunnel existente | `docker-compose.prod.yml` | concluido | Nunca criar novo túnel |
+| 006 | 0 | infra | 5/5/5 | Configurar Hostname Cloudflare | Adicionar entradas no túnel existente para `mesasbeta` e `mesas` | — | concluido | Manual no painel Cloudflare |
+| 007 | 0 | infra | 5/5/5 | Criar workflows de CI/CD | Criar `deploy-beta.yml` e `deploy-production.yml` com rsync + rebuild Docker | `.github/workflows/deploy-*.yml` | concluido | — |
 
 ---
 
 ## Itens da fila — Lote: fundacao-schema-auth (Fase 1)
 
-| ID | Fase | Tipo | Titulo | Descrição objetiva | Arquivos esperados | Status | Observação |
-|---|---|---|---|---|---|---|---|
-| 008 | Fase 1 | banco | Schema inicial do banco | Criar migration com todas as tabelas base: `users`, `profiles`, `gm_profiles`, `systems`, `tags`, `platforms`, `tables`, `table_schedules`, `table_platforms`, `table_tags`, `user_preferences`, `table_history` | `database/migration_01_base_schema.sql` | pendente | Ver modelo completo em `ARQUITETURA_PROJETO.md` seção 4 |
-| 009 | Fase 1 | banco | Tabela imgur_cleanup_log | Criar tabela de auditoria de deleções no Imgur com campos `entity_type`, `entity_id`, `imgur_id`, `status`, `attempted_at`, `error_detail` | `database/migration_02_imgur_cleanup_log.sql` | pendente | Ver `ARQUITETURA_PROJETO.md` seção 16.5 |
-| 010 | Fase 1 | backend | Setup base da API Node.js | Estrutura Express com middlewares base: CORS, helmet, rate limit, body parser, handler de erros global | `backend/src/app.ts`, `backend/src/server.ts` | pendente | — |
-| 011 | Fase 1 | backend | Autenticação Google OAuth + JWT | Handshake OAuth Google, geração de JWT, refresh token rotativo, criação automática de `users` e `profiles` no primeiro login | `backend/src/routes/authRoutes.ts`, `backend/src/controllers/authController.ts`, `backend/src/middlewares/authMiddleware.ts` | pendente | Ver `ARQUITETURA_PROJETO.md` seção 6 |
-| 012 | Fase 1 | backend | Middleware de elevação de role | Lógica de elevação `player → gm` ao criar primeiro `gm_profile`. Role só é alterada no Backend, nunca no Frontend | `backend/src/middlewares/roleMiddleware.ts` | pendente | — |
-| 013 | Fase 1 | frontend | Setup base React + Vite + Tailwind | Estrutura inicial do projeto React com Tailwind configurado na paleta Artifício (`#1B2A4A`, `#E8521A`) | `frontend/` estrutura base | pendente | — |
-| 014 | Fase 1 | frontend | Fluxo de login Google + onboarding | Tela de login via Google, redirecionamento pós-OAuth, onboarding em 3 etapas (perfil → preferências → confirmação) | `frontend/src/pages/LoginPage.tsx`, `frontend/src/pages/OnboardingPage.tsx` | pendente | Ver `ARQUITETURA_PROJETO.md` seção 7.5 |
-| 015 | Fase 1 | backend | Serviço de upload de imagens (Imgur + WebP) | Receber imagem via multipart, converter para WebP com Sharp (limite 1280px, qualidade 85), enviar ao Imgur, salvar `url`, `deletehash`, `imgur_id` no banco | `backend/src/services/imgurService.ts`, `backend/src/utils/imageProcessor.ts` | pendente | `IMGUR_CLIENT_ID` exclusivo do Backend. Ver seção 16 |
+| ID  | Fase | Tipo | GUT | Titulo | Descrição objetiva | Arquivos esperados | Status | Observação |
+|---|---|---|---|---|---|---|---|---|
+| 008 | 1 | banco | 5/5/5 | Schema inicial do banco | Validar aplicabilidade da migration `migration_01_base_schema.sql` em DB limpo | `database/migration_01_base_schema.sql` | pendente | Schema já projetado, testar subida real |
+| 008B| 1 | banco | 5/5/5 | Conexão Type-Safe (Kysely) | Configurar driver `pg` + `Kysely` para introspeção de tipos TypeScript ("TypeScript ao máximo") sem modificar o DDL original. | `backend/src/db/` | em_execucao | Vital para produtividade de IA e Front/Back |
+| 009 | 1 | banco | 2/3/3 | Tabela imgur_cleanup_log | Auditar deleções Imgur. Ver seção 16.5 | `database/migration_*.sql` | pendente | — |
+| 010 | 1 | back  | 5/5/5 | Setup base da API Node.js | CORS, rate limit, JSON parser, handler global, router map | `backend/src/app.ts` | em_execucao | Esqueleto iniciado |
+| 011 | 1 | back  | 5/5/5 | OAuth Google Auth + JWT | Handshake, JWT generation, upsert users/profiles no primeiro login | `backend/src/routes/auth.ts` | pendente | Prioridade Máxima na Fase 1 |
+| 012 | 1 | back  | 4/4/4 | Middlewares base | Verificação de token, bloqueio por role (`player`/`gm`/`admin`) | `backend/src/middleware/auth.ts` | pendente | — |
+| 013 | 1 | front | 5/5/5 | Setup base React+Tailwind | Setup inicial + roteador + paleta oficial Artifício | `frontend/src/` | pendente | Base VITE já montada |
+| 014 | 1 | front | 5/5/5 | Login + Onboarding | Tela de login Google, callback, onboarding (3 passos) | `frontend/src/pages/Auth/` | pendente | — |
+| 015 | 1 | back  | 3/4/4 | Serviço de Imagens Imgur | Pipeline com Sharp WebP + envio Imgur anon (Client ID restrito) | `backend/src/services/` | pendente | Depende da Fase 1 core rodando |
 
 ---
 

@@ -7,7 +7,7 @@ Governança de agentes de IA neste repositório.
 Arquivo bootstrap: define regras mínimas de execução e aponta as fontes canônicas do **Anúncios de Mesas RPG** (Portal Colaborativo Fullstack).
 
 > **NATUREZA DESTE PROJETO (Obrigatório internalizar):**
-> - **O que é:** Aplicação fullstack (React + Node.js + PostgreSQL) para descoberta e publicação de mesas de RPG, com autenticação via Google OAuth, autopublicação por mestres, ingestão automática de anúncios externos (AggregatorBot) e exportação para WhatsApp/Discord.
+> - **O que é:** Aplicação fullstack 100% tipada (React/TypeScript no Frontend + Node.js/TypeScript no Backend + PostgreSQL) para descoberta e publicação de mesas de RPG, com autenticação via Google OAuth, autopublicação por mestres, ingestão automática de anúncios externos (AggregatorBot) e exportação para WhatsApp/Discord.
 > - **Ecossistema:** Projeto coirmão do Grande Glossário de RPG. Compartilha infraestrutura Oracle on-premise, identidade visual Artifício e filosofia comunitária. São repositórios e containers independentes.
 > - **Ambiente beta:** `mesasbeta.artificiorpg.com` — branch `dev`, pasta `/opt/mesas-beta/` no servidor Oracle.
 > - **Ambiente produção:** `mesas.artificiorpg.com` — branch `main`, pasta `/opt/mesas/` no servidor Oracle.
@@ -95,8 +95,8 @@ Se houver conflito entre orientação operacional e arquitetura, prevalece `ARQU
 - Sem refactor massivo
 - Sem quebrar contratos
 - Lógica de interface, busca e filtros no Frontend (React/TypeScript)
-- Python usado exclusivamente para scripts de infraestrutura, conversão e importação de dados
-- Lógica de autenticação e permissões gerenciadas pelo Backend (API Node.js) via JWT — nunca confiar segurança ao frontend
+- Python usado exclusivamente para scripts de infraestrutura, conversão e importação de dados executados fora do runtime da API principal
+- Lógica de autenticação e permissões gerenciadas pelo Backend (API Node.js em TypeScript) via JWT — nunca confiar segurança ao frontend
 - Upload e processamento de imagens (conversão WebP, envio ao Imgur) executados **sempre no Backend**, nunca no Frontend
 - `cover_deletehash`, `avatar_deletehash` e `banner_deletehash` são campos internos — **nunca retornados por rotas públicas da API**
 

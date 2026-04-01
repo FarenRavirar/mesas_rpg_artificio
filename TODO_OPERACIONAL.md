@@ -16,8 +16,7 @@
 
 | ID | GUT | Descrição | Status | Observação |
 |---|---|---|---|---|
-| REQ-01 | 5/5/5 | **Configuração da infraestrutura base (Fase 0):** Criar repositório GitHub, configurar Secrets, criar pastas na Oracle, composes, Cloudflare Public Hostnames e workflows de CI/CD. | Em aberto | Pré-requisito absoluto. Nada funciona sem isso. Ver checklist completo em `GIT_WORKFLOW.md` bloco de configuração inicial e `FILA_IMPLEMENTACAO.md` lote `infraestrutura-base`. |
-| REQ-02 | 5/5/5 | **Schema inicial do banco e API base (Fase 1):** Migrations de todas as tabelas base + setup Express + autenticação Google OAuth + JWT. | Em aberto | Bloqueado por REQ-01. Ver `FILA_IMPLEMENTACAO.md` lote `fundacao-schema-auth`. |
+| REQ-02 | 5/5/5 | **Schema inicial do banco e API base (Fase 1):** Migrations de todas as tabelas base + setup Express + autenticação Google OAuth + JWT. | Em andamento | Setup inicial (Vite + Node Express base) já criado em `dev`. Ver `FILA_IMPLEMENTACAO.md` lote `fundacao-schema-auth`. |
 | REQ-03 | 5/5/4 | **Serviço de imagens Imgur + Sharp (Fase 1):** Implementar pipeline completo de upload — receber imagem, converter para WebP via Sharp, enviar ao Imgur, salvar `url`/`deletehash`/`imgur_id` no banco. | Em aberto | `IMGUR_CLIENT_ID` nunca exposto no Frontend. `deletehash` nunca retornado em rotas públicas. Ver `ARQUITETURA_PROJETO.md` seção 16. |
 | REQ-04 | 4/5/4 | **Catálogo público com filtros estruturados (Fase 2):** Listagem em grid com card denso, painel de filtros por sistema/dia/tipo/audiência/plataforma/tag/preço/modalidade/nível, busca por Fuse.js. | Em aberto | Bloqueado por REQ-02. Ver `ARQUITETURA_PROJETO.md` seção 7.2. |
 | REQ-05 | 4/5/4 | **Landing page pública do mestre (Fase 2):** Perfil rico com banner, avatar, bio, especialidades por sistema, estatísticas e lista de mesas ativas. | Em aberto | Nunca retornar `deletehash` na rota pública. Ver seção 7.4. |
@@ -51,4 +50,5 @@
 
 ## Concluídos Recentes
 
-_(Nenhum item concluído ainda — projeto não iniciado.)_
+_31/03/2026_
+- [x] **REQ-01 (Fase 0):** Repositório criado, secrets configurados, Oracle `mesas-beta` populado, arquivos `.env` presentes, Cloudflare funcionando e scaffolds de React+Node iniciados em `.dev`.
