@@ -2,7 +2,7 @@
 
 > Backlog vivo de melhorias, correções e débitos técnicos acumulados. Este documento é a bússola operacional primária para agentes não engajados em features de arquitetura mestre.
 
-## Status Atual: FASE 0 — PROJETO NÃO INICIADO (infraestrutura e repositório ainda não existem)
+## Status Atual: FASE 1 CONCLUÍDA — Em desenvolvimento Fases 2 e 3 (Catálogo Público e Painel do Mestre)
 
 > [!IMPORTANT]
 > **REGRA DE ATUALIZAÇÃO:** Todo agente que fechar uma issue abaixo deve removê-la e mover para a seção "Concluídos Recentes". Se identificar uma nova dívida técnica, DEVE registrá-la aqui com uma estimativa GUT.
@@ -16,7 +16,7 @@
 
 | ID | GUT | Descrição | Status | Observação |
 |---|---|---|---|---|
-| REQ-02 | 5/5/5 | **Schema inicial do banco e API base (Fase 1):** Migrations de todas as tabelas base + setup Express + autenticação Google OAuth + JWT. | Em andamento | Setup inicial (Vite + Node Express base) já criado em `dev`. Ver `FILA_IMPLEMENTACAO.md` lote `fundacao-schema-auth`. |
+| REQ-02 | 5/5/5 | **Schema inicial do banco e API base (Fase 1):** Migrations de todas as tabelas base + setup Express + autenticação Google OAuth + JWT. | **Concluído** | OAuth funcional no beta. Kysely configurado. Middlewares de role operantes. Ver `FILA_IMPLEMENTACAO.md` lote `fundacao-schema-auth`. |
 | REQ-03 | 5/5/4 | **Serviço de imagens Imgur + Sharp (Fase 1):** Implementar pipeline completo de upload — receber imagem, converter para WebP via Sharp, enviar ao Imgur, salvar `url`/`deletehash`/`imgur_id` no banco. | Em aberto | `IMGUR_CLIENT_ID` nunca exposto no Frontend. `deletehash` nunca retornado em rotas públicas. Ver `ARQUITETURA_PROJETO.md` seção 16. |
 | REQ-04 | 4/5/4 | **Catálogo público com filtros estruturados (Fase 2):** Listagem em grid com card denso, painel de filtros por sistema/dia/tipo/audiência/plataforma/tag/preço/modalidade/nível, busca por Fuse.js. | Em aberto | Bloqueado por REQ-02. Ver `ARQUITETURA_PROJETO.md` seção 7.2. |
 | REQ-05 | 4/5/4 | **Landing page pública do mestre (Fase 2):** Perfil rico com banner, avatar, bio, especialidades por sistema, estatísticas e lista de mesas ativas. | Em aberto | Nunca retornar `deletehash` na rota pública. Ver seção 7.4. |

@@ -12,8 +12,6 @@ router.get('/', async (req: Request, res: Response) => {
     audience,
     price_type,
     experience_level,
-    tag,
-    platform,
     state,
     city,
     featured,
@@ -30,6 +28,8 @@ router.get('/', async (req: Request, res: Response) => {
     let query = db
       .selectFrom('tables as t')
       .leftJoin('gm_profiles as gm', 'gm.id', 't.gm_id')
+      .leftJoin('users as u', 'u.id', 'gm.user_id')
+      .leftJoin('profiles as p', 'p.user_id', 'u.id')
       .leftJoin('systems as s', 's.id', 't.system_id')
       .select([
         't.id',
@@ -56,23 +56,33 @@ router.get('/', async (req: Request, res: Response) => {
         's.slug as system_slug',
         'gm.slug as gm_slug',
         'gm.avatar_url as gm_avatar_url',
+        'p.display_name as gm_display_name',
       ])
       .where('t.status', '=', 'active')
       .orderBy('t.created_at', 'desc')
       .limit(limitNum)
       .offset(offset);
 
-    // Filtros opcionais
-    if (system)           query = query.where('s.slug', '=', system);
-    if (modality)         query = query.where('t.modality', '=', modality as any);
-    if (type)             query = query.where('t.type', '=', type as any);
-    if (audience)         query = query.where('t.audience', '=', audience as any);
-    if (price_type)       query = query.where('t.price_type', '=', price_type as any);
+    if (system) query = query.where('s.slug', '=', system);
+    if (modality) query = query.where('t.modality', '=', modality as any);
+    if (type) query = query.where('t.type', '=', type as any);
+    if (audience) query = query.where('t.audience', '=', audience as any);
+    if (price_type) query = query.where('t.price_type', '=', price_type as any);
     if (experience_level) query = query.where('t.experience_level', '=', experience_level as any);
     if (featured === 'true') query = query.where('t.featured', '=', true);
-    if (state)            query = query.where('t.state', '=', state);
-    if (city)             query = query.where('t.city', 'like', `%${city}%`);
-    if (search)           query = query.where('t.title', 'ilike', `%${search}%`);
+    if (state) query = query.where('t.state', '=', state);
+    if (city) query = query.where('t.city', 'ilike', `%${city}%`);
+
+    if (search) {
+      query = query.where((eb) =>
+        eb.or([
+          eb('t.title', 'ilike', `%${search}%`),
+          eb('t.description', 'ilike', `%${search}%`),
+          eb('s.name', 'ilike', `%${search}%`),
+          eb('p.display_name', 'ilike', `%${search}%`),
+        ])
+      );
+    }
 
     const tables = await query.execute();
 
@@ -98,16 +108,38 @@ router.get('/:slug', async (req: Request, res: Response) => {
     const table = await db
       .selectFrom('tables as t')
       .leftJoin('gm_profiles as gm', 'gm.id', 't.gm_id')
+      .leftJoin('users as u', 'u.id', 'gm.user_id')
+      .leftJoin('profiles as p', 'p.user_id', 'u.id')
       .leftJoin('systems as s', 's.id', 't.system_id')
       .select([
-        't.id', 't.slug', 't.title', 't.description',
-        't.cover_url', 't.status', 't.type', 't.audience',
-        't.modality', 't.price_type', 't.price_value', 't.price_frequency',
-        't.slots_total', 't.slots_filled', 't.language',
-        't.experience_level', 't.starts_at', 't.city', 't.state',
-        't.content_warnings', 't.safety_tools', 't.featured', 't.created_at',
-        's.name as system_name', 's.slug as system_slug',
-        'gm.slug as gm_slug', 'gm.avatar_url as gm_avatar_url',
+        't.id',
+        't.slug',
+        't.title',
+        't.description',
+        't.cover_url',
+        't.status',
+        't.type',
+        't.audience',
+        't.modality',
+        't.price_type',
+        't.price_value',
+        't.price_frequency',
+        't.slots_total',
+        't.slots_filled',
+        't.language',
+        't.experience_level',
+        't.starts_at',
+        't.city',
+        't.state',
+        't.content_warnings',
+        't.safety_tools',
+        't.featured',
+        't.created_at',
+        's.name as system_name',
+        's.slug as system_slug',
+        'gm.slug as gm_slug',
+        'gm.avatar_url as gm_avatar_url',
+        'p.display_name as gm_display_name',
         'gm.bio_long as gm_bio',
       ])
       .where('t.slug', '=', slug)

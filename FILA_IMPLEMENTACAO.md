@@ -6,7 +6,7 @@ Fila operacional para agrupar mudanças antes do deploy no **Anúncios de Mesas 
 
 Documento canônico de execução por lote neste repositório.
 
-Status geral do projeto: **início do zero — infraestrutura e repositório ainda não existem**.
+Status geral do projeto: **Fase 1 concluída** — Fase 2 (Catálogo Público) e Fase 3 (Painel do Mestre) em andamento.
 
 ## Quando ler
 

@@ -164,6 +164,7 @@ A resolução de anúncios duplicados usa prioridade determinística:
 - **Criação de conta:** Automática no primeiro login Google, com onboarding obrigatório de preferências em 3 etapas.
 - **Separação de identidade:** A conta Google alimenta apenas o login. O perfil público (`profiles`, `gm_profiles`) é entidade própria controlada pelo usuário.
 - **Elevação de role:** Um `player` se torna `gm` ao criar seu primeiro `gm_profile`. A elevação é irreversível via interface (requer admin para reverter).
+- **Admin master por e-mail:** O e-mail `paulohenriquercc@gmail.com` deve ser sempre promovido/garantido como role `admin` no Backend durante o login OAuth.
 
 ---
 
@@ -343,10 +344,10 @@ Referência rápida das rotas estruturais da API. Todas as rotas mutáveis exige
 ### Autenticação
 | Método | Rota | Descrição |
 |---|---|---|
-| `GET` | `/auth/google` | Inicia handshake OAuth Google |
-| `GET` | `/auth/google/callback` | Callback OAuth, retorna JWT |
-| `POST` | `/auth/logout` | Invalida refresh token |
-| `GET` | `/auth/me` | Retorna perfil do usuário autenticado |
+| `GET` | `/api/v1/auth/google` | Inicia handshake OAuth Google |
+| `GET` | `/api/v1/auth/google/callback` | Callback OAuth, retorna JWT |
+| `POST` | `/api/v1/auth/logout` | Invalida refresh token |
+| `GET` | `/api/v1/auth/me` | Retorna perfil do usuário autenticado |
 
 ### Mesas
 | Método | Rota | Auth | Descrição |
@@ -648,7 +649,7 @@ DATABASE_URL=postgresql://user:pass@mesas-beta-db:5432/mesas
 # Autenticação
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
-GOOGLE_CALLBACK_URL=https://mesasbeta.artificiorpg.com/auth/google/callback
+GOOGLE_CALLBACK_URL=https://mesasbeta.artificiorpg.com/api/v1/auth/google/callback
 JWT_SECRET=
 JWT_REFRESH_SECRET=
 JWT_EXPIRES_IN=15m

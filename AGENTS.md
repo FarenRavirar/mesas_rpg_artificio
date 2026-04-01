@@ -27,22 +27,27 @@ Nunca pular este arquivo.
 
 - Identificar o tipo de tarefa
 - Carregar `AI_CONTEXT_INDEX.md`
+- Consultar `GUIA_RAPIDO_OPERACIONAL.md` (tabela-resumo + seção aplicável) para reduzir releitura extensa
 
 ## Passos
 
 1. Ler regras base deste arquivo
-2. Ler `ARQUITETURA_PROJETO.md` deste repositório (sua única fonte canônica de arquitetura)
-3. Aplicar roteamento de leitura no `AI_CONTEXT_INDEX.md`
-4. Consultar arquivos canônicos por cenário
+2. Ler `AI_CONTEXT_INDEX.md`
+3. Ler `GUIA_RAPIDO_OPERACIONAL.md` (apenas trecho do cenário ativo)
+4. Ler `ARQUITETURA_PROJETO.md` deste repositório (sua única fonte canônica de arquitetura)
+5. Aplicar roteamento de leitura no `AI_CONTEXT_INDEX.md`
+6. Consultar arquivos canônicos por cenário
 
 ## Leitura obrigatória
 
 1. Sempre iniciar por:
    - `AGENTS.md`
    - `AI_CONTEXT_INDEX.md`
-2. Antes de modificar código:
+2. Atalho de aceleração (apoio):
+   - `GUIA_RAPIDO_OPERACIONAL.md` (tabela + seção do cenário)
+3. Antes de modificar código:
    - `ARQUITETURA_PROJETO.md` (seções relevantes roteadas em `AI_CONTEXT_INDEX.md`)
-3. Consultar por situação:
+4. Consultar por situação:
    - Git/branch/merge/deploy: `GIT_WORKFLOW.md`
    - Operação em produção/beta: `OPERACAO_PRODUCAO.md`
    - Falha de ambiente/encoding/template: `PRE-FLIGHT_CHECKLIST.md`
@@ -85,6 +90,7 @@ Ver pacote mínimo, regras de delta e gate de admissibilidade em `AI_CONTEXT_IND
 - Diagnóstico prévio de ambiente: `PRE-FLIGHT_CHECKLIST.md`
 - Backlog operacional vivo de melhorias e prioridades: `TODO_OPERACIONAL.md`
 - Fila operacional de implementação por lote/ciclo: `FILA_IMPLEMENTACAO.md`
+- Guia de aceleração de leitura (apoio, não canônico): `GUIA_RAPIDO_OPERACIONAL.md`
 
 Se houver conflito entre orientação operacional e arquitetura, prevalece `ARQUITETURA_PROJETO.md`.
 
@@ -189,6 +195,7 @@ Se houver falha de ambiente, leitura de arquivos, encoding ou inconsistência de
 - Mudanças em execução por lote devem manter status consistente em `FILA_IMPLEMENTACAO.md`
 - Toda interação com dados requer comunicação com a API Backend portando token JWT válido
 - Toda operação de imagem (upload, substituição, exclusão) deve ser registrável via `imgur_cleanup_log`
+- Sempre que possível, atualizar `GUIA_RAPIDO_OPERACIONAL.md` por delta ao fim da task quando houver mudança de contrato, checklist, fluxo ou decisão operacional recorrente
 
 ## Rollback
 
@@ -207,6 +214,7 @@ Se houver conflito de interpretação:
 - `ERRORS_SOLUTIONS.md`
 - `TODO_OPERACIONAL.md`
 - `FILA_IMPLEMENTACAO.md`
+- `GUIA_RAPIDO_OPERACIONAL.md`
 
 ## Limite de escopo
 

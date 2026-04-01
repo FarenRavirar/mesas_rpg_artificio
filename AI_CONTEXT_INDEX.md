@@ -22,8 +22,9 @@ Nunca pular este arquivo; ele define o roteiro mínimo de contexto.
 1. Carregar leitura base fixa:
    - `AGENTS.md`
    - `AI_CONTEXT_INDEX.md`
-2. Escolher o cenário na matriz abaixo.
-3. Classificação de Tarefa e Leitura Condicional
+2. Ler `GUIA_RAPIDO_OPERACIONAL.md` (somente tabela-resumo + seção do cenário da tarefa).
+3. Escolher o cenário na matriz abaixo.
+4. Classificação de Tarefa e Leitura Condicional
 
 > [!CAUTION]
 > **REGRA PÉTREA DE TRATAMENTO DE ERROS:**
@@ -83,6 +84,7 @@ Se houver risco material, reduzir escopo, revisar plano e só então executar.
 
 | Cenário | Leitura condicional (ordem) | Não ler quando | Orçamento sugerido de contexto |
 |---|---|---|---|
+| Atalho de leitura rápida (todos os cenários) | `GUIA_RAPIDO_OPERACIONAL.md` (tabela + seção aplicável) → arquivo canônico do cenário | Não usar como fonte única em decisões críticas | 500 a 1.200 tokens |
 | Implementação de código (React/Frontend) | `ARQUITETURA_PROJETO.md` (seções relevantes) → `GIT_WORKFLOW.md` | Não abrir docs de banco sem necessidade direta | 3.500 a 6.500 tokens |
 | Banco de dados / PostgreSQL / Node.js API | `ARQUITETURA_PROJETO.md` seção 4 → `01_schema.sql` | Não abrir arquivos de frontend sem necessidade | 2.500 a 4.500 tokens |
 | Autenticação (Google OAuth / JWT / perfis / elevação de role) | `ARQUITETURA_PROJETO.md` seções 5 e 6 → `GIT_WORKFLOW.md` | Não implementar lógica de permissão no frontend | 2.500 a 4.000 tokens |
@@ -118,6 +120,7 @@ Se houver risco material, reduzir escopo, revisar plano e só então executar.
 | Erros recorrentes e contornos validados | `ERRORS_SOLUTIONS.md` |
 | Backlog operacional de melhorias | `TODO_OPERACIONAL.md` |
 | Fila operacional por lote/ciclo | `FILA_IMPLEMENTACAO.md` |
+| Guia de aceleração de leitura (apoio, não canônico) | `GUIA_RAPIDO_OPERACIONAL.md` |
 
 ## Validação
 
@@ -128,6 +131,7 @@ Se houver risco material, reduzir escopo, revisar plano e só então executar.
 - O gate de admissibilidade deve ser aplicado antes de mudanças não triviais.
 - Em mudanças no backlog operacional, manter ordenação por matriz GUT e snapshot de status real em `TODO_OPERACIONAL.md`.
 - Em execução por lote, manter status dos itens e fechamento de lote atualizados em `FILA_IMPLEMENTACAO.md`.
+- **Sempre que possível**, atualizar `GUIA_RAPIDO_OPERACIONAL.md` por delta ao fim da task quando houver mudança relevante de contrato/fluxo/checklist operacional.
 - **Nunca** processar upload ou deleção de imagem no frontend — toda operação com Imgur é exclusiva do Backend.
 - **Nunca** retornar `deletehash` em rotas públicas da API, sob qualquer circunstância.
 - **Nunca** referenciar fonte de dados estática ou JSON local em runtime — este projeto usa Backend Node.js com banco PostgreSQL.
@@ -149,6 +153,7 @@ Se o roteamento não cobrir um cenário real:
 - `ERRORS_SOLUTIONS.md`
 - `TODO_OPERACIONAL.md`
 - `FILA_IMPLEMENTACAO.md`
+- `GUIA_RAPIDO_OPERACIONAL.md`
 
 ## Limite de escopo
 

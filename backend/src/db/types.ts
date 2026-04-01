@@ -31,6 +31,22 @@ export interface ProfilesTable {
 export type Profile = Selectable<ProfilesTable>;
 export type NewProfile = Insertable<ProfilesTable>;
 
+export interface UserPreferencesTable {
+  id: Generated<string>;
+  user_id: string;
+  systems: Generated<string[]>;
+  tags: Generated<string[]>;
+  languages: Generated<string[]>;
+  platforms: Generated<string[]>;
+  weekdays: Generated<number[]>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export type UserPreference = Selectable<UserPreferencesTable>;
+export type NewUserPreference = Insertable<UserPreferencesTable>;
+export type UserPreferenceUpdate = Updateable<UserPreferencesTable>;
+
 export interface GmProfilesTable {
   id: Generated<string>;
   user_id: string;
@@ -118,6 +134,7 @@ export interface TablesTable {
 export interface Database {
   users: UsersTable;
   profiles: ProfilesTable;
+  user_preferences: UserPreferencesTable;
   gm_profiles: GmProfilesTable;
   systems: SystemsTable;
   tags: TagsTable;

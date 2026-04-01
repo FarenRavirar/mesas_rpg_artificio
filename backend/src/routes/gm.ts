@@ -41,10 +41,10 @@ router.get('/:slug', async (req: Request, res: Response) => {
       .leftJoin('systems as s', 's.id', 't.system_id')
       .select([
         't.id', 't.slug', 't.title', 't.description',
-        't.cover_url', 't.status', 't.modality',
+        't.cover_url', 't.status', 't.type', 't.audience', 't.modality',
         't.price_type', 't.price_value',
         't.slots_total', 't.slots_filled',
-        't.experience_level', 't.featured', 't.created_at',
+        't.language', 't.experience_level', 't.featured', 't.created_at',
         's.name as system_name', 's.slug as system_slug',
       ])
       .where('t.gm_id', '=', gm.id)
