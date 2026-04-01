@@ -22,7 +22,12 @@ export const AuthCallback = () => {
         
         const decoded = JSON.parse(jsonPayload);
         
-        login(token, { id: decoded.userId, role: decoded.role });
+        login(token, { 
+          id: decoded.userId, 
+          role: decoded.role,
+          name: decoded.name,
+          avatar_url: decoded.avatar_url
+        });
         navigate('/');
       } catch (e) {
         console.error('Erro ao decodificar token de callback:', e);

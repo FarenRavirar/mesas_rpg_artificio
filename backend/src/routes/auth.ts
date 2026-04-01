@@ -117,10 +117,29 @@ router.get('/google/callback', async (req: Request, res: Response) => {
       throw new Error("Erro catastrófico ao gerar usuário.");
     }
 
+    // 3.5 Buscar informações extras de perfil para o FrontEnd
+    const profile = await db.selectFrom('profiles')
+      .select('display_name')
+      .where('user_id', '=', user.id as string)
+      .executeTakeFirst();
+
+    let avatarUrl = userInfo.picture || null;
+    if (user.role === 'gm') {
+      const gmProfile = await db.selectFrom('gm_profiles')
+        .select('avatar_url')
+        .where('user_id', '=', user.id as string)
+        .executeTakeFirst();
+      if (gmProfile && gmProfile.avatar_url) {
+        avatarUrl = gmProfile.avatar_url;
+      }
+    }
+
     // 4. Gerar JWT de Sessão (Access Token)
     const jwtPayload: object = {
       userId: user.id as string,
-      role: user.role
+      role: user.role,
+      name: profile?.display_name || userInfo.name || 'Jogador',
+      avatar_url: avatarUrl
     };
 
     const accessToken = jwt.sign(jwtPayload, process.env.JWT_SECRET as string, {

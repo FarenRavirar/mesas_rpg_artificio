@@ -96,7 +96,7 @@ function TableCardComponent({ table }: { table: TableCard }) {
 // ───── Página Principal ───────────────────────────────────────────────────────
 
 export const HomePage = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [searchInput, setSearchInput] = useState('');
   const [activeSearch, setActiveSearch] = useState('');
 
@@ -122,11 +122,45 @@ export const HomePage = () => {
 
           <div className="flex items-center space-x-4">
             {user ? (
-              <div className="flex items-center space-x-3 bg-white/10 px-4 py-2 rounded-full border border-white/5">
-                <div className="w-8 h-8 rounded-full bg-[var(--color-artificio-orange)] text-sm flex items-center justify-center font-bold">
-                  {user.role[0].toUpperCase()}
+              <div className="flex items-center space-x-4">
+                <a 
+                  href={user.role === 'gm' ? '/painel' : '#'}
+                  className="hidden md:flex items-center space-x-2 text-sm text-white/70 hover:text-white transition-colors"
+                >
+                  {user.role === 'gm' ? 'Painel do Mestre' : 'Meu Perfil'}
+                </a>
+                
+                <div className="group relative">
+                  <button className="flex items-center space-x-3 bg-white/5 hover:bg-white/10 px-2 py-2 pr-4 rounded-full border border-white/10 transition-colors cursor-pointer">
+                    {user.avatar_url ? (
+                      <img src={user.avatar_url} alt="Avatar" className="w-8 h-8 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-[var(--color-artificio-orange)] text-sm flex items-center justify-center font-bold">
+                        {user.name ? user.name.charAt(0).toUpperCase() : user.role.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <span className="text-sm font-medium pr-1 truncate max-w-[120px]">
+                      {user.name || 'Jogador'}
+                    </span>
+                  </button>
+
+                  <div className="absolute right-0 mt-2 w-48 bg-[#1B2A4A] border border-white/10 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 overflow-hidden">
+                    <button 
+                      onClick={() => {
+                        window.location.href = '/painel';
+                      }}
+                       className="w-full text-left px-5 py-3 text-sm text-white/80 hover:text-white hover:bg-white/5 transition-colors border-b border-white/5"
+                    >
+                      {user.role === 'gm' ? 'Painel do Mestre' : 'Torne-se um Mestre'}
+                    </button>
+                    <button 
+                      onClick={() => logout()}
+                       className="w-full text-left px-5 py-3 text-sm text-red-400 hover:text-red-300 hover:bg-red-400/10 transition-colors"
+                    >
+                      Sair
+                    </button>
+                  </div>
                 </div>
-                <span className="text-sm font-medium capitalize">{user.role}</span>
               </div>
             ) : (
               <button

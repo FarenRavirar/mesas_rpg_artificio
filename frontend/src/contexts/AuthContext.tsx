@@ -4,6 +4,8 @@ import type { ReactNode } from 'react';
 export interface User {
   id: string;
   role: 'visitor' | 'player' | 'gm' | 'admin';
+  name?: string;
+  avatar_url?: string;
 }
 
 interface AuthContextType {
@@ -42,7 +44,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const decodedInfo = parseJwt(storedToken);
       if (decodedInfo && decodedInfo.exp * 1000 > Date.now()) {
         setToken(storedToken);
-        setUser({ id: decodedInfo.userId, role: decodedInfo.role });
+        setUser({ 
+          id: decodedInfo.userId, 
+          role: decodedInfo.role, 
+          name: decodedInfo.name, 
+          avatar_url: decodedInfo.avatar_url 
+        });
       } else {
         localStorage.removeItem('@ArtificioMesas:token');
       }
