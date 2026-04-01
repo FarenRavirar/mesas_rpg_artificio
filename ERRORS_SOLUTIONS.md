@@ -43,8 +43,8 @@ Use para localizar o erro sem varrer a tabela inteira:
 | Docker / Containers / Rede | E038, E039, E057 |
 | Git / Versionamento | E036, E071, E072 |
 | TypeScript / Frontend / Build | E041, E042, E046, E067, E074 |
-| Banco de Dados / SQL / PostgreSQL | E043, E049, E054, E059, E064, E065, E068, E075 |
-| Ferramentas automatizadas / Agentes | E045, E050, E051, E052, E053, E058, E060, E061, E062, E063, E066, E070, E073, E076 |
+| Banco de Dados / SQL / PostgreSQL | E043, E049, E054, E059, E064, E065, E068, E075, E086 |
+| Ferramentas automatizadas / Agentes | E045, E050, E051, E052, E053, E058, E060, E061, E062, E063, E066, E070, E073, E076, E085 |
 | Backend / API Node.js | E078 |
 | Imgur / Upload de Imagens | E079, E080, E081 |
 | AggregatorBot / CleanupWorker | E082, E083, E084 |
@@ -107,6 +107,7 @@ Use para localizar o erro sem varrer a tabela inteira:
 | E065 | `column reference "<coluna>" is ambiguous` em query com múltiplos JOINs | Coluna usada sem prefixo de alias em contexto com tabelas que compartilham o mesmo nome de coluna | `psql` acusa ambiguidade na cláusula `ORDER BY` ou `SELECT` | Prefixar explicitamente com alias da tabela correta (ex.: `ORDER BY t.created_at`) | Em queries com JOIN, sempre qualificar `ORDER BY`, filtros e colunas repetidas com alias |
 | E068 | Falha no merge beta→prod com `insert or update violates foreign key constraint` durante restore `--data-only` | Dump com tabelas autorreferenciadas pode inserir fora de ordem quando há FKs circulares | `pg_dump` já alerta "circular foreign-key constraints"; restore aborta | Executar import com `SET session_replication_role = replica;` antes dos inserts e retornar para `origin` ao final | Em consolidações com `pg_dump --data-only`, sempre tratar tabelas autorreferenciadas |
 | E075 | `ERROR: function min(uuid) does not exist` em migration de backfill | PostgreSQL não expõe agregado `min` para `uuid` na forma usada, quebrando CTE de deduplicação | Execução da migration falha com rollback | Substituir `min(uuid)` por seleção determinística com `DISTINCT ON (...) ORDER BY id` | Em migrations com UUID, evitar agregadores numéricos; preferir seleção ordenada e explícita |
+| E086 | API 502 / `Database connection failed: Invalid URL` no healthcheck | Caractere especial (ex: `#`) na senha `POSTGRES_PASSWORD` injetado diretamente na montagem da `DATABASE_URL` no `docker-compose.yml` quebrando o parse da URI | Log de erro acusa `Invalid URL` ao criar Connection Pool | Remover a composição da URI do arquivo Docker Compose e repassar `${DATABASE_URL}` inteira já encodada pelo `.env` (onde `#` vira `%23`) | Nunca interpolar variáveis de senha com possíveis símbolos especiais (como `#` e `@`) dentro de URIs sem *url-encoding* prévio |
 
 ---
 
@@ -128,6 +129,7 @@ Use para localizar o erro sem varrer a tabela inteira:
 | E070 | `rg: *.md ... os error 123` ao rodar ripgrep no PowerShell com glob literal | No Windows/PowerShell, `*.md` como argumento literal pode gerar erro de sintaxe de caminho | Comando falha com "A sintaxe do nome do arquivo... está incorreta. (os error 123)" | Rodar `rg` sem glob literal no path (ex.: `rg -n "<padrao>" -g "*.md"` ou `rg -n "<padrao>" .`) | Em Windows, preferir `-g` para filtros de extensão e usar `.` como raiz de busca |
 | E073 | `The term 'docker' is not recognized...` ao executar comandos Docker no host Windows | Docker CLI não está instalado no host local ou não está no `PATH` | PowerShell falha imediatamente ao chamar `docker ps` | Para operação dos ambientes do projeto, executar comandos Docker via SSH na VM Oracle (`ssh -F C:\\projetos\\config faren`) | Em validações de runtime, assumir como padrão o diagnóstico remoto na VM e não depender do host local |
 | E076 | `Cannot process command because of one or more missing mandatory parameters: InputObject` ao usar `echo` em PowerShell | Em algumas sessões/policies, `echo` sem argumento entre comandos encadeados dispara erro de parâmetro obrigatório | Execução retorna stack do `Write-Output` após comando com `echo;` vazio | Evitar `echo` vazio; usar `Write-Host ''` ou executar os comandos separadamente | Em scripts PowerShell de diagnóstico, não usar `echo` sem argumento explícito |
+| E085 | `grep: The term 'grep' is not recognized` ou `<comando>: command not found` no shell local | Comando exclusivo de bash Linux executado acidentalmente no terminal PowerShell do Host | O terminal recusa com `term is not recognized as a name of a cmdlet` | Substituir por utilitários equivalentes nativos (ex: `Select-String` no lugar de `grep`, exclusão com vírgulas no `rm`) | Ter constante ciência se o terminal instanciado é o Host (PowerShell) ou remote SSH (Bash) antes de executar comandos Linux |
 
 ---
 
