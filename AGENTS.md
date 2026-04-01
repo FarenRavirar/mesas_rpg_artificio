@@ -129,6 +129,10 @@ Elementos técnicos podem permanecer no formato original:
 
 Antes de iniciar qualquer alteração de código, consultar e seguir `GIT_WORKFLOW.md`.
 
+> [!CAUTION]
+> **REGRA PÉTREA DE ECONOMIA DE TOKENS E TEMPO:**
+> NENHUM `git commit` ou `git push` deve ser gerado, executado ou agendado pelo agente sem a prévia autorização explícita do usuário no chat. O agente deve realizar as edições locais e parar, aguardando o usuário revisar e aprovar o escopo das alterações antes de realizar o commit daquele pacote e seu push.
+
 **Branch de desenvolvimento:** `dev` → deploy automático em `mesasbeta.artificiorpg.com`
 **Branch de produção:** `main` → deploy automático em `mesas.artificiorpg.com`
 **Fluxo:** `feature/<escopo>` → `dev` (beta) → aprovação → `main` (produção)
