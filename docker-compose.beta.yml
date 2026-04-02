@@ -6,8 +6,8 @@ services:
       dockerfile: Dockerfile
     container_name: mesas-beta-app
     restart: always
-    ports:
-      - "30302:80"
+    expose:
+      - "80"
     networks:
       - gerenciador_telegram_default
     environment:
