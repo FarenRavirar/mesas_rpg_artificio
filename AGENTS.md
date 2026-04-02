@@ -26,27 +26,24 @@ Nunca pular este arquivo.
 ## Pré-requisitos
 
 - Identificar o tipo de tarefa
-- Carregar `AI_CONTEXT_INDEX.md`
 - Consultar `GUIA_RAPIDO_OPERACIONAL.md` (tabela-resumo + seção aplicável) para reduzir releitura extensa
+- Evitar loops de análise sem objetivo claro (obrigatório)
 
 ## Passos
 
 1. Ler regras base deste arquivo
-2. Ler `AI_CONTEXT_INDEX.md`
-3. Ler `GUIA_RAPIDO_OPERACIONAL.md` (apenas trecho do cenário ativo)
-4. Ler `ARQUITETURA_PROJETO.md` deste repositório (sua única fonte canônica de arquitetura)
-5. Aplicar roteamento de leitura no `AI_CONTEXT_INDEX.md`
-6. Consultar arquivos canônicos por cenário
+2. Ler `GUIA_RAPIDO_OPERACIONAL.md` (apenas trecho do cenário ativo)
+3. Ler `ARQUITETURA_PROJETO.md` deste repositório (sua única fonte canônica de arquitetura)
+4. Consultar arquivos canônicos por cenário
 
 ## Leitura obrigatória
 
 1. Sempre iniciar por:
    - `AGENTS.md`
-   - `AI_CONTEXT_INDEX.md`
 2. Atalho de aceleração (apoio):
    - `GUIA_RAPIDO_OPERACIONAL.md` (tabela + seção do cenário)
 3. Antes de modificar código:
-   - `ARQUITETURA_PROJETO.md` (seções relevantes roteadas em `AI_CONTEXT_INDEX.md`)
+   - `ARQUITETURA_PROJETO.md`
 4. Consultar por situação:
    - Git/branch/merge/deploy: `GIT_WORKFLOW.md`
    - Operação em produção/beta: `OPERACAO_PRODUCAO.md`
@@ -76,14 +73,9 @@ Nunca produzir código sem:
 4. Executar mudança mínima
 5. Manter comunicação em português
 
-## Protocolo de continuidade de sessão
-
-Ver pacote mínimo, regras de delta e gate de admissibilidade em `AI_CONTEXT_INDEX.md`.
-
 ## Fonte de verdade (single source of truth)
 
 - Arquitetura, contratos, princípios visuais e decisões: `ARQUITETURA_PROJETO.md`
-- Roteamento de leitura e orçamento de contexto: `AI_CONTEXT_INDEX.md`
 - Fluxo de Git/merge/deploy: `GIT_WORKFLOW.md`
 - Operação de produção/beta e validação pós-deploy: `OPERACAO_PRODUCAO.md`
 - Falhas recorrentes e soluções validadas: `ERRORS_SOLUTIONS.md`
@@ -200,13 +192,12 @@ Se houver falha de ambiente, leitura de arquivos, encoding ou inconsistência de
 ## Rollback
 
 Se houver conflito de interpretação:
-1. Usar apenas `AGENTS.md` + `AI_CONTEXT_INDEX.md` + `ARQUITETURA_PROJETO.md`
+1. Usar apenas `AGENTS.md` + `ARQUITETURA_PROJETO.md`
 2. Registrar lacuna em `TODO_OPERACIONAL.md`
 3. Aplicar ajuste mínimo de documentação
 
 ## Referências
 
-- `AI_CONTEXT_INDEX.md`
 - `ARQUITETURA_PROJETO.md`
 - `GIT_WORKFLOW.md`
 - `OPERACAO_PRODUCAO.md`

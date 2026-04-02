@@ -12,7 +12,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (token: string, userPayload: User) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -37,6 +37,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const clearSession = useCallback(() => {
+    setToken(null);
+    setUser(null);
+    localStorage.removeItem('@ArtificioMesas:token');
+  }, []);
+
   useEffect(() => {
     // Tenta inicializar via localStorage na carga inicial
     const storedToken = localStorage.getItem('@ArtificioMesas:token');
@@ -44,11 +50,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const decodedInfo = parseJwt(storedToken);
       if (decodedInfo && decodedInfo.exp * 1000 > Date.now()) {
         setToken(storedToken);
-        setUser({ 
-          id: decodedInfo.userId, 
-          role: decodedInfo.role, 
-          name: decodedInfo.name, 
-          avatar_url: decodedInfo.avatar_url 
+        setUser({
+          id: decodedInfo.userId,
+          role: decodedInfo.role,
+          name: decodedInfo.name,
+          avatar_url: decodedInfo.avatar_url,
         });
       } else {
         localStorage.removeItem('@ArtificioMesas:token');
@@ -63,11 +69,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('@ArtificioMesas:token', newToken);
   }, []);
 
-  const logout = useCallback(() => {
-    setToken(null);
-    setUser(null);
-    localStorage.removeItem('@ArtificioMesas:token');
-  }, []);
+  const logout = useCallback(async () => {
+    try {
+      if (token) {
+        await fetch('/api/v1/auth/logout', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      }
+    } catch (error) {
+      console.warn('Falha ao comunicar logout com a API. Limpando sessão local mesmo assim.', error);
+    } finally {
+      clearSession();
+    }
+  }, [clearSession, token]);
 
   return (
     <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>

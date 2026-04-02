@@ -13,6 +13,7 @@ const DDAL_ELIGIBLE_PATH = 'dungeons-dragons/5e/2024';
 interface GmProfile {
   id: string;
   slug: string;
+  nickname: string | null;
   bio_long: string | null;
   avatar_url: string | null;
   languages: string[];
@@ -80,6 +81,16 @@ const flattenTree = (nodes: SystemTreeNode[], breadcrumb: string[] = []): Flatte
   }
 
   return flattened;
+};
+
+const slugifyFromNickname = (value: string): string => {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-{2,}/g, '-');
 };
 
 function InputField({ label, id, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string }) {
@@ -520,8 +531,18 @@ function CreateTableForm({ token, onSuccess }: CreateTableFormProps) {
 function CreateGmProfileForm({ token, onSuccess }: { token: string; onSuccess: () => void }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [nickname, setNickname] = useState('');
   const [slug, setSlug] = useState('');
+  const [slugEdited, setSlugEdited] = useState(false);
   const [bio, setBio] = useState('');
+
+  useEffect(() => {
+    if (!slugEdited) {
+      setSlug(slugifyFromNickname(nickname));
+    }
+  }, [nickname, slugEdited]);
+
+  const suggestedSlug = slugifyFromNickname(nickname);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -532,7 +553,7 @@ function CreateGmProfileForm({ token, onSuccess }: { token: string; onSuccess: (
       const res = await fetch('/api/v1/gm/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ slug, bio_long: bio }),
+        body: JSON.stringify({ slug, nickname, bio_long: bio }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Erro desconhecido');
@@ -550,14 +571,41 @@ function CreateGmProfileForm({ token, onSuccess }: { token: string; onSuccess: (
         Para publicar mesas, você precisa criar seu perfil de Mestre. Escolha um identificador único — ele vai aparecer na URL do seu perfil.
       </p>
       <InputField
+        label="Nick público *"
+        id="gm-nickname"
+        value={nickname}
+        onChange={(e) => setNickname(e.target.value)}
+        placeholder="Ex: Mestre Corvo"
+        minLength={2}
+        maxLength={40}
+        required
+      />
+
+      <InputField
         label="Identificador (slug) *"
         id="gm-slug"
         value={slug}
-        onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-        placeholder="ex: mestre-joao"
+        onChange={(e) => {
+          setSlugEdited(true);
+          setSlug(slugifyFromNickname(e.target.value));
+        }}
+        placeholder="ex: mestre-corvo"
         required
       />
       <p className="text-xs text-white/30 -mt-2">Apenas letras minúsculas, números e hífens. Não pode ser alterado depois.</p>
+      {slugEdited && suggestedSlug && suggestedSlug !== slug && (
+        <button
+          type="button"
+          id="btn-gm-slug-usar-sugestao"
+          onClick={() => {
+            setSlug(suggestedSlug);
+            setSlugEdited(false);
+          }}
+          className="text-left text-xs text-[var(--color-artificio-orange)] hover:text-[var(--color-artificio-orange-hover)] transition-colors"
+        >
+          Usar sugestão automática: {suggestedSlug}
+        </button>
+      )}
       <div className="flex flex-col gap-1">
         <label htmlFor="gm-bio" className="text-sm font-medium text-white/70">Bio (opcional)</label>
         <textarea
@@ -715,7 +763,7 @@ export const PainelMestrePage = () => {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h1 className="text-3xl font-extrabold">
-                  {gmProfile ? `Olá, @${gmProfile.slug}` : 'Painel do Mestre'}
+                  {gmProfile ? `Olá, ${gmProfile.nickname ?? `@${gmProfile.slug}`}` : 'Painel do Mestre'}
                 </h1>
                 {gmProfile && (
                   <p className="text-white/40 mt-1 text-sm">

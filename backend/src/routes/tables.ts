@@ -63,7 +63,7 @@ router.get('/', async (req: Request, res: Response) => {
         'gm.slug as gm_slug',
         'gm.avatar_url as gm_avatar_url',
         'gm.badges as gm_badges',
-        'p.display_name as gm_display_name',
+        sql<string>`COALESCE(gm.nickname, p.display_name)`.as('gm_display_name'),
       ])
       .where('t.status', '=', 'active')
       .orderBy('t.created_at', 'desc')
@@ -92,14 +92,13 @@ router.get('/', async (req: Request, res: Response) => {
     }
 
     if (search) {
-      query = query.where((eb) =>
-        eb.or([
-          eb('t.title', 'ilike', `%${search}%`),
-          eb('t.description', 'ilike', `%${search}%`),
-          eb('s.name', 'ilike', `%${search}%`),
-          eb('p.display_name', 'ilike', `%${search}%`),
-        ])
-      );
+      const safeSearch = `%${search}%`;
+      query = query.where(sql<boolean>`(
+        t.title ILIKE ${safeSearch}
+        OR t.description ILIKE ${safeSearch}
+        OR s.name ILIKE ${safeSearch}
+        OR COALESCE(gm.nickname, p.display_name) ILIKE ${safeSearch}
+      )`);
     }
 
     const tables = await query.execute();
@@ -168,7 +167,7 @@ router.get('/:slug', async (req: Request, res: Response) => {
         'gm.slug as gm_slug',
         'gm.avatar_url as gm_avatar_url',
         'gm.badges as gm_badges',
-        'p.display_name as gm_display_name',
+        sql<string>`COALESCE(gm.nickname, p.display_name)`.as('gm_display_name'),
         'gm.bio_long as gm_bio',
       ])
       .where('t.slug', '=', slug)

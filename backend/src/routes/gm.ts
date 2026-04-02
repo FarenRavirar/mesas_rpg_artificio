@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { sql } from 'kysely';
 import { db } from '../db';
 
 const router = Router();
@@ -15,7 +16,7 @@ router.get('/:slug', async (req: Request, res: Response) => {
       .select([
         'gm.id',
         'gm.slug',
-        'p.display_name',
+        sql<string>`COALESCE(gm.nickname, p.display_name)`.as('display_name'),
         'gm.bio_long',
         'gm.avatar_url',
         'gm.banner_url',

@@ -181,7 +181,6 @@ Se um item do lote falhar:
 ## Referências
 
 - `GIT_WORKFLOW.md`
-- `AI_CONTEXT_INDEX.md`
 - `ARQUITETURA_PROJETO.md`
 
 ## Limite de escopo

@@ -17,6 +17,20 @@ const sanitizeOptionalText = (value: unknown): string | null => {
   return normalized.length > 0 ? normalized : null;
 };
 
+const sanitizeNickname = (value: unknown): string | null => {
+  if (typeof value !== 'string') return null;
+
+  const normalized = value
+    .trim()
+    .replace(/\s+/g, ' ');
+
+  if (normalized.length < 2 || normalized.length > 40) {
+    return null;
+  }
+
+  return normalized;
+};
+
 const sanitizeOptionalTier = (value: unknown): number | null => {
   const parsed = Number(value);
   if (!Number.isInteger(parsed)) return null;
@@ -51,9 +65,14 @@ const isDdalEligibleSystem = async (systemId: string): Promise<boolean> => {
 router.post('/profile', authMiddleware, async (req: Request, res: Response) => {
   const userId = (req as any).user.userId;
 
-  const { slug, bio_long, languages, specialties, badges } = req.body;
+  const { slug, nickname, bio_long, languages, specialties, badges } = req.body;
   if (!slug || typeof slug !== 'string' || !/^[a-z0-9-]+$/.test(slug)) {
     return res.status(400).json({ error: 'Slug inválido. Use apenas letras minúsculas, números e hífens.' });
+  }
+
+  const safeNickname = sanitizeNickname(nickname);
+  if (!safeNickname) {
+    return res.status(400).json({ error: 'Nickname inválido. Use entre 2 e 40 caracteres.' });
   }
 
   const safeLanguages = sanitizeStringArray(languages);
@@ -76,12 +95,13 @@ router.post('/profile', authMiddleware, async (req: Request, res: Response) => {
       .values({
         user_id: userId,
         slug,
+        nickname: safeNickname,
         bio_long: bio_long ?? null,
         languages: safeLanguages,
         specialties: safeSpecialties,
         badges: safeBadges,
       })
-      .returning(['id', 'slug', 'bio_long', 'avatar_url', 'languages', 'specialties', 'badges', 'created_at'])
+      .returning(['id', 'slug', 'nickname', 'bio_long', 'avatar_url', 'languages', 'specialties', 'badges', 'created_at'])
       .execute();
 
     await db

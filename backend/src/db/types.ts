@@ -52,6 +52,7 @@ export interface GmProfilesTable {
   id: Generated<string>;
   user_id: string;
   slug: string;
+  nickname: string | null;
   bio_long: string | null;
   avatar_url: string | null;
   avatar_deletehash: string | null;

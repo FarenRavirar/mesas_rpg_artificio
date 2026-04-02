@@ -1,0 +1,27 @@
+import type { ReactNode } from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+
+interface ProtectedRouteProps {
+  children: ReactNode;
+}
+
+export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
+  const { token, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <main className="min-h-screen bg-[var(--color-artificio-blue)] text-white flex items-center justify-center">
+        <div id="protected-route-loading" className="animate-pulse text-white/70">
+          Validando sessão...
+        </div>
+      </main>
+    );
+  }
+
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+};

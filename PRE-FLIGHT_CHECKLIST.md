@@ -43,7 +43,6 @@ docker ps | grep mesas-beta
 
 Verificar existência na raiz do repositório:
 - `AGENTS.md`
-- `AI_CONTEXT_INDEX.md`
 - `ARQUITETURA_PROJETO.md`
 - `GIT_WORKFLOW.md`
 - `OPERACAO_PRODUCAO.md`
@@ -124,7 +123,7 @@ Para interpretação de sinais de problema e soluções, ver `ERRORS_SOLUTIONS.m
 
 ### 10. Gate anti-retrabalho antes de nova tentativa
 
-Aplicar o gate de admissibilidade canônico de `AI_CONTEXT_INDEX.md` antes de qualquer nova tentativa.
+Aplicar o gate de admissibilidade canônico de `AGENTS.MD` antes de qualquer nova tentativa.
 
 ### 11. Checklist de segurança da API
 
@@ -164,7 +163,6 @@ Se qualquer etapa falhar:
 ## Referências
 
 - `AGENTS.md`
-- `AI_CONTEXT_INDEX.md`
 - `ERRORS_SOLUTIONS.md`
 - `OPERACAO_PRODUCAO.md`
 - `ARQUITETURA_PROJETO.md`

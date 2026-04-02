@@ -4,7 +4,7 @@ Resumo executivo para reduzir custo de contexto dos agentes, com navegação rá
 
 > [!IMPORTANT]
 > Este guia **não substitui** os arquivos canônicos.
-> Em caso de conflito, prevalecem: `AGENTS.md` → `AI_CONTEXT_INDEX.md` → `ARQUITETURA_PROJETO.md`.
+> Em caso de conflito, prevalecem: `AGENTS.md` → `ARQUITETURA_PROJETO.md`.
 
 ---
 

@@ -24,12 +24,11 @@ Antes de qualquer mudança que afete arquitetura, banco de dados, autenticação
 
 ## Não ler quando
 
-Para ajustes estritamente locais de componente sem impacto estrutural, usar as premissas em `AI_CONTEXT_INDEX.md`.
+Para ajustes estritamente locais de componente sem impacto estrutural, usar as premissas em `AGENTS.md`.
 
 ## Pré-requisitos
 
 - `AGENTS.md`
-- `AI_CONTEXT_INDEX.md`
 
 ## Procedimento obrigatório antes de qualquer implementação
 
@@ -777,11 +776,10 @@ Rodando via node-cron junto ao AggregatorBot, o `CleanupWorker` executa diariame
 | Documento | Finalidade |
 |---|---|
 | `AGENTS.md` | Instruções de comportamento para agentes de IA no projeto |
-| `AI_CONTEXT_INDEX.md` | Índice de contexto rápido para ajustes locais |
 | `ERRORS_SOLUTIONS.md` | Registro de erros conhecidos e suas soluções |
 | `CHANGELOG.md` | Histórico de versões e mudanças relevantes |
 | `docker-compose.yml` | Definição dos serviços: API, PostgreSQL, Nginx, AggregatorBot |
-
+| `arvores_de_sistemas.md` | precisa ser copiado manualmente para o container após rebuild: `scp ... faren:/tmp/ && docker cp /tmp/arvores_de_sistemas.md mesas-beta-api:/app/`. O arquivo não é copiado automaticamente pelo estágio `production` do Dockerfile ainda.
 ---
 
 > **Lembre-se:** Este é um presente do Artifício RPG para a comunidade brasileira de RPG.
