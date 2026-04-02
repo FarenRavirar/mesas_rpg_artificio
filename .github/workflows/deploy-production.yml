@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
 jobs:
   deploy:
     name: Deploy para mesas.artificiorpg.com
@@ -33,11 +37,17 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            set -e
             cd /opt/mesas
-            docker compose -f docker-compose.prod.yml down
-            docker compose -f docker-compose.prod.yml build --no-cache
-            docker compose -f docker-compose.prod.yml up -d
+
+            docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
+
             echo "--- Aguardando containers estabilizarem ---"
             sleep 10
+
             docker compose -f docker-compose.prod.yml ps
             docker compose -f docker-compose.prod.yml logs --tail=30 mesas-app
+            docker compose -f docker-compose.prod.yml logs --tail=30 mesas-api
+
+            echo "--- Limpeza leve de imagens sem uso ---"
+            docker image prune -f
