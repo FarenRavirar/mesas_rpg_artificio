@@ -46,14 +46,19 @@ const extractMarkdownNodes = (markdown: string): ParsedTreeNode[] => {
   const nodes: ParsedTreeNode[] = [];
 
   for (const rawLine of lines) {
-    const match = rawLine.match(/^(\s*)(.+?)\s+\[\[(.+)\]\]\s*$/);
+    const match = rawLine.match(/^(\s*)(.+?)\s+(\[\[.+\]\])\s*$/);
     if (!match) continue;
 
-    const [, spaces, rawLabel, rawArray] = match;
+    const [, spaces, rawLabel, rawMetadataPayload] = match;
     let metadata: unknown[];
 
     try {
-      metadata = JSON.parse(rawArray) as unknown[];
+      const parsedPayload = JSON.parse(rawMetadataPayload) as unknown;
+      if (!Array.isArray(parsedPayload) || parsedPayload.length === 0 || !Array.isArray(parsedPayload[0])) {
+        continue;
+      }
+
+      metadata = parsedPayload[0] as unknown[];
     } catch {
       continue;
     }
