@@ -20,8 +20,8 @@ services:
   # BACKEND (Node.js API + AggregatorBot + CleanupWorker via node-cron)
   mesas-beta-api:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: mesas-beta-api
     restart: always
     expose:
