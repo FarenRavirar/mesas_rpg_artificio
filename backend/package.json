@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node dist/server.js",
     "build": "tsc",
-    "dev": "nodemon src/server.ts"
+    "dev": "nodemon src/server.ts",
+    "systems:import-tree": "ts-node src/scripts/systemsTreeImport.ts"
   },
   "keywords": [],
   "author": "",

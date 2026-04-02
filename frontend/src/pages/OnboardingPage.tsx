@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Compass, CheckCircle2, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, ChevronRight, Compass, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { SystemTreeSelector } from '../components/SystemTreeSelector';
+import type { SystemTreeNode } from '../types/systems';
 import { applySeo } from '../utils/seo';
 
 interface OptionItem {
@@ -31,6 +33,7 @@ interface MePayload {
 interface OptionsPayload {
   data: {
     systems: OptionItem[];
+    systems_tree?: SystemTreeNode[];
     tags: OptionItem[];
     platforms: OptionItem[];
   };
@@ -53,6 +56,23 @@ const toggleArrayValue = <T,>(list: T[], value: T): T[] => {
   return [...list, value];
 };
 
+const flattenSystemTree = (nodes: SystemTreeNode[]): SystemTreeNode[] => {
+  const result: SystemTreeNode[] = [];
+
+  const visit = (node: SystemTreeNode) => {
+    result.push(node);
+    for (const child of node.children) {
+      visit(child);
+    }
+  };
+
+  for (const node of nodes) {
+    visit(node);
+  }
+
+  return result;
+};
+
 export const OnboardingPage = () => {
   const navigate = useNavigate();
   const { user, token } = useAuth();
@@ -62,8 +82,8 @@ export const OnboardingPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [options, setOptions] = useState<{ systems: OptionItem[]; tags: OptionItem[]; platforms: OptionItem[] }>({
-    systems: [],
+  const [options, setOptions] = useState<{ systemsTree: SystemTreeNode[]; tags: OptionItem[]; platforms: OptionItem[] }>({
+    systemsTree: [],
     tags: [],
     platforms: [],
   });
@@ -115,7 +135,12 @@ export const OnboardingPage = () => {
           return;
         }
 
-        setOptions(optionsJson.data);
+        setOptions({
+          systemsTree: optionsJson.data.systems_tree ?? [],
+          tags: optionsJson.data.tags ?? [],
+          platforms: optionsJson.data.platforms ?? [],
+        });
+
         setForm({
           display_name: meJson.data.profile?.display_name ?? user.name ?? '',
           bio: meJson.data.profile?.bio ?? '',
@@ -138,11 +163,13 @@ export const OnboardingPage = () => {
     loadData();
   }, [navigate, token, user]);
 
-  const filteredSystems = useMemo(() => {
-    const search = systemSearch.trim().toLowerCase();
-    if (!search) return options.systems;
-    return options.systems.filter((system) => system.name.toLowerCase().includes(search));
-  }, [options.systems, systemSearch]);
+  const systemLabelById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const node of flattenSystemTree(options.systemsTree)) {
+      map.set(node.id, node.name);
+    }
+    return map;
+  }, [options.systemsTree]);
 
   const canNextFromStep1 = form.display_name.trim().length >= 2;
   const canNextFromStep2 = form.systems.length > 0;
@@ -260,30 +287,15 @@ export const OnboardingPage = () => {
               <h2 className="text-xl font-bold">Etapa 2 · Suas preferências</h2>
 
               <div>
-                <label htmlFor="onboarding-system-search" className="text-sm text-white/70 block mb-2">Sistemas favoritos * (mínimo 1)</label>
-                <input
-                  id="onboarding-system-search"
-                  value={systemSearch}
-                  onChange={(e) => setSystemSearch(e.target.value)}
-                  placeholder="Buscar sistema..."
-                  className="mb-3 w-full rounded-xl border border-white/15 bg-[#13213f] px-4 py-3 outline-none focus:border-[var(--color-artificio-orange)]"
+                <label className="text-sm text-white/70 block mb-2">Sistemas favoritos * (mínimo 1)</label>
+                <SystemTreeSelector
+                  tree={options.systemsTree}
+                  selectedIds={form.systems}
+                  onToggle={(systemId) => setForm((prev) => ({ ...prev, systems: toggleArrayValue(prev.systems, systemId) }))}
+                  search={systemSearch}
+                  onSearchChange={setSystemSearch}
+                  idPrefix="onboarding-systems"
                 />
-                <div className="grid md:grid-cols-3 gap-2 max-h-56 overflow-auto pr-1">
-                  {filteredSystems.map((system) => {
-                    const selected = form.systems.includes(system.id);
-                    return (
-                      <button
-                        key={system.id}
-                        id={`onboarding-system-${system.slug}`}
-                        type="button"
-                        onClick={() => setForm((prev) => ({ ...prev, systems: toggleArrayValue(prev.systems, system.id) }))}
-                        className={`text-left px-3 py-2 rounded-lg border transition-colors ${selected ? 'bg-[var(--color-artificio-orange)]/20 border-[var(--color-artificio-orange)] text-white' : 'bg-white/5 border-white/10 text-white/80 hover:border-white/25'}`}
-                      >
-                        {system.name}
-                      </button>
-                    );
-                  })}
-                </div>
               </div>
 
               <div>
@@ -377,6 +389,18 @@ export const OnboardingPage = () => {
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                   <p className="text-white/60 mb-1">Sistemas favoritos</p>
                   <p className="font-semibold">{form.systems.length} selecionado(s)</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4 md:col-span-2">
+                  <p className="text-white/60 mb-1">Exemplo dos sistemas selecionados</p>
+                  <p className="font-semibold text-white/90">
+                    {form.systems.length === 0
+                      ? 'Nenhum sistema selecionado.'
+                      : form.systems
+                        .slice(0, 4)
+                        .map((id) => systemLabelById.get(id) ?? 'Sistema desconhecido')
+                        .join(' · ')}
+                    {form.systems.length > 4 ? ' ...' : ''}
+                  </p>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4 md:col-span-2">
                   <p className="text-white/60 mb-1">Bio</p>

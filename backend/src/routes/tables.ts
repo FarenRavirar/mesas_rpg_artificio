@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { sql } from 'kysely';
 import { db } from '../db';
 
 const router = Router();
@@ -16,6 +17,7 @@ router.get('/', async (req: Request, res: Response) => {
     city,
     featured,
     search,
+    seal,
     page = '1',
     limit = '12',
   } = req.query as Record<string, string>;
@@ -52,10 +54,15 @@ router.get('/', async (req: Request, res: Response) => {
         't.safety_tools',
         't.featured',
         't.created_at',
+        't.is_ddal',
+        't.ddal_code',
+        't.ddal_name',
+        't.ddal_tier',
         's.name as system_name',
         's.slug as system_slug',
         'gm.slug as gm_slug',
         'gm.avatar_url as gm_avatar_url',
+        'gm.badges as gm_badges',
         'p.display_name as gm_display_name',
       ])
       .where('t.status', '=', 'active')
@@ -72,6 +79,17 @@ router.get('/', async (req: Request, res: Response) => {
     if (featured === 'true') query = query.where('t.featured', '=', true);
     if (state) query = query.where('t.state', '=', state);
     if (city) query = query.where('t.city', 'ilike', `%${city}%`);
+
+    if (seal === 'ddal') {
+      query = query.where('t.is_ddal', '=', true);
+    }
+
+    if (seal === 'covil-do-lich' || seal === 'covil_do_lich') {
+      query = query.where(sql<boolean>`(
+        'covil_do_lich' = ANY(COALESCE(gm.badges, ARRAY[]::text[]))
+        OR 'covil-do-lich' = ANY(COALESCE(gm.badges, ARRAY[]::text[]))
+      )`);
+    }
 
     if (search) {
       query = query.where((eb) =>
@@ -135,10 +153,21 @@ router.get('/:slug', async (req: Request, res: Response) => {
         't.safety_tools',
         't.featured',
         't.created_at',
+        't.is_ddal',
+        't.ddal_code',
+        't.ddal_name',
+        't.ddal_tier',
+        't.ddal_season',
+        't.ddal_duration',
+        't.ddal_format',
+        't.ddal_org_code',
+        't.ddal_setting',
+        't.ddal_rules_notes',
         's.name as system_name',
         's.slug as system_slug',
         'gm.slug as gm_slug',
         'gm.avatar_url as gm_avatar_url',
+        'gm.badges as gm_badges',
         'p.display_name as gm_display_name',
         'gm.bio_long as gm_bio',
       ])

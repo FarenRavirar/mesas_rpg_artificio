@@ -1,9 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { ChangeEvent, FormEvent, InputHTMLAttributes, SelectHTMLAttributes } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { PlusCircle, ChevronRight, Dice1, Globe, MapPin, Users, ShieldCheck, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { Compass, PlusCircle, LogOut, ChevronRight, Dice1, Globe, MapPin, Users } from 'lucide-react';
+import { SystemTreeSelector } from '../components/SystemTreeSelector';
+import type { SystemTreeNode } from '../types/systems';
 
-// ───── Tipos locais ───────────────────────────────────────────────────────────
+type TableStatus = 'draft' | 'active' | 'full' | 'cancelled' | 'ended' | 'pending_review';
+
+const DDAL_ELIGIBLE_PATH = 'dungeons-dragons/5e/2024';
 
 interface GmProfile {
   id: string;
@@ -20,17 +25,64 @@ interface MyTable {
   id: string;
   slug: string;
   title: string;
-  status: string;
+  status: TableStatus;
   modality: string;
   slots_total: number;
   slots_filled: number;
   system_name: string | null;
+  is_ddal?: boolean;
+  ddal_code?: string | null;
+  ddal_name?: string | null;
+  ddal_tier?: number | null;
   created_at: string;
 }
 
-// ───── Sub-componentes ────────────────────────────────────────────────────────
+interface FlattenedSystemNode {
+  id: string;
+  slug: string;
+  name: string;
+  path_slug: string | null;
+  pathLabel: string;
+}
 
-function InputField({ label, id, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string }) {
+interface CreateTableFormProps {
+  token: string;
+  onSuccess: () => void;
+}
+
+interface DdalFormState {
+  is_ddal: boolean;
+  ddal_code: string;
+  ddal_name: string;
+  ddal_tier: string;
+  ddal_season: string;
+  ddal_duration: string;
+  ddal_format: string;
+  ddal_org_code: string;
+  ddal_setting: string;
+  ddal_rules_notes: string;
+}
+
+const flattenTree = (nodes: SystemTreeNode[], breadcrumb: string[] = []): FlattenedSystemNode[] => {
+  const flattened: FlattenedSystemNode[] = [];
+
+  for (const node of nodes) {
+    const path = [...breadcrumb, node.name];
+    flattened.push({
+      id: node.id,
+      slug: node.slug,
+      name: node.name,
+      path_slug: node.path_slug,
+      pathLabel: path.join(' > '),
+    });
+
+    flattened.push(...flattenTree(node.children, path));
+  }
+
+  return flattened;
+};
+
+function InputField({ label, id, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string }) {
   return (
     <div className="flex flex-col gap-1">
       <label htmlFor={id} className="text-sm font-medium text-white/70">{label}</label>
@@ -43,7 +95,7 @@ function InputField({ label, id, ...props }: React.InputHTMLAttributes<HTMLInput
   );
 }
 
-function SelectField({ label, id, children, ...props }: React.SelectHTMLAttributes<HTMLSelectElement> & { label: string }) {
+function SelectField({ label, id, children, ...props }: SelectHTMLAttributes<HTMLSelectElement> & { label: string }) {
   return (
     <div className="flex flex-col gap-1">
       <label htmlFor={id} className="text-sm font-medium text-white/70">{label}</label>
@@ -58,17 +110,19 @@ function SelectField({ label, id, children, ...props }: React.SelectHTMLAttribut
   );
 }
 
-// ───── Formulário de Criação de Mesa ─────────────────────────────────────────
+function CreateTableForm({ token, onSuccess }: CreateTableFormProps) {
+  const [systemsTree, setSystemsTree] = useState<SystemTreeNode[]>([]);
+  const [systemsLoading, setSystemsLoading] = useState(true);
+  const [systemsError, setSystemsError] = useState<string | null>(null);
+  const [systemSearch, setSystemSearch] = useState('');
+  const [selectedSystemId, setSelectedSystemId] = useState<string>('');
 
-function CreateTableForm({ token, onSuccess }: { token: string; onSuccess: () => void }) {
-  const [systems, setSystems] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     title: '',
     description: '',
-    system_id: '',
     type: 'campanha',
     audience: 'livre',
     modality: 'online',
@@ -80,19 +134,68 @@ function CreateTableForm({ token, onSuccess }: { token: string; onSuccess: () =>
     language: 'Português',
   });
 
-  // Carrega sistemas disponíveis
+  const [ddal, setDdal] = useState<DdalFormState>({
+    is_ddal: false,
+    ddal_code: '',
+    ddal_name: '',
+    ddal_tier: '',
+    ddal_season: '',
+    ddal_duration: '',
+    ddal_format: '',
+    ddal_org_code: '',
+    ddal_setting: '',
+    ddal_rules_notes: '',
+  });
+
   useEffect(() => {
-    fetch('/api/v1/systems')
-      .then(r => r.json())
-      .then(d => d.data && setSystems(d.data))
-      .catch(() => {});
+    const loadSystems = async () => {
+      setSystemsLoading(true);
+      setSystemsError(null);
+
+      try {
+        const res = await fetch('/api/v1/systems?view=tree');
+        if (!res.ok) throw new Error('Erro ao carregar árvore de sistemas.');
+        const json = await res.json();
+        setSystemsTree(json.data ?? []);
+      } catch (err: any) {
+        setSystemsError(err.message ?? 'Erro ao carregar árvore de sistemas.');
+      } finally {
+        setSystemsLoading(false);
+      }
+    };
+
+    loadSystems();
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  const flattenedSystems = useMemo(() => flattenTree(systemsTree), [systemsTree]);
+
+  const selectedSystem = useMemo(
+    () => flattenedSystems.find((node) => node.id === selectedSystemId) ?? null,
+    [flattenedSystems, selectedSystemId]
+  );
+
+  const isDdalEligibleSelection = useMemo(() => {
+    if (!selectedSystem?.path_slug) return false;
+    return selectedSystem.path_slug === DDAL_ELIGIBLE_PATH
+      || selectedSystem.path_slug.startsWith(`${DDAL_ELIGIBLE_PATH}/`);
+  }, [selectedSystem]);
+
+  useEffect(() => {
+    if (!isDdalEligibleSelection && ddal.is_ddal) {
+      setDdal((prev) => ({ ...prev, is_ddal: false }));
+    }
+  }, [ddal.is_ddal, isDdalEligibleSelection]);
+
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleDdalChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setDdal((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
@@ -100,17 +203,27 @@ function CreateTableForm({ token, onSuccess }: { token: string; onSuccess: () =>
     try {
       const payload = {
         ...form,
+        system_id: selectedSystemId || null,
         price_value: form.price_value ? parseFloat(form.price_value) : null,
-        slots_total: parseInt(form.slots_total),
+        slots_total: parseInt(form.slots_total, 10),
         starts_at: form.starts_at || null,
-        system_id: form.system_id || null,
+        is_ddal: isDdalEligibleSelection ? ddal.is_ddal : false,
+        ddal_code: ddal.is_ddal ? ddal.ddal_code || null : null,
+        ddal_name: ddal.is_ddal ? ddal.ddal_name || null : null,
+        ddal_tier: ddal.is_ddal && ddal.ddal_tier ? Number(ddal.ddal_tier) : null,
+        ddal_season: ddal.is_ddal ? ddal.ddal_season || null : null,
+        ddal_duration: ddal.is_ddal ? ddal.ddal_duration || null : null,
+        ddal_format: ddal.is_ddal ? ddal.ddal_format || null : null,
+        ddal_org_code: ddal.is_ddal ? ddal.ddal_org_code || null : null,
+        ddal_setting: ddal.is_ddal ? ddal.ddal_setting || null : null,
+        ddal_rules_notes: ddal.is_ddal ? ddal.ddal_rules_notes || null : null,
       };
 
       const res = await fetch('/api/v1/gm/tables', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(payload),
       });
@@ -132,13 +245,45 @@ function CreateTableForm({ token, onSuccess }: { token: string; onSuccess: () =>
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="md:col-span-2">
-          <InputField label="Título da Mesa *" id="title" name="title" value={form.title} onChange={handleChange} placeholder="Ex: A Queda do Império Sombrio" required />
+          <InputField
+            label="Título da Mesa *"
+            id="title"
+            name="title"
+            value={form.title}
+            onChange={handleChange}
+            placeholder="Ex: A Queda do Império Sombrio"
+            required
+          />
         </div>
 
-        <SelectField label="Sistema de RPG" id="system_id" name="system_id" value={form.system_id} onChange={handleChange}>
-          <option value="">— Selecione um sistema —</option>
-          {systems.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-        </SelectField>
+        <div className="md:col-span-2 rounded-2xl border border-white/10 bg-[#13213f]/60 p-4 space-y-3">
+          <div className="flex items-center gap-2 text-sm text-white/70">
+            <Dice1 className="w-4 h-4 text-[var(--color-artificio-orange)]" />
+            Sistema da Mesa *
+          </div>
+
+          {systemsLoading ? (
+            <p className="text-sm text-white/60">Carregando árvore de sistemas...</p>
+          ) : systemsError ? (
+            <p className="text-sm text-red-300">{systemsError}</p>
+          ) : (
+            <SystemTreeSelector
+              tree={systemsTree}
+              selectedIds={selectedSystemId ? [selectedSystemId] : []}
+              onToggle={(systemId) => setSelectedSystemId((prev) => (prev === systemId ? '' : systemId))}
+              search={systemSearch}
+              onSearchChange={setSystemSearch}
+              idPrefix="painel-mestre-systems"
+              singleSelect
+            />
+          )}
+
+          <p className="text-xs text-white/55">
+            {selectedSystem
+              ? `Selecionado: ${selectedSystem.pathLabel}`
+              : 'Selecione um único nó da árvore para vincular a mesa.'}
+          </p>
+        </div>
 
         <SelectField label="Tipo de Mesa *" id="type" name="type" value={form.type} onChange={handleChange}>
           <option value="campanha">Campanha</option>
@@ -164,19 +309,60 @@ function CreateTableForm({ token, onSuccess }: { token: string; onSuccess: () =>
         </SelectField>
 
         {form.price_type === 'paga' && (
-          <InputField label="Valor (R$)" id="price_value" name="price_value" type="number" min="0" step="0.01" value={form.price_value} onChange={handleChange} placeholder="Ex: 25.00" />
+          <InputField
+            label="Valor (R$)"
+            id="price_value"
+            name="price_value"
+            type="number"
+            min="0"
+            step="0.01"
+            value={form.price_value}
+            onChange={handleChange}
+            placeholder="Ex: 25.00"
+          />
         )}
 
-        <SelectField label="Nível de Experiência" id="experience_level" name="experience_level" value={form.experience_level} onChange={handleChange}>
+        <SelectField
+          label="Nível de Experiência"
+          id="experience_level"
+          name="experience_level"
+          value={form.experience_level}
+          onChange={handleChange}
+        >
           <option value="todos">Todos os Níveis</option>
           <option value="iniciante">Iniciante</option>
           <option value="intermediario">Intermediário</option>
           <option value="veterano">Veterano</option>
         </SelectField>
 
-        <InputField label="Vagas Totais" id="slots_total" name="slots_total" type="number" min="1" max="20" value={form.slots_total} onChange={handleChange} />
-        <InputField label="Data de Início (opcional)" id="starts_at" name="starts_at" type="datetime-local" value={form.starts_at} onChange={handleChange} />
-        <InputField label="Idioma" id="language" name="language" value={form.language} onChange={handleChange} placeholder="Português" />
+        <InputField
+          label="Vagas Totais"
+          id="slots_total"
+          name="slots_total"
+          type="number"
+          min="1"
+          max="20"
+          value={form.slots_total}
+          onChange={handleChange}
+        />
+
+        <InputField
+          label="Data de Início (opcional)"
+          id="starts_at"
+          name="starts_at"
+          type="datetime-local"
+          value={form.starts_at}
+          onChange={handleChange}
+        />
+
+        <InputField
+          label="Idioma"
+          id="language"
+          name="language"
+          value={form.language}
+          onChange={handleChange}
+          placeholder="Português"
+        />
       </div>
 
       <div className="flex flex-col gap-1">
@@ -191,6 +377,127 @@ function CreateTableForm({ token, onSuccess }: { token: string; onSuccess: () =>
           className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all resize-none"
         />
       </div>
+
+      {isDdalEligibleSelection && (
+        <section className="rounded-2xl border border-amber-300/30 bg-amber-500/10 p-5 space-y-4" id="painel-mestre-ddal-block">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-amber-100 inline-flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4" /> Caminho elegível para selo DDAL
+              </p>
+              <p className="text-xs text-amber-100/80 mt-1">Ative apenas para módulos Adventurers League.</p>
+            </div>
+
+            <label htmlFor="painel-mestre-ddal-toggle" className="inline-flex items-center gap-2 text-sm text-amber-100">
+              <input
+                id="painel-mestre-ddal-toggle"
+                type="checkbox"
+                checked={ddal.is_ddal}
+                onChange={(e) => setDdal((prev) => ({ ...prev, is_ddal: e.target.checked }))}
+                className="h-4 w-4 rounded border-white/20 bg-white/10"
+              />
+              É DDAL
+            </label>
+          </div>
+
+          {ddal.is_ddal && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <InputField
+                label="Código da Aventura *"
+                id="ddal_code"
+                name="ddal_code"
+                value={ddal.ddal_code}
+                onChange={handleDdalChange}
+                placeholder="Ex: DDAL05-01"
+                required
+              />
+
+              <InputField
+                label="Nome da Aventura *"
+                id="ddal_name"
+                name="ddal_name"
+                value={ddal.ddal_name}
+                onChange={handleDdalChange}
+                placeholder="Ex: Treasure of the Broken Hoard"
+                required
+              />
+
+              <SelectField
+                label="Tier *"
+                id="ddal_tier"
+                name="ddal_tier"
+                value={ddal.ddal_tier}
+                onChange={handleDdalChange}
+                required
+              >
+                <option value="">Selecione</option>
+                <option value="1">Tier 1</option>
+                <option value="2">Tier 2</option>
+                <option value="3">Tier 3</option>
+                <option value="4">Tier 4</option>
+              </SelectField>
+
+              <InputField
+                label="Season"
+                id="ddal_season"
+                name="ddal_season"
+                value={ddal.ddal_season}
+                onChange={handleDdalChange}
+                placeholder="Ex: Season 10"
+              />
+
+              <InputField
+                label="Duração esperada"
+                id="ddal_duration"
+                name="ddal_duration"
+                value={ddal.ddal_duration}
+                onChange={handleDdalChange}
+                placeholder="Ex: 4h"
+              />
+
+              <InputField
+                label="Formato"
+                id="ddal_format"
+                name="ddal_format"
+                value={ddal.ddal_format}
+                onChange={handleDdalChange}
+                placeholder="Ex: modulo, hardcover ou ccc"
+              />
+
+              <InputField
+                label="Código expandido / organização"
+                id="ddal_org_code"
+                name="ddal_org_code"
+                value={ddal.ddal_org_code}
+                onChange={handleDdalChange}
+                placeholder="Ex: CCC-BMG-01"
+              />
+
+              <InputField
+                label="Ambientação"
+                id="ddal_setting"
+                name="ddal_setting"
+                value={ddal.ddal_setting}
+                onChange={handleDdalChange}
+                placeholder="Ex: Forgotten Realms"
+              />
+
+              <div className="md:col-span-2 flex flex-col gap-1">
+                <label htmlFor="ddal_rules_notes" className="text-sm font-medium text-white/70">Notas de regras da temporada</label>
+                <textarea
+                  id="ddal_rules_notes"
+                  name="ddal_rules_notes"
+                  value={ddal.ddal_rules_notes}
+                  onChange={handleDdalChange}
+                  rows={3}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all resize-none"
+                  placeholder="Observações úteis para jogadores e organização"
+                />
+              </div>
+            </div>
+          )}
+        </section>
+      )}
 
       {error && (
         <div className="p-4 bg-red-900/40 border border-red-700/50 rounded-xl text-red-300 text-sm">
@@ -210,15 +517,13 @@ function CreateTableForm({ token, onSuccess }: { token: string; onSuccess: () =>
   );
 }
 
-// ───── Formulário de Criação de Perfil GM ────────────────────────────────────
-
 function CreateGmProfileForm({ token, onSuccess }: { token: string; onSuccess: () => void }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [slug, setSlug] = useState('');
   const [bio, setBio] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
@@ -226,7 +531,7 @@ function CreateGmProfileForm({ token, onSuccess }: { token: string; onSuccess: (
     try {
       const res = await fetch('/api/v1/gm/profile', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ slug, bio_long: bio }),
       });
       const data = await res.json();
@@ -248,7 +553,7 @@ function CreateGmProfileForm({ token, onSuccess }: { token: string; onSuccess: (
         label="Identificador (slug) *"
         id="gm-slug"
         value={slug}
-        onChange={e => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+        onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
         placeholder="ex: mestre-joao"
         required
       />
@@ -258,7 +563,7 @@ function CreateGmProfileForm({ token, onSuccess }: { token: string; onSuccess: (
         <textarea
           id="gm-bio"
           value={bio}
-          onChange={e => setBio(e.target.value)}
+          onChange={(e) => setBio(e.target.value)}
           rows={3}
           placeholder="Conte um pouco sobre você como mestre..."
           className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all resize-none"
@@ -277,13 +582,12 @@ function CreateGmProfileForm({ token, onSuccess }: { token: string; onSuccess: (
   );
 }
 
-// ───── Página Principal do Painel ────────────────────────────────────────────
-
 export const PainelMestrePage = () => {
-  const { user, token, logout } = useAuth();
+  const { user, token } = useAuth();
   const navigate = useNavigate();
+
   const [gmProfile, setGmProfile] = useState<GmProfile | null>(null);
-  const [myTables, _setMyTables] = useState<MyTable[]>([]);
+  const [myTables, setMyTables] = useState<MyTable[]>([]);
   const [view, setView] = useState<'dashboard' | 'create-table' | 'create-profile'>('dashboard');
   const [loadingProfile, setLoadingProfile] = useState(true);
 
@@ -293,55 +597,101 @@ export const PainelMestrePage = () => {
       return;
     }
 
-    // Buscar perfil GM do usuário logado
-    fetch('/api/v1/gm/me', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data?.data) setGmProfile(data.data);
-        else if (user.role !== 'gm') setView('create-profile');
-      })
-      .catch(() => {})
-      .finally(() => setLoadingProfile(false));
-  }, [user, token, navigate]);
+    const loadPanelData = async () => {
+      setLoadingProfile(true);
+
+      try {
+        const profileRes = await fetch('/api/v1/gm/me', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!profileRes.ok) {
+          if (user.role !== 'gm') {
+            setView('create-profile');
+          }
+          setGmProfile(null);
+          setMyTables([]);
+          return;
+        }
+
+        const profileJson = await profileRes.json();
+        const profile = profileJson?.data ?? null;
+
+        if (!profile) {
+          if (user.role !== 'gm') {
+            setView('create-profile');
+          }
+          setGmProfile(null);
+          setMyTables([]);
+          return;
+        }
+
+        setGmProfile(profile);
+
+        const tablesRes = await fetch('/api/v1/gm/tables', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (tablesRes.ok) {
+          const tablesJson = await tablesRes.json();
+          setMyTables(tablesJson?.data ?? []);
+        } else {
+          setMyTables([]);
+        }
+
+        setView('dashboard');
+      } catch {
+        setGmProfile(null);
+        setMyTables([]);
+      } finally {
+        setLoadingProfile(false);
+      }
+    };
+
+    loadPanelData();
+  }, [navigate, token, user]);
 
   const refreshData = () => {
     setView('dashboard');
     setLoadingProfile(true);
-    fetch('/api/v1/gm/me', { headers: { Authorization: `Bearer ${token!}` } })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data?.data) setGmProfile(data.data); })
+
+    Promise.all([
+      fetch('/api/v1/gm/me', { headers: { Authorization: `Bearer ${token!}` } }),
+      fetch('/api/v1/gm/tables', { headers: { Authorization: `Bearer ${token!}` } }),
+    ])
+      .then(async ([profileRes, tablesRes]) => {
+        if (profileRes.ok) {
+          const profileJson = await profileRes.json();
+          setGmProfile(profileJson?.data ?? null);
+        }
+
+        if (tablesRes.ok) {
+          const tablesJson = await tablesRes.json();
+          setMyTables(tablesJson?.data ?? []);
+        }
+      })
       .catch(() => {})
       .finally(() => setLoadingProfile(false));
   };
 
+  const activeTablesCount = useMemo(
+    () => myTables.filter((table) => table.status === 'active').length,
+    [myTables]
+  );
+
+  const openSlotsCount = useMemo(
+    () => myTables.reduce((acc, table) => acc + Math.max(table.slots_total - table.slots_filled, 0), 0),
+    [myTables]
+  );
+
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-[var(--color-artificio-blue)] text-white">
-      {/* Header */}
-      <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-[#1B2A4A]/80 border-b border-white/5">
-        <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-          <button onClick={() => navigate('/')} className="flex items-center space-x-2 text-[var(--color-artificio-orange)] font-bold text-xl tracking-wide cursor-pointer">
-            <Compass className="w-6 h-6" />
-            <span>Artifício<span className="text-white">Mesas</span></span>
-          </button>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-white/60">Painel do Mestre</span>
-            <button onClick={logout} className="flex items-center gap-2 text-sm text-white/40 hover:text-white transition-colors cursor-pointer">
-              <LogOut className="w-4 h-4" />
-              Sair
-            </button>
-          </div>
-        </div>
-      </header>
-
+    <main className="w-full">
       <div className="container mx-auto px-6 py-10">
         {loadingProfile ? (
-          <div className="flex justify-center py-20 animate-pulse text-white/40">Carregando perfil...</div>
+          <div className="flex justify-center py-20 animate-pulse text-white/40">Carregando painel...</div>
         ) : view === 'create-profile' ? (
-          // Onboarding — Criar perfil GM
           <div className="max-w-lg mx-auto text-center space-y-8">
             <div>
               <h1 className="text-4xl font-extrabold mb-3">Torne-se um Mestre</h1>
@@ -350,8 +700,7 @@ export const PainelMestrePage = () => {
             <CreateGmProfileForm token={token!} onSuccess={refreshData} />
           </div>
         ) : view === 'create-table' ? (
-          // Formulário de Nova Mesa
-          <div className="max-w-3xl mx-auto space-y-8">
+          <div className="max-w-4xl mx-auto space-y-8">
             <div className="flex items-center gap-3">
               <button onClick={() => setView('dashboard')} className="text-white/40 hover:text-white transition-colors cursor-pointer text-sm">← Voltar</button>
               <ChevronRight className="w-4 h-4 text-white/20" />
@@ -362,10 +711,8 @@ export const PainelMestrePage = () => {
             </div>
           </div>
         ) : (
-          // Dashboard principal
           <div className="space-y-8">
-            {/* Boas vindas */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h1 className="text-3xl font-extrabold">
                   {gmProfile ? `Olá, @${gmProfile.slug}` : 'Painel do Mestre'}
@@ -387,13 +734,12 @@ export const PainelMestrePage = () => {
               </button>
             </div>
 
-            {/* Cards rápidos */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {[
-                { label: 'Mesas Ativas', value: myTables.filter(t => t.status === 'active').length, icon: <Globe className="w-5 h-5" /> },
-                { label: 'Vagas Abertas', value: myTables.reduce((a, t) => a + (t.slots_total - t.slots_filled), 0), icon: <Users className="w-5 h-5" /> },
+                { label: 'Mesas Ativas', value: activeTablesCount, icon: <Globe className="w-5 h-5" /> },
+                { label: 'Vagas Abertas', value: openSlotsCount, icon: <Users className="w-5 h-5" /> },
                 { label: 'Total de Mesas', value: gmProfile?.tables_count ?? 0, icon: <Dice1 className="w-5 h-5" /> },
-              ].map(card => (
+              ].map((card) => (
                 <div key={card.label} className="bg-white/5 border border-white/10 rounded-2xl p-6 flex items-center gap-4">
                   <div className="w-12 h-12 rounded-xl bg-[var(--color-artificio-orange)]/10 text-[var(--color-artificio-orange)] flex items-center justify-center">
                     {card.icon}
@@ -406,8 +752,55 @@ export const PainelMestrePage = () => {
               ))}
             </div>
 
-            {/* Estado vazio */}
-            {myTables.length === 0 && (
+            {myTables.length > 0 ? (
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-5 space-y-4">
+                <h2 className="text-lg font-bold inline-flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-[var(--color-artificio-orange)]" />
+                  Suas mesas publicadas
+                </h2>
+
+                <div className="space-y-3">
+                  {myTables.map((table) => {
+                    const openSlots = Math.max(table.slots_total - table.slots_filled, 0);
+
+                    return (
+                      <article
+                        key={table.id}
+                        className="rounded-xl border border-white/10 bg-[#13213f]/60 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3"
+                      >
+                        <div className="space-y-1">
+                          <p className="font-semibold text-white">{table.title}</p>
+                          <p className="text-xs text-white/60">{table.system_name ?? 'Sistema livre'} · {table.modality}</p>
+                          <div className="flex flex-wrap items-center gap-2 text-xs">
+                            <span className="px-2 py-1 rounded-md border border-white/15 bg-white/5 text-white/75">
+                              {table.slots_filled}/{table.slots_total} ({openSlots} vagas)
+                            </span>
+                            {table.is_ddal && (
+                              <span className="px-2 py-1 rounded-md border border-amber-400/40 bg-amber-500/15 text-amber-100" id={`painel-mesa-ddal-${table.slug}`}>
+                                DDAL{table.ddal_code ? ` · ${table.ddal_code}` : ''}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-1 rounded-md text-xs border border-white/15 bg-white/5 text-white/70 uppercase">
+                            {table.status}
+                          </span>
+                          <Link
+                            to={`/mesas/${table.slug}`}
+                            className="px-3 py-2 rounded-lg text-xs border border-white/20 hover:border-[var(--color-artificio-orange)] hover:text-[var(--color-artificio-orange)] transition-colors"
+                            id={`painel-mesa-link-${table.slug}`}
+                          >
+                            Abrir página
+                          </Link>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              </section>
+            ) : (
               <div className="text-center py-20 text-white/30 border border-dashed border-white/10 rounded-2xl">
                 <MapPin className="w-10 h-10 mx-auto mb-4 opacity-30" />
                 <p className="text-lg font-medium">Nenhuma mesa ainda.</p>
@@ -417,6 +810,6 @@ export const PainelMestrePage = () => {
           </div>
         )}
       </div>
-    </div>
+    </main>
   );
 };

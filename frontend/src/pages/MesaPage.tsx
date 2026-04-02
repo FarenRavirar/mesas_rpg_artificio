@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { CalendarClock, Compass, Crown, Globe, MapPin, ShieldCheck, Swords, Users } from 'lucide-react';
+import { CalendarClock, Compass, Crown, Globe, MapPin, ShieldCheck, Sparkles, Swords, Users } from 'lucide-react';
 import type { TableDetail } from '../types/tables';
 import { applySeo } from '../utils/seo';
 
@@ -131,6 +131,11 @@ export const MesaPage = () => {
                   <span className="px-2 py-1 rounded-md bg-black/35 border border-white/15 text-xs">{table.type}</span>
                   <span className="px-2 py-1 rounded-md bg-black/35 border border-white/15 text-xs">{table.audience}</span>
                   <span className="px-2 py-1 rounded-md bg-black/35 border border-white/15 text-xs">{table.system_name ?? 'Sistema livre'}</span>
+                  {table.is_ddal && (
+                    <span className="px-2 py-1 rounded-md bg-amber-500/20 border border-amber-300/40 text-amber-100 text-xs inline-flex items-center gap-1" id="mesa-badge-ddal">
+                      <Sparkles className="w-3.5 h-3.5" /> DDAL
+                    </span>
+                  )}
                 </div>
                 <h1 className="text-3xl md:text-4xl font-black tracking-tight">{table.title}</h1>
               </div>
@@ -140,6 +145,54 @@ export const MesaPage = () => {
               <h2 className="text-lg font-bold mb-2">Sobre esta Mesa</h2>
               <p className="text-white/80 leading-relaxed">{table.description || 'Sem descrição detalhada.'}</p>
             </section>
+
+            {table.is_ddal && (
+              <section className="rounded-2xl border border-amber-300/25 bg-amber-400/10 p-5" id="mesa-ddal-metadata">
+                <h2 className="text-lg font-bold mb-3 inline-flex items-center gap-2 text-amber-100">
+                  <Sparkles className="w-5 h-5" /> Selo DDAL verificado
+                </h2>
+                <div className="grid md:grid-cols-2 gap-3 text-sm">
+                  <div className="rounded-xl border border-amber-200/15 bg-[#13213f]/70 p-3">
+                    <p className="text-amber-100/80 text-xs uppercase tracking-wide">Código da aventura</p>
+                    <p className="font-semibold text-white mt-1">{table.ddal_code ?? 'Não informado'}</p>
+                  </div>
+                  <div className="rounded-xl border border-amber-200/15 bg-[#13213f]/70 p-3">
+                    <p className="text-amber-100/80 text-xs uppercase tracking-wide">Tier</p>
+                    <p className="font-semibold text-white mt-1">{table.ddal_tier ? `Tier ${table.ddal_tier}` : 'Não informado'}</p>
+                  </div>
+                  <div className="rounded-xl border border-amber-200/15 bg-[#13213f]/70 p-3 md:col-span-2">
+                    <p className="text-amber-100/80 text-xs uppercase tracking-wide">Nome da aventura</p>
+                    <p className="font-semibold text-white mt-1">{table.ddal_name ?? 'Não informado'}</p>
+                  </div>
+                  <div className="rounded-xl border border-amber-200/15 bg-[#13213f]/70 p-3">
+                    <p className="text-amber-100/80 text-xs uppercase tracking-wide">Season</p>
+                    <p className="font-semibold text-white mt-1">{table.ddal_season ?? 'Não informado'}</p>
+                  </div>
+                  <div className="rounded-xl border border-amber-200/15 bg-[#13213f]/70 p-3">
+                    <p className="text-amber-100/80 text-xs uppercase tracking-wide">Duração esperada</p>
+                    <p className="font-semibold text-white mt-1">{table.ddal_duration ?? 'Não informado'}</p>
+                  </div>
+                  <div className="rounded-xl border border-amber-200/15 bg-[#13213f]/70 p-3">
+                    <p className="text-amber-100/80 text-xs uppercase tracking-wide">Formato</p>
+                    <p className="font-semibold text-white mt-1">{table.ddal_format ?? 'Não informado'}</p>
+                  </div>
+                  <div className="rounded-xl border border-amber-200/15 bg-[#13213f]/70 p-3">
+                    <p className="text-amber-100/80 text-xs uppercase tracking-wide">Organização / Código expandido</p>
+                    <p className="font-semibold text-white mt-1">{table.ddal_org_code ?? 'Não informado'}</p>
+                  </div>
+                  <div className="rounded-xl border border-amber-200/15 bg-[#13213f]/70 p-3 md:col-span-2">
+                    <p className="text-amber-100/80 text-xs uppercase tracking-wide">Ambientação</p>
+                    <p className="font-semibold text-white mt-1">{table.ddal_setting ?? 'Não informado'}</p>
+                  </div>
+                  {table.ddal_rules_notes && (
+                    <div className="rounded-xl border border-amber-200/15 bg-[#13213f]/70 p-3 md:col-span-2">
+                      <p className="text-amber-100/80 text-xs uppercase tracking-wide">Notas de regras da temporada</p>
+                      <p className="text-white/85 mt-1 leading-relaxed">{table.ddal_rules_notes}</p>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
 
             <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
               <h2 className="text-lg font-bold mb-3">Segurança e Alertas</h2>

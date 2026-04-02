@@ -1,0 +1,230 @@
+import { useEffect, useMemo, useState } from 'react';
+import { Check, ChevronRight, Search } from 'lucide-react';
+import type { SystemTreeNode } from '../types/systems';
+
+interface FlattenedSystemNode {
+  id: string;
+  slug: string;
+  name: string;
+  aliases: string[];
+  path_slug: string | null;
+  depth: number;
+  pathLabel: string;
+}
+
+interface SystemTreeSelectorProps {
+  tree: SystemTreeNode[];
+  selectedIds: string[];
+  onToggle: (systemId: string) => void;
+  search: string;
+  onSearchChange: (value: string) => void;
+  idPrefix: string;
+  singleSelect?: boolean;
+}
+
+const normalizeText = (value: string): string => value.trim().toLowerCase();
+
+const flattenTree = (nodes: SystemTreeNode[], breadcrumb: string[] = []): FlattenedSystemNode[] => {
+  const flattened: FlattenedSystemNode[] = [];
+
+  for (const node of nodes) {
+    const path = [...breadcrumb, node.name];
+
+    flattened.push({
+      id: node.id,
+      slug: node.slug,
+      name: node.name,
+      aliases: node.aliases,
+      path_slug: node.path_slug,
+      depth: node.depth,
+      pathLabel: path.join(' > '),
+    });
+
+    flattened.push(...flattenTree(node.children, path));
+  }
+
+  return flattened;
+};
+
+export const SystemTreeSelector = ({
+  tree,
+  selectedIds,
+  onToggle,
+  search,
+  onSearchChange,
+  idPrefix,
+  singleSelect = false,
+}: SystemTreeSelectorProps) => {
+  const [activeRootId, setActiveRootId] = useState<string | null>(null);
+  const [activeMidId, setActiveMidId] = useState<string | null>(null);
+
+  const flatNodes = useMemo(() => flattenTree(tree), [tree]);
+
+  useEffect(() => {
+    if (tree.length === 0) return;
+
+    if (!activeRootId || !tree.some((node) => node.id === activeRootId)) {
+      setActiveRootId(tree[0].id);
+      setActiveMidId(tree[0].children[0]?.id ?? null);
+    }
+  }, [activeRootId, tree]);
+
+  const activeRoot = useMemo(
+    () => tree.find((node) => node.id === activeRootId) ?? tree[0] ?? null,
+    [activeRootId, tree]
+  );
+
+  const midNodes = activeRoot?.children ?? [];
+  const activeMid = midNodes.find((node) => node.id === activeMidId) ?? midNodes[0] ?? null;
+  const leafNodes = activeMid?.children ?? [];
+
+  useEffect(() => {
+    if (midNodes.length === 0) {
+      if (activeMidId) setActiveMidId(null);
+      return;
+    }
+
+    if (!activeMidId || !midNodes.some((node) => node.id === activeMidId)) {
+      setActiveMidId(midNodes[0].id);
+    }
+  }, [activeMidId, midNodes]);
+
+  const normalizedSearch = normalizeText(search);
+  const searchResults = useMemo(() => {
+    if (!normalizedSearch) return [] as FlattenedSystemNode[];
+
+    return flatNodes.filter((node) => {
+      return normalizeText(node.name).includes(normalizedSearch)
+        || normalizeText(node.slug).includes(normalizedSearch)
+        || normalizeText(node.path_slug ?? '').includes(normalizedSearch)
+        || node.aliases.some((alias) => normalizeText(alias).includes(normalizedSearch));
+    });
+  }, [flatNodes, normalizedSearch]);
+
+  const renderNodeButton = (node: SystemTreeNode, layer: 'root' | 'mid' | 'leaf') => {
+    const selected = selectedIds.includes(node.id);
+    const isActive = layer === 'root'
+      ? node.id === activeRoot?.id
+      : layer === 'mid'
+        ? node.id === activeMid?.id
+        : false;
+
+    return (
+      <button
+        type="button"
+        key={node.id}
+        id={`${idPrefix}-node-${node.slug}`}
+        onClick={() => {
+          if (layer === 'root') {
+            setActiveRootId(node.id);
+            setActiveMidId(node.children[0]?.id ?? null);
+          }
+
+          if (layer === 'mid') {
+            setActiveMidId(node.id);
+          }
+
+          onToggle(node.id);
+        }}
+        className={`w-full rounded-xl border px-3 py-2 text-left transition-colors ${isActive ? 'border-[var(--color-artificio-orange)] bg-[var(--color-artificio-orange)]/10' : 'border-white/10 bg-white/5 hover:border-white/20'} ${selected ? 'text-white' : 'text-white/80'}`}
+      >
+        <span className="flex items-start gap-2">
+          <span className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] ${selected ? 'border-[var(--color-artificio-orange)] bg-[var(--color-artificio-orange)] text-white' : 'border-white/30 text-transparent'}`}>
+            <Check className="h-3 w-3" />
+          </span>
+          <span className="flex-1">
+            <span className="block text-sm font-semibold">{node.name}</span>
+            {node.aliases.length > 0 && (
+              <span className="mt-0.5 block text-xs text-white/50 line-clamp-1">
+                {node.aliases.slice(0, 3).join(' · ')}
+              </span>
+            )}
+          </span>
+          {node.children.length > 0 && <ChevronRight className="h-4 w-4 text-white/40" />}
+        </span>
+      </button>
+    );
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+        <input
+          id={`${idPrefix}-search`}
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+          placeholder="Buscar por nome ou alias..."
+          className="w-full rounded-xl border border-white/15 bg-[#13213f] py-2.5 pl-9 pr-3 outline-none focus:border-[var(--color-artificio-orange)]"
+        />
+      </div>
+
+      {normalizedSearch ? (
+        <div className="max-h-80 space-y-2 overflow-auto pr-1">
+          {searchResults.length > 0 ? (
+            searchResults.map((node) => {
+              const selected = selectedIds.includes(node.id);
+              return (
+                <button
+                  type="button"
+                  key={node.id}
+                  id={`${idPrefix}-search-result-${node.slug}`}
+                  onClick={() => onToggle(node.id)}
+                  className={`w-full rounded-xl border px-3 py-2 text-left text-sm transition-colors ${selected ? 'border-[var(--color-artificio-orange)] bg-[var(--color-artificio-orange)]/10 text-white' : 'border-white/10 bg-white/5 text-white/80 hover:border-white/20'}`}
+                >
+                  <p className="font-semibold">{node.name}</p>
+                  <p className="text-xs text-white/55">{node.pathLabel}</p>
+                </button>
+              );
+            })
+          ) : (
+            <div className="rounded-xl border border-dashed border-white/20 bg-white/5 p-4 text-sm text-white/60">
+              Nenhum sistema encontrado com esse termo.
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <section className="space-y-2 rounded-2xl border border-white/10 bg-white/5 p-3">
+            <h4 className="text-xs font-bold uppercase tracking-[0.16em] text-white/55">Sistema base</h4>
+            <div className="max-h-72 space-y-2 overflow-auto pr-1">
+              {tree.map((node) => renderNodeButton(node, 'root'))}
+            </div>
+          </section>
+
+          <section className="space-y-2 rounded-2xl border border-white/10 bg-white/5 p-3">
+            <h4 className="text-xs font-bold uppercase tracking-[0.16em] text-white/55">Edições / subsistemas</h4>
+            <div className="max-h-72 space-y-2 overflow-auto pr-1">
+              {midNodes.length > 0 ? (
+                midNodes.map((node) => renderNodeButton(node, 'mid'))
+              ) : (
+                <p className="rounded-lg border border-dashed border-white/20 bg-white/5 p-3 text-xs text-white/55">
+                  Selecione um sistema com descendentes para explorar este nível.
+                </p>
+              )}
+            </div>
+          </section>
+
+          <section className="space-y-2 rounded-2xl border border-white/10 bg-white/5 p-3">
+            <h4 className="text-xs font-bold uppercase tracking-[0.16em] text-white/55">
+              Variantes {singleSelect ? '(alvo de mesa)' : ''}
+            </h4>
+            <div className="max-h-72 space-y-2 overflow-auto pr-1">
+              {leafNodes.length > 0 ? (
+                leafNodes.map((node) => renderNodeButton(node, 'leaf'))
+              ) : (
+                <p className="rounded-lg border border-dashed border-white/20 bg-white/5 p-3 text-xs text-white/55">
+                  No mobile este painel aparece abaixo. Se não houver variantes, você pode marcar o item do nível anterior.
+                </p>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
+
+      {singleSelect && selectedIds.length === 0 && (
+        <p className="text-xs text-white/60">Selecione um único nó da árvore para associar à mesa.</p>
+      )}
+    </div>
+  );
+};

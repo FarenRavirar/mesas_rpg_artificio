@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Dice1, Globe, MapPin, Users } from 'lucide-react';
+import { BadgeCheck, Dice1, Globe, MapPin, Users } from 'lucide-react';
 import type { TableCard } from '../types/tables';
 
 const modalityLabels: Record<string, string> = {
@@ -43,15 +43,26 @@ export function TableCardComponent({ table }: { table: TableCard }) {
 
       <div className="absolute inset-0 bg-gradient-to-t from-[#0d1a30] via-[#0d1a30]/70 to-transparent z-10" />
 
+      <div className="absolute top-3 left-3 z-20 flex flex-wrap gap-2">
+        {table.is_ddal && (
+          <div
+            id={`table-card-ddal-${table.slug}`}
+            className="px-2 py-1 bg-amber-500/90 rounded-md text-[11px] font-black tracking-wide text-white inline-flex items-center gap-1"
+          >
+            <BadgeCheck className="w-3 h-3" /> DDAL
+          </div>
+        )}
+
+        {slotsLeft === 1 && !isFull && (
+          <div className="px-2 py-1 bg-orange-500/90 rounded-md text-[11px] font-black tracking-wide text-white">
+            Falta 1 jogador!
+          </div>
+        )}
+      </div>
+
       {table.featured && (
         <div className="absolute top-3 right-3 z-20 px-2 py-1 bg-[var(--color-artificio-orange)] rounded-md text-xs font-bold text-white">
           ★ Destaque
-        </div>
-      )}
-
-      {slotsLeft === 1 && !isFull && (
-        <div className="absolute top-3 left-3 z-20 px-2 py-1 bg-orange-500/90 rounded-md text-[11px] font-black tracking-wide text-white">
-          Falta 1 jogador!
         </div>
       )}
 

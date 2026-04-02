@@ -14,6 +14,9 @@ Resumo executivo para reduzir custo de contexto dos agentes, com navegação rá
 |---|---|---|---|
 | Onboarding (3 etapas) | Seção 1 deste guia | `ARQUITETURA_PROJETO.md` §7.5 | `AuthCallback` deve redirecionar para `/onboarding` quando `onboarding_completed=false` |
 | Catálogo e busca pública | Seção 2 | `ARQUITETURA_PROJETO.md` §7.1-7.3 | Busca/filtros ficam no Frontend, API retorna dados públicos |
+| Taxonomia de sistemas (árvore + aliases) | Seção 2 | `ARQUITETURA_PROJETO.md` §4 e §7.5 | Modelar `sistema > edição > variante`; aliases servem para busca, não para duplicar sistema |
+| Selos oficiais (Covil/DDAL) | Seção 2 e 3 | `ARQUITETURA_PROJETO.md` §7.2, §7.4 e §7.6 | DDAL só é elegível no caminho `D&D > D&D 5e > D&D 2024` e exige metadados mínimos no backend |
+| Header/Footer globais | Seção 2 | `ARQUITETURA_PROJETO.md` §7.1-7.6 | Header sticky e footer institucional devem existir em todas as rotas/etapas |
 | Landing pública de mestre | Seção 3 | `ARQUITETURA_PROJETO.md` §7.4 | Nunca expor `avatar_deletehash`/`banner_deletehash` |
 | OAuth / JWT / roles | Seção 4 | `ARQUITETURA_PROJETO.md` §6 | Segurança e role no Backend, nunca no Frontend |
 | Imagens e Imgur | Seção 5 | `ARQUITETURA_PROJETO.md` §16 | Upload/remoção só no Backend |

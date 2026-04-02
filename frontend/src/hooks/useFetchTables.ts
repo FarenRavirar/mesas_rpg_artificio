@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import type { TablesResponse, TableCard } from '../types/tables';
+import type { TablesResponse, TableCard, CatalogSeal } from '../types/tables';
 
 interface UseFetchTablesOptions {
   limit?: number;
   featured?: boolean;
   search?: string;
   system?: string;
+  seal?: CatalogSeal;
 }
 
 export const useFetchTables = (options: UseFetchTablesOptions = {}) => {
@@ -21,10 +22,11 @@ export const useFetchTables = (options: UseFetchTablesOptions = {}) => {
       setError(null);
 
       const params = new URLSearchParams();
-      if (options.limit)    params.set('limit', String(options.limit));
+      if (options.limit) params.set('limit', String(options.limit));
       if (options.featured) params.set('featured', 'true');
-      if (options.search)   params.set('search', options.search);
-      if (options.system)   params.set('system', options.system);
+      if (options.search) params.set('search', options.search);
+      if (options.system) params.set('system', options.system);
+      if (options.seal) params.set('seal', options.seal);
 
       try {
         const res = await fetch(`/api/v1/tables?${params.toString()}`, {
@@ -46,7 +48,7 @@ export const useFetchTables = (options: UseFetchTablesOptions = {}) => {
 
     fetchTables();
     return () => controller.abort();
-  }, [options.limit, options.featured, options.search, options.system]);
+  }, [options.limit, options.featured, options.search, options.system, options.seal]);
 
   return { tables, isLoading, error };
 };

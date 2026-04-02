@@ -2,6 +2,7 @@ export type TableStatus = 'draft' | 'active' | 'full' | 'cancelled' | 'ended' | 
 export type TableModality = 'online' | 'presencial' | 'hibrida';
 export type PriceType = 'gratuita' | 'paga';
 export type ExperienceLevel = 'todos' | 'iniciante' | 'intermediario' | 'veterano';
+export type CatalogSeal = 'ddal' | 'covil-do-lich' | '';
 
 export interface TableCard {
   id: string;
@@ -25,6 +26,10 @@ export interface TableCard {
   gm_slug: string | null;
   gm_avatar_url: string | null;
   gm_display_name: string | null;
+  is_ddal?: boolean;
+  ddal_code?: string | null;
+  ddal_name?: string | null;
+  ddal_tier?: number | null;
   created_at: string;
 }
 
@@ -36,6 +41,12 @@ export interface TableDetail extends TableCard {
   content_warnings: string[];
   safety_tools: string[];
   gm_bio: string | null;
+  ddal_season?: string | null;
+  ddal_duration?: string | null;
+  ddal_format?: string | null;
+  ddal_org_code?: string | null;
+  ddal_setting?: string | null;
+  ddal_rules_notes?: string | null;
 }
 
 export interface TablesResponse {

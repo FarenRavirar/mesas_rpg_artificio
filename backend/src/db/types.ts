@@ -1,6 +1,7 @@
 import { Generated, Insertable, Selectable, Updateable } from 'kysely';
 
 export type UserRole = 'visitor' | 'player' | 'gm' | 'admin';
+export type SystemNodeType = 'system' | 'edition' | 'variant' | 'subsystem';
 
 export interface UsersTable {
   id: Generated<string>;
@@ -73,6 +74,19 @@ export interface SystemsTable {
   name: string;
   slug: string;
   description: string | null;
+  parent_id: string | null;
+  node_type: Generated<SystemNodeType>;
+  depth: Generated<number>;
+  path_slug: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface SystemAliasesTable {
+  id: Generated<string>;
+  system_id: string;
+  alias: string;
+  alias_slug: string;
+  is_official: Generated<boolean>;
   created_at: Generated<Date>;
 }
 
@@ -127,6 +141,16 @@ export interface TablesTable {
   source_url: string | null;
   source_id: string | null;
   featured: Generated<boolean>;
+  is_ddal: Generated<boolean>;
+  ddal_code: string | null;
+  ddal_name: string | null;
+  ddal_tier: number | null;
+  ddal_season: string | null;
+  ddal_duration: string | null;
+  ddal_format: string | null;
+  ddal_org_code: string | null;
+  ddal_setting: string | null;
+  ddal_rules_notes: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -137,6 +161,7 @@ export interface Database {
   user_preferences: UserPreferencesTable;
   gm_profiles: GmProfilesTable;
   systems: SystemsTable;
+  system_aliases: SystemAliasesTable;
   tags: TagsTable;
   platforms: PlatformsTable;
   tables: TablesTable;

@@ -44,7 +44,9 @@ router.get('/:slug', async (req: Request, res: Response) => {
         't.cover_url', 't.status', 't.type', 't.audience', 't.modality',
         't.price_type', 't.price_value',
         't.slots_total', 't.slots_filled',
-        't.language', 't.experience_level', 't.featured', 't.created_at',
+        't.language', 't.experience_level', 't.featured',
+        't.is_ddal', 't.ddal_code', 't.ddal_name', 't.ddal_tier',
+        't.created_at',
         's.name as system_name', 's.slug as system_slug',
       ])
       .where('t.gm_id', '=', gm.id)

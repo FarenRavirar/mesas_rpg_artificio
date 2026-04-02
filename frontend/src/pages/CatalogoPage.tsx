@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Compass, Filter, RotateCcw, Search } from 'lucide-react';
+import { Filter, RotateCcw, Search, ShieldCheck, Star } from 'lucide-react';
 import { TableCardComponent, TableCardSkeleton } from '../components/TableCard';
-import type { TableCard, TablesResponse } from '../types/tables';
+import type { CatalogSeal, TableCard, TablesResponse } from '../types/tables';
 import { applySeo } from '../utils/seo';
 
 interface SystemOption {
@@ -23,11 +22,12 @@ export const CatalogoPage = () => {
   const [modality, setModality] = useState('');
   const [priceType, setPriceType] = useState('');
   const [experience, setExperience] = useState('');
+  const [seal, setSeal] = useState<CatalogSeal>('');
 
   useEffect(() => {
     applySeo(
       'Catálogo de Mesas | Artifício Mesas',
-      'Explore mesas de RPG com filtros por sistema, modalidade, preço e nível de experiência.'
+      'Explore mesas de RPG com filtros por sistema, modalidade, preço, nível de experiência e selos DDAL/Covil do Lich.'
     );
   }, []);
 
@@ -55,9 +55,10 @@ export const CatalogoPage = () => {
     if (modality) params.set('modality', modality);
     if (priceType) params.set('price_type', priceType);
     if (experience) params.set('experience_level', experience);
+    if (seal) params.set('seal', seal);
 
     return params.toString();
-  }, [experience, modality, priceType, search, system]);
+  }, [experience, modality, priceType, search, seal, system]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -94,25 +95,14 @@ export const CatalogoPage = () => {
     setModality('');
     setPriceType('');
     setExperience('');
+    setSeal('');
   };
 
   return (
-    <main className="min-h-screen bg-[var(--color-artificio-blue)] text-white">
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#102041]/90 backdrop-blur-xl">
-        <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 font-bold text-[var(--color-artificio-orange)]" id="catalogo-link-home">
-            <Compass className="w-5 h-5" />
-            <span>Artifício Mesas</span>
-          </Link>
-          <Link to="/painel" className="text-sm text-white/70 hover:text-white transition-colors" id="catalogo-link-painel">
-            Painel do Mestre
-          </Link>
-        </div>
-      </header>
-
+    <main className="bg-[var(--color-artificio-blue)] text-white">
       <section className="container mx-auto px-6 py-10">
         <h1 className="text-3xl md:text-5xl font-black tracking-tight mb-2">Catálogo Público de Mesas</h1>
-        <p className="text-white/65 max-w-2xl">Filtre por sistema, modalidade e nível para encontrar a aventura ideal para seu grupo.</p>
+        <p className="text-white/65 max-w-2xl">Filtre por sistema, modalidade, nível e selos para encontrar a aventura ideal para seu grupo.</p>
       </section>
 
       <section className="container mx-auto px-6 pb-16 grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 items-start">
@@ -152,6 +142,33 @@ export const CatalogoPage = () => {
               >
                 Buscar
               </button>
+            </div>
+
+            <div>
+              <p className="block text-xs uppercase tracking-wider text-white/60 mb-1">Selos</p>
+              <div className="grid grid-cols-1 gap-2">
+                <button
+                  id="catalogo-seal-ddal"
+                  type="button"
+                  onClick={() => setSeal((prev) => (prev === 'ddal' ? '' : 'ddal'))}
+                  className={`rounded-xl border px-3 py-2 text-left text-sm transition-colors ${seal === 'ddal' ? 'border-amber-300/50 bg-amber-500/20 text-amber-100' : 'border-white/10 bg-[#13213f] text-white/80 hover:border-white/20'}`}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4" /> DDAL
+                  </span>
+                </button>
+
+                <button
+                  id="catalogo-seal-covil"
+                  type="button"
+                  onClick={() => setSeal((prev) => (prev === 'covil-do-lich' ? '' : 'covil-do-lich'))}
+                  className={`rounded-xl border px-3 py-2 text-left text-sm transition-colors ${seal === 'covil-do-lich' ? 'border-purple-300/50 bg-purple-500/20 text-purple-100' : 'border-white/10 bg-[#13213f] text-white/80 hover:border-white/20'}`}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <Star className="w-4 h-4" /> Covil do Lich
+                  </span>
+                </button>
+              </div>
             </div>
 
             <div>
