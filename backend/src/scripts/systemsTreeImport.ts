@@ -127,7 +127,7 @@ const buildAliases = (name: string, rootSegment: string, metadata: unknown[]): s
 };
 
 const resolveSourceFilePath = (): string => {
-  return path.resolve(__dirname, '../../../arvores_de_sistemas.md');
+  return path.resolve(__dirname, '../../arvores_de_sistemas.md');
 };
 
 const run = async () => {
