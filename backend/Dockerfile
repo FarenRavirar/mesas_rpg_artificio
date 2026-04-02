@@ -8,11 +8,12 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY backend/package*.json ./
 RUN npm ci
 
-COPY tsconfig.json ./
-COPY src/ ./src/
+COPY backend/tsconfig.json ./
+COPY backend/src/ ./src/
+COPY arvores_de_sistemas.md ./
 
 RUN npm run build
 
