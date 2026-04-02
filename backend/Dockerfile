@@ -26,7 +26,7 @@ WORKDIR /app
 # Dependências de runtime do Sharp (processamento de imagem WebP)
 RUN apk add --no-cache vips-dev fftw-dev build-base python3
 
-COPY package*.json ./
+COPY backend/package*.json ./
 RUN npm ci --omit=dev
 
 # Copiar build compilado
