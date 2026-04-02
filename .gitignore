@@ -40,6 +40,7 @@ ssh-key-*
 # Arquivos de sistema
 .DS_Store
 Thumbs.db
+PROMPT_CODEX_TASK.md
 
 # IDEs
 .vscode/
