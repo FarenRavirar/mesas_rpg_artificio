@@ -15,7 +15,7 @@ Definir a arquitetura oficial, os contratos estruturais e o plano de execução 
 **NATUREZA DESTE PROJETO E ESTRATÉGIA DE LANÇAMENTO:**
 1. **Projeto nativo:** Não é um fork de plugin WordPress. É um webapp próprio, construído do zero com a mesma stack e os mesmos princípios do Grande Glossário de RPG.
 2. **Ecossistema Artifício:** Compartilha identidade visual, infraestrutura on-premise e filosofia comunitária com o Glossário. Os dois projetos são independentes mas coirmãos.
-3. **Lançamento (Beta Permanente):** A aplicação rodará em `mesasbeta.artificiorpg.com` (beta) e `mesas.artificiorpg.com` (produção).
+3. **Ambientes previstos:** O beta roda em `mesasbeta.artificiorpg.com` e a produção permanece prevista para `mesas.artificiorpg.com`, ainda não publicada operacionalmente nesta rodada.
 4. **Missão declarada:** Facilitar que qualquer membro da comunidade brasileira de RPG encontre ou divulgue mesas com autonomia, consistência e sem barreiras de acesso.
 
 ## Quando ler
@@ -73,10 +73,10 @@ Os recursos principais arquitetados incluem:
 
 ## 3. Infraestrutura e Ambientes
 
-| Ambiente | URL | Branch | Container | Porta VM |
+| Ambiente | URL | Branch | Container | Exposição atual |
 |---|---|---|---|---|
-| **Beta (Deploy Contínuo)** | `mesasbeta.artificiorpg.com` | `dev` | `mesas-beta-app` | `30302` |
-| **Produção** | `mesas.artificiorpg.com` | `main` | `mesas-app` | `80` (interno, via Cloudflare Tunnel) |
+| **Beta (Deploy Contínuo)** | `mesasbeta.artificiorpg.com` | `dev` | `mesas-beta-app` | Cloudflare Tunnel via `mesas-beta-app:80`, sem porta pública dedicada no host |
+| **Produção** | `mesas.artificiorpg.com` | `main` | `mesas-app` | Ainda não publicada operacionalmente nesta rodada |
 
 ---
 
@@ -100,6 +100,7 @@ Os recursos principais arquitetados incluem:
 - `bookmarks` — Mesas salvas por usuários.
 - `sources` — Registro de fontes externas para o AggregatorBot.
 - `imported_tables` — Anúncios coletados automaticamente antes de deduplicação.
+- `imgur_cleanup_log` — Registro de tentativas de limpeza de imagens hospedadas externamente.
 - `user_preferences` — Preferências estruturadas (sistemas, temas, idiomas, plataformas, dias).
 
 ### 4.2 Campos Chave em `tables`
@@ -120,7 +121,7 @@ Os recursos principais arquitetados incluem:
 | `source_id` | FK para `sources` |
 | `gm_id` | FK para `gm_profiles` (null se importado sem vínculo) |
 | `system_id` | FK para `systems` |
-| `title`, `description`, `cover_url` | Conteúdo editorial da mesa |
+| `title`, `description`, `cover_url`, `cover_source_type`, `cover_origin_url`, `cover_deletehash`, `cover_imgur_id` | Conteúdo editorial da mesa e metadados de imagem hospedada ou reaproveitada externamente |
 | `starts_at` | Data/hora de início |
 | `experience_level` | `todos`, `iniciante`, `intermediario`, `veterano` |
 | `slug` | Gerado automaticamente via `slugify.ts` |
@@ -159,12 +160,13 @@ A resolução de anúncios duplicados usa prioridade determinística:
 ## 6. Autenticação e Conta
 
 - **Login principal:** Google OAuth 2.0. É a porta de entrada principal, sem senha local.
-- **Sessão:** JWT gerado pelo Backend após handshake OAuth, com refresh token rotativo.
-- **Criação de conta:** Automática no primeiro login Google, com onboarding obrigatório de preferências em 3 etapas.
-- **Separação de identidade:** A conta Google alimenta apenas o login. O perfil público (`profiles`, `gm_profiles`) é entidade própria controlada pelo usuário.
-- **Elevação de role:** Um `player` se torna `gm` ao criar seu primeiro `gm_profile`. A elevação é irreversível via interface (requer admin para reverter).
-- **Admin master por e-mail:** O e-mail `paulohenriquercc@gmail.com` deve ser sempre promovido/garantido como role `admin` no Backend durante o login OAuth.
-
+- **Sessão:** JWT gerado pelo Backend após handshake OAuth, com refresh token rotativo como arquitetura prevista.
+- **Criação de conta:** Automática no primeiro login Google, com onboarding previsto de preferências em 3 etapas.
+- **Separação de identidade:** A conta Google alimenta apenas o login. O perfil público (profiles, gm_profiles) é entidade própria controlada pelo usuário.
+- **Integração opcional futura com Discord:** O sistema poderá permitir, em fase posterior, o vínculo opcional de uma conta Discord ao perfil público do usuário. Esse vínculo não substitui o login Google e não será requisito para uso da plataforma.
+- **Uso previsto do vínculo Discord:** Quando implementado, o vínculo poderá servir para validar identidade comunitária, consultar cargos públicos em servidores autorizados e habilitar selos contextuais, como Mestre do Covil, sem transformar o Discord em provedor principal de autenticação.
+- **Elevação de role:** Um player se torna gm ao criar seu primeiro gm_profile. A elevação é irreversível via interface (requer admin para reverter).
+- **Admin master por e-mail:** O e-mail paulohenriquercc@gmail.com deve ser sempre promovido/garantido como role dmin no Backend durante o login OAuth.
 ---
 
 ## 7. Funcionalidades por Módulo
@@ -200,7 +202,7 @@ Listagem em grid com card denso por mesa, exibindo (nessa ordem):
 - Corpo principal com seções: Sobre esta Mesa, Sobre os Jogadores, Sobre a Aventura, Sobre o Sistema, Requisitos para Participar, Tags
 - Seção de Perguntas e Respostas (login obrigatório para perguntar)
 - Seção de Avaliações
-- Botão de exportação para WhatsApp e Discord
+- Botão de exportação para WhatsApp e Discord, previsto para versão posterior, após a base principal estar estável.
 
 ### 7.4 Landing Page do Mestre
 
@@ -236,23 +238,25 @@ Preferências alimentam: recomendações na home, filtros pré-salvos, notifica�
 - Histórico de perguntas recebidas com resposta inline
 - Lista de avaliações recebidas
 - Edição do `gm_profile`
-- Gerador de texto de divulgação (exportação WhatsApp/Discord)
+- Gerador de texto de divulgação (exportação WhatsApp/Discord), previsto para versão posterior, após a base principal estar estável.
 
 ### 7.7 Painel Administrativo
 
 - **Moderação de Mesas Pendentes:** Aprovação/rejeição de anúncios com registro em `table_history`.
-- **Gestão de Fontes Externas:** Cadastro e monitoramento de fontes para o AggregatorBot (URL, tipo, frequência, status).
-- **Preview de Importação (Dry Run):** Antes de persistir lote importado, exibe preview com detecção de duplicatas.
+- **Gestão de Fontes Externas:** Cadastro e monitoramento de fontes para o AggregatorBot (URL, tipo, frequência, status), previstos para fase posterior.
+- **Preview de Importação (Dry Run):** Antes de persistir lote importado, exibe preview com detecção de duplicatas, previsto para fase posterior.
 - **Gestão de Taxonomias:** CRUD de sistemas, tags e plataformas com geração de slug automática.
 - **Destaques da Home:** Curadoria manual das mesas exibidas no hero.
 - **Workflow de Continuidade:** Modal de moderação suporta estado `stayOpen` para processar múltiplos itens em sequência.
 
 ### 7.8 AggregatorBot (Ingestão Automática)
 
+Implementação prevista apenas para fase posterior, quando a base principal pública e administrativa estiver estável.
 - Serviço Node.js rodando via node-cron no mesmo compose do Backend.
 - Coleta diária configurável por fonte.
 - Parseia anúncios para o schema de `imported_tables`.
 - Executa deduplicação automática (ver 4.5).
+- Quando a origem monitorada for Discord e a postagem já trouxer imagem de campanha com URL pública reutilizável, o bot deverá reaproveitar essa imagem como `cover_url` da mesa importada, sem reupload obrigatório para Imgur.
 - Anúncios não vinculados a perfis locais ficam como `origin=imported`, sem `gm_id`.
 - Mestres podem "reivindicar" um anúncio importado, vinculando ao próprio perfil.
 - Todos os logs de ingestão registrados com timestamp, fonte e resultado (novo/duplicado/erro).
@@ -261,7 +265,9 @@ Preferências alimentam: recomendações na home, filtros pré-salvos, notifica�
 
 ## 8. Exportação WhatsApp e Discord
 
-Ao clicar em "Exportar para WhatsApp" ou "Exportar para Discord", o sistema gera texto formatado automaticamente:
+Esta funcionalidade é prevista para versão posterior, após a base principal pública e administrativa do projeto estar estável.
+
+Quando implementada, ao clicar em "Exportar para WhatsApp" ou "Exportar para Discord", o sistema deverá gerar texto formatado automaticamente.
 
 **WhatsApp (sem markdown):**
 ```
@@ -317,7 +323,7 @@ Estes compromissos foram declarados publicamente no anúncio do projeto e **não
 
 ## 11. Tratativa de Rollback ou Falhas
 
-Toda nova implantação deve ser gerada localmente no branch `dev`.
+Toda nova implantação deve ser gerada localmente no branch correspondente ao ambiente, `dev` para beta e `main` para produção.
 Qualquer falha de build ou erro em runtime deve primeiramente ser catalogada em `ERRORS_SOLUTIONS.md` antes de qualquer looping de reescrita de código pela IA.
 
 ### Resgate de Banco e Ambiente Beta
@@ -326,7 +332,7 @@ O contêiner de API Node.js só inicializa se conseguir bater porta e sincroniza
 
 1. Verifique o `docker compose logs` e consulte `ERRORS_SOLUTIONS.md` urgentemente.
 2. Use SSH assistido se e somente se métricas do repositório GitHub e os Actions falharem primeiro.
-3. O AggregatorBot possui circuit breaker próprio: em caso de falha de conexão com o banco, ele aborta o ciclo de ingestão e registra o erro em log, sem tentar novamente até o próximo ciclo agendado.
+3. Quando o AggregatorBot for implementado, deverá possuir circuit breaker próprio: em caso de falha de conexão com o banco, deverá abortar o ciclo de ingestão e registrar o erro em log, sem tentar novamente até o próximo ciclo agendado.
 
 ### Política de Migrations
 
@@ -346,44 +352,44 @@ Referência rápida das rotas estruturais da API. Todas as rotas mutáveis exige
 | `GET` | `/api/v1/auth/google` | Inicia handshake OAuth Google |
 | `GET` | `/api/v1/auth/google/callback` | Callback OAuth, retorna JWT |
 | `POST` | `/api/v1/auth/logout` | Invalida refresh token |
-| `GET` | `/api/v1/auth/me` | Retorna perfil do usuário autenticado |
+| `GET` | `/api/v1/me` | Retorna perfil do usuário autenticado |
 
 ### Mesas
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
-| `GET` | `/tables` | — | Listagem pública com filtros via query params |
-| `GET` | `/tables/:slug` | — | Página individual da mesa |
-| `POST` | `/tables` | `gm` | Criar nova mesa |
-| `PUT` | `/tables/:id` | `gm` (própria) | Editar mesa |
-| `PATCH` | `/tables/:id/status` | `gm` / `admin` | Alterar status |
-| `POST` | `/tables/:id/bookmark` | `player` | Salvar mesa |
-| `POST` | `/tables/:id/export` | — | Gerar texto de exportação |
+| `GET` | `/api/v1/tables` | — | Listagem pública com filtros via query params |
+| `GET` | `/api/v1/tables/:slug` | — | Página individual da mesa |
+| `POST` | `/api/v1/tables` | `gm` | Criar nova mesa |
+| `PUT` | `/api/v1/tables/:id` | `gm` (própria) | Editar mesa |
+| `PATCH` | `/api/v1/tables/:id/status` | `gm` / `admin` | Alterar status |
+| `POST` | `/api/v1/tables/:id/bookmark` | `player` | Salvar mesa |
+| `POST` | `/api/v1/tables/:id/export` | — | Gerar texto de exportação, previsto para fase posterior |
 
 ### Mestres
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
-| `GET` | `/gm/:slug` | — | Perfil público do mestre |
-| `POST` | `/gm/profile` | `player` | Criar gm_profile (eleva role) |
-| `PUT` | `/gm/profile` | `gm` | Editar gm_profile |
+| `GET` | `/api/v1/gm/:slug` | — | Perfil público do mestre |
+| `POST` | `/api/v1/gm/profile` | `player` | Criar gm_profile (eleva role) |
+| `PUT` | `/api/v1/gm/profile` | `gm` | Editar gm_profile |
 
 ### Perguntas e Avaliações
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
-| `GET` | `/tables/:id/questions` | — | Listar perguntas públicas |
-| `POST` | `/tables/:id/questions` | `player` | Enviar pergunta |
-| `POST` | `/questions/:id/answer` | `gm` (própria mesa) | Responder pergunta |
-| `POST` | `/tables/:id/reviews` | `player` | Avaliar mesa |
+| `GET` | `/api/v1/tables/:id/questions` | — | Listar perguntas públicas |
+| `POST` | `/api/v1/tables/:id/questions` | `player` | Enviar pergunta |
+| `POST` | `/api/v1/questions/:id/answer` | `gm` (própria mesa) | Responder pergunta |
+| `POST` | `/api/v1/tables/:id/reviews` | `player` | Avaliar mesa |
 
 ### Admin
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
-| `GET` | `/admin/tables/pending` | `admin` | Mesas aguardando moderação |
-| `PATCH` | `/admin/tables/:id/moderate` | `admin` | Aprovar ou rejeitar mesa |
-| `GET` | `/admin/sources` | `admin` | Listar fontes do AggregatorBot |
-| `POST` | `/admin/sources` | `admin` | Cadastrar nova fonte |
-| `POST` | `/admin/import/dry-run` | `admin` | Preview de importação em lote |
-| `POST` | `/admin/import/commit` | `admin` | Confirmar importação em lote |
-| `GET` | `/admin/import/logs` | `admin` | Histórico de ingestões do bot |
+| `GET` | `/api/v1/admin/tables/pending` | `admin` | Mesas aguardando moderação |
+| `PATCH` | `/api/v1/admin/tables/:id/moderate` | `admin` | Aprovar ou rejeitar mesa |
+| `GET` | `/api/v1/admin/sources` | `admin` | Listar fontes do AggregatorBot, previsto para fase posterior |
+| `POST` | `/api/v1/admin/sources` | `admin` | Cadastrar nova fonte, previsto para fase posterior |
+| `POST` | `/api/v1/admin/import/dry-run` | `admin` | Preview de importação em lote, previsto para fase posterior |
+| `POST` | `/api/v1/admin/import/commit` | `admin` | Confirmar importação em lote, previsto para fase posterior |
+| `GET` | `/api/v1/admin/import/logs` | `admin` | Histórico de ingestões do bot, previsto para fase posterior |
 
 ---
 
@@ -399,7 +405,6 @@ O projeto é desenvolvido em fases incrementais, priorizando o núcleo funcional
 - Página individual da mesa
 - Landing page do mestre
 - Painel do mestre: criar e editar mesas
-- Exportação WhatsApp e Discord
 - Deploy em beta
 
 ### Fase 2 — Moderação e Administração
@@ -427,7 +432,7 @@ O projeto é desenvolvido em fases incrementais, priorizando o núcleo funcional
 - Integração com sistema de notificações por email (vazamentos de vaga, início próximo)
 - SEO estruturado (meta tags, sitemap, Open Graph para compartilhamento de mesas)
 - Métricas internas de uso no painel admin (sem tracking de terceiros)
-
+- Exportação WhatsApp e Discord
 ---
 
 ## 14. Decisões de Arquitetura Registradas
@@ -460,246 +465,54 @@ Este bloco documenta decisões tomadas com justificativa, para evitar que sejam 
 | **Slug** | Identificador textual único gerado a partir do nome da entidade, usado em URLs. |
 | **Onboarding** | Fluxo obrigatório de 3 etapas executado no primeiro login para configurar perfil e preferências. |
 | **Exportação** | Geração de texto formatado para WhatsApp ou Discord a partir dos dados estruturados de uma mesa. |
-.js só inicializa se conseguir bater porta e sincronizar no PostgreSQL (`mesas-beta-db`). Se o ambiente der tela preta por corrupção de variáveis de ambiente ou o contêiner API explodir em runtime:
-
-1. Verifique o `docker compose logs` e consulte `ERRORS_SOLUTIONS.md` urgentemente.
-2. Use SSH assistido se e somente se métricas do repositório GitHub e os Actions falharem primeiro.
-3. O banco PostgreSQL possui snapshot diário automático. Em caso de corrupção de dados, restaurar o snapshot mais recente antes de qualquer tentativa de reescrita manual.
-4. O AggregatorBot possui modo `--dry-run` para diagnóstico sem persistência. Sempre usar dry-run para validar fontes novas antes de ativar coleta real.
-
----
-
-## 12. Rotas de API — Contrato Estrutural
-
-Todas as rotas seguem o prefixo `/api/v1/`. Nenhum endpoint sensível é acessível sem o header `Authorization: Bearer <jwt>`.
-
-### 12.1 Rotas Públicas (sem autenticação)
-
-| Método | Rota | Descrição |
-|---|---|---|
-| GET | `/tables` | Listagem paginada de mesas ativas com filtros |
-| GET | `/tables/:slug` | Detalhe completo de uma mesa |
-| GET | `/gm/:slug` | Landing page pública de um mestre |
-| GET | `/systems` | Listagem de sistemas cadastrados |
-| GET | `/tags` | Listagem de tags disponíveis |
-| GET | `/platforms` | Listagem de plataformas disponíveis |
-| GET | `/tables/:slug/questions` | Perguntas e respostas de uma mesa |
-
-### 12.2 Rotas Autenticadas — Jogador (player+)
-
-| Método | Rota | Descrição |
-|---|---|---|
-| GET | `/me` | Dados do próprio perfil |
-| PUT | `/me/preferences` | Atualizar preferências |
-| POST | `/tables/:slug/questions` | Enviar pergunta |
-| POST | `/tables/:slug/bookmark` | Salvar mesa |
-| DELETE | `/tables/:slug/bookmark` | Remover mesa salva |
-| POST | `/tables/:slug/reviews` | Avaliar mesa (requer participação) |
-
-### 12.3 Rotas Autenticadas — Mestre (gm+)
-
-| Método | Rota | Descrição |
-|---|---|---|
-| POST | `/tables` | Criar nova mesa |
-| PUT | `/tables/:slug` | Editar mesa própria |
-| PATCH | `/tables/:slug/status` | Alterar status (cancelar, encerrar, marcar cheia) |
-| POST | `/gm/profile` | Criar gm_profile |
-| PUT | `/gm/profile` | Editar gm_profile |
-| POST | `/questions/:id/answer` | Responder pergunta |
-| GET | `/tables/:slug/export` | Gerar texto de exportação (WhatsApp/Discord) |
-
-### 12.4 Rotas Autenticadas — Administrador
-
-| Método | Rota | Descrição |
-|---|---|---|
-| GET | `/admin/tables/pending` | Mesas aguardando moderação |
-| PATCH | `/admin/tables/:id/review` | Aprovar ou rejeitar mesa |
-| GET | `/admin/sources` | Listar fontes do AggregatorBot |
-| POST | `/admin/sources` | Cadastrar nova fonte |
-| PATCH | `/admin/sources/:id` | Editar/ativar/desativar fonte |
-| POST | `/admin/aggregator/run` | Disparar coleta manual |
-| GET | `/admin/aggregator/preview` | Dry-run de importação |
-| GET | `/admin/systems` | CRUD de sistemas |
-| POST | `/admin/systems` | Criar sistema |
-| PUT | `/admin/systems/:id` | Editar sistema |
-| POST | `/admin/featured` | Atualizar mesas em destaque da home |
-
----
-
-## 13. Estrutura de Diretórios (Frontend)
-
-```
-src/
-├── assets/             # Imagens, ícones estáticos
-├── components/
-│   ├── ui/             # Componentes base: Button, Badge, Input, Modal
-│   ├── table/          # TableCard, TableDetail, TableFilters
-│   ├── gm/             # GmProfileCard, GmBanner, GmStats
-│   ├── layout/         # Header, Footer, Sidebar
-│   └── admin/          # PainelModeração, FontesList, TaxonomiaEditor
-├── pages/
-│   ├── Home.tsx
-│   ├── Catalog.tsx
-│   ├── TableDetail.tsx
-│   ├── GmProfile.tsx
-│   ├── Onboarding.tsx
-│   ├── Dashboard/
-│   │   ├── GmDashboard.tsx
-│   │   └── AdminDashboard.tsx
-│   └── Auth/
-│       └── Callback.tsx    # Handler do OAuth Google
-├── hooks/              # useSearch, useFilters, useAuth, useBookmarks
-├── services/           # api.ts (axios instance), auth.ts, export.ts
-├── store/              # Zustand ou Context para estado global
-├── types/              # Interfaces TypeScript alinhadas ao modelo de dados
-└── utils/
-    ├── slugify.ts
-    ├── formatExport.ts  # Gerador de texto WhatsApp/Discord
-    └── dateHelpers.ts
-```
-
-### Estrutura de Diretórios (Backend)
-
-```
-src/
-├── routes/
-│   ├── public/         # tables.ts, gm.ts, systems.ts
-│   ├── player/         # bookmarks.ts, questions.ts, reviews.ts
-│   ├── gm/             # dashboard.ts, tableCrud.ts
-│   └── admin/          # moderation.ts, sources.ts, aggregator.ts
-├── middleware/
-│   ├── auth.ts         # Verificação JWT
-│   └── requireRole.ts  # Guard de permissão por role
-├── services/
-│   ├── aggregator/
-│   │   ├── index.ts    # Orquestrador do AggregatorBot
-│   │   ├── sources/    # Parsers por tipo de fonte
-│   │   └── dedup.ts    # Lógica de deduplicação
-│   ├── export.ts       # Gerador de texto de divulgação
-│   └── slug.ts         # slugify.ts compartilhado
-├── db/
-│   ├── migrations/     # Arquivos SQL de migração versionados
-│   ├── seeds/          # Seeds de sistemas, tags, plataformas iniciais
-│   └── index.ts        # Pool de conexão PostgreSQL
-└── utils/
-    └── logger.ts
-```
-
----
-
-## 14. Fluxos Críticos Documentados
-
-### 14.1 Publicação de Mesa por Mestre
-
-```
-Mestre preenche formulário
-  → Frontend valida campos obrigatórios
-  → POST /api/v1/tables (com JWT)
-  → Backend valida role=gm
-  → Backend gera slug via slugify.ts
-  → Insere em tables com status=draft
-  → Se admin aprova → status=active
-  → Mesa aparece no catálogo público
-```
-
-### 14.2 Ingestão pelo AggregatorBot
-
-```
-node-cron dispara coleta (diária ou manual)
-  → Para cada fonte ativa em sources:
-      → Parser específico extrai anúncios brutos
-      → Normaliza para schema de imported_tables
-      → Executa deduplicação (ver 4.5)
-      → Insere novos como status=pending_review
-      → Registra log (novo/duplicado/erro)
-  → Admin vê fila no painel e modera
-```
-
-### 14.3 Reivindicação de Anúncio Importado por Mestre
-
-```
-Mestre encontra mesa importada que é sua
-  → Clica em "Esta mesa é minha"
-  → Backend vincula gm_id ao registro
-  → Mestre pode editar, atualizar vagas e encerrar
-  → origin permanece=imported para rastreabilidade
-```
-
-### 14.4 Exportação para WhatsApp/Discord
-
-```
-Usuário clica em "Exportar"
-  → GET /api/v1/tables/:slug/export?channel=whatsapp
-  → Backend monta template com dados da mesa
-  → Retorna texto formatado
-  → Frontend exibe modal com texto + botão "Copiar"
-```
-
----
-
-## 15. Variáveis de Ambiente Obrigatórias
-
-Todas as variáveis devem estar definidas no `.env` de cada ambiente. **Nunca commitar `.env` no repositório.**
-
-```env
-# Banco de Dados
-DATABASE_URL=postgresql://user:pass@mesas-beta-db:5432/mesas
-
-# Autenticação
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-GOOGLE_CALLBACK_URL=https://mesasbeta.artificiorpg.com/api/v1/auth/google/callback
-JWT_SECRET=
-JWT_REFRESH_SECRET=
-JWT_EXPIRES_IN=15m
-JWT_REFRESH_EXPIRES_IN=7d
-
-# App
-PORT=3000
-NODE_ENV=development
-FRONTEND_URL=https://mesasbeta.artificiorpg.com
-
-# AggregatorBot
-AGGREGATOR_CRON_SCHEDULE="0 6 * * *"   # Roda todo dia às 6h
-AGGREGATOR_DRY_RUN=false
-```
-
----
-
-Aqui está o trecho novo. **Insira como nova seção `## 16. Gestão de Imagens e Integração Imgur`**, logo após o Glossário (seção 15), no final do documento.
-
----
 
 ## 16. Gestão de Imagens e Integração Imgur
 
 ### 16.1 Princípio Geral
 
-Imagens do ecossistema do projeto são divididas em duas categorias com tratamentos distintos:
+Imagens do ecossistema do projeto são divididas em três categorias com tratamentos distintos:
 
 **Imagens estáticas do site** (logos, ícones, ilustrações de UI) — servidas diretamente pelo Nginx a partir do build do Vite. Nunca vão para o Imgur.
 
-**Imagens de conteúdo gerado por usuários** — processadas na Oracle, convertidas para WebP e hospedadas no Imgur via API. São elas:
-- Banners de mesas (`tables.cover_url`)
+**Imagens enviadas por usuários** — processadas na Oracle, convertidas para WebP e hospedadas no Imgur via API. São elas:
+- Banners de mesas criadas localmente (`tables.cover_url` quando `cover_source_type=imgur_upload`)
 - Avatar e banner do perfil do mestre (`gm_profiles.avatar_url`, `gm_profiles.banner_url`)
 
-### 16.2 Pipeline de Upload (Oracle → Imgur)
+**Imagens reaproveitadas de fontes externas monitoradas pelo bot** — especialmente campanhas importadas dos canais do Covil do Lich no Discord. Quando a postagem já trouxer uma imagem de campanha com URL pública reutilizável, essa imagem poderá ser usada diretamente como `cover_url` da mesa importada, sem reupload obrigatório para Imgur.
 
-Todo upload de imagem de conteúdo segue este fluxo, executado integralmente no Backend (nunca no Frontend):
+### 16.2 Fluxos de imagem (Upload e Reaproveitamento Externo)
+
+**Fluxo A — Upload local para Imgur**
 
 ```
-[Cliente envia imagem] 
+[Cliente envia imagem]
     → API Node.js recebe o arquivo via multipart/form-data
     → Sharp converte para WebP (qualidade 85, resize proporcional com limite de 1280px de largura)
     → Buffer WebP é enviado para a API do Imgur via POST /image (base64)
     → Imgur retorna { link, deletehash, id }
     → Backend salva no banco: link (URL pública), deletehash (para exclusão futura), imgur_id
+    → cover_source_type = imgur_upload
     → URL pública do Imgur é retornada ao Frontend e gravada no campo correspondente
 ```
 
+**Fluxo B — Reaproveitamento de imagem externa vinda do Discord**
+
+```
+[AggregatorBot encontra anúncio no Discord]
+    → Extrai a imagem de campanha já publicada na postagem
+    → Valida se a URL é pública e reutilizável externamente
+    → Grava a URL em cover_url
+    → Grava a mesma origem em cover_origin_url
+    → cover_source_type = discord_reused
+    → Não cria deletehash nem imgur_id
+```
+
+**Regra arquitetural:** para anúncios importados dos canais monitorados do Covil do Lich, a imagem da campanha deve ser reaproveitada sempre que a postagem já fornecer uma URL pública utilizável.
+
 **Dependências no Backend:**
 - `sharp` — conversão e resize para WebP
-- `axios` ou `node-fetch` — chamadas à API do Imgur
-- Variável de ambiente `IMGUR_CLIENT_ID` — obrigatória, nunca exposta ao Frontend
+- `axios` ou `node-fetch` — chamadas à API do Imgur e consumo de origens externas quando necessário
+- Variável de ambiente `IMGUR_CLIENT_ID` — obrigatória para uploads próprios, nunca exposta ao Frontend
 
 ### 16.3 Campos de Banco Adicionais
 
@@ -708,9 +521,11 @@ Para suportar o ciclo de vida das imagens, os seguintes campos devem estar prese
 **Em `tables`:**
 | Campo | Tipo | Descrição |
 |---|---|---|
-| `cover_url` | `TEXT` | URL pública do Imgur |
-| `cover_deletehash` | `TEXT` | Hash de exclusão (privado, nunca exposto na API pública) |
-| `cover_imgur_id` | `TEXT` | ID da imagem no Imgur |
+| `cover_url` | `TEXT` | URL pública da imagem exibida na mesa |
+| `cover_source_type` | `TEXT` | Origem da imagem, como `imgur_upload` ou `discord_reused` |
+| `cover_origin_url` | `TEXT` | URL original da imagem quando vier de fonte externa reaproveitada |
+| `cover_deletehash` | `TEXT` | Hash de exclusão no Imgur, quando aplicável |
+| `cover_imgur_id` | `TEXT` | ID da imagem no Imgur, quando aplicável |
 
 **Em `gm_profiles`:**
 | Campo | Tipo | Descrição |
@@ -724,9 +539,11 @@ Para suportar o ciclo de vida das imagens, os seguintes campos devem estar prese
 
 ### 16.4 Política de Expiração e Exclusão
 
-**Banners de mesas** possuem ciclo de vida vinculado ao status da mesa:
+**Banners enviados localmente e hospedados no Imgur** possuem ciclo de vida vinculado ao status da mesa:
 
-Quando o status de uma mesa transitar para `ended` ou `cancelled`, um job de limpeza executa automaticamente a exclusão da imagem no Imgur via `DELETE /image/{deletehash}`. Após confirmação de exclusão bem-sucedida, os campos `cover_url`, `cover_deletehash` e `cover_imgur_id` são zerados no banco.
+Quando o status de uma mesa transitar para `ended` ou `cancelled`, um job de limpeza executa automaticamente a exclusão da imagem no Imgur via `DELETE /image/{deletehash}`. Após confirmação de exclusão bem-sucedida, os campos `cover_url`, `cover_source_type`, `cover_origin_url`, `cover_deletehash` e `cover_imgur_id` são zerados no banco.
+
+**Banners reaproveitados de importação do Discord** não devem gerar tentativa de exclusão na origem externa. Quando a mesa importada for encerrada, cancelada ou removida, o sistema apenas poderá limpar a referência local conforme a política de retenção do anúncio, sem enviar `DELETE` ao provedor externo.
 
 **Imagens de mestres** (avatar e banner do `gm_profile`) **não possuem expiração automática**. Só são excluídas do Imgur quando o mestre faz upload de uma nova imagem (substituição) — neste caso, a imagem anterior é deletada do Imgur antes de persistir a nova — ou quando a conta do mestre é encerrada por um administrador.
 
@@ -735,13 +552,15 @@ Quando o status de uma mesa transitar para `ended` ou `cancelled`, um job de lim
 Rodando via node-cron junto ao AggregatorBot, o `CleanupWorker` executa diariamente:
 
 ```
-1. Busca no banco todas as mesas com status = 'ended' OR 'cancelled' 
-   onde cover_deletehash IS NOT NULL
+1. Busca no banco todas as mesas com status = 'ended' OR 'cancelled'
+   onde cover_source_type = 'imgur_upload'
+   e cover_deletehash IS NOT NULL
 2. Para cada mesa: chama DELETE /image/{deletehash} na API do Imgur
-3. Se resposta 200: zera cover_url, cover_deletehash, cover_imgur_id no banco
+3. Se resposta 200: zera cover_url, cover_source_type, cover_origin_url, cover_deletehash e cover_imgur_id no banco
 4. Se resposta 404 (já deletada): zera os campos no banco sem erro
 5. Se falha de rede: registra em log e tenta novamente no próximo ciclo
-6. Registra resultado de cada operação em tabela imgur_cleanup_log
+6. Imagens com cover_source_type = `discord_reused` são ignoradas pelo job de exclusão externa
+7. Registra resultado de cada operação em tabela imgur_cleanup_log
 ```
 
 **Tabela `imgur_cleanup_log`:**
@@ -768,6 +587,7 @@ Rodando via node-cron junto ao AggregatorBot, o `CleanupWorker` executa diariame
 
 - `cover_deletehash`, `avatar_deletehash` e `banner_deletehash` são campos **nunca retornados por nenhuma rota pública da API**. Ficam restritos ao Backend e ao painel admin.
 - O `IMGUR_CLIENT_ID` é variável de ambiente obrigatória, listada no `.env.example` sem valor real.
+- URLs externas reaproveitadas do Discord só podem ser usadas quando já forem públicas e reutilizáveis na própria postagem importada. O sistema não tenta apagar nem modificar o arquivo na origem externa.
 - Uploads são processados apenas por usuários autenticados com role `gm` (para imagens de mesa e perfil de mestre) ou `admin`.
 
 
@@ -784,3 +604,6 @@ Rodando via node-cron junto ao AggregatorBot, o `CleanupWorker` executa diariame
 
 > **Lembre-se:** Este é um presente do Artifício RPG para a comunidade brasileira de RPG.
 > Gratuito · Sem anúncios · Sem coleta de dados · Feito com ♥ pela comunidade.
+
+
+
