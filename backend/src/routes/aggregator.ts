@@ -7,7 +7,7 @@ import type { AggregatorPublishMode } from '../db/types';
 
 const router = Router();
 
-router.use(authMiddleware, requireRole('admin'));
+// Não aplicar authMiddleware globalmente - cada rota decide se precisa
 
 const ALLOWED_PUBLISH_MODES: AggregatorPublishMode[] = ['manual_review', 'auto_publish'];
 
@@ -51,7 +51,7 @@ const extractPayload = (body: unknown): unknown => {
 };
 
 // GET /api/v1/aggregator/sources
-router.get('/sources', async (req: Request, res: Response) => {
+router.get('/sources', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
   try {
     const sources = await sourceService.list();
     return res.json({ data: sources });
@@ -62,7 +62,7 @@ router.get('/sources', async (req: Request, res: Response) => {
 });
 
 // POST /api/v1/aggregator/sources
-router.post('/sources', async (req: Request, res: Response) => {
+router.post('/sources', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
   const name = asNonEmptyString(req.body?.name);
   const serverId = asNonEmptyString(req.body?.serverId);
   const channelId = asNonEmptyString(req.body?.channelId);
@@ -114,7 +114,7 @@ router.post('/sources', async (req: Request, res: Response) => {
 });
 
 // PUT /api/v1/aggregator/sources/:id
-router.put('/sources/:id', async (req: Request, res: Response) => {
+router.put('/sources/:id', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
   const { id } = req.params;
 
   const publishModeRaw = req.body?.publishMode;
@@ -167,7 +167,7 @@ router.put('/sources/:id', async (req: Request, res: Response) => {
 });
 
 // PATCH /api/v1/aggregator/sources/:id/enabled
-router.patch('/sources/:id/enabled', async (req: Request, res: Response) => {
+router.patch('/sources/:id/enabled', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
   const { id } = req.params;
   const enabled = asBoolean(req.body?.enabled);
 
@@ -209,7 +209,7 @@ router.post('/import/file', async (req: Request, res: Response) => {
 });
 
 // POST /api/v1/aggregator/import/source/:id/run
-router.post('/import/source/:id/run', async (req: Request, res: Response) => {
+router.post('/import/source/:id/run', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
   const { id } = req.params;
   const dryRun = parseDryRun(req.body?.dryRun);
   const payload = extractPayload(req.body);
