@@ -76,6 +76,51 @@ Nunca produzir código sem:
 4. Executar mudança mínima
 5. Manter comunicação em português
 
+## Princípio de Assertividade Operacional
+
+Ao executar tarefas com escopo definido e plano aprovado:
+
+- **Executar diretamente** quando o plano estiver claro e aprovado
+- **Evitar loops de investigação** desnecessários após aprovação
+- **Consultar documentação canônica** uma vez, não repetidamente
+- **Aplicar mudanças incrementais** sem re-análise completa a cada passo
+- **Reportar progresso** de forma concisa, sem restatement excessivo
+
+**Quando parar para perguntar:**
+- Conflito entre requisitos e arquitetura
+- Decisão de produto não documentada
+- Risco de quebra de contrato público
+- Ambiguidade crítica no escopo
+
+**Quando NÃO parar:**
+- Implementação de feature já especificada
+- Ajuste de UX dentro do padrão estabelecido
+- Correção de bug com solução conhecida
+- Atualização de documentação por delta
+
+## Protocolo de Continuidade de Sessão
+
+> [!IMPORTANT]
+> **REGRA OBRIGATÓRIA — Resumo de Sessão:**
+> Ao iniciar qualquer nova sessão de trabalho (nova conversa ou retomada após interrupção), o agente DEVE criar imediatamente um arquivo de resumo no formato:
+>
+> **Nome:** `resumo_[dia-mes]_[task-curta].md`
+> **Localização:** Raiz do repositório
+> **Exemplo:** `resumo_04-04_aggregator-accept-flow.md`
+>
+> **Conteúdo mínimo obrigatório:**
+> 1. **Objetivo da sessão** — o que será feito (1-2 frases)
+> 2. **Plano de execução** — lista numerada de passos principais
+> 3. **Task list embutida** — checklist markdown com `[ ]` / `[x]` de cada item do plano
+> 4. **Arquivos-alvo** — lista de arquivos que serão modificados
+> 5. **Critério de conclusão** — como saber que a tarefa está completa
+> 6. **Item obrigatório ao final da task list:** `[ ] Atualizar documentos relevantes` — sempre incluir como último item para garantir que documentação canônica seja atualizada antes de concluir a sessão
+>
+> **Atualização contínua:** O agente deve atualizar o resumo conforme progride, marcando itens como `[x]` e registrando decisões importantes inline.
+>
+> **Finalidade:** Permitir que qualquer agente (ou o mesmo agente em sessão futura) retome o trabalho exatamente de onde parou, sem perda de contexto ou retrabalho.
+
+
 ## Fonte de verdade (single source of truth)
 
 - Estado atual do projeto e próxima ação: `RESUMO_EXECUCAO.md`

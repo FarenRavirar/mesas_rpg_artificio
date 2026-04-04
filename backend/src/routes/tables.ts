@@ -111,6 +111,18 @@ router.get('/', async (req: Request, res: Response) => {
       )`);
     }
 
+    // Filtro de expiração para mesas importadas
+    // Regra: expiram em 5 dias OU no horário do evento (o que vier primeiro)
+    query = query.where((eb) =>
+      eb.or([
+        eb('t.origin', '=', 'manual'), // Mesas manuais sempre visíveis
+        sql<boolean>`NOW() < LEAST(
+          t.created_at + interval '5 days',
+          COALESCE(t.starts_at, t.created_at + interval '5 days')
+        )`,
+      ])
+    );
+
     const tables = await query.execute();
 
     let tablesWithContacts = tables as Array<typeof tables[number] & { contacts: PublicTableContact[] }>;
@@ -197,6 +209,7 @@ router.get('/:slug', async (req: Request, res: Response) => {
         't.actual_gm_name',
         't.featured',
         't.created_at',
+        't.origin',
         't.is_ddal',
         't.ddal_code',
         't.ddal_name',
@@ -220,6 +233,19 @@ router.get('/:slug', async (req: Request, res: Response) => {
 
     if (!table) {
       return res.status(404).json({ error: 'Mesa não encontrada.' });
+    }
+
+    // Validar expiração para mesas importadas
+    if (table.origin === 'imported') {
+      const limite5Dias = new Date(table.created_at);
+      limite5Dias.setDate(limite5Dias.getDate() + 5);
+
+      const limiteEvento = table.starts_at ? new Date(table.starts_at) : limite5Dias;
+      const validadeFinal = limiteEvento < limite5Dias ? limiteEvento : limite5Dias;
+
+      if (new Date() >= validadeFinal) {
+        return res.status(404).json({ error: 'Mesa não encontrada ou expirada.' });
+      }
     }
 
     const contacts = await db

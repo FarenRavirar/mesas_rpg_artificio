@@ -623,6 +623,70 @@ Rodando via node-cron junto ao AggregatorBot, o `CleanupWorker` executa diariame
 - Uploads são processados apenas por usuários autenticados com role `gm` (para imagens de mesa e perfil de mestre) ou `admin`.
 
 
+### 16.8 AggregatorBot e Expiração Automática
+
+#### Expiração Automática de Mesas Importadas
+
+Mesas importadas via JSON do Discord possuem validade limitada:
+
+- **Regra:** Expiram em **5 dias** desde `created_at` OU no horário de `starts_at` (o que vier primeiro)
+- **Identificação:** `tables.source_id IS NOT NULL` e `tables.origin='imported'`
+- **Efeito:** Após expiração, a mesa não aparece mais nas rotas públicas (`GET /api/v1/tables`, `GET /api/v1/tables/:slug`)
+- **Exceção:** Mesas manuais (`origin='manual'`) **não expiram automaticamente**
+
+**Justificativa:** Anúncios importados de fontes externas têm natureza efêmera e devem ser renovados periodicamente para evitar poluição do catálogo com eventos antigos.
+
+**Implementação técnica:**
+
+Filtro SQL aplicado nas rotas públicas:
+```sql
+WHERE (
+  t.origin = 'manual'
+  OR NOW() < LEAST(
+    t.created_at + interval '5 days',
+    COALESCE(t.starts_at, t.created_at + interval '5 days')
+  )
+)
+```
+
+**Criação de mesa ao aceitar candidato:**
+
+Quando um candidato é aceito via `PATCH /api/v1/aggregator/candidates/:id/accept`, o sistema automaticamente:
+1. Cria uma entrada em `tables` com `origin='imported'`, `gm_id=null`, `source_id` do candidato
+2. Gera `slug` a partir do título do `parsed_json` + sufixo timestamp
+3. Define valores padrão: `status='active'`, `modality='online'`, `type='campanha'`, `price_type='gratuita'`
+4. Atualiza o candidato com `published_table_id` apontando para a mesa criada
+
+Mesas importadas com `gm_id=null` são válidas no schema — o campo aceita `NULL` desde a `migration_01` (`ON DELETE SET NULL`). Isso permite que mesas agregadas apareçam no catálogo público sem vínculo a um perfil de mestre na plataforma, mantendo a arquitetura escalável para futuras fontes de ingestão (Telegram, Reddit, etc.).
+
+#### Painel Admin DevTools
+
+Interface operacional em `/admin/devtools` (acesso restrito a `admin`) para:
+
+- **Configuração de token Discord** (bot ou conta pessoal)
+  - Guia detalhado em linguagem simples
+  - Alertas sobre riscos de self-bot
+- **Testes automáticos de conectividade** com semáforo visual (verde/vermelho)
+  - Conexão básica
+  - Acesso a servidor
+  - Acesso a canal
+  - Leitura de mensagens
+- **Criação rápida de sources via link de canal**
+  - Parser automático de `https://discord.com/channels/{guild}/{channel}` e `discord://`
+  - Busca de nomes via API Discord
+  - Criação automática de registro em `sources`
+- **Upload de JSON do DiscordChatExporter**
+  - Drag-and-drop e seleção de arquivo
+  - Split automático para JSON >1000 mensagens
+  - Preview com resumo amigável (processadas, aceitas, rejeitadas, falhas)
+  - Confirmação em duas etapas (`dryRun=true` → `dryRun=false`)
+- **Resumo amigável de importação:**
+  - ✅ Processadas: mensagens lidas do arquivo
+  - ✅ Aceitas: candidatos válidos (gratuitas + sistema cadastrado)
+  - ❌ Rejeitadas: sistema customizado ou mesa paga
+  - ⚠️ Falhas: erro de parse ou dados incompletos
+
+
 ## 17. Referências e Documentos Relacionados
 
 | Documento | Finalidade |

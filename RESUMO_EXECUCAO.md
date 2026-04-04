@@ -40,6 +40,7 @@
 | 025 | `walkthrough.md` | ✅ concluído | escrito em `walkthrough.md` |
 | 026 | REQ-11 + REQ-12 (fullstack) | ✅ deployado em `dev`/beta | executar QA E2E de anunciante + contatos obrigatórios |
 | Fase 7 | Aggregator Discord — pipeline completo | ✅ backend implementado + migration aplicada no beta | 1) criar source via API, 2) importar export_exemple.json, 3) revisar candidatos via `/aggregator/candidates`, 4) validar rota `/admin/devtools` com JWT admin no beta |
+| Fase 7B | Fechamento Aggregator — `TableOrigin` + expiração + AdminDevToolsPage completo | ✅ implementado local — **aguardando push autorizado para `dev`** | 1) autorizar push → 2) QA manual no beta (`/admin/devtools`) → 3) validar semáforo de testes, criação de source, dry-run e split automático de JSON |
 
 **Legenda:** ✅ concluído · ⏳ pronto local, aguardando validação beta · ⏸ bloqueado por dependência
 
@@ -75,6 +76,23 @@ COPY --from=builder /app/arvores_de_sistemas.md ./
 - Healthcheck: ✅ `{"status":"ok","environment":"beta","db":"connected"}`
 - Dry-run Aggregator: ✅ 153 mensagens processadas, 5 aceitas, 148 aguardando revisão, 0 falhas
 - Nota: `export_exemple.json` tinha JSON truncado (E088). O importador passou a aplicar `repairTruncatedJson()` automaticamente antes do parse, com fallback manual documentado em `ERRORS_SOLUTIONS.md`
+
+## Alterações locais pendentes de push (sessão 04/04/2026 — Fase 7B)
+
+Arquivos modificados (`git status`): `backend/src/db/types.ts`, `backend/src/routes/tables.ts`, `backend/src/services/aggregator/candidateService.ts`, `backend/Dockerfile`, `frontend/src/pages/AdminDevToolsPage.tsx`, `AGENTS.md`, `ARQUITETURA_PROJETO.md`, `GUIA_RAPIDO_OPERACIONAL.md`, `README.md`, `ERRORS_SOLUTIONS.md`
+
+| Arquivo | Mudança |
+|---|---|
+| `backend/src/db/types.ts` | Adicionado `TableOrigin`, campo `origin` e `source_id` em `TablesTable` |
+| `backend/src/routes/tables.ts` | Filtro SQL de expiração em `GET /tables`; validação em memória em `GET /tables/:slug` |
+| `backend/src/services/aggregator/candidateService.ts` | `accept()` agora cria mesa em `tables` com `origin='imported'`, `gm_id=null`, `source_id`; atualiza `published_table_id` no candidato |
+| `backend/Dockerfile` | Adicionado `COPY --from=builder /app/arvores_de_sistemas.md` no estágio production — elimina `docker cp` manual |
+| `frontend/src/pages/AdminDevToolsPage.tsx` | Split automático >1000 msgs; `parseDiscordChannelLink` com suporte `discord://`; `aggregateImportSummaries`; aviso de chunk; resumo com lotes |
+| `ERRORS_SOLUTIONS.md` | E100 — `grep_search` com escape regex inválido |
+| `ARQUITETURA_PROJETO.md` | Documentado fluxo de criação de mesa ao aceitar candidato; `gm_id=null` válido no schema |
+
+**Builds validados localmente:** backend ✅ (tsc exit 0) · frontend ✅ (vite dist/ ok)
+**Próxima ação:** autorizar push para `dev` → aguardar Deploy Beta → QA manual em `/admin/devtools`
 
 ---
 

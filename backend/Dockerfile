@@ -31,6 +31,7 @@ RUN npm ci --omit=dev
 
 # Copiar build compilado
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/arvores_de_sistemas.md ./arvores_de_sistemas.md
 
 EXPOSE 3000
 

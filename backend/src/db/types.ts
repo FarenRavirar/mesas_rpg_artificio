@@ -114,6 +114,7 @@ export type PriceFrequency = 'sessao' | 'mes' | 'campanha';
 export type ExperienceLevel = 'todos' | 'iniciante' | 'intermediario' | 'veterano';
 export type PublisherRole = 'gm' | 'announcer';
 export type TableContactChannel = 'whatsapp' | 'discord' | 'phone' | 'email' | 'facebook' | 'instagram' | 'form';
+export type TableOrigin = 'manual' | 'imported';
 export type AggregatorPlatform = 'discord';
 export type AggregatorPublishMode = 'manual_review' | 'auto_publish';
 export type AggregatorEditorialStatus = 'accepted' | 'rejected' | 'awaiting_review';
@@ -146,6 +147,7 @@ export interface TablesTable {
   safety_tools: Generated<string[]>;
   source_url: string | null;
   source_id: string | null;
+  origin: Generated<TableOrigin>;
   featured: Generated<boolean>;
   publisher_role: Generated<PublisherRole>;
   actual_gm_name: string | null;

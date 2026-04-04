@@ -3,6 +3,7 @@ import {
   listAggregatorCandidates,
   updateAggregatorCandidateEditorialStatus,
 } from '../../db/aggregator';
+import { db } from '../../db';
 import type { AggregatorEditorialStatus } from '../../db/types';
 
 export interface ListCandidatesInput {
@@ -35,11 +36,44 @@ export const candidateService = {
   },
 
   async accept(candidateId: string) {
+    const candidate = await getAggregatorCandidateById(candidateId);
+    if (!candidate) return null;
+
+    const parsedJson = candidate.parsed_json as Record<string, unknown> | null;
+    const rawTitle = typeof parsedJson?.title === 'string' ? parsedJson.title.trim() : '';
+    const title = rawTitle || 'Anúncio importado';
+
+    const baseSlug = title
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s-]/g, '')
+      .trim()
+      .replace(/\s+/g, '-')
+      .substring(0, 80);
+    const slug = `${baseSlug}-${Date.now().toString(36)}`;
+
+    const newTable = await db
+      .insertInto('tables')
+      .values({
+        slug,
+        gm_id: null,
+        origin: 'imported',
+        source_id: candidate.source_id ?? null,
+        title,
+        status: 'active',
+        type: 'campanha',
+        modality: 'online',
+        price_type: 'gratuita',
+      })
+      .returning(['id', 'slug', 'title', 'origin', 'source_id', 'created_at'])
+      .executeTakeFirstOrThrow();
+
     return updateAggregatorCandidateEditorialStatus(candidateId, {
       editorialStatus: 'accepted',
       rejectionReason: null,
       publishAt: new Date(),
-      publishedTableId: null,
+      publishedTableId: newTable.id,
     });
   },
 

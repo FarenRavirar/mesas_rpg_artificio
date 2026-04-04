@@ -22,7 +22,7 @@ Resumo executivo para reduzir custo de contexto dos agentes, com navegação rá
 | OAuth / JWT / roles | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §6 | Segurança e role no Backend, nunca no Frontend |
 | Imagens e Imgur | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §16 | Upload/remoção só no Backend |
 | Deploy / Git / promoção | `AI_CONTEXT_INDEX.md` | `GIT_WORKFLOW.md` + `OPERACAO_PRODUCAO.md` | Sem `commit`/`push` sem autorização explícita; beta ativo em `dev`; produção só validar publicamente quando a publicação operacional existir |
-| Aggregator Discord (ingestão, revisão, exportação) | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §12 (rotas Aggregator) | Todas as rotas em `/api/v1/aggregator/*` requerem `admin`. Frontend: `/admin/devtools` visível apenas para admin (não-admin não vê link nem rota registrada). Badge operacional exibe `VITE_ENABLE_DEVTOOLS` para admin no header. Pipeline: source → import/file → candidates → accept/reject. CLI local: `npm run aggregator:import` com auto-reparo de JSON truncado (E088) e fallback manual em `ERRORS_SOLUTIONS.md` quando o reparo falhar. Migration_05 aplicada no beta. |
+| Aggregator Discord (ingestão, revisão, exportação) | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §12 (rotas Aggregator) | Todas as rotas em `/api/v1/aggregator/*` requerem `admin`. Frontend: `/admin/devtools` visível apenas para admin (não-admin não vê link nem rota registrada). Badge operacional exibe `VITE_ENABLE_DEVTOOLS` para admin no header. Pipeline: source → import/file → candidates → accept/reject. CLI local: `npm run aggregator:import` com auto-reparo de JSON truncado (E088) e fallback manual em `ERRORS_SOLUTIONS.md` quando o reparo falhar. Split automático de JSON >1000 mensagens ocorre no Frontend em lotes de 1000 (IMPORT_CHUNK_SIZE); resumo agrega todos os lotes. Migration_05 aplicada no beta. |
 | Erros de execução | `AI_CONTEXT_INDEX.md` | `ERRORS_SOLUTIONS.md` | Ao primeiro erro: parar e aplicar solução catalogada |
 
 ---
@@ -44,6 +44,35 @@ Resumo executivo para reduzir custo de contexto dos agentes, com navegação rá
 
 > As seções de detalhe (Onboarding, Catálogo, Landing, OAuth, Imgur, Git, Erros) foram removidas deste guia.
 > O roteamento por cenário está em `AI_CONTEXT_INDEX.md`. Os contratos canônicos estão em `ARQUITETURA_PROJETO.md`.
+
+---
+
+## Aggregator Discord — Checklist Operacional
+
+### Configuração Inicial (Admin DevTools)
+- [ ] Acessar `/admin/devtools` como admin
+- [ ] Configurar token Discord (bot recomendado)
+- [ ] Executar testes automáticos (todos devem ficar verdes)
+- [ ] Cadastrar source via link de canal ou manualmente
+
+### Importação de JSON
+- [ ] Fazer upload do arquivo JSON do DiscordChatExporter
+- [ ] Selecionar source associada (opcional)
+- [ ] Verificar preview: se >1000 mensagens, aviso de split automático aparece (IMPORT_CHUNK_SIZE=1000)
+- [ ] Executar preview (`dryRun=true`) — se split ativo, progressão por lote exibida
+- [ ] Validar resumo consolidado (aceitas, rejeitadas, falhas, número de lotes)
+- [ ] Confirmar importação (`dryRun=false`)
+
+### Validação de Expiração
+- [ ] Mesas importadas com `created_at` > 5 dias não aparecem no catálogo
+- [ ] Mesas importadas com `starts_at` < 5 dias expiram no horário do evento
+- [ ] Mesas manuais (`origin='manual'`) não são afetadas
+
+### Troubleshooting
+- **Teste vermelho:** Verificar permissões do token no Discord
+- **Rejeição por sistema customizado:** Sistema não existe no banco, precisa ser cadastrado
+- **Rejeição por mesa paga:** Filtro automático, não é bug
+- **Falha de parse:** JSON corrompido ou formato incompatível
 
 ---
 
