@@ -338,12 +338,6 @@ function CreateTableForm({ token, onSuccess }: CreateTableFormProps) {
               singleSelect
             />
           )}
-
-          <p className="text-xs text-white/55">
-            {selectedSystem
-              ? `Selecionado: ${selectedSystem.pathLabel}`
-              : 'Selecione um único nó da árvore para vincular a mesa.'}
-          </p>
         </div>
 
         <div className="md:col-span-2 rounded-2xl border border-white/10 bg-[#13213f]/60 p-4 space-y-3" id="painel-mestre-publisher-role-block">
