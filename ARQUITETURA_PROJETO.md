@@ -162,11 +162,11 @@ A resolução de anúncios duplicados usa prioridade determinística:
 - **Login principal:** Google OAuth 2.0. É a porta de entrada principal, sem senha local.
 - **Sessão:** JWT gerado pelo Backend após handshake OAuth, com refresh token rotativo como arquitetura prevista.
 - **Criação de conta:** Automática no primeiro login Google, com onboarding previsto de preferências em 3 etapas.
-- **Separação de identidade:** A conta Google alimenta apenas o login. O perfil público (profiles, gm_profiles) é entidade própria controlada pelo usuário.
+- **Separação de identidade:** A conta Google alimenta apenas o login. O perfil público (`profiles`, `gm_profiles`) é entidade própria controlada pelo usuário.
 - **Integração opcional futura com Discord:** O sistema poderá permitir, em fase posterior, o vínculo opcional de uma conta Discord ao perfil público do usuário. Esse vínculo não substitui o login Google e não será requisito para uso da plataforma.
-- **Uso previsto do vínculo Discord:** Quando implementado, o vínculo poderá servir para validar identidade comunitária, consultar cargos públicos em servidores autorizados e habilitar selos contextuais, como Mestre do Covil, sem transformar o Discord em provedor principal de autenticação.
-- **Elevação de role:** Um player se torna gm ao criar seu primeiro gm_profile. A elevação é irreversível via interface (requer admin para reverter).
-- **Admin master por e-mail:** O e-mail paulohenriquercc@gmail.com deve ser sempre promovido/garantido como role dmin no Backend durante o login OAuth.
+- **Uso previsto do vínculo Discord:** Quando implementado, o vínculo poderá servir para validar identidade comunitária, consultar cargos públicos em servidores autorizados e habilitar selos contextuais, como `Mestre do Covil`, sem transformar o Discord em provedor principal de autenticação.
+- **Elevação de role:** Um `player` se torna `gm` ao criar seu primeiro `gm_profile`. A elevação é irreversível via interface (requer admin para reverter).
+- **Admin master por e-mail:** O e-mail `paulohenriquercc@gmail.com` deve ser sempre promovido/garantido como role `admin` no Backend durante o login OAuth.
 ---
 
 ## 7. Funcionalidades por Módulo
@@ -214,6 +214,8 @@ Listagem em grid com card denso por mesa, exibindo (nessa ordem):
 - Especialidades por sistema (com contagem de mesas)
 - Lista de mesas ativas do mestre (usando o mesmo card do catálogo)
 - Aba de avaliações recebidas
+- Área de vínculos comunitários, prevista para fase posterior, com exibição opcional de integrações externas autorizadas
+- Quando a integração com Discord for implementada, a landing page poderá exibir selos públicos derivados de vínculo validado com comunidades parceiras, como o Covil do Lich
 
 ### 7.5 Onboarding de Preferências (3 Etapas)
 
@@ -238,6 +240,8 @@ Preferências alimentam: recomendações na home, filtros pré-salvos, notifica�
 - Histórico de perguntas recebidas com resposta inline
 - Lista de avaliações recebidas
 - Edição do `gm_profile`
+- Gestão futura de vínculos externos do perfil, incluindo conexão opcional com Discord para validação comunitária e eventual resgate de cargos públicos em servidores autorizados
+- Configuração futura de visibilidade desses vínculos e selos no perfil público do mestre
 - Gerador de texto de divulgação (exportação WhatsApp/Discord), previsto para versão posterior, após a base principal estar estável.
 
 ### 7.7 Painel Administrativo
@@ -442,6 +446,7 @@ Este bloco documenta decisões tomadas com justificativa, para evitar que sejam 
 | Decisão | Justificativa |
 |---|---|
 | **Google OAuth como único método de login** | Elimina gerenciamento de senha local, reduz superfície de ataque e simplifica onboarding. Alinha com a proposta de mínima coleta de dados. |
+| **Discord como vínculo opcional de perfil, não como login principal** | Preserva a simplicidade e o estado já validado da autenticação via Google, enquanto abre espaço para selos públicos, validação comunitária e leitura futura de cargos públicos em servidores autorizados, sem acoplar o acesso principal da plataforma ao Discord. |
 | **AggregatorBot no mesmo compose** | Simplifica deploy e compartilha variáveis de ambiente e rede interna com a API. Worker separado seria custo operacional desnecessário na escala atual. |
 | **Fuse.js client-side para busca** | Consistente com o Glossário, mantém zero latência de busca para o usuário. Para volume de mesas esperado na fase inicial, busca client-side é suficiente. Revisitar se ultrapassar 10k registros ativos. |
 | **Slug como identificador de URL** | URLs amigáveis e estáveis são essenciais para SEO e compartilhamento social. Slugs são gerados no backend, nunca no frontend. |
@@ -465,6 +470,9 @@ Este bloco documenta decisões tomadas com justificativa, para evitar que sejam 
 | **Slug** | Identificador textual único gerado a partir do nome da entidade, usado em URLs. |
 | **Onboarding** | Fluxo obrigatório de 3 etapas executado no primeiro login para configurar perfil e preferências. |
 | **Exportação** | Geração de texto formatado para WhatsApp ou Discord a partir dos dados estruturados de uma mesa. |
+| **Vínculo comunitário** | Conexão opcional entre o perfil do usuário e comunidades autorizadas, usada para validação contextual e exibição pública controlada. |
+| **Selo público** | Marcador visual exibido no perfil do mestre quando houver vínculo validado com comunidade parceira ou critério editorial definido pela plataforma. |
+| **Cargo público do Discord** | Informação pública de cargo obtida futuramente por integração autorizada com servidores Discord elegíveis, usada apenas para fins de contexto comunitário e selos. |
 
 ## 16. Gestão de Imagens e Integração Imgur
 
@@ -599,7 +607,7 @@ Rodando via node-cron junto ao AggregatorBot, o `CleanupWorker` executa diariame
 | `ERRORS_SOLUTIONS.md` | Registro de erros conhecidos e suas soluções |
 | `CHANGELOG.md` | Histórico de versões e mudanças relevantes |
 | `docker-compose.yml` | Definição dos serviços: API, PostgreSQL, Nginx, AggregatorBot |
-| `arvores_de_sistemas.md` | precisa ser copiado manualmente para o container após rebuild: `scp ... faren:/tmp/ && docker cp /tmp/arvores_de_sistemas.md mesas-beta-api:/app/`. O arquivo não é copiado automaticamente pelo estágio `production` do Dockerfile ainda.
+| `arvores_de_sistemas.md` | precisa ser copiado manualmente para o container após rebuild: `scp ... faren:/tmp/ && docker cp /tmp/arvores_de_sistemas.md mesas-beta-api:/app/`. O arquivo não é copiado automaticamente pelo estágio `production` do Dockerfile ainda. |
 ---
 
 > **Lembre-se:** Este é um presente do Artifício RPG para a comunidade brasileira de RPG.

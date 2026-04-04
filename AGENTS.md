@@ -7,11 +7,11 @@ Governança de agentes de IA neste repositório.
 Arquivo bootstrap: define regras mínimas de execução e aponta as fontes canônicas do **Anúncios de Mesas RPG** (Portal Colaborativo Fullstack).
 
 > **NATUREZA DESTE PROJETO (Obrigatório internalizar):**
-> - **O que é:** Aplicação fullstack 100% tipada (React/TypeScript no Frontend + Node.js/TypeScript no Backend + PostgreSQL) para descoberta e publicação de mesas de RPG, com autenticação via Google OAuth, autopublicação por mestres, ingestão automática de anúncios externos (AggregatorBot) e exportação para WhatsApp/Discord.
+> - **O que é:** Aplicação fullstack 100% tipada (React/TypeScript no Frontend + Node.js/TypeScript no Backend + PostgreSQL) para descoberta e publicação de mesas de RPG, com autenticação via Google OAuth, autopublicação por mestres e recursos futuros de ingestão automática de anúncios externos (AggregatorBot) e exportação para WhatsApp/Discord, previstos para fases posteriores.
 > - **Ecossistema:** Projeto coirmão do Grande Glossário de RPG. Compartilha infraestrutura Oracle on-premise, identidade visual Artifício e filosofia comunitária. São repositórios e containers independentes.
 > - **Ambiente beta:** `mesasbeta.artificiorpg.com` — branch `dev`, pasta `/opt/mesas-beta/` no servidor Oracle.
-> - **Ambiente produção:** `mesas.artificiorpg.com` — branch `main`, pasta `/opt/mesas/` no servidor Oracle.
-> - **Ambos os ambientes estão ativos e independentes.** O fluxo é: desenvolve em `dev` → valida em beta → promove para `main` → produção.
+> - **Ambiente de produção:** `mesas.artificiorpg.com` — branch `main`, pasta `/opt/mesas/` no servidor Oracle.
+> - **Estado atual dos ambientes:** o beta está ativo em `mesasbeta.artificiorpg.com`; a produção permanece prevista em `mesas.artificiorpg.com`, mas ainda não publicada operacionalmente nesta rodada. O fluxo continua sendo: desenvolve em `dev` → valida em beta → promove para `main` → publicação em produção.
 
 Ao receber solicitação para "ler apenas o AGENTS.md", isso implica consultar também os arquivos obrigatórios e os arquivos por situação listados aqui.
 
@@ -104,6 +104,7 @@ Se houver conflito entre orientação operacional e arquitetura, prevalece `ARQU
 - **Imgur:** O `IMGUR_CLIENT_ID` é variável de ambiente obrigatória. Nunca hardcodar, nunca expor no Frontend, nunca versionar com valor real. Usar `.env.example` com placeholder.
 - **CleanupWorker:** O job de limpeza de imagens de mesas encerradas roda via node-cron. Alterações no critério de exclusão exigem autorização explícita — uma deleção no Imgur é irreversível.
 - **Google OAuth:** É o único método de autenticação. Não implementar login por email/senha local sem autorização explícita do responsável.
+- **Discord:** Quando implementado, será apenas vínculo opcional de perfil para contexto comunitário, selos e leitura autorizada de cargos públicos. Não deve substituir o Google OAuth como autenticação principal.
 - **Elevação de role:** Um `player` torna-se `gm` ao criar o primeiro `gm_profile`. Esta lógica é exclusiva do Backend. O Frontend não decide elevação de role.
 - **Compromissos públicos inegociáveis** (ver `ARQUITETURA_PROJETO.md` seção 10): gratuidade, sem anúncios e sem coleta desnecessária de dados são restrições de produto, não de preferência. Nenhuma feature pode violar esses compromissos.
 
@@ -132,7 +133,7 @@ Antes de iniciar qualquer alteração de código, consultar e seguir `GIT_WORKFL
 > NENHUM `git commit` ou `git push` deve ser gerado, executado ou agendado pelo agente sem a prévia autorização explícita do usuário no chat. O agente deve realizar as edições locais e parar, aguardando o usuário revisar e aprovar o escopo das alterações antes de realizar o commit daquele pacote e seu push.
 
 **Branch de desenvolvimento:** `dev` → deploy automático em `mesasbeta.artificiorpg.com`
-**Branch de produção:** `main` → deploy automático em `mesas.artificiorpg.com`
+**Branch de produção:** `main` → workflow de deploy para `mesas.artificiorpg.com`, quando a publicação operacional em produção estiver ativa
 **Fluxo:** `feature/<escopo>` → `dev` (beta) → aprovação → `main` (produção)
 
 ## Disponibilidade operacional atual
@@ -154,21 +155,21 @@ Diagnóstico read-only é **sempre permitido** sem autorização: `docker ps`, `
 
 Comandos com alteração de estado exigem autorização explícita do responsável no chat.
 
-### Decisões automáticas — não perguntar, apenas executar
+### Decisões automáticas em tarefas com fluxo Git ativo
 
 | Pergunta | Resposta automática |
 |---|---|
-| Criar branch `feature/<escopo>` a partir de `dev`? | Sim, sempre |
-| PR para `dev` com squash and merge? | Sim, sempre |
+| Criar branch `feature/<escopo>` a partir de `dev`? | Sim, por padrão, quando a tarefa realmente envolver alteração versionável com fluxo Git |
+| PR para `dev` com squash and merge? | Sim, por padrão |
 | Haverá release após o merge? | Não — só se o responsável solicitar explicitamente |
 
 > ⚠️ Ver regra pétrea de push em `GIT_WORKFLOW.md` seção 4.
 
 Comportamento esperado:
 
-> "Criando branch `feature/<escopo>` a partir de `dev`. Squash and merge para `dev` ao concluir. Sem release automático."
+> "Em tarefa com fluxo Git ativo, criar branch `feature/<escopo>` a partir de `dev`. Usar squash and merge para `dev` ao concluir. Sem release automático."
 
-A única exceção: se o escopo da branch for ambíguo, perguntar apenas o nome do escopo.
+A única exceção é quando o escopo da branch for ambíguo. Nesse caso, perguntar apenas o nome do escopo.
 
 ## Diagnóstico antes de repetir tentativas
 
@@ -224,5 +225,5 @@ Rollback
 
 ### Permissão sobre Ferramentas e Configuração
 - **PowerShell:** O sistema rodará scripts no PowerShell 7.6.0 (ou compatível com pwsh).
-- **Senhas de Ambiente (Beta/Dev):** Como estamos em ambiente de desenvolvimento ativo, é PROIBIDO se travar por senhas ou travas de banco. O agente é livre para modificar senhas, alterar constraints ou expor portas provisoriamente se necessário para resgatar a operação.
+- **Senhas de Ambiente (Beta/Dev):** O agente não deve travar por problemas de credenciais, constraints ou configuração em ambiente de desenvolvimento. Ainda assim, qualquer mudança persistente de senha, alteração estrutural de banco ou exposição de porta deve respeitar a política de autorização explícita do responsável no chat, especialmente quando afetar ambiente remoto ou configuração pública.
 - **Novas Tecnologias:** Se o agente deduzir haver tecnologia, banco, lib ou ferramenta que resolva um problema crônico, PODE sugerir ativamente, priorizando sempre a forma profissional sobre a gambiarra.

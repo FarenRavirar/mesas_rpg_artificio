@@ -1,12 +1,14 @@
 services:
   # FRONTEND (Nginx servindo build estático do React/Vite)
-  # Roteado via Cloudflare Tunnel existente — sem porta pública exposta
+  # Roteado via Cloudflare Tunnel existente, sem porta pública exposta no host
   mesas-app:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: mesas-app
     restart: always
+    expose:
+      - "80"
     networks:
       - gerenciador_telegram_default
     environment:
@@ -16,11 +18,12 @@ services:
     depends_on:
       - mesas-api
 
-  # BACKEND (Node.js API + AggregatorBot + CleanupWorker via node-cron)
+  # BACKEND (Node.js API)
+  # Variáveis de workers futuras ficam reservadas para fases posteriores
   mesas-api:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: mesas-api
     restart: always
     expose:
@@ -49,7 +52,7 @@ services:
       - FRONTEND_URL=https://mesas.artificiorpg.com
       # Imgur
       - IMGUR_CLIENT_ID=${IMGUR_CLIENT_ID}
-      # AggregatorBot
+      # Workers futuros, reservado para fases posteriores
       - AGGREGATOR_CRON_SCHEDULE=0 6 * * *
       - AGGREGATOR_DRY_RUN=false
     depends_on:

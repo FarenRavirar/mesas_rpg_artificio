@@ -1,5 +1,6 @@
 services:
   # FRONTEND (Nginx servindo build estático do React/Vite)
+  # Roteado via Cloudflare Tunnel existente, sem porta pública exposta no host
   mesas-beta-app:
     build:
       context: ./frontend
@@ -17,7 +18,8 @@ services:
     depends_on:
       - mesas-beta-api
 
-  # BACKEND (Node.js API + AggregatorBot + CleanupWorker via node-cron)
+  # BACKEND (Node.js API)
+  # Variáveis de workers futuras ficam reservadas para fases posteriores
   mesas-beta-api:
     build:
       context: .
@@ -50,7 +52,7 @@ services:
       - FRONTEND_URL=https://mesasbeta.artificiorpg.com
       # Imgur
       - IMGUR_CLIENT_ID=${IMGUR_CLIENT_ID}
-      # AggregatorBot
+      # Workers futuros, reservado para fases posteriores
       - AGGREGATOR_CRON_SCHEDULE=0 6 * * *
       - AGGREGATOR_DRY_RUN=false
     depends_on:

@@ -6,35 +6,25 @@ Objetivo: manter rastreabilidade total, evitar commits diretos em `main` e garan
 
 ---
 
-## ⚠️ PROJETO NOVO — INFRAESTRUTURA AINDA NÃO CONFIGURADA
+## Estado atual da infraestrutura de deploy
 
-Este repositório é um **projeto criado do zero**. Ao contrário do Grande Glossário de RPG, aqui **não existe** infraestrutura prévia herdada.
+Este repositório já possui base operacional validada para o ambiente beta.
 
-As seguintes etapas ainda precisam ser executadas manualmente pelo responsável antes de qualquer deploy funcionar:
+Estado atual confirmado:
+- Beta ativo em `mesasbeta.artificiorpg.com`
+- Pasta remota beta: `/opt/mesas-beta/`
+- Compose beta em uso: `/opt/mesas-beta/docker-compose.beta.yml`
+- Produção prevista em `mesas.artificiorpg.com`, com pasta remota `/opt/mesas/`
+- Produção ainda não publicada operacionalmente nesta rodada
+- Exposição pública via Cloudflare Tunnel apontando para os containers internos, sem depender de porta pública do host
+- Workflow beta e workflow de produção existentes e endurecidos
+- O `.env` remoto é persistido fora do repositório e não deve ser sobrescrito por rsync
 
-### Na Oracle (VM)
-
-- [ ] Criar pasta `/opt/mesas-beta/` e `/opt/mesas/`
-- [ ] Criar arquivo `.env` em cada pasta com as variáveis obrigatórias (ver `PRE-FLIGHT_CHECKLIST.md` passo 5)
-- [ ] Criar `docker-compose.beta.yml` em `/opt/mesas-beta/`
-- [ ] Criar `docker-compose.prod.yml` em `/opt/mesas/`
-- [ ] Configurar novo Public Hostname no painel Cloudflare apontando para `http://mesas-beta-app:80` (beta) e `http://mesas-app:80` (produção), aproveitando o túnel existente — **nunca criar novo túnel**
-- [ ] Confirmar que a porta `30302` está disponível na VM (não conflita com outros projetos)
-- [ ] Adicionar chave SSH do GitHub Actions à VM (ou reutilizar a já configurada para o Glossário, se aplicável)
-
-### No GitHub
-
-- [ ] Criar repositório `mesas_rpg_artificio` na conta `FarenRavirar`
-- [ ] Criar branch `dev` como branch padrão de desenvolvimento
-- [ ] Configurar Secrets do repositório:
-  - `SSH_PRIVATE_KEY` — chave SSH para acesso à VM Oracle
-  - `SSH_HOST` — IP ou hostname da VM
-  - `SSH_USER` — usuário SSH
-- [ ] Criar arquivo `.github/workflows/deploy-beta.yml` (trigger: push em `dev`)
-- [ ] Criar arquivo `.github/workflows/deploy-production.yml` (trigger: push em `main`)
-- [ ] Proteger branch `main`: exigir PR, sem commits diretos
-
-Enquanto qualquer item acima estiver pendente, **não executar push para `dev` ou `main`**.
+Regras operacionais:
+- Não tratar mais este projeto como infraestrutura inicial pendente
+- Não usar `30302` como referência canônica de beta
+- Não criar novo túnel Cloudflare
+- Não fazer deploy manual no servidor
 
 ---
 
@@ -42,130 +32,184 @@ Enquanto qualquer item acima estiver pendente, **não executar push para `dev` o
 
 | Branch | Finalidade | Deploy automático |
 |---|---|---|
-| `main` | Produção estável. Nunca recebe commits diretos. | `deploy-production.yml` → `mesas.artificiorpg.com` |
-| `dev` | Branch de desenvolvimento e homologação (beta). | `deploy-beta.yml` → `mesasbeta.artificiorpg.com` |
-| `feature/<escopo>` | Trabalho em curso. Criada a partir de `dev`. | Nenhum deploy automático. |
+| `main` | Produção estável. Nunca recebe commits diretos. | `deploy-production.yml` para `mesas.artificiorpg.com`, quando a publicação operacional em produção estiver ativa |
+| `dev` | Branch de desenvolvimento e homologação (beta). | `deploy-beta.yml` para `mesasbeta.artificiorpg.com` |
+| `feature/<escopo>` | Trabalho em curso. Criada a partir de `dev`. | Nenhum deploy automático |
 
 ---
 
 ## 2. Infraestrutura de deploy
 
-| Ambiente | Branch | Workflow | Pasta no servidor | Container | Porta |
+| Ambiente | Branch | Workflow | Pasta no servidor | Container público | Exposição atual |
 |---|---|---|---|---|---|
-| Beta | `dev` | `deploy-beta.yml` | `/opt/mesas-beta/` | `mesas-beta-app` | `30302` |
-| Produção | `main` | `deploy-production.yml` | `/opt/mesas/` | `mesas-app` | sem porta pública (via Cloudflare) |
+| Beta | `dev` | `deploy-beta.yml` | `/opt/mesas-beta/` | `mesas-beta-app` | Cloudflare Tunnel para `http://mesas-beta-app:80`, sem porta pública no host |
+| Produção | `main` | `deploy-production.yml` | `/opt/mesas/` | `mesas-app` | Cloudflare prevista para `http://mesas-app:80`; runtime ainda não publicado |
 
-O deploy é feito via **rsync + SSH** pelo GitHub Actions para a VM Oracle, seguido de rebuild Docker.
+O deploy é feito via rsync + SSH pelo GitHub Actions para a VM Oracle, seguido de rebuild Docker no diretório remoto do ambiente.
 
 ---
 
 ## 3. Fluxo de trabalho
 
-### 3a. Fluxo padrão (feature branch — para escopos isolados)
+### 3a. Fluxo padrão para escopos isolados
 
-1. **Criar branch:** `feature/<escopo>` a partir de `dev`.
-2. **Desenvolver:** Commits pequenos e descritivos em português.
-3. **Merge squash para dev:**
-   ```bash
-   # Execute no worktree onde a branch dev estiver anexada.
-   # Se houver bloqueio por worktree (erro E071), use git -C <path-do-worktree>.
-   git merge --squash feature/<escopo>
-   git commit -m "tipo: descrição"
-   ```
-4. **Push para beta (requer autorização explícita do responsável):**
-   ```bash
-   # A partir da branch local de release alinhada com dev
-   git push origin HEAD:dev
-   # → dispara deploy-beta.yml automaticamente
-   ```
-5. **Validar em:** `mesasbeta.artificiorpg.com`
+1. Criar branch `feature/<escopo>` a partir de `dev`.
+2. Desenvolver com mudanças pequenas, reversíveis e descritivas.
+3. Consolidar localmente o pacote antes de promover para `dev`.
+4. Solicitar autorização explícita antes de qualquer `git push` para `dev`.
+5. Validar no beta após o deploy automático.
 
-### 3b. Promoção para produção (requer autorização explícita)
+### 3b. Merge local para `dev`
+
+```bash
+# Execute no worktree onde a branch dev estiver anexada.
+# Se houver bloqueio por worktree (erro E071), use git -C <path-do-worktree>.
+git merge --squash feature/<escopo>
+git commit -m "tipo: descrição"
+```
+
+### 3c. Push para beta
+
+```bash
+# A partir da branch local de release alinhada com dev
+git push origin HEAD:dev
+# -> dispara deploy-beta.yml automaticamente
+```
+
+### 3d. Promoção para produção
 
 Somente quando o responsável autorizar explicitamente.
 
-Antes do push para `main`, executar o checklist canônico de promoção em `OPERACAO_PRODUCAO.md` seção **Playbook Canônico de Promoção `dev` → `main`**.
+Antes do push para `main`, executar o checklist canônico de promoção em `OPERACAO_PRODUCAO.md`, na seção `Playbook Canônico de Promoção dev -> main`.
 
-> **⚠️ Restrição condicional de worktree:** se `git checkout main`/`git checkout dev` estiver bloqueado por worktree (E071), usar push por refspec:
+Se `git checkout main` ou `git checkout dev` estiver bloqueado por worktree (E071), usar push por refspec:
 
 ```bash
-# A partir da branch de release alinhada com dev
 git push origin HEAD:main
-# → dispara deploy-production.yml automaticamente
+# -> dispara deploy-production.yml automaticamente
 ```
 
-Verificar estado dos worktrees antes de operar: `git worktree list`
+Verificar estado dos worktrees antes de operar:
 
-> **Regra de ouro:** NUNCA fazer commit direto em `main`. Sempre promover via `git push origin HEAD:main` a partir da branch de release alinhada com `dev`, após validação no beta.
+```bash
+git worktree list
+```
+
+Regra de ouro:
+- Nunca fazer commit direto em `main`
+- Sempre promover a partir de branch alinhada com `dev`
+- Sempre pedir autorização explícita antes do push
 
 ---
 
-## 4. Regra pétrea de push (custos e CI/CD)
+## 4. Regra pétrea de push
 
 > [!CAUTION]
-> Agentes **NUNCA** devem realizar `git push` para `dev` ou `main` sem pedir autorização explícita ao usuário no chat primeiro. Push em qualquer dessas branches dispara deploy automático e consome recursos de CI/CD.
+> Agentes NUNCA devem realizar `git push` para `dev` ou `main` sem pedir autorização explícita ao usuário no chat primeiro. Push em qualquer dessas branches dispara deploy automático e consome recursos de CI/CD.
 
 ---
 
 ## 5. Regras de segurança
 
-- **NUNCA** commitar arquivos `.xlsx` grandes (usar script local para gerar JSON ou importar via painel admin).
-- **NUNCA** commitar pastas `node_modules` ou `dist`.
-- **NUNCA** commitar chaves SSH ou arquivos `.env`.
-- **NUNCA** commitar o valor real de `IMGUR_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` ou `JWT_SECRET` — usar `.env.example` com placeholders.
-- Deploy manual no servidor é **estritamente proibido** para evitar divergências de configuração.
+- NUNCA commitar arquivos `.xlsx` grandes
+- NUNCA commitar `node_modules`, `dist`, caches locais ou artefatos temporários
+- NUNCA commitar chaves SSH ou arquivos `.env`
+- NUNCA commitar valores reais de `IMGUR_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `JWT_SECRET` ou `JWT_REFRESH_SECRET`
+- Deploy manual no servidor é estritamente proibido para evitar divergências de configuração
+- Alterações de estado na VM fora do fluxo normal exigem autorização explícita do responsável no chat
 
 ---
 
-## 6. Comandos de deploy (GitHub Actions)
+## 6. Comandos de deploy executados pelo GitHub Actions
 
-O que o Actions faz automaticamente no servidor (beta como exemplo):
+### Beta
 
 ```bash
+set -e
 cd /opt/mesas-beta
-docker compose -f docker-compose.beta.yml down
-docker compose -f docker-compose.beta.yml build --no-cache
-docker compose -f docker-compose.beta.yml up -d
+docker compose -f docker-compose.beta.yml up -d --build --remove-orphans
+sleep 10
+docker compose -f docker-compose.beta.yml ps
+docker compose -f docker-compose.beta.yml logs --tail=30 mesas-beta-app
+docker compose -f docker-compose.beta.yml logs --tail=30 mesas-beta-api
+docker image prune -f
 ```
 
-Para produção, usa `docker-compose.prod.yml` em `/opt/mesas/`.
+### Produção
+
+```bash
+set -e
+cd /opt/mesas
+docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
+sleep 10
+docker compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml logs --tail=30 mesas-app
+docker compose -f docker-compose.prod.yml logs --tail=30 mesas-api
+docker image prune -f
+```
+
+Observações:
+- O workflow não deve forçar `down` como passo padrão
+- O workflow não deve forçar `--no-cache` como padrão
+- O arquivo `.env` remoto permanece fora do rsync
 
 ---
 
 ## 7. Validação pós-deploy
 
-Após o deploy, o Agente DEVE validar:
+Após o deploy, o agente deve validar:
 
 1. Status do run no GitHub Actions:
    ```bash
-   gh run list --limit 5
-   # Nota: usar sem --branch (não suportado nesta versão do gh na VM)
+   gh run list --repo FarenRavirar/mesas_rpg_artificio -L 5 --json databaseId,name,status,conclusion,headBranch,createdAt
    ```
-2. Acesso à URL correspondente ao ambiente deployado.
-3. Logs do container em caso de erro:
+
+2. Acesso à URL correspondente ao ambiente:
+   - Beta: `https://mesasbeta.artificiorpg.com`
+   - Produção: `https://mesas.artificiorpg.com`, somente quando houver publicação operacional
+
+3. Healthcheck da API:
+   ```bash
+   curl.exe https://mesasbeta.artificiorpg.com/api/v1/health
+   ```
+   Para produção, usar o endpoint equivalente somente após a publicação.
+
+4. Logs de containers em caso de erro:
    ```bash
    # Beta
    docker compose -f /opt/mesas-beta/docker-compose.beta.yml logs --tail=50 mesas-beta-app
+   docker compose -f /opt/mesas-beta/docker-compose.beta.yml logs --tail=50 mesas-beta-api
+
    # Produção
    docker compose -f /opt/mesas/docker-compose.prod.yml logs --tail=50 mesas-app
+   docker compose -f /opt/mesas/docker-compose.prod.yml logs --tail=50 mesas-api
    ```
-4. Verificar que AggregatorBot e CleanupWorker inicializaram corretamente:
+
+5. Validação específica de workers futuros:
+   Quando houver fase posterior com `AggregatorBot` e `CleanupWorker` efetivamente ativos, validar pelos logs da API, não do frontend:
    ```bash
-   docker logs mesas-beta-app --tail 30 | grep -E "aggregator|cleanup|cron"
+   # Beta
+   docker logs mesas-beta-api --tail 30 | grep -E "aggregator|cleanup|cron"
+
+   # Produção
+   docker logs mesas-api --tail 30 | grep -E "aggregator|cleanup|cron"
    ```
 
 ---
 
-## 8. Limitações conhecidas do ambiente (VM Oracle)
+## 8. Limitações conhecidas do ambiente
 
-Ver `ERRORS_SOLUTIONS.md` E055 e E056. Comando canônico de validação de CI:
+Ver `ERRORS_SOLUTIONS.md` E055 e E056.
+
+Comando canônico de validação de CI:
+
 ```bash
 gh run list --repo FarenRavirar/mesas_rpg_artificio -L 5 --json databaseId,name,status,conclusion,headBranch,createdAt
 ```
 
 ---
 
-## 9. Status de execução (obrigatório informar ao usuário)
+## 9. Status de execução que deve ser informado ao usuário
 
 - Alteração local: SIM|NÃO
 - Commit: SIM|NÃO
@@ -176,6 +220,11 @@ gh run list --repo FarenRavirar/mesas_rpg_artificio -L 5 --json databaseId,name,
 
 ---
 
-## 10. Fila de ajustes (modo rápido)
+## 10. Fila de ajustes em modo rápido
 
-Para múltiplos ajustes em sequência na mesma sessão, o Agente pode acumular até 3 commits antes do push, sempre informando ao usuário o que foi acumulado. Ao final, solicitar autorização para `push origin dev` único.
+Para múltiplos ajustes em sequência na mesma sessão, o agente pode acumular até 3 commits antes do push, sempre informando ao usuário o que foi acumulado.
+
+Ao final:
+- solicitar autorização explícita para `push origin dev`
+- validar o beta após o deploy automático
+- só então considerar promoção para `main`

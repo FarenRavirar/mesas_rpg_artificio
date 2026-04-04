@@ -20,7 +20,7 @@ Resumo executivo para reduzir custo de contexto dos agentes, com navegação rá
 | Landing pública de mestre | Seção 3 | `ARQUITETURA_PROJETO.md` §7.4 | Nunca expor `avatar_deletehash`/`banner_deletehash` |
 | OAuth / JWT / roles | Seção 4 | `ARQUITETURA_PROJETO.md` §6 | Segurança e role no Backend, nunca no Frontend |
 | Imagens e Imgur | Seção 5 | `ARQUITETURA_PROJETO.md` §16 | Upload/remoção só no Backend |
-| Deploy / Git / promoção | Seção 6 | `GIT_WORKFLOW.md` + `OPERACAO_PRODUCAO.md` | Sem `push`/`commit` sem autorização explícita |
+| Deploy / Git / promoção | Seção 6 | `GIT_WORKFLOW.md` + `OPERACAO_PRODUCAO.md` | Sem `commit`/`push` sem autorização explícita; beta ativo em `dev`; produção só validar publicamente quando a publicação operacional existir |
 | Erros de execução | Seção 7 | `ERRORS_SOLUTIONS.md` | Ao primeiro erro: parar e aplicar solução catalogada |
 
 ---
@@ -153,7 +153,7 @@ Ao primeiro erro (`stderr`, crash, falha build/pipeline):
 
 ## Checklist de fechamento — Task de documentação
 
-- [ ] Alinhado com canônicos: `AGENTS.md`, `AI_CONTEXT_INDEX.md`, `ARQUITETURA_PROJETO.md`.
+- [ ] Alinhado com canônicos: `AGENTS.md`, `ARQUITETURA_PROJETO.md`, `GIT_WORKFLOW.md` e `OPERACAO_PRODUCAO.md`, quando aplicável.
 - [ ] Sem duplicação: resumo + referência ao canônico quando aplicável.
 - [ ] Alterações por delta mínimo; links e nomes de seção revisados.
 - [ ] Erro recorrente tratado → `ERRORS_SOLUTIONS.md` atualizado no padrão.
