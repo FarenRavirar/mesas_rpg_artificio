@@ -223,7 +223,7 @@ export const SystemTreeSelector = ({
       )}
 
       {singleSelect && selectedIds.length === 0 && (
-        <p className="text-xs text-white/60">Selecione um único nó da árvore para associar à mesa.</p>
+        <p className="text-xs text-white/60">Selecione um único nó da árvore para vincular a mesa.</p>
       )}
     </div>
   );

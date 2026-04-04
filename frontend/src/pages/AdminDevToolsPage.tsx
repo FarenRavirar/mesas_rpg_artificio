@@ -729,12 +729,19 @@ export function AdminDevToolsPage() {
           >
             <h2 style={{ margin: 0, fontSize: '0.88rem', color: '#bfdbfe' }}>🤖 Token do Bot (recomendado)</h2>
             <ol style={{ margin: '0.55rem 0 0 1rem', padding: 0, color: '#dbeafe', fontSize: '0.76rem', lineHeight: 1.45 }}>
-              <li>Abra o portal de desenvolvedor do Discord.</li>
+              <li>
+                <a href="https://discord.com/developers/applications" target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa', textDecoration: 'underline' }}>
+                  Abra o portal de desenvolvedor do Discord
+                </a>.
+              </li>
               <li>Entre na aplicação do bot e clique em <strong>Bot</strong>.</li>
               <li>Use <strong>Reset Token</strong> para gerar um novo token.</li>
               <li>Ative <strong>Message Content Intent</strong>.</li>
               <li>Guarde o token em local seguro (nunca no frontend).</li>
             </ol>
+            <p style={{ margin: '0.45rem 0 0 0', color: '#93c5fd', fontSize: '0.72rem' }}>
+              ℹ️ O bot precisa ter permissão <strong>Read Message History</strong> no canal. Não precisa ser administrador do servidor.
+            </p>
           </article>
 
           <article
@@ -747,13 +754,20 @@ export function AdminDevToolsPage() {
           >
             <h2 style={{ margin: 0, fontSize: '0.88rem', color: '#fde68a' }}>👤 Token de conta pessoal (alto risco)</h2>
             <ol style={{ margin: '0.55rem 0 0 1rem', padding: 0, color: '#fef3c7', fontSize: '0.76rem', lineHeight: 1.45 }}>
-              <li>Abra o Discord no navegador e faça login.</li>
-              <li>Pressione <strong>Ctrl + Shift + I</strong> e abra a aba <strong>Network</strong>.</li>
-              <li>Atualize a página e troque de canal.</li>
-              <li>Abra uma requisição de mensagens e copie o header <strong>authorization</strong>.</li>
+              <li>
+                <a href="https://discord.com/app" target="_blank" rel="noopener noreferrer" style={{ color: '#fcd34d', textDecoration: 'underline' }}>
+                  Abra o Discord no navegador
+                </a> e faça login.
+              </li>
+              <li>Pressione <strong>Ctrl + Shift + I</strong> (ou <strong>F12</strong>) para abrir o DevTools.</li>
+              <li>Clique na aba <strong>Network</strong> (Rede).</li>
+              <li>Atualize a página (<strong>F5</strong>) e troque de canal.</li>
+              <li>Na lista de requisições, procure por <strong>messages</strong> ou <strong>channels</strong>.</li>
+              <li>Clique em uma requisição e vá até <strong>Headers</strong> (Cabeçalhos).</li>
+              <li>Procure o campo <strong>authorization</strong> e copie o valor (começa com token longo).</li>
             </ol>
             <p style={{ margin: '0.45rem 0 0 0', color: '#fbbf24', fontSize: '0.72rem' }}>
-              Use só para referência/diagnóstico. Pode violar os termos do Discord.
+              ⚠️ Use só para referência/diagnóstico. Pode violar os termos do Discord e resultar em banimento da conta.
             </p>
           </article>
         </section>
