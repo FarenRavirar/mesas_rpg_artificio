@@ -68,12 +68,13 @@ COPY --from=builder /app/arvores_de_sistemas.md ./
 
 ## Último commit validado
 - Branch: `dev`
-- Hash: `13d28fc`
-- Mensagem: `feat: adiciona papel publicador e contatos de mesa`
-- Deploy beta: ✅ success — `Deploy Beta` concluído em 04/04/2026T03:12Z
-- Migration_04: ✅ aplicada no PostgreSQL beta (`BEGIN ... COMMIT` sem erro)
+- Hash: `df3fa8b`
+- Mensagem: `feat(aggregator): pipeline Discord completo - Fase 7`
+- Deploy beta: ✅ success — `Deploy Beta` concluído em 04/04/2026T06:33Z
+- Migration_05: ✅ aplicada manualmente antes do deploy; tabelas `aggregator_sources`, `aggregator_imported_raw_messages`, `aggregator_import_candidates`, `aggregator_settings` confirmadas no banco
 - Healthcheck: ✅ `{"status":"ok","environment":"beta","db":"connected"}`
-- `systemsTreeImport`: ✅ 125 nós atualizados no beta (mantém rotina manual pós-rebuild)
+- Dry-run Aggregator: ✅ 153 mensagens processadas, 5 aceitas, 148 aguardando revisão, 0 falhas
+- Nota: `export_exemple.json` tinha JSON truncado (E088) — corrigido localmente antes do teste
 
 ---
 
