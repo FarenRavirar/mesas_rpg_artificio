@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { BadgeCheck, Dice1, Globe, MapPin, Users } from 'lucide-react';
+import { BadgeCheck, Dice1, Globe, MapPin, Megaphone, Users } from 'lucide-react';
 import type { TableCard } from '../types/tables';
 
 const modalityLabels: Record<string, string> = {
@@ -81,6 +81,14 @@ export function TableCardComponent({ table }: { table: TableCard }) {
           <span className={`px-2 py-1 rounded-md text-xs font-bold border ${isFull ? 'bg-red-900/50 text-red-300 border-red-700/50' : 'bg-emerald-900/50 text-emerald-300 border-emerald-700/50'}`}>
             {isFull ? 'Lotada' : `${slotsLeft} vaga${slotsLeft !== 1 ? 's' : ''}`}
           </span>
+          {table.publisher_role === 'announcer' && (
+            <span
+              id={`table-card-announcer-${table.slug}`}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-slate-300/25 bg-slate-500/15 text-slate-100 text-xs font-semibold"
+            >
+              <Megaphone className="w-3 h-3" /> Apenas anunciante
+            </span>
+          )}
         </div>
 
         <h3 className="text-lg font-bold text-white group-hover:text-[var(--color-artificio-orange)] transition-colors line-clamp-2 leading-tight">

@@ -3,6 +3,16 @@ export type TableModality = 'online' | 'presencial' | 'hibrida';
 export type PriceType = 'gratuita' | 'paga';
 export type ExperienceLevel = 'todos' | 'iniciante' | 'intermediario' | 'veterano';
 export type CatalogSeal = 'ddal' | 'covil-do-lich' | '';
+export type PublisherRole = 'gm' | 'announcer';
+export type TableContactChannel = 'whatsapp' | 'discord' | 'phone' | 'email' | 'facebook' | 'instagram' | 'form';
+
+export interface TableContact {
+  channel: TableContactChannel;
+  value: string;
+  label: string | null;
+  discord_server_url: string | null;
+  sort_order: number;
+}
 
 export interface TableCard {
   id: string;
@@ -21,6 +31,9 @@ export interface TableCard {
   language: string;
   experience_level: ExperienceLevel;
   featured: boolean;
+  publisher_role: PublisherRole;
+  actual_gm_name: string | null;
+  contacts: TableContact[];
   system_name: string | null;
   system_slug: string | null;
   gm_slug: string | null;

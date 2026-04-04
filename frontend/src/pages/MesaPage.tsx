@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { CalendarClock, Compass, Crown, Globe, MapPin, ShieldCheck, Sparkles, Swords, Users } from 'lucide-react';
+import { CalendarClock, Compass, Crown, Globe, MapPin, Megaphone, ShieldCheck, Sparkles, Swords, Users } from 'lucide-react';
+import { TableContacts } from '../components/TableContacts';
 import type { TableDetail } from '../types/tables';
 import { applySeo } from '../utils/seo';
 
@@ -194,6 +195,18 @@ export const MesaPage = () => {
               </section>
             )}
 
+            {table.publisher_role === 'announcer' && (
+              <section className="rounded-2xl border border-slate-300/25 bg-slate-500/10 p-5" id="mesa-announcer-note">
+                <h2 className="text-lg font-bold mb-2 inline-flex items-center gap-2 text-slate-100">
+                  <Megaphone className="w-5 h-5" /> Publicado por anunciante
+                </h2>
+                <p className="text-sm text-slate-100/85 leading-relaxed">
+                  Esta mesa foi publicada por um anunciante.
+                  {table.actual_gm_name ? ` Mestre responsável: ${table.actual_gm_name}.` : ''}
+                </p>
+              </section>
+            )}
+
             <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
               <h2 className="text-lg font-bold mb-3">Segurança e Alertas</h2>
               <div className="grid md:grid-cols-2 gap-3 text-sm">
@@ -238,6 +251,8 @@ export const MesaPage = () => {
                 <Crown className="w-4 h-4" /> Ver perfil do mestre
               </Link>
             )}
+
+            <TableContacts contacts={table.contacts ?? []} />
           </aside>
         </article>
       </section>

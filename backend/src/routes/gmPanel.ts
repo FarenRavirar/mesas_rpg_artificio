@@ -5,6 +5,18 @@ import { authMiddleware } from '../middleware/auth';
 const router = Router();
 
 const DDAL_ELIGIBLE_PATH = 'dungeons-dragons/5e/2024';
+const CONTACT_CHANNELS = ['whatsapp', 'discord', 'phone', 'email', 'facebook', 'instagram', 'form'] as const;
+
+type ContactChannel = (typeof CONTACT_CHANNELS)[number];
+type PublisherRole = 'gm' | 'announcer';
+
+interface SanitizedTableContact {
+  channel: ContactChannel;
+  value: string;
+  label: string | null;
+  discord_server_url: string | null;
+  sort_order: number;
+}
 
 const sanitizeStringArray = (value: unknown): string[] => {
   if (!Array.isArray(value)) return [];
@@ -46,6 +58,60 @@ const parseOptionalBoolean = (value: unknown): boolean | undefined => {
     if (normalized === 'false') return false;
   }
   return undefined;
+};
+
+const sanitizePublisherRole = (value: unknown): PublisherRole => {
+  if (typeof value !== 'string') return 'gm';
+  const normalized = value.trim().toLowerCase();
+  return normalized === 'announcer' ? 'announcer' : 'gm';
+};
+
+const sanitizeContactsPayload = (value: unknown): { contacts: SanitizedTableContact[]; error: string | null } => {
+  if (value === undefined || value === null) {
+    return { contacts: [], error: null };
+  }
+
+  if (!Array.isArray(value)) {
+    return { contacts: [], error: 'Formato inválido para contatos.' };
+  }
+
+  const contacts: SanitizedTableContact[] = [];
+
+  for (let index = 0; index < value.length; index += 1) {
+    const item = value[index];
+    if (!item || typeof item !== 'object') {
+      return { contacts: [], error: `Contato #${index + 1} inválido.` };
+    }
+
+    const source = item as Record<string, unknown>;
+    const rawChannel = typeof source.channel === 'string' ? source.channel.trim().toLowerCase() : '';
+
+    if (!CONTACT_CHANNELS.includes(rawChannel as ContactChannel)) {
+      return { contacts: [], error: `Canal inválido no contato #${index + 1}.` };
+    }
+
+    const safeChannel = rawChannel as ContactChannel;
+    const safeValue = sanitizeOptionalText(source.value);
+
+    if (!safeValue) {
+      return { contacts: [], error: `Preencha o valor do contato #${index + 1}.` };
+    }
+
+    const safeLabel = sanitizeOptionalText(source.label);
+    const safeDiscordServerUrl = safeChannel === 'discord'
+      ? sanitizeOptionalText(source.discord_server_url)
+      : null;
+
+    contacts.push({
+      channel: safeChannel,
+      value: safeValue,
+      label: safeLabel,
+      discord_server_url: safeDiscordServerUrl,
+      sort_order: index,
+    });
+  }
+
+  return { contacts, error: null };
 };
 
 const isDdalEligibleSystem = async (systemId: string): Promise<boolean> => {
@@ -218,6 +284,9 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
     state,
     content_warnings,
     safety_tools,
+    publisher_role,
+    actual_gm_name,
+    contacts,
     is_ddal,
     ddal_code,
     ddal_name,
@@ -232,6 +301,22 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
 
   if (!title || !type || !modality) {
     return res.status(400).json({ error: 'Campos obrigatórios: title, type, modality.' });
+  }
+
+  const safePublisherRole = sanitizePublisherRole(publisher_role);
+  const safeActualGmName = sanitizeOptionalText(actual_gm_name);
+  const contactsPayload = sanitizeContactsPayload(contacts);
+
+  if (contactsPayload.error) {
+    return res.status(400).json({ error: contactsPayload.error });
+  }
+
+  if (contactsPayload.contacts.length === 0) {
+    return res.status(400).json({ error: 'Informe ao menos um canal de contato para recrutamento.' });
+  }
+
+  if (safePublisherRole === 'announcer' && !safeActualGmName) {
+    return res.status(400).json({ error: 'Quando for anunciante, informe o nome do mestre real.' });
   }
 
   const safeIsDdal = parseOptionalBoolean(is_ddal) ?? false;
@@ -283,42 +368,80 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
     const slugSuffix = Date.now().toString(36);
     const slug = `${baseSlug}-${slugSuffix}`;
 
-    const [newTable] = await db
-      .insertInto('tables')
-      .values({
-        slug,
-        gm_id: gmProfile.id,
-        system_id: system_id ?? null,
-        title,
-        description: description ?? null,
-        type,
-        audience: audience ?? 'livre',
-        modality,
-        price_type: price_type ?? 'gratuita',
-        price_value: price_value ?? null,
-        price_frequency: price_frequency ?? null,
-        slots_total: slots_total ?? 4,
-        language: language ?? 'Português',
-        experience_level: experience_level ?? 'todos',
-        starts_at: starts_at ? new Date(starts_at) : null,
-        city: city ?? null,
-        state: state ?? null,
-        content_warnings: content_warnings ?? [],
-        safety_tools: safety_tools ?? [],
-        is_ddal: safeIsDdal,
-        ddal_code: safeIsDdal ? safeDdalCode : null,
-        ddal_name: safeIsDdal ? safeDdalName : null,
-        ddal_tier: safeIsDdal ? safeDdalTier : null,
-        ddal_season: safeIsDdal ? safeDdalSeason : null,
-        ddal_duration: safeIsDdal ? safeDdalDuration : null,
-        ddal_format: safeIsDdal ? safeDdalFormat : null,
-        ddal_org_code: safeIsDdal ? safeDdalOrgCode : null,
-        ddal_setting: safeIsDdal ? safeDdalSetting : null,
-        ddal_rules_notes: safeIsDdal ? safeDdalRulesNotes : null,
-        status: 'active',
-      })
-      .returning(['id', 'slug', 'title', 'status', 'is_ddal', 'ddal_code', 'ddal_name', 'ddal_tier', 'created_at'])
-      .execute();
+    const safeWarnings = Array.isArray(content_warnings) ? content_warnings.filter((v) => typeof v === 'string') : [];
+    const safeSafetyTools = Array.isArray(safety_tools) ? safety_tools.filter((v) => typeof v === 'string') : [];
+
+    const newTable = await db.transaction().execute(async (trx) => {
+      const [insertedTable] = await trx
+        .insertInto('tables')
+        .values({
+          slug,
+          gm_id: gmProfile.id,
+          system_id: system_id ?? null,
+          title,
+          description: description ?? null,
+          type,
+          audience: audience ?? 'livre',
+          modality,
+          price_type: price_type ?? 'gratuita',
+          price_value: price_value ?? null,
+          price_frequency: price_frequency ?? null,
+          slots_total: slots_total ?? 4,
+          language: language ?? 'Português',
+          experience_level: experience_level ?? 'todos',
+          starts_at: starts_at ? new Date(starts_at) : null,
+          city: city ?? null,
+          state: state ?? null,
+          content_warnings: safeWarnings,
+          safety_tools: safeSafetyTools,
+          publisher_role: safePublisherRole,
+          actual_gm_name: safePublisherRole === 'announcer' ? safeActualGmName : null,
+          is_ddal: safeIsDdal,
+          ddal_code: safeIsDdal ? safeDdalCode : null,
+          ddal_name: safeIsDdal ? safeDdalName : null,
+          ddal_tier: safeIsDdal ? safeDdalTier : null,
+          ddal_season: safeIsDdal ? safeDdalSeason : null,
+          ddal_duration: safeIsDdal ? safeDdalDuration : null,
+          ddal_format: safeIsDdal ? safeDdalFormat : null,
+          ddal_org_code: safeIsDdal ? safeDdalOrgCode : null,
+          ddal_setting: safeIsDdal ? safeDdalSetting : null,
+          ddal_rules_notes: safeIsDdal ? safeDdalRulesNotes : null,
+          status: 'active',
+        })
+        .returning([
+          'id',
+          'slug',
+          'title',
+          'status',
+          'publisher_role',
+          'actual_gm_name',
+          'is_ddal',
+          'ddal_code',
+          'ddal_name',
+          'ddal_tier',
+          'created_at',
+        ])
+        .execute();
+
+      await trx
+        .insertInto('table_contacts')
+        .values(
+          contactsPayload.contacts.map((contact) => ({
+            table_id: insertedTable.id,
+            channel: contact.channel,
+            value: contact.value,
+            label: contact.label,
+            discord_server_url: contact.discord_server_url,
+            sort_order: contact.sort_order,
+          }))
+        )
+        .execute();
+
+      return {
+        ...insertedTable,
+        contacts: contactsPayload.contacts,
+      };
+    });
 
     return res.status(201).json({ data: newTable });
   } catch (error: any) {
@@ -351,6 +474,9 @@ router.put('/tables/:id', authMiddleware, async (req: Request, res: Response) =>
     state,
     content_warnings,
     safety_tools,
+    publisher_role,
+    actual_gm_name,
+    contacts,
     is_ddal,
     ddal_code,
     ddal_name,
@@ -376,7 +502,23 @@ router.put('/tables/:id', authMiddleware, async (req: Request, res: Response) =>
 
     const existingTable = await db
       .selectFrom('tables')
-      .select(['id', 'gm_id', 'system_id', 'is_ddal', 'ddal_code', 'ddal_name', 'ddal_tier', 'ddal_season', 'ddal_duration', 'ddal_format', 'ddal_org_code', 'ddal_setting', 'ddal_rules_notes'])
+      .select([
+        'id',
+        'gm_id',
+        'system_id',
+        'publisher_role',
+        'actual_gm_name',
+        'is_ddal',
+        'ddal_code',
+        'ddal_name',
+        'ddal_tier',
+        'ddal_season',
+        'ddal_duration',
+        'ddal_format',
+        'ddal_org_code',
+        'ddal_setting',
+        'ddal_rules_notes',
+      ])
       .where('id', '=', id)
       .where('gm_id', '=', gmProfile.id)
       .executeTakeFirst();
@@ -389,6 +531,30 @@ router.put('/tables/:id', authMiddleware, async (req: Request, res: Response) =>
     const safeSafetyTools = Array.isArray(safety_tools) ? safety_tools.filter((v) => typeof v === 'string') : undefined;
 
     const hasOwn = (key: string) => Object.prototype.hasOwnProperty.call(req.body, key);
+
+    const contactsPayload = hasOwn('contacts')
+      ? sanitizeContactsPayload(contacts)
+      : { contacts: [] as SanitizedTableContact[], error: null as string | null };
+
+    if (contactsPayload.error) {
+      return res.status(400).json({ error: contactsPayload.error });
+    }
+
+    if (hasOwn('contacts') && contactsPayload.contacts.length === 0) {
+      return res.status(400).json({ error: 'Informe ao menos um canal de contato para recrutamento.' });
+    }
+
+    const nextPublisherRole = hasOwn('publisher_role')
+      ? sanitizePublisherRole(publisher_role)
+      : existingTable.publisher_role;
+
+    const nextActualGmName = hasOwn('actual_gm_name')
+      ? sanitizeOptionalText(actual_gm_name)
+      : existingTable.actual_gm_name;
+
+    if (nextPublisherRole === 'announcer' && !nextActualGmName) {
+      return res.status(400).json({ error: 'Quando for anunciante, informe o nome do mestre real.' });
+    }
 
     const nextSystemId = hasOwn('system_id') ? (system_id ?? null) : existingTable.system_id;
 
@@ -420,48 +586,103 @@ router.put('/tables/:id', authMiddleware, async (req: Request, res: Response) =>
       }
     }
 
-    const updated = await db
-      .updateTable('tables')
-      .set({
-        title: title ?? undefined,
-        description: description ?? undefined,
-        system_id: hasOwn('system_id') ? (system_id ?? null) : undefined,
-        type: type ?? undefined,
-        audience: audience ?? undefined,
-        modality: modality ?? undefined,
-        price_type: price_type ?? undefined,
-        price_value: price_value ?? undefined,
-        price_frequency: price_frequency ?? undefined,
-        slots_total: slots_total ?? undefined,
-        slots_filled: slots_filled ?? undefined,
-        language: language ?? undefined,
-        experience_level: experience_level ?? undefined,
-        starts_at: starts_at ? new Date(starts_at) : undefined,
-        city: city ?? undefined,
-        state: state ?? undefined,
-        content_warnings: safeWarnings,
-        safety_tools: safeSafetyTools,
-        is_ddal: nextIsDdal,
-        ddal_code: nextIsDdal ? nextDdalCode : null,
-        ddal_name: nextIsDdal ? nextDdalName : null,
-        ddal_tier: nextIsDdal ? nextDdalTier : null,
-        ddal_season: nextIsDdal ? nextDdalSeason : null,
-        ddal_duration: nextIsDdal ? nextDdalDuration : null,
-        ddal_format: nextIsDdal ? nextDdalFormat : null,
-        ddal_org_code: nextIsDdal ? nextDdalOrgCode : null,
-        ddal_setting: nextIsDdal ? nextDdalSetting : null,
-        ddal_rules_notes: nextIsDdal ? nextDdalRulesNotes : null,
-      })
-      .where('id', '=', id)
-      .where('gm_id', '=', gmProfile.id)
-      .returning(['id', 'slug', 'title', 'status', 'is_ddal', 'ddal_code', 'ddal_name', 'ddal_tier', 'updated_at'])
-      .execute();
+    const updated = await db.transaction().execute(async (trx) => {
+      const [updatedTable] = await trx
+        .updateTable('tables')
+        .set({
+          title: title ?? undefined,
+          description: description ?? undefined,
+          system_id: hasOwn('system_id') ? (system_id ?? null) : undefined,
+          type: type ?? undefined,
+          audience: audience ?? undefined,
+          modality: modality ?? undefined,
+          price_type: price_type ?? undefined,
+          price_value: price_value ?? undefined,
+          price_frequency: price_frequency ?? undefined,
+          slots_total: slots_total ?? undefined,
+          slots_filled: slots_filled ?? undefined,
+          language: language ?? undefined,
+          experience_level: experience_level ?? undefined,
+          starts_at: starts_at ? new Date(starts_at) : undefined,
+          city: city ?? undefined,
+          state: state ?? undefined,
+          content_warnings: safeWarnings,
+          safety_tools: safeSafetyTools,
+          publisher_role: nextPublisherRole,
+          actual_gm_name: nextPublisherRole === 'announcer' ? nextActualGmName : null,
+          is_ddal: nextIsDdal,
+          ddal_code: nextIsDdal ? nextDdalCode : null,
+          ddal_name: nextIsDdal ? nextDdalName : null,
+          ddal_tier: nextIsDdal ? nextDdalTier : null,
+          ddal_season: nextIsDdal ? nextDdalSeason : null,
+          ddal_duration: nextIsDdal ? nextDdalDuration : null,
+          ddal_format: nextIsDdal ? nextDdalFormat : null,
+          ddal_org_code: nextIsDdal ? nextDdalOrgCode : null,
+          ddal_setting: nextIsDdal ? nextDdalSetting : null,
+          ddal_rules_notes: nextIsDdal ? nextDdalRulesNotes : null,
+        })
+        .where('id', '=', id)
+        .where('gm_id', '=', gmProfile.id)
+        .returning([
+          'id',
+          'slug',
+          'title',
+          'status',
+          'publisher_role',
+          'actual_gm_name',
+          'is_ddal',
+          'ddal_code',
+          'ddal_name',
+          'ddal_tier',
+          'updated_at',
+        ])
+        .execute();
 
-    if (updated.length === 0) {
+      if (!updatedTable) {
+        return null;
+      }
+
+      if (hasOwn('contacts')) {
+        await trx
+          .deleteFrom('table_contacts')
+          .where('table_id', '=', updatedTable.id)
+          .execute();
+
+        if (contactsPayload.contacts.length > 0) {
+          await trx
+            .insertInto('table_contacts')
+            .values(
+              contactsPayload.contacts.map((contact) => ({
+                table_id: updatedTable.id,
+                channel: contact.channel,
+                value: contact.value,
+                label: contact.label,
+                discord_server_url: contact.discord_server_url,
+                sort_order: contact.sort_order,
+              }))
+            )
+            .execute();
+        }
+      }
+
+      const finalContacts = await trx
+        .selectFrom('table_contacts')
+        .select(['channel', 'value', 'label', 'discord_server_url', 'sort_order'])
+        .where('table_id', '=', updatedTable.id)
+        .orderBy('sort_order', 'asc')
+        .execute();
+
+      return {
+        ...updatedTable,
+        contacts: finalContacts,
+      };
+    });
+
+    if (!updated) {
       return res.status(404).json({ error: 'Mesa não encontrada ou sem permissão.' });
     }
 
-    return res.json({ data: updated[0] });
+    return res.json({ data: updated });
   } catch (error: any) {
     console.error('[PUT /gm/tables/:id]', error);
     return res.status(500).json({ error: 'Erro ao editar mesa.' });
@@ -485,21 +706,82 @@ router.get('/tables', authMiddleware, async (req: Request, res: Response) => {
       .selectFrom('tables as t')
       .leftJoin('systems as s', 's.id', 't.system_id')
       .select([
-        't.id', 't.slug', 't.title', 't.description', 't.status', 't.modality',
-        't.system_id', 't.type', 't.audience',
-        't.price_type', 't.price_value', 't.price_frequency',
-        't.slots_total', 't.slots_filled', 't.language', 't.experience_level',
-        't.starts_at', 't.city', 't.state',
-        't.content_warnings', 't.safety_tools',
-        't.is_ddal', 't.ddal_code', 't.ddal_name', 't.ddal_tier',
-        't.created_at', 't.updated_at',
+        't.id',
+        't.slug',
+        't.title',
+        't.description',
+        't.status',
+        't.modality',
+        't.system_id',
+        't.type',
+        't.audience',
+        't.price_type',
+        't.price_value',
+        't.price_frequency',
+        't.slots_total',
+        't.slots_filled',
+        't.language',
+        't.experience_level',
+        't.starts_at',
+        't.city',
+        't.state',
+        't.content_warnings',
+        't.safety_tools',
+        't.publisher_role',
+        't.actual_gm_name',
+        't.is_ddal',
+        't.ddal_code',
+        't.ddal_name',
+        't.ddal_tier',
+        't.created_at',
+        't.updated_at',
         's.name as system_name',
       ])
       .where('t.gm_id', '=', gmProfile.id)
       .orderBy('t.created_at', 'desc')
       .execute();
 
-    return res.json({ data: tables });
+    if (tables.length === 0) {
+      return res.json({ data: [] });
+    }
+
+    const tableIds = tables.map((table) => table.id);
+
+    const contacts = await db
+      .selectFrom('table_contacts')
+      .select(['table_id', 'channel', 'value', 'label', 'discord_server_url', 'sort_order'])
+      .where('table_id', 'in', tableIds)
+      .orderBy('sort_order', 'asc')
+      .execute();
+
+    const contactsByTable = new Map<string, Array<{
+      channel: ContactChannel;
+      value: string;
+      label: string | null;
+      discord_server_url: string | null;
+      sort_order: number;
+    }>>();
+
+    for (const contact of contacts) {
+      if (!contactsByTable.has(contact.table_id)) {
+        contactsByTable.set(contact.table_id, []);
+      }
+
+      contactsByTable.get(contact.table_id)!.push({
+        channel: contact.channel as ContactChannel,
+        value: contact.value,
+        label: contact.label,
+        discord_server_url: contact.discord_server_url,
+        sort_order: contact.sort_order,
+      });
+    }
+
+    const tablesWithContacts = tables.map((table) => ({
+      ...table,
+      contacts: contactsByTable.get(table.id) ?? [],
+    }));
+
+    return res.json({ data: tablesWithContacts });
   } catch (error: any) {
     console.error('[GET /gm/tables]', error);
     return res.status(500).json({ error: 'Erro ao buscar mesas do mestre.' });

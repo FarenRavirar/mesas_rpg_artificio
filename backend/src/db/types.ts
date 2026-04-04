@@ -112,6 +112,8 @@ export type TableModality = 'online' | 'presencial' | 'hibrida';
 export type PriceType = 'gratuita' | 'paga';
 export type PriceFrequency = 'sessao' | 'mes' | 'campanha';
 export type ExperienceLevel = 'todos' | 'iniciante' | 'intermediario' | 'veterano';
+export type PublisherRole = 'gm' | 'announcer';
+export type TableContactChannel = 'whatsapp' | 'discord' | 'phone' | 'email' | 'facebook' | 'instagram' | 'form';
 
 export interface TablesTable {
   id: Generated<string>;
@@ -142,6 +144,8 @@ export interface TablesTable {
   source_url: string | null;
   source_id: string | null;
   featured: Generated<boolean>;
+  publisher_role: Generated<PublisherRole>;
+  actual_gm_name: string | null;
   is_ddal: Generated<boolean>;
   ddal_code: string | null;
   ddal_name: string | null;
@@ -156,6 +160,17 @@ export interface TablesTable {
   updated_at: Generated<Date>;
 }
 
+export interface TableContactsTable {
+  id: Generated<string>;
+  table_id: string;
+  channel: TableContactChannel;
+  value: string;
+  label: string | null;
+  discord_server_url: string | null;
+  sort_order: Generated<number>;
+  created_at: Generated<Date>;
+}
+
 export interface Database {
   users: UsersTable;
   profiles: ProfilesTable;
@@ -166,4 +181,5 @@ export interface Database {
   tags: TagsTable;
   platforms: PlatformsTable;
   tables: TablesTable;
+  table_contacts: TableContactsTable;
 }

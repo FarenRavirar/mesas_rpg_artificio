@@ -4,7 +4,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { PlusCircle, ChevronRight, Dice1, Globe, MapPin, Users, ShieldCheck, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { SystemTreeSelector } from '../components/SystemTreeSelector';
+import { ContactsFormBlock, type ContactFormEntry } from '../components/ContactsFormBlock';
 import type { SystemTreeNode } from '../types/systems';
+import type { TableContact } from '../types/tables';
 
 type TableStatus = 'draft' | 'active' | 'full' | 'cancelled' | 'ended' | 'pending_review';
 
@@ -31,6 +33,9 @@ interface MyTable {
   slots_total: number;
   slots_filled: number;
   system_name: string | null;
+  publisher_role: 'gm' | 'announcer';
+  actual_gm_name: string | null;
+  contacts: TableContact[];
   is_ddal?: boolean;
   ddal_code?: string | null;
   ddal_name?: string | null;
@@ -158,6 +163,18 @@ function CreateTableForm({ token, onSuccess }: CreateTableFormProps) {
     ddal_rules_notes: '',
   });
 
+  const [publisherRole, setPublisherRole] = useState<'gm' | 'announcer'>('gm');
+  const [actualGmName, setActualGmName] = useState('');
+  const [contacts, setContacts] = useState<ContactFormEntry[]>([
+    {
+      channel: 'whatsapp',
+      value: '',
+      label: '',
+      discord_server_url: '',
+    },
+  ]);
+  const [contactsError, setContactsError] = useState<string | null>(null);
+
   useEffect(() => {
     const loadSystems = async () => {
       setSystemsLoading(true);
@@ -210,6 +227,36 @@ function CreateTableForm({ token, onSuccess }: CreateTableFormProps) {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setContactsError(null);
+
+    const sanitizedContacts = contacts
+      .map((contact) => ({
+        channel: contact.channel,
+        value: contact.value.trim(),
+        label: contact.label.trim(),
+        discord_server_url: contact.discord_server_url.trim(),
+      }))
+      .filter((contact) => contact.value.length > 0)
+      .map((contact) => ({
+        ...contact,
+        label: contact.label.length > 0 ? contact.label : null,
+        discord_server_url: contact.channel === 'discord' && contact.discord_server_url.length > 0
+          ? contact.discord_server_url
+          : null,
+      }));
+
+    if (sanitizedContacts.length === 0) {
+      setContactsError('Informe pelo menos um canal de contato válido para recrutamento.');
+      setLoading(false);
+      return;
+    }
+
+    const safeActualGmName = actualGmName.trim();
+    if (publisherRole === 'announcer' && safeActualGmName.length < 2) {
+      setError('Quando for anunciante, informe o nome do mestre real.');
+      setLoading(false);
+      return;
+    }
 
     try {
       const payload = {
@@ -218,6 +265,9 @@ function CreateTableForm({ token, onSuccess }: CreateTableFormProps) {
         price_value: form.price_value ? parseFloat(form.price_value) : null,
         slots_total: parseInt(form.slots_total, 10),
         starts_at: form.starts_at || null,
+        publisher_role: publisherRole,
+        actual_gm_name: publisherRole === 'announcer' ? safeActualGmName : null,
+        contacts: sanitizedContacts,
         is_ddal: isDdalEligibleSelection ? ddal.is_ddal : false,
         ddal_code: ddal.is_ddal ? ddal.ddal_code || null : null,
         ddal_name: ddal.is_ddal ? ddal.ddal_name || null : null,
@@ -294,6 +344,53 @@ function CreateTableForm({ token, onSuccess }: CreateTableFormProps) {
               ? `Selecionado: ${selectedSystem.pathLabel}`
               : 'Selecione um único nó da árvore para vincular a mesa.'}
           </p>
+        </div>
+
+        <div className="md:col-span-2 rounded-2xl border border-white/10 bg-[#13213f]/60 p-4 space-y-3" id="painel-mestre-publisher-role-block">
+          <div>
+            <p className="text-sm font-semibold text-white">Quem está publicando esta mesa?</p>
+            <p className="text-xs text-white/60 mt-1">Você pode publicar como mestre narrador ou como apenas anunciante.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <label htmlFor="publisher-role-gm" className={`rounded-xl border p-3 cursor-pointer transition-colors ${publisherRole === 'gm' ? 'border-[var(--color-artificio-orange)] bg-[var(--color-artificio-orange)]/10' : 'border-white/15 bg-white/5 hover:border-white/30'}`}>
+              <input
+                id="publisher-role-gm"
+                type="radio"
+                name="publisher_role"
+                className="sr-only"
+                checked={publisherRole === 'gm'}
+                onChange={() => setPublisherRole('gm')}
+              />
+              <p className="text-sm font-semibold">Sou o mestre desta mesa</p>
+              <p className="text-xs text-white/60 mt-1">Sem selo de anunciante.</p>
+            </label>
+
+            <label htmlFor="publisher-role-announcer" className={`rounded-xl border p-3 cursor-pointer transition-colors ${publisherRole === 'announcer' ? 'border-[var(--color-artificio-orange)] bg-[var(--color-artificio-orange)]/10' : 'border-white/15 bg-white/5 hover:border-white/30'}`}>
+              <input
+                id="publisher-role-announcer"
+                type="radio"
+                name="publisher_role"
+                className="sr-only"
+                checked={publisherRole === 'announcer'}
+                onChange={() => setPublisherRole('announcer')}
+              />
+              <p className="text-sm font-semibold">Sou apenas anunciante</p>
+              <p className="text-xs text-white/60 mt-1">A mesa exibirá o selo "Apenas anunciante".</p>
+            </label>
+          </div>
+
+          {publisherRole === 'announcer' && (
+            <InputField
+              label="Nome do mestre real *"
+              id="painel-mestre-actual-gm-name"
+              name="actual_gm_name"
+              value={actualGmName}
+              onChange={(event) => setActualGmName(event.target.value)}
+              placeholder="Ex: Mestre Arandur"
+              required
+            />
+          )}
         </div>
 
         <SelectField label="Tipo de Mesa *" id="type" name="type" value={form.type} onChange={handleChange}>
@@ -388,6 +485,15 @@ function CreateTableForm({ token, onSuccess }: CreateTableFormProps) {
           className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all resize-none"
         />
       </div>
+
+      <ContactsFormBlock
+        contacts={contacts}
+        onChange={(next) => {
+          setContacts(next);
+          if (contactsError) setContactsError(null);
+        }}
+        error={contactsError}
+      />
 
       {isDdalEligibleSelection && (
         <section className="rounded-2xl border border-amber-300/30 bg-amber-500/10 p-5 space-y-4" id="painel-mestre-ddal-block">
@@ -822,6 +928,14 @@ export const PainelMestrePage = () => {
                           <div className="flex flex-wrap items-center gap-2 text-xs">
                             <span className="px-2 py-1 rounded-md border border-white/15 bg-white/5 text-white/75">
                               {table.slots_filled}/{table.slots_total} ({openSlots} vagas)
+                            </span>
+                            {table.publisher_role === 'announcer' && (
+                              <span className="px-2 py-1 rounded-md border border-slate-300/30 bg-slate-500/15 text-slate-100" id={`painel-mesa-announcer-${table.slug}`}>
+                                Apenas anunciante{table.actual_gm_name ? ` · Mestre: ${table.actual_gm_name}` : ''}
+                              </span>
+                            )}
+                            <span className="px-2 py-1 rounded-md border border-white/15 bg-white/5 text-white/70">
+                              {table.contacts?.length ?? 0} contato{(table.contacts?.length ?? 0) !== 1 ? 's' : ''}
                             </span>
                             {table.is_ddal && (
                               <span className="px-2 py-1 rounded-md border border-amber-400/40 bg-amber-500/15 text-amber-100" id={`painel-mesa-ddal-${table.slug}`}>

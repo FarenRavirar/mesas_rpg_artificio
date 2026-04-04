@@ -4,6 +4,14 @@ import { db } from '../db';
 
 const router = Router();
 
+type PublicTableContact = {
+  channel: string;
+  value: string;
+  label: string | null;
+  discord_server_url: string | null;
+  sort_order: number;
+};
+
 // GET /api/v1/gm/:slug — Perfil público do mestre (sem JWT)
 router.get('/:slug', async (req: Request, res: Response) => {
   const { slug } = req.params;
@@ -41,21 +49,71 @@ router.get('/:slug', async (req: Request, res: Response) => {
       .selectFrom('tables as t')
       .leftJoin('systems as s', 's.id', 't.system_id')
       .select([
-        't.id', 't.slug', 't.title', 't.description',
-        't.cover_url', 't.status', 't.type', 't.audience', 't.modality',
-        't.price_type', 't.price_value',
-        't.slots_total', 't.slots_filled',
-        't.language', 't.experience_level', 't.featured',
-        't.is_ddal', 't.ddal_code', 't.ddal_name', 't.ddal_tier',
+        't.id',
+        't.slug',
+        't.title',
+        't.description',
+        't.cover_url',
+        't.status',
+        't.type',
+        't.audience',
+        't.modality',
+        't.price_type',
+        't.price_value',
+        't.slots_total',
+        't.slots_filled',
+        't.language',
+        't.experience_level',
+        't.publisher_role',
+        't.actual_gm_name',
+        't.featured',
+        't.is_ddal',
+        't.ddal_code',
+        't.ddal_name',
+        't.ddal_tier',
         't.created_at',
-        's.name as system_name', 's.slug as system_slug',
+        's.name as system_name',
+        's.slug as system_slug',
       ])
       .where('t.gm_id', '=', gm.id)
       .where('t.status', '=', 'active')
       .orderBy('t.created_at', 'desc')
       .execute();
 
-    res.json({ data: { ...gm, tables } });
+    if (tables.length === 0) {
+      return res.json({ data: { ...gm, tables: [] } });
+    }
+
+    const tableIds = tables.map((table) => table.id);
+    const contacts = await db
+      .selectFrom('table_contacts')
+      .select(['table_id', 'channel', 'value', 'label', 'discord_server_url', 'sort_order'])
+      .where('table_id', 'in', tableIds)
+      .orderBy('sort_order', 'asc')
+      .execute();
+
+    const contactsByTable = new Map<string, PublicTableContact[]>();
+
+    for (const contact of contacts) {
+      if (!contactsByTable.has(contact.table_id)) {
+        contactsByTable.set(contact.table_id, []);
+      }
+
+      contactsByTable.get(contact.table_id)!.push({
+        channel: contact.channel,
+        value: contact.value,
+        label: contact.label,
+        discord_server_url: contact.discord_server_url,
+        sort_order: contact.sort_order,
+      });
+    }
+
+    const tablesWithContacts = tables.map((table) => ({
+      ...table,
+      contacts: contactsByTable.get(table.id) ?? [],
+    }));
+
+    res.json({ data: { ...gm, tables: tablesWithContacts } });
   } catch (error: any) {
     console.error('[GET /gm/:slug]', error);
     res.status(500).json({ error: 'Erro ao buscar perfil do mestre.' });

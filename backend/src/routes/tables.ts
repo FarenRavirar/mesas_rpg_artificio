@@ -4,6 +4,14 @@ import { db } from '../db';
 
 const router = Router();
 
+type PublicTableContact = {
+  channel: string;
+  value: string;
+  label: string | null;
+  discord_server_url: string | null;
+  sort_order: number;
+};
+
 // GET /api/v1/tables — Catálogo público, sem JWT
 router.get('/', async (req: Request, res: Response) => {
   const {
@@ -52,6 +60,8 @@ router.get('/', async (req: Request, res: Response) => {
         't.starts_at',
         't.content_warnings',
         't.safety_tools',
+        't.publisher_role',
+        't.actual_gm_name',
         't.featured',
         't.created_at',
         't.is_ddal',
@@ -103,8 +113,41 @@ router.get('/', async (req: Request, res: Response) => {
 
     const tables = await query.execute();
 
+    let tablesWithContacts = tables as Array<typeof tables[number] & { contacts: PublicTableContact[] }>;
+
+    if (tables.length > 0) {
+      const tableIds = tables.map((table) => table.id);
+      const contacts = await db
+        .selectFrom('table_contacts')
+        .select(['table_id', 'channel', 'value', 'label', 'discord_server_url', 'sort_order'])
+        .where('table_id', 'in', tableIds)
+        .orderBy('sort_order', 'asc')
+        .execute();
+
+      const contactsByTable = new Map<string, PublicTableContact[]>();
+
+      for (const contact of contacts) {
+        if (!contactsByTable.has(contact.table_id)) {
+          contactsByTable.set(contact.table_id, []);
+        }
+
+        contactsByTable.get(contact.table_id)!.push({
+          channel: contact.channel,
+          value: contact.value,
+          label: contact.label,
+          discord_server_url: contact.discord_server_url,
+          sort_order: contact.sort_order,
+        });
+      }
+
+      tablesWithContacts = tables.map((table) => ({
+        ...table,
+        contacts: contactsByTable.get(table.id) ?? [],
+      }));
+    }
+
     res.json({
-      data: tables,
+      data: tablesWithContacts,
       pagination: {
         page: pageNum,
         limit: limitNum,
@@ -150,6 +193,8 @@ router.get('/:slug', async (req: Request, res: Response) => {
         't.state',
         't.content_warnings',
         't.safety_tools',
+        't.publisher_role',
+        't.actual_gm_name',
         't.featured',
         't.created_at',
         't.is_ddal',
@@ -177,7 +222,14 @@ router.get('/:slug', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Mesa não encontrada.' });
     }
 
-    res.json({ data: table });
+    const contacts = await db
+      .selectFrom('table_contacts')
+      .select(['channel', 'value', 'label', 'discord_server_url', 'sort_order'])
+      .where('table_id', '=', table.id)
+      .orderBy('sort_order', 'asc')
+      .execute();
+
+    res.json({ data: { ...table, contacts } });
   } catch (error: any) {
     console.error('[GET /tables/:slug]', error);
     res.status(500).json({ error: 'Erro ao buscar mesa.' });
