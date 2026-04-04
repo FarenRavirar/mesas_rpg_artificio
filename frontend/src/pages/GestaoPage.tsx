@@ -1,425 +1,257 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import '../styles/suggestions.css';
+import { useNavigate } from 'react-router-dom';
+import { CheckCircle, XCircle, Clock } from 'lucide-react';
+
+const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
 interface SystemSuggestion {
   id: string;
-  name: string;
-  node_type: string;
-  parent_id: string | null;
-  parent_name: string | null;
-  description: string | null;
-  aliases: string[] | null;
-  status: 'pending' | 'approved' | 'rejected';
   user_id: string;
-  user_name: string;
-  user_email: string;
-  reviewed_by: string | null;
-  reviewer_name: string | null;
-  reviewed_at: string | null;
+  name: string;
+  description: string | null;
+  parent_id: string | null;
+  node_type: 'system' | 'edition' | 'variant' | 'subsystem';
+  status: 'pending' | 'approved' | 'rejected';
   rejection_reason: string | null;
   created_at: string;
-  updated_at: string;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
 }
 
-export const GestaoPage: React.FC = () => {
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'pending' | 'log'>('pending');
+export const GestaoPage = () => {
+  const { token, user } = useAuth();
+  const navigate = useNavigate();
   const [suggestions, setSuggestions] = useState<SystemSuggestion[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({
-    name: '',
-    description: '',
-    aliases: '',
-  });
-  const [rejectingId, setRejectingId] = useState<string | null>(null);
-  const [rejectionReason, setRejectionReason] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
 
   useEffect(() => {
-    if (user?.role === 'admin') {
-      fetchSuggestions();
-    }
-  }, [user, activeTab]);
-
-  const fetchSuggestions = async () => {
-    setIsLoading(true);
-    try {
-      const token = localStorage.getItem('@ArtificioMesas:token');
-      const status = activeTab === 'pending' ? 'pending' : '';
-      const res = await fetch(`/api/v1/admin/system-suggestions?status=${status}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setSuggestions(data.data);
-      }
-    } catch (err) {
-      console.error('Erro ao buscar sugestões:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleEdit = (suggestion: SystemSuggestion) => {
-    setEditingId(suggestion.id);
-    setEditForm({
-      name: suggestion.name,
-      description: suggestion.description || '',
-      aliases: suggestion.aliases?.join(', ') || '',
-    });
-  };
-
-  const handleQuickApprove = async (id: string) => {
-    if (!confirm('Aprovar esta sugestão sem editar?')) return;
-
-    try {
-      const token = localStorage.getItem('@ArtificioMesas:token');
-      const res = await fetch(`/api/v1/admin/system-suggestions/${id}/approve`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (res.ok) {
-        alert('Sugestão aprovada com sucesso!');
-        fetchSuggestions();
-      } else {
-        const data = await res.json();
-        alert(`Erro: ${data.message}`);
-      }
-    } catch (err: any) {
-      alert(`Erro ao aprovar: ${err.message}`);
-    }
-  };
-
-  const handleApproveWithEdits = async (id: string) => {
-    if (!confirm('Aprovar esta sugestão com as edições feitas?')) return;
-
-    try {
-      const token = localStorage.getItem('@ArtificioMesas:token');
-      const res = await fetch(`/api/v1/admin/system-suggestions/${id}/approve`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          edited_name: editForm.name.trim(),
-          edited_description: editForm.description.trim() || null,
-          edited_aliases: editForm.aliases.trim() 
-            ? editForm.aliases.split(',').map(a => a.trim()) 
-            : null,
-        }),
-      });
-
-      if (res.ok) {
-        alert('Sugestão aprovada com sucesso!');
-        setEditingId(null);
-        fetchSuggestions();
-      } else {
-        const data = await res.json();
-        alert(`Erro: ${data.message}`);
-      }
-    } catch (err: any) {
-      alert(`Erro ao aprovar: ${err.message}`);
-    }
-  };
-
-  const handleReject = (id: string) => {
-    setRejectingId(id);
-    setRejectionReason('');
-  };
-
-  const handleConfirmReject = async () => {
-    if (!rejectionReason.trim()) {
-      alert('É necessário fornecer um motivo para a rejeição.');
+    if (!user || user.role !== 'admin') {
+      navigate('/');
       return;
     }
 
+    fetchSuggestions();
+  }, [user, navigate, filter]);
+
+  const fetchSuggestions = async () => {
+    if (!token) return;
+
+    setLoading(true);
     try {
-      const token = localStorage.getItem('@ArtificioMesas:token');
-      const res = await fetch(`/api/v1/admin/system-suggestions/${rejectingId}/reject`, {
+      const url = filter === 'all'
+        ? `${API_BASE}/api/v1/admin/system-suggestions`
+        : `${API_BASE}/api/v1/admin/system-suggestions?status=${filter}`;
+
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSuggestions(data.data || []);
+      }
+    } catch (error) {
+      console.error('[GestaoPage] Erro ao buscar sugestões:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApprove = async (id: string) => {
+    if (!token) return;
+    if (!confirm('Aprovar esta sugestão?')) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/admin/system-suggestions/${id}/approve`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        alert('Sugestão aprovada!');
+        fetchSuggestions();
+      } else {
+        const data = await response.json();
+        alert(`Erro: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('[GestaoPage] Erro ao aprovar:', error);
+      alert('Erro ao aprovar sugestão');
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    const reason = prompt('Motivo da rejeição:');
+    if (!reason || !token) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/admin/system-suggestions/${id}/reject`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          rejection_reason: rejectionReason.trim(),
-        }),
+        body: JSON.stringify({ reason }),
       });
 
-      if (res.ok) {
-        alert('Sugestão rejeitada com sucesso!');
-        setRejectingId(null);
-        setRejectionReason('');
+      if (response.ok) {
+        alert('Sugestão rejeitada!');
         fetchSuggestions();
       } else {
-        const data = await res.json();
-        alert(`Erro: ${data.message}`);
+        const data = await response.json();
+        alert(`Erro: ${data.error}`);
       }
-    } catch (err: any) {
-      alert(`Erro ao rejeitar: ${err.message}`);
+    } catch (error) {
+      console.error('[GestaoPage] Erro ao rejeitar:', error);
+      alert('Erro ao rejeitar sugestão');
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-  };
-
-  const formatDateTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  if (user?.role !== 'admin') {
-    return (
-      <div className="container">
-        <div className="alert alert-error">
-          ❌ Acesso negado. Esta página é restrita a administradores.
-        </div>
-      </div>
-    );
+  if (!user || user.role !== 'admin') {
+    return null;
   }
 
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return <CheckCircle className="w-5 h-5 text-green-400" />;
+      case 'rejected':
+        return <XCircle className="w-5 h-5 text-red-400" />;
+      default:
+        return <Clock className="w-5 h-5 text-yellow-400" />;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return 'text-green-400';
+      case 'rejected':
+        return 'text-red-400';
+      default:
+        return 'text-yellow-400';
+    }
+  };
+
   return (
-    <div className="container gestao-page">
-      <h1>🛠️ Gestão</h1>
-      <p className="subtitle">Aprovação de sugestões e gerenciamento administrativo</p>
+    <div className="min-h-screen bg-gradient-to-br from-[#0F1A2E] via-[#1B2A4A] to-[#0F1A2E] py-8">
+      <div className="container mx-auto px-6 max-w-6xl">
+        <h1 className="text-3xl font-bold text-white mb-2">Gestão de Sugestões de Sistemas</h1>
+        <p className="text-white/60 mb-8">Aprove ou rejeite sugestões enviadas pela comunidade</p>
 
-      <div className="tabs">
-        <button
-          className={`tab ${activeTab === 'pending' ? 'active' : ''}`}
-          onClick={() => setActiveTab('pending')}
-        >
-          Sugestões Pendentes
-          {suggestions.filter(s => s.status === 'pending').length > 0 && (
-            <span className="badge">{suggestions.filter(s => s.status === 'pending').length}</span>
-          )}
-        </button>
-        <button
-          className={`tab ${activeTab === 'log' ? 'active' : ''}`}
-          onClick={() => setActiveTab('log')}
-        >
-          Log de Aprovações/Rejeições
-        </button>
-      </div>
-
-      {isLoading ? (
-        <div className="loading">Carregando...</div>
-      ) : (
-        <>
-          {activeTab === 'pending' && (
-            <div className="suggestions-list">
-              {suggestions.filter(s => s.status === 'pending').length === 0 ? (
-                <div className="empty-state">
-                  ✅ Nenhuma sugestão pendente no momento.
-                </div>
-              ) : (
-                suggestions
-                  .filter(s => s.status === 'pending')
-                  .map(suggestion => (
-                    <div key={suggestion.id} className="suggestion-card">
-                      {editingId === suggestion.id ? (
-                        <div className="edit-form">
-                          <h3>Revisar Sugestão</h3>
-                          
-                          <div className="form-group">
-                            <label>Nome</label>
-                            <input
-                              type="text"
-                              value={editForm.name}
-                              onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                            />
-                          </div>
-
-                          <div className="form-group">
-                            <label>Descrição</label>
-                            <textarea
-                              value={editForm.description}
-                              onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                              rows={3}
-                            />
-                          </div>
-
-                          <div className="form-group">
-                            <label>Aliases (separados por vírgula)</label>
-                            <input
-                              type="text"
-                              value={editForm.aliases}
-                              onChange={(e) => setEditForm({ ...editForm, aliases: e.target.value })}
-                            />
-                          </div>
-
-                          <div className="suggestion-actions">
-                            <button
-                              onClick={() => handleApproveWithEdits(suggestion.id)}
-                              className="btn-success"
-                            >
-                              ✅ Aprovar e Publicar
-                            </button>
-                            <button
-                              onClick={() => setEditingId(null)}
-                              className="btn-secondary"
-                            >
-                              Cancelar
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="suggestion-header">
-                            <h3>{suggestion.name}</h3>
-                            <span className="badge badge-type">{suggestion.node_type}</span>
-                          </div>
-
-                          <div className="suggestion-meta">
-                            <span>👤 Sugerido por: <strong>{suggestion.user_name}</strong></span>
-                            <span>📅 {formatDate(suggestion.created_at)}</span>
-                          </div>
-
-                          {suggestion.parent_name && (
-                            <div className="suggestion-parent">
-                              📂 Filho de: <strong>{suggestion.parent_name}</strong>
-                            </div>
-                          )}
-
-                          {suggestion.description && (
-                            <div className="suggestion-description">
-                              {suggestion.description}
-                            </div>
-                          )}
-
-                          {suggestion.aliases && suggestion.aliases.length > 0 && (
-                            <div className="suggestion-aliases">
-                              🏷️ Aliases: {suggestion.aliases.join(', ')}
-                            </div>
-                          )}
-
-                          <div className="suggestion-actions">
-                            <button
-                              onClick={() => handleEdit(suggestion)}
-                              className="btn-primary"
-                            >
-                              ✏️ Editar e Aprovar
-                            </button>
-                            <button
-                              onClick={() => handleQuickApprove(suggestion.id)}
-                              className="btn-success"
-                            >
-                              ✅ Aprovar
-                            </button>
-                            <button
-                              onClick={() => handleReject(suggestion.id)}
-                              className="btn-danger"
-                            >
-                              ❌ Rejeitar
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  ))
-              )}
-            </div>
-          )}
-
-          {activeTab === 'log' && (
-            <div className="log-table-container">
-              <table className="log-table">
-                <thead>
-                  <tr>
-                    <th>Sistema</th>
-                    <th>Tipo</th>
-                    <th>Ação</th>
-                    <th>Admin</th>
-                    <th>Data/Hora</th>
-                    <th>Motivo</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {suggestions
-                    .filter(s => s.status !== 'pending')
-                    .map(log => (
-                      <tr key={log.id}>
-                        <td>{log.name}</td>
-                        <td>
-                          <span className="badge badge-type">{log.node_type}</span>
-                        </td>
-                        <td>
-                          {log.status === 'approved' ? (
-                            <span className="badge badge-success">✅ Aprovado</span>
-                          ) : (
-                            <span className="badge badge-danger">❌ Rejeitado</span>
-                          )}
-                        </td>
-                        <td>{log.reviewer_name || '—'}</td>
-                        <td>{log.reviewed_at ? formatDateTime(log.reviewed_at) : '—'}</td>
-                        <td>{log.rejection_reason || '—'}</td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Modal de Rejeição */}
-      {rejectingId && (
-        <div className="modal-overlay" onClick={() => setRejectingId(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Rejeitar Sugestão</h3>
-              <button onClick={() => setRejectingId(null)} className="modal-close">×</button>
-            </div>
-
-            <div className="modal-body">
-              <div className="alert alert-warning">
-                ⚠️ O usuário será notificado sobre a rejeição.
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="rejectionReason">Motivo da rejeição (obrigatório)</label>
-                <textarea
-                  id="rejectionReason"
-                  value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                  placeholder="Explique o motivo da rejeição..."
-                  rows={4}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="modal-footer">
-              <button onClick={() => setRejectingId(null)} className="btn-secondary">
-                Cancelar
-              </button>
-              <button
-                onClick={handleConfirmReject}
-                className="btn-danger"
-                disabled={!rejectionReason.trim()}
-              >
-                Confirmar Rejeição
-              </button>
-            </div>
-          </div>
+        <div className="flex flex-wrap gap-3 mb-8">
+          <button
+            onClick={() => setFilter('pending')}
+            className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+              filter === 'pending'
+                ? 'bg-yellow-500/20 text-yellow-400 border-2 border-yellow-500/50'
+                : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10'
+            }`}
+          >
+            Pendentes
+          </button>
+          <button
+            onClick={() => setFilter('approved')}
+            className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+              filter === 'approved'
+                ? 'bg-green-500/20 text-green-400 border-2 border-green-500/50'
+                : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10'
+            }`}
+          >
+            Aprovadas
+          </button>
+          <button
+            onClick={() => setFilter('rejected')}
+            className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+              filter === 'rejected'
+                ? 'bg-red-500/20 text-red-400 border-2 border-red-500/50'
+                : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10'
+            }`}
+          >
+            Rejeitadas
+          </button>
+          <button
+            onClick={() => setFilter('all')}
+            className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+              filter === 'all'
+                ? 'bg-blue-500/20 text-blue-400 border-2 border-blue-500/50'
+                : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10'
+            }`}
+          >
+            Todas
+          </button>
         </div>
-      )}
+
+        {loading ? (
+          <div className="text-center py-12 text-white/50">Carregando...</div>
+        ) : suggestions.length === 0 ? (
+          <div className="bg-[#1B2A4A]/50 border border-white/10 rounded-lg p-12 text-center">
+            <p className="text-white/50">Nenhuma sugestão encontrada</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {suggestions.map((suggestion) => (
+              <div
+                key={suggestion.id}
+                className="bg-[#1B2A4A]/50 border border-white/10 rounded-lg p-6 hover:border-white/20 transition-colors"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      {getStatusIcon(suggestion.status)}
+                      <h3 className="text-xl font-bold text-white">{suggestion.name}</h3>
+                    </div>
+                    
+                    <div className="flex items-center gap-4 text-sm text-white/60 mb-3">
+                      <span className="font-semibold">Tipo:</span>
+                      <span className="px-2 py-1 bg-white/5 rounded">{suggestion.node_type}</span>
+                      <span className="font-semibold">Status:</span>
+                      <span className={`font-semibold ${getStatusColor(suggestion.status)}`}>
+                        {suggestion.status}
+                      </span>
+                    </div>
+
+                    {suggestion.description && (
+                      <p className="text-white/80 mb-3">{suggestion.description}</p>
+                    )}
+
+                    {suggestion.rejection_reason && (
+                      <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-3">
+                        <p className="text-red-400 text-sm">
+                          <strong>Motivo da rejeição:</strong> {suggestion.rejection_reason}
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="text-xs text-white/40">
+                      Criado em: {new Date(suggestion.created_at).toLocaleString('pt-BR')}
+                    </div>
+                  </div>
+
+                  {suggestion.status === 'pending' && (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleApprove(suggestion.id)}
+                        className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg transition-colors"
+                      >
+                        Aprovar
+                      </button>
+                      <button
+                        onClick={() => handleReject(suggestion.id)}
+                        className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-colors"
+                      >
+                        Rejeitar
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

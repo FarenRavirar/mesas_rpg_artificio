@@ -1,110 +1,59 @@
-import express from 'express';
-import { db } from '../db';
+import { Router, Request, Response } from 'express';
 import { authMiddleware } from '../middleware/auth';
+import { db } from '../db';
 
-const router = express.Router();
+const router = Router();
+
+router.use(authMiddleware);
 
 // GET /api/v1/notifications - Listar notificações do usuário
-router.get('/', authMiddleware, async (req, res) => {
-  const userId = req.user!.userId;
-  const { unread_only } = req.query;
-
+router.get('/', async (req: Request, res: Response) => {
   try {
-    let query = db
-      .selectFrom('notifications')
-      .where('user_id', '=', userId)
-      .selectAll()
-      .orderBy('created_at', 'desc')
-      .limit(50); // Limitar a 50 notificações mais recentes
-
-    if (unread_only === 'true') {
-      query = query.where('read', '=', false);
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Não autenticado.' });
     }
 
-    const notifications = await query.execute();
-
-    res.json({
-      data: notifications
-    });
-  } catch (error: any) {
-    console.error('[notifications] Erro ao listar notificações:', error);
-    res.status(500).json({
-      error: 'Erro ao listar notificações',
-      message: error.message
-    });
-  }
-});
-
-// GET /api/v1/notifications/unread-count - Contar notificações não lidas
-router.get('/unread-count', authMiddleware, async (req, res) => {
-  const userId = req.user!.userId;
-
-  try {
-    const result = await db
+    const notifications = await db
       .selectFrom('notifications')
+      .selectAll()
       .where('user_id', '=', userId)
-      .where('read', '=', false)
-      .select(db.fn.count('id').as('count'))
-      .executeTakeFirst();
+      .orderBy('created_at', 'desc')
+      .limit(50)
+      .execute();
 
-    res.json({
-      count: Number(result?.count || 0)
-    });
+    return res.json({ data: notifications });
   } catch (error: any) {
-    console.error('[notifications] Erro ao contar notificações:', error);
-    res.status(500).json({
-      error: 'Erro ao contar notificações',
-      message: error.message
-    });
+    console.error('[GET /notifications]', error);
+    return res.status(500).json({ error: 'Erro ao buscar notificações.' });
   }
 });
 
 // PATCH /api/v1/notifications/:id/read - Marcar notificação como lida
-router.patch('/:id/read', authMiddleware, async (req, res) => {
-  const { id } = req.params;
-  const userId = req.user!.userId;
-
+router.patch('/:id/read', async (req: Request, res: Response) => {
   try {
-    await db
+    const userId = req.user?.userId;
+    const { id } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Não autenticado.' });
+    }
+
+    const updated = await db
       .updateTable('notifications')
       .set({ read: true })
       .where('id', '=', id)
       .where('user_id', '=', userId)
-      .execute();
+      .executeTakeFirst();
 
-    res.json({
-      message: 'Notificação marcada como lida'
-    });
+    if (updated.numUpdatedRows === 0n) {
+      return res.status(404).json({ error: 'Notificação não encontrada.' });
+    }
+
+    return res.json({ success: true });
   } catch (error: any) {
-    console.error('[notifications] Erro ao marcar notificação:', error);
-    res.status(500).json({
-      error: 'Erro ao marcar notificação',
-      message: error.message
-    });
-  }
-});
-
-// PATCH /api/v1/notifications/read-all - Marcar todas como lidas
-router.patch('/read-all', authMiddleware, async (req, res) => {
-  const userId = req.user!.userId;
-
-  try {
-    await db
-      .updateTable('notifications')
-      .set({ read: true })
-      .where('user_id', '=', userId)
-      .where('read', '=', false)
-      .execute();
-
-    res.json({
-      message: 'Todas as notificações foram marcadas como lidas'
-    });
-  } catch (error: any) {
-    console.error('[notifications] Erro ao marcar todas como lidas:', error);
-    res.status(500).json({
-      error: 'Erro ao marcar notificações',
-      message: error.message
-    });
+    console.error('[PATCH /notifications/:id/read]', error);
+    return res.status(500).json({ error: 'Erro ao marcar notificação como lida.' });
   }
 });
 
