@@ -68,6 +68,7 @@ Se houver risco material, reduzir escopo, revisar plano e só então executar.
 | Autenticação (Google OAuth / JWT / perfis / elevação de role) | `ARQUITETURA_PROJETO.md` seções 5 e 6 → `GIT_WORKFLOW.md` | Não implementar lógica de permissão no frontend | 2.500 a 4.000 tokens |
 | Imagens (upload, conversão WebP, Imgur, CleanupWorker) | `ARQUITETURA_PROJETO.md` seção 16 → `ERRORS_SOLUTIONS.md` | Não processar imagem no frontend; não expor deletehash | 2.000 a 3.500 tokens |
 | AggregatorBot (ingestão, deduplicação, fontes externas) | `ARQUITETURA_PROJETO.md` seção 7.8 e 4.5 → `ERRORS_SOLUTIONS.md` | Não alterar critério de deduplicação sem autorização | 2.500 a 4.500 tokens |
+| Importação manual de mesas por JSON (lote) | `ARQUITETURA_PROJETO.md` seção 4 e 7.8 → `FILA_IMPLEMENTACAO.md` → `TODO_OPERACIONAL.md` | Não iniciar execução sem contrato versionado (`schema_version`) e chave idempotente (`source` + `external_id`) | 2.500 a 4.500 tokens |
 | Bug hunting de falhas visuais / CSS limitadas | Apenas o arquivo do componente afetado | Não refazer componentes globais sem aviso explícito | 1.000 a 2.000 tokens |
 | Deploy Beta (`dev`) ou Produção (`main`) via GitHub Actions | `GIT_WORKFLOW.md` → `OPERACAO_PRODUCAO.md` | Não reescrever yaml de CD arbitrariamente | 1.500 a 2.500 tokens |
 | Novo Componente Estrutural / Core | `ARQUITETURA_PROJETO.md` para contratos React locais | Não segregar lógica de moderação fora do endpoint de dados | 3.000 a 6.000 tokens |

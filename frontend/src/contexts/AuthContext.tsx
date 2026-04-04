@@ -16,18 +16,58 @@ interface AuthContextType {
   isLoading: boolean;
 }
 
+interface JwtPayload {
+  userId?: string;
+  role?: User['role'];
+  name?: string;
+  avatar_url?: string;
+  exp?: number;
+}
+
+const TOKEN_STORAGE_KEY = '@ArtificioMesas:token';
+const USER_STORAGE_KEY = '@ArtificioMesas:user';
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Helper to parse JWT
-const parseJwt = (token: string) => {
+const isValidRole = (value: unknown): value is User['role'] => {
+  return value === 'visitor' || value === 'player' || value === 'gm' || value === 'admin';
+};
+
+const parseStoredUser = (raw: string | null): User | null => {
+  if (!raw) return null;
+
   try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-    }).join(''));
-    return JSON.parse(jsonPayload);
-  } catch (e) {
+    const parsed = JSON.parse(raw) as Partial<User>;
+    if (!parsed.id || !isValidRole(parsed.role)) return null;
+
+    return {
+      id: parsed.id,
+      role: parsed.role,
+      name: parsed.name,
+      avatar_url: parsed.avatar_url,
+    };
+  } catch {
+    return null;
+  }
+};
+
+const parseJwt = (token: string): JwtPayload | null => {
+  try {
+    const payload = token.split('.')[1];
+    if (!payload) return null;
+
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const paddedBase64 = `${base64}${'='.repeat((4 - (base64.length % 4)) % 4)}`;
+    const jsonPayload = decodeURIComponent(
+      window
+        .atob(paddedBase64)
+        .split('')
+        .map((char) => `%${`00${char.charCodeAt(0).toString(16)}`.slice(-2)}`)
+        .join('')
+    );
+
+    return JSON.parse(jsonPayload) as JwtPayload;
+  } catch {
     return null;
   }
 };
@@ -40,33 +80,90 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const clearSession = useCallback(() => {
     setToken(null);
     setUser(null);
-    localStorage.removeItem('@ArtificioMesas:token');
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+    localStorage.removeItem(USER_STORAGE_KEY);
   }, []);
 
   useEffect(() => {
-    // Tenta inicializar via localStorage na carga inicial
-    const storedToken = localStorage.getItem('@ArtificioMesas:token');
-    if (storedToken) {
-      const decodedInfo = parseJwt(storedToken);
-      if (decodedInfo && decodedInfo.exp * 1000 > Date.now()) {
-        setToken(storedToken);
-        setUser({
-          id: decodedInfo.userId,
-          role: decodedInfo.role,
-          name: decodedInfo.name,
-          avatar_url: decodedInfo.avatar_url,
-        });
-      } else {
-        localStorage.removeItem('@ArtificioMesas:token');
+    let active = true;
+
+    const bootstrapSession = async () => {
+      const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+      if (!storedToken) {
+        if (active) setIsLoading(false);
+        return;
       }
-    }
-    setIsLoading(false);
-  }, []);
+
+      const decoded = parseJwt(storedToken);
+      if (decoded?.exp && decoded.exp * 1000 <= Date.now()) {
+        clearSession();
+        if (active) setIsLoading(false);
+        return;
+      }
+
+      const cachedUser = parseStoredUser(localStorage.getItem(USER_STORAGE_KEY));
+
+      if (!active) return;
+      setToken(storedToken);
+
+      if (cachedUser) {
+        setUser(cachedUser);
+      } else if (decoded?.userId && isValidRole(decoded.role)) {
+        setUser({
+          id: decoded.userId,
+          role: decoded.role,
+          name: decoded.name,
+          avatar_url: decoded.avatar_url,
+        });
+      }
+
+      try {
+        const meRes = await fetch('/api/v1/me', {
+          headers: { Authorization: `Bearer ${storedToken}` },
+        });
+
+        if (!active) return;
+
+        if (!meRes.ok) {
+          clearSession();
+          setIsLoading(false);
+          return;
+        }
+
+        const meJson = await meRes.json();
+        const apiUser = meJson?.data?.user;
+        const displayName = meJson?.data?.profile?.display_name;
+
+        if (apiUser?.id && isValidRole(apiUser.role)) {
+          const hydratedUser: User = {
+            id: apiUser.id,
+            role: apiUser.role,
+            name: displayName ?? cachedUser?.name ?? decoded?.name,
+            avatar_url: cachedUser?.avatar_url ?? decoded?.avatar_url,
+          };
+
+          setUser(hydratedUser);
+          localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(hydratedUser));
+        }
+      } catch {
+        // Mantém sessão local em caso de falha transitória de rede.
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    };
+
+    bootstrapSession();
+
+    return () => {
+      active = false;
+    };
+  }, [clearSession]);
 
   const login = useCallback((newToken: string, userPayload: User) => {
     setToken(newToken);
     setUser(userPayload);
-    localStorage.setItem('@ArtificioMesas:token', newToken);
+    localStorage.setItem(TOKEN_STORAGE_KEY, newToken);
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userPayload));
   }, []);
 
   const logout = useCallback(async () => {

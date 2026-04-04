@@ -15,6 +15,7 @@ Resumo executivo para reduzir custo de contexto dos agentes, com navegação rá
 | Onboarding (3 etapas) | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §7.5 | `AuthCallback` deve redirecionar para `/onboarding` quando `onboarding_completed=false` |
 | Catálogo e busca pública | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §7.1-7.3 | Busca/filtros ficam no Frontend, API retorna dados públicos |
 | Taxonomia de sistemas (árvore + aliases) | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §4 e §7.5 | Modelar `sistema > edição > variante`; aliases servem para busca, não para duplicar sistema |
+| Importação de mesas por JSON (lote) | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §4 e §7.8 | Exigir `schema_version`, idempotência (`source` + `external_id`), resolução por `system_path_slug` e ao menos 1 contato com `channel=discord` quando o lote pedir nick Discord |
 | Selos oficiais (Covil/DDAL) | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §7.2, §7.4 e §7.6 | DDAL só é elegível no caminho `D&D > D&D 5e > D&D 2024` e exige metadados mínimos no backend |
 | Header/Footer globais | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §7.1-7.6 | Header sticky e footer institucional devem existir em todas as rotas/etapas |
 | Landing pública de mestre | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §7.4 | Nunca expor `avatar_deletehash`/`banner_deletehash` |

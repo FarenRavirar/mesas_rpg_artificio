@@ -29,13 +29,15 @@
 | ID | Descrição | Status | Próxima ação |
 |---|---|---|---|
 | migration_02 | Taxonomia + DDAL no banco | ✅ aplicada no beta | — |
-| 017A | systemsTreeImport | ✅ script pronto | `docker cp arvores_de_sistemas.md` pós-deploy → `docker exec node dist/scripts/systemsTreeImport.js` |
-| 021A | Selos DDAL/Covil — backend+frontend | ⏳ pronto local | QA E2E após 017A executado no beta |
-| 021B | AppShell global | ✅ concluído | validar smoke visual no beta |
-| 022 | Endpoints GM autenticados | ⏳ pronto local | validar com dados reais após 017A |
+| migration_04 | Publisher role + contatos (REQ-11/REQ-12) | ✅ aplicada no beta | — |
+| 017A | systemsTreeImport | ✅ executado no beta | manter rotina `docker cp` + `docker exec` após rebuild até fix no Dockerfile |
+| 021A | Selos DDAL/Covil — backend+frontend | ⏳ em validação beta | QA E2E com dados reais no beta |
+| 021B | AppShell global | ✅ concluído | validar smoke visual no beta pós último deploy |
+| 022 | Endpoints GM autenticados | ⏳ em validação beta | validar CRUD com dados reais no beta |
 | 023 | `npm run build` backend | ✅ concluído | exit code 0, sem erros de tipo |
 | 024 | `npm run build` frontend | ✅ concluído | 1746 módulos, dist/ ok |
 | 025 | `walkthrough.md` | ✅ concluído | escrito em `walkthrough.md` |
+| 026 | REQ-11 + REQ-12 (fullstack) | ✅ deployado em `dev`/beta | executar QA E2E de anunciante + contatos obrigatórios |
 
 **Legenda:** ✅ concluído · ⏳ pronto local, aguardando validação beta · ⏸ bloqueado por dependência
 
@@ -43,7 +45,9 @@
 
 ## Bloqueio atual
 
-`systemsTreeImport.ts` não executa no beta porque `arvores_de_sistemas.md` não está no container após rebuild. O Dockerfile não copia o arquivo no estágio production.
+~~`systemsTreeImport.ts` não executa no beta porque `arvores_de_sistemas.md` não está no container após rebuild.~~ **Resolvido em 04/04/2026** — `docker cp` + `docker exec` executados com sucesso após o deploy (125 nós atualizados, idempotente).
+
+**Bloqueio remanescente:** `arvores_de_sistemas.md` ainda não está no estágio `production` do Dockerfile — após o próximo rebuild o passo manual precisará ser repetido.
 
 **Desbloqueio manual (após cada deploy):**
 ```powershell
@@ -62,10 +66,12 @@ COPY --from=builder /app/arvores_de_sistemas.md ./
 
 ## Último commit validado
 - Branch: `dev`
-- Hash: `410b5e9` (HEAD)
-- Mensagem: `pos claude`
-- Deploy beta: success (anterior)
-- Builds locais: backend ✅ (`tsc`, exit 0) + frontend ✅ (1746 módulos, exit 0) — validados em 04/04/2026
+- Hash: `13d28fc`
+- Mensagem: `feat: adiciona papel publicador e contatos de mesa`
+- Deploy beta: ✅ success — `Deploy Beta` concluído em 04/04/2026T03:12Z
+- Migration_04: ✅ aplicada no PostgreSQL beta (`BEGIN ... COMMIT` sem erro)
+- Healthcheck: ✅ `{"status":"ok","environment":"beta","db":"connected"}`
+- `systemsTreeImport`: ✅ 125 nós atualizados no beta (mantém rotina manual pós-rebuild)
 
 ---
 

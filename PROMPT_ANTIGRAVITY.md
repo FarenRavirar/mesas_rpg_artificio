@@ -13,19 +13,20 @@
 | ID | Descrição | Status | Próxima ação |
 |---|---|---|---|
 | migration_02 | Taxonomia + DDAL no banco beta | ✅ | — |
-| 017A | systemsTreeImport | ✅ script pronto | `docker cp` + `docker exec` pós-deploy |
-| 021A | Selos DDAL/Covil — backend+frontend | ⏳ pronto local | QA E2E após 017A executado no beta |
+| migration_04 | Publisher role + contatos (REQ-11/REQ-12) | ✅ | — |
+| 017A | systemsTreeImport | ✅ executado no beta | manter rotina `docker cp` + `docker exec` após rebuild até fix no Dockerfile |
+| 021A | Selos DDAL/Covil — backend+frontend | ⏳ em validação beta | QA E2E com dados reais no beta |
 | 021B | AppShell global | ✅ | smoke visual no beta |
-| 022 | Endpoints GM autenticados | ⏳ pronto local | validar com dados reais após 017A |
-| 016–020 | Backend + Frontend Fase 2 (catálogo, home, mesa, mestre) | ⏳ pronto local | push → deploy → validação beta |
+| 022 | Endpoints GM autenticados | ⏳ em validação beta | validar CRUD com dados reais no beta |
+| 026 | REQ-11 + REQ-12 (fullstack) | ✅ deployado em `dev`/beta | executar QA E2E de anunciante + contatos obrigatórios |
 | 014 | Onboarding UI (3 etapas) | ⏳ pronto local | validar fluxo completo no beta |
 | 015 | Serviço Imgur + Sharp | ⏸ pendente | após estabilização do núcleo |
 | 023 | `npm run build` backend | ✅ concluído | exit code 0 — 04/04/2026 |
 | 024 | `npm run build` frontend | ✅ concluído | 1746 módulos, dist/ ok — 04/04/2026 |
 | 025 | `walkthrough.md` | ✅ concluído | escrito em `walkthrough.md` |
 
-**Bloqueio crítico:** `arvores_de_sistemas.md` não está no container pós-rebuild.
-Após cada deploy, executar manualmente:
+**Bloqueio atual:** `arvores_de_sistemas.md` não permanece no container pós-rebuild (estágio production do Dockerfile ainda sem `COPY`).
+Após cada deploy/rebuild, manter rotina manual:
 ```powershell
 scp -F C:\projetos\config arvores_de_sistemas.md faren:/tmp/arvores_de_sistemas.md
 ssh -F C:\projetos\config faren "docker cp /tmp/arvores_de_sistemas.md mesas-beta-api:/app/arvores_de_sistemas.md"
