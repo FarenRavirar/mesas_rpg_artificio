@@ -125,7 +125,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (!active) return;
 
         if (!meRes.ok) {
-          clearSession();
+          // Só limpa sessão se for 401 (não autorizado) ou 403 (proibido)
+          // Outros erros (500, timeout) mantêm a sessão local
+          if (meRes.status === 401 || meRes.status === 403) {
+            clearSession();
+          }
           setIsLoading(false);
           return;
         }
