@@ -79,8 +79,24 @@ COPY --from=builder /app/arvores_de_sistemas.md ./
 
 ## Alterações locais pendentes de push (sessão 04/04/2026 — Fase 7B)
 
-Arquivos modificados (`git status`): `backend/src/db/types.ts`, `backend/src/routes/tables.ts`, `backend/src/services/aggregator/candidateService.ts`, `backend/Dockerfile`, `frontend/src/pages/AdminDevToolsPage.tsx`, `AGENTS.md`, `ARQUITETURA_PROJETO.md`, `GUIA_RAPIDO_OPERACIONAL.md`, `README.md`, `ERRORS_SOLUTIONS.md`
+## Estado atual (04/04/2026)
 
+**Ambiente beta:** Estável e operacional em `mesasbeta.artificiorpg.com`
+
+**Última sessão:** Correções QA AdminDevToolsPage + Migração nickname + Plano CRUD Sistemas
+
+**Deployado recentemente:**
+- Guia de token Discord com links diretos e explicações de permissões
+- Texto duplicado removido (seletor de sistemas)
+- Árvore de sistemas reimportada (125 sistemas no banco beta)
+- Bug de logout por 401 transitório corrigido
+- Auto-run de testes desabilitado no DevTools
+- Botão perigoso "Aplicar na sessão" removido
+- Migração `migration_03_gm_profile_nickname.sql` aplicada no banco beta
+
+**Próxima ação:** Aguardando aprovação do plano de CRUD de sistemas para admin
+
+**Bloqueios:** Nenhum
 | Arquivo | Mudança |
 |---|---|
 | `backend/src/db/types.ts` | Adicionado `TableOrigin`, campo `origin` e `source_id` em `TablesTable` |

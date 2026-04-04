@@ -687,6 +687,68 @@ Interface operacional em `/admin/devtools` (acesso restrito a `admin`) para:
   - ⚠️ Falhas: erro de parse ou dados incompletos
 
 
+### 16.1. CRUD de Sistemas e Notificações (Implementado em 2026-04-04)
+
+**Objetivo:** Permitir que a comunidade sugira novos sistemas de RPG de forma colaborativa, com aprovação administrativa e notificações automáticas.
+
+**Arquitetura:**
+
+**Backend:**
+- **Tabelas:**
+  - `system_suggestions`: Armazena sugestões de sistemas com status (pending, approved, rejected)
+  - `notifications`: Sistema de notificações in-app para usuários
+- **Rotas de API:**
+  - `POST /api/v1/system-suggestions` - Criar sugestão (autenticado)
+  - `GET /api/v1/system-suggestions/mine` - Listar minhas sugestões
+  - `GET /api/v1/admin/system-suggestions` - Listar todas (admin)
+  - `PATCH /api/v1/admin/system-suggestions/:id/approve` - Aprovar e criar sistema
+  - `PATCH /api/v1/admin/system-suggestions/:id/reject` - Rejeitar com motivo
+  - `PATCH /api/v1/admin/systems/:id` - Editar sistema publicado
+  - `GET /api/v1/notifications` - Listar notificações do usuário
+  - `GET /api/v1/notifications/unread-count` - Contador de não lidas
+  - `PATCH /api/v1/notifications/:id/read` - Marcar como lida
+  - `PATCH /api/v1/notifications/read-all` - Marcar todas como lidas
+
+**Validações:**
+- Limite de 5 sugestões pendentes por usuário
+- Hierarquia: sistemas com edições só aceitam variantes
+- Motivo obrigatório para rejeição
+- Geração automática de slug e path_slug
+- Criação automática de aliases
+
+**Frontend:**
+- **Componentes:**
+  - `SystemSuggestionModal`: Modal de sugestão com validação hierárquica recursiva
+  - `GestaoPage`: Página administrativa em `/gestao` com abas (Pendentes / Log)
+  - `NotificationBell`: Sino de notificações no header com badge e dropdown
+- **Fluxo do Usuário:**
+  1. Clica em "Adicionar Sistema" no Painel do Mestre
+  2. Seleciona sistema pai (opcional) e tipo (sistema/edição/variante)
+  3. Preenche nome, descrição e aliases
+  4. Recebe notificação quando aprovado/rejeitado
+- **Fluxo do Admin:**
+  1. Acessa `/gestao` para ver sugestões pendentes
+  2. Pode aprovar (com edição opcional) ou rejeitar (com motivo)
+  3. Sistema cria notificação automaticamente
+  4. Log mostra histórico completo de aprovações/rejeições
+
+**Notificações:**
+- Criadas automaticamente ao aprovar/rejeitar sugestões
+- Exibidas no sino do header com contador de não lidas
+- Polling a cada 30 segundos para atualização
+- Tipos: `suggestion_approved`, `suggestion_rejected`, `suggestion_edited`, `system`
+
+**Migrações:**
+- `migration_06_system_suggestions.sql` - Tabela de sugestões
+- `migration_07_notifications.sql` - Sistema de notificações
+
+**Limitações Conhecidas:**
+- Validação de slug duplicado não implementada (conflitos raros)
+- Validação de aliases duplicados não implementada
+- Polling de 30s (WebSocket seria ideal para tempo real)
+- Modais de confirmação nativos (podem ser customizados futuramente)
+
+
 ## 17. Referências e Documentos Relacionados
 
 | Documento | Finalidade |

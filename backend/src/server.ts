@@ -6,6 +6,9 @@ import tablesRoutes from './routes/tables';
 import gmRoutes from './routes/gm';
 import gmPanelRoutes from './routes/gmPanel';
 import systemsRoutes from './routes/systems';
+import systemSuggestionsRoutes from './routes/systemSuggestions';
+import systemSuggestionsAdminRoutes from './routes/systemSuggestionsAdmin';
+import notificationsRoutes from './routes/notifications';
 import meRoutes from './routes/me';
 import aggregatorRoutes from './routes/aggregator';
 import aggregatorReviewRoutes from './routes/aggregatorReview';
@@ -19,7 +22,7 @@ const port = process.env.PORT || 3000;
 
 // Configuração básica
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // Suporta JSONs grandes do DiscordChatExporter
 
 // Verificação de ambiente em health-check
 app.get('/api/v1/health', async (req, res) => {
@@ -45,6 +48,9 @@ app.use('/auth', authRoutes);
 app.use('/api/v1/me', meRoutes);
 app.use('/api/v1/tables', tablesRoutes);
 app.use('/api/v1/systems', systemsRoutes);
+app.use('/api/v1/system-suggestions', systemSuggestionsRoutes);
+app.use('/api/v1/notifications', notificationsRoutes);
+app.use('/api/v1/admin', systemSuggestionsAdminRoutes);
 app.use('/api/v1/gm', gmPanelRoutes);  // Painel autenticado do mestre
 app.use('/api/v1/gm', gmRoutes);       // Perfil público do mestre
 app.use('/api/v1/aggregator', aggregatorRoutes);

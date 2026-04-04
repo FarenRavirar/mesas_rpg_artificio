@@ -163,6 +163,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [clearSession]);
 
+  // Listener para ignorar mudanças em chaves não-OAuth (ex: dev_admin_token)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      // Ignorar mudanças em chaves que não sejam do OAuth
+      if (e.key && e.key !== TOKEN_STORAGE_KEY && e.key !== USER_STORAGE_KEY) {
+        return;
+      }
+      
+      // Revalidar sessão apenas se token OAuth mudou
+      if (e.key === TOKEN_STORAGE_KEY && e.newValue !== token) {
+        // Token OAuth foi alterado externamente, revalidar
+        window.location.reload();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [token]);
+
   const login = useCallback((newToken: string, userPayload: User) => {
     setToken(newToken);
     setUser(userPayload);

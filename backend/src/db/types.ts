@@ -230,6 +230,46 @@ export interface AggregatorSettingsTable {
   updated_at: Generated<Date>;
 }
 
+export type SuggestionStatus = 'pending' | 'approved' | 'rejected';
+
+export interface SystemSuggestionsTable {
+  id: Generated<string>;
+  user_id: string;
+  name: string;
+  node_type: SystemNodeType;
+  parent_id: string | null;
+  description: string | null;
+  aliases: string[] | null;
+  status: Generated<SuggestionStatus>;
+  reviewed_by: string | null;
+  reviewed_at: Date | null;
+  rejection_reason: string | null;
+  user_notified: Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export type SystemSuggestion = Selectable<SystemSuggestionsTable>;
+export type NewSystemSuggestion = Insertable<SystemSuggestionsTable>;
+export type SystemSuggestionUpdate = Updateable<SystemSuggestionsTable>;
+
+export type NotificationType = 'suggestion_approved' | 'suggestion_rejected' | 'suggestion_edited' | 'system';
+
+export interface NotificationsTable {
+  id: Generated<string>;
+  user_id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  link: string | null;
+  read: Generated<boolean>;
+  created_at: Generated<Date>;
+}
+
+export type Notification = Selectable<NotificationsTable>;
+export type NewNotification = Insertable<NotificationsTable>;
+export type NotificationUpdate = Updateable<NotificationsTable>;
+
 export interface Database {
   users: UsersTable;
   profiles: ProfilesTable;
@@ -237,6 +277,8 @@ export interface Database {
   gm_profiles: GmProfilesTable;
   systems: SystemsTable;
   system_aliases: SystemAliasesTable;
+  system_suggestions: SystemSuggestionsTable;
+  notifications: NotificationsTable;
   tags: TagsTable;
   platforms: PlatformsTable;
   tables: TablesTable;

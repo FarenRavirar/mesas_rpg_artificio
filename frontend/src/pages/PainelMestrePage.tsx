@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { PlusCircle, ChevronRight, Dice1, Globe, MapPin, Users, ShieldCheck, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { SystemTreeSelector } from '../components/SystemTreeSelector';
+import { SystemSuggestionModal } from '../components/SystemSuggestionModal';
 import { ContactsFormBlock, type ContactFormEntry } from '../components/ContactsFormBlock';
 import type { SystemTreeNode } from '../types/systems';
 import type { TableContact } from '../types/tables';
@@ -132,6 +133,7 @@ function CreateTableForm({ token, onSuccess }: CreateTableFormProps) {
   const [systemsError, setSystemsError] = useState<string | null>(null);
   const [systemSearch, setSystemSearch] = useState('');
   const [selectedSystemId, setSelectedSystemId] = useState<string>('');
+  const [showSuggestionModal, setShowSuggestionModal] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -175,24 +177,24 @@ function CreateTableForm({ token, onSuccess }: CreateTableFormProps) {
   ]);
   const [contactsError, setContactsError] = useState<string | null>(null);
 
+  const fetchSystemsTree = async () => {
+    setSystemsLoading(true);
+    setSystemsError(null);
+
+    try {
+      const res = await fetch('/api/v1/systems?view=tree');
+      if (!res.ok) throw new Error('Erro ao carregar árvore de sistemas.');
+      const json = await res.json();
+      setSystemsTree(json.data ?? []);
+    } catch (err: any) {
+      setSystemsError(err.message ?? 'Erro ao carregar árvore de sistemas.');
+    } finally {
+      setSystemsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadSystems = async () => {
-      setSystemsLoading(true);
-      setSystemsError(null);
-
-      try {
-        const res = await fetch('/api/v1/systems?view=tree');
-        if (!res.ok) throw new Error('Erro ao carregar árvore de sistemas.');
-        const json = await res.json();
-        setSystemsTree(json.data ?? []);
-      } catch (err: any) {
-        setSystemsError(err.message ?? 'Erro ao carregar árvore de sistemas.');
-      } finally {
-        setSystemsLoading(false);
-      }
-    };
-
-    loadSystems();
+    fetchSystemsTree();
   }, []);
 
   const flattenedSystems = useMemo(() => flattenTree(systemsTree), [systemsTree]);
@@ -318,9 +320,18 @@ function CreateTableForm({ token, onSuccess }: CreateTableFormProps) {
         </div>
 
         <div className="md:col-span-2 rounded-2xl border border-white/10 bg-[#13213f]/60 p-4 space-y-3">
-          <div className="flex items-center gap-2 text-sm text-white/70">
-            <Dice1 className="w-4 h-4 text-[var(--color-artificio-orange)]" />
-            Sistema da Mesa *
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-sm text-white/70">
+              <Dice1 className="w-4 h-4 text-[var(--color-artificio-orange)]" />
+              Sistema da Mesa *
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowSuggestionModal(true)}
+              className="text-xs px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
+            >
+              + Adicionar Sistema
+            </button>
           </div>
 
           {systemsLoading ? (
@@ -624,6 +635,16 @@ function CreateTableForm({ token, onSuccess }: CreateTableFormProps) {
       >
         {loading ? 'Publicando...' : 'Publicar Mesa'}
       </button>
+
+      <SystemSuggestionModal
+        isOpen={showSuggestionModal}
+        onClose={() => setShowSuggestionModal(false)}
+        onSuccess={() => {
+          setShowSuggestionModal(false);
+          // Recarregar árvore de sistemas
+          fetchSystemsTree();
+        }}
+      />
     </form>
   );
 }

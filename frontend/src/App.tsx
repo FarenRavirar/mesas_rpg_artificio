@@ -10,6 +10,7 @@ import { OnboardingPage } from './pages/OnboardingPage';
 import { CatalogoPage } from './pages/CatalogoPage';
 import { MesaPage } from './pages/MesaPage';
 import { MestrePage } from './pages/MestrePage';
+import { GestaoPage } from './pages/GestaoPage';
 import { AdminDevToolsPage } from './pages/AdminDevToolsPage';
 import './index.css';
 
@@ -28,7 +29,10 @@ function AppRoutes() {
       <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
       <Route path="/painel" element={<ProtectedRoute><PainelMestrePage /></ProtectedRoute>} />
       {!isLoading && isAdmin && (
-        <Route path="/admin/devtools" element={<ProtectedRoute requiredRole="admin"><AdminDevToolsPage /></ProtectedRoute>} />
+        <>
+          <Route path="/gestao" element={<ProtectedRoute requiredRole="admin"><GestaoPage /></ProtectedRoute>} />
+          <Route path="/admin/devtools" element={<ProtectedRoute requiredRole="admin"><AdminDevToolsPage /></ProtectedRoute>} />
+        </>
       )}
     </Routes>
   );

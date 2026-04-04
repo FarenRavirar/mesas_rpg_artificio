@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Compass, LogIn, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { NotificationBell } from './NotificationBell';
 
 export const SiteHeader = () => {
   const { user, logout } = useAuth();
@@ -44,6 +45,8 @@ export const SiteHeader = () => {
                 </span>
               )}
 
+              <NotificationBell />
+
               <div className="group relative">
                 <button className="flex items-center space-x-3 bg-white/5 hover:bg-white/10 px-2 py-2 pr-4 rounded-full border border-white/10 transition-colors cursor-pointer" id="site-header-user-menu">
                   {user.avatar_url ? (
@@ -65,13 +68,22 @@ export const SiteHeader = () => {
                     {user.role === 'gm' || user.role === 'admin' ? 'Painel do Mestre' : 'Torne-se um Mestre'}
                   </Link>
                   {user.role === 'admin' && (
-                    <Link
-                      to="/admin/devtools"
-                      className="block w-full text-left px-5 py-3 text-sm text-orange-300 hover:text-orange-200 hover:bg-orange-400/10 transition-colors border-b border-white/5"
-                      id="site-header-menu-admin-devtools"
-                    >
-                      Admin DevTools
-                    </Link>
+                    <>
+                      <Link
+                        to="/gestao"
+                        className="block w-full text-left px-5 py-3 text-sm text-blue-300 hover:text-blue-200 hover:bg-blue-400/10 transition-colors border-b border-white/5"
+                        id="site-header-menu-gestao"
+                      >
+                        🛠️ Gestão
+                      </Link>
+                      <Link
+                        to="/admin/devtools"
+                        className="block w-full text-left px-5 py-3 text-sm text-orange-300 hover:text-orange-200 hover:bg-orange-400/10 transition-colors border-b border-white/5"
+                        id="site-header-menu-admin-devtools"
+                      >
+                        Admin DevTools
+                      </Link>
+                    </>
                   )}
                   {isAdmin && (
                     <div id="site-header-menu-devtools-flag-info" className="px-5 py-3 border-b border-white/5 bg-white/5">
