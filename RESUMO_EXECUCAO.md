@@ -30,12 +30,12 @@
 |---|---|---|---|
 | migration_02 | Taxonomia + DDAL no banco | ✅ aplicada no beta | — |
 | 017A | systemsTreeImport | ✅ script pronto | `docker cp arvores_de_sistemas.md` pós-deploy → `docker exec node dist/scripts/systemsTreeImport.js` |
-| 021A | Selos DDAL/Covil — backend+frontend | ⏳ pronto local | QA E2E após 017A executado |
+| 021A | Selos DDAL/Covil — backend+frontend | ⏳ pronto local | QA E2E após 017A executado no beta |
 | 021B | AppShell global | ✅ concluído | validar smoke visual no beta |
 | 022 | Endpoints GM autenticados | ⏳ pronto local | validar com dados reais após 017A |
-| 023 | `npm run build` backend | ⏸ pendente | executar após push + deploy beta |
-| 024 | `npm run build` frontend | ⏸ pendente | executar após push + deploy beta |
-| 025 | `walkthrough.md` | ⏸ pendente | escrever após builds verificados |
+| 023 | `npm run build` backend | ✅ concluído | exit code 0, sem erros de tipo |
+| 024 | `npm run build` frontend | ✅ concluído | 1746 módulos, dist/ ok |
+| 025 | `walkthrough.md` | ✅ concluído | escrito em `walkthrough.md` |
 
 **Legenda:** ✅ concluído · ⏳ pronto local, aguardando validação beta · ⏸ bloqueado por dependência
 
@@ -62,9 +62,10 @@ COPY --from=builder /app/arvores_de_sistemas.md ./
 
 ## Último commit validado
 - Branch: `dev`
-- Hash: `f043488`
-- Mensagem: `Update docker-compose.beta.yml`
-- Deploy beta: success
+- Hash: `410b5e9` (HEAD)
+- Mensagem: `pos claude`
+- Deploy beta: success (anterior)
+- Builds locais: backend ✅ (`tsc`, exit 0) + frontend ✅ (1746 módulos, exit 0) — validados em 04/04/2026
 
 ---
 

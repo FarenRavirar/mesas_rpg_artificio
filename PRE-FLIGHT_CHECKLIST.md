@@ -221,7 +221,30 @@ docker logs mesas-beta-api --tail 50 | grep -E "aggregator|cleanup|cron"
 
 Não usar `mesas-beta-app` para essa validação.
 
-### 18. Gate anti-retrabalho antes de nova tentativa
+### 18. Comandos Unix no PowerShell — equivalentes nativos e software externo
+
+Este ambiente usa **PowerShell 7** no host Windows. Comandos Unix (`tail`, `grep`, `head`, `cat`, `wc`, `touch`, `which`) **não existem nativamente**.
+
+**Tabela de substituição obrigatória:**
+
+| Comando Unix | Equivalente PowerShell nativo |
+|---|---|
+| `tail -N arquivo` | `Get-Content arquivo \| Select-Object -Last N` |
+| `head -N arquivo` | `Get-Content arquivo \| Select-Object -First N` |
+| `grep PADRÃO arquivo` | `Select-String -Pattern PADRÃO arquivo` |
+| `cat arquivo` | `Get-Content arquivo` |
+| `wc -l arquivo` | `(Get-Content arquivo).Count` |
+| `which cmd` | `Get-Command cmd` |
+| `touch arquivo` | `New-Item arquivo` |
+| `echo texto \| cmd` | `Write-Output texto \| cmd` |
+
+> [!CAUTION]
+> **REGRA: nunca instalar software externo sem autorização explícita no chat.**
+> Se um comando não tiver equivalente nativo no PowerShell, o agente **deve perguntar** ao responsável antes de propor qualquer instalação (`winget`, `choco`, `scoop`, etc.).
+> Enquanto aguarda resposta, usar o equivalente nativo mais próximo.
+> Ver também: `ERRORS_SOLUTIONS.md` E085 e E094.
+
+### 19. Gate anti-retrabalho antes de nova tentativa
 
 Antes de repetir qualquer tentativa após erro:
 1. Consultar `ERRORS_SOLUTIONS.md`
