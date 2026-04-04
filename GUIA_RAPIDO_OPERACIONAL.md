@@ -22,7 +22,7 @@ Resumo executivo para reduzir custo de contexto dos agentes, com navegação rá
 | OAuth / JWT / roles | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §6 | Segurança e role no Backend, nunca no Frontend |
 | Imagens e Imgur | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §16 | Upload/remoção só no Backend |
 | Deploy / Git / promoção | `AI_CONTEXT_INDEX.md` | `GIT_WORKFLOW.md` + `OPERACAO_PRODUCAO.md` | Sem `commit`/`push` sem autorização explícita; beta ativo em `dev`; produção só validar publicamente quando a publicação operacional existir |
-| Aggregator Discord (ingestão, revisão, exportação) | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §12 (rotas Aggregator) | Todas as rotas em `/api/v1/aggregator/*` requerem `admin`. Pipeline: source → import/file → candidates → accept/reject. CLI local: `npm run aggregator:import`. Migration_05 aplicada no beta. |
+| Aggregator Discord (ingestão, revisão, exportação) | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §12 (rotas Aggregator) | Todas as rotas em `/api/v1/aggregator/*` requerem `admin`. Frontend: `/admin/devtools` visível apenas para admin (não-admin não vê link nem rota registrada). Badge operacional exibe `VITE_ENABLE_DEVTOOLS` para admin no header. Pipeline: source → import/file → candidates → accept/reject. CLI local: `npm run aggregator:import` com auto-reparo de JSON truncado (E088) e fallback manual em `ERRORS_SOLUTIONS.md` quando o reparo falhar. Migration_05 aplicada no beta. |
 | Erros de execução | `AI_CONTEXT_INDEX.md` | `ERRORS_SOLUTIONS.md` | Ao primeiro erro: parar e aplicar solução catalogada |
 
 ---

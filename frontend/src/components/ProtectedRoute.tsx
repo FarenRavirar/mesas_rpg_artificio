@@ -4,10 +4,11 @@ import { useAuth } from '../contexts/AuthContext';
 
 interface ProtectedRouteProps {
   children: ReactNode;
+  requiredRole?: 'visitor' | 'player' | 'gm' | 'admin';
 }
 
-export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { token, isLoading } = useAuth();
+export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
+  const { token, user, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -21,6 +22,10 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   if (!token) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (requiredRole && user?.role !== requiredRole) {
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

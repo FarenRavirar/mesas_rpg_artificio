@@ -8,6 +8,9 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
+ARG VITE_ENABLE_DEVTOOLS=false
+ENV VITE_ENABLE_DEVTOOLS=${VITE_ENABLE_DEVTOOLS}
+
 COPY package*.json ./
 RUN npm ci
 

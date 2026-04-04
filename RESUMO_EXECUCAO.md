@@ -39,7 +39,7 @@
 | 024 | `npm run build` frontend | ✅ concluído | 1746 módulos, dist/ ok |
 | 025 | `walkthrough.md` | ✅ concluído | escrito em `walkthrough.md` |
 | 026 | REQ-11 + REQ-12 (fullstack) | ✅ deployado em `dev`/beta | executar QA E2E de anunciante + contatos obrigatórios |
-| Fase 7 | Aggregator Discord — pipeline completo | ✅ backend implementado + migration aplicada no beta | 1) criar source via API, 2) importar export_exemple.json, 3) revisar candidatos via `/aggregator/candidates` |
+| Fase 7 | Aggregator Discord — pipeline completo | ✅ backend implementado + migration aplicada no beta | 1) criar source via API, 2) importar export_exemple.json, 3) revisar candidatos via `/aggregator/candidates`, 4) validar rota `/admin/devtools` com JWT admin no beta |
 
 **Legenda:** ✅ concluído · ⏳ pronto local, aguardando validação beta · ⏸ bloqueado por dependência
 
@@ -74,7 +74,7 @@ COPY --from=builder /app/arvores_de_sistemas.md ./
 - Migration_05: ✅ aplicada manualmente antes do deploy; tabelas `aggregator_sources`, `aggregator_imported_raw_messages`, `aggregator_import_candidates`, `aggregator_settings` confirmadas no banco
 - Healthcheck: ✅ `{"status":"ok","environment":"beta","db":"connected"}`
 - Dry-run Aggregator: ✅ 153 mensagens processadas, 5 aceitas, 148 aguardando revisão, 0 falhas
-- Nota: `export_exemple.json` tinha JSON truncado (E088) — corrigido localmente antes do teste
+- Nota: `export_exemple.json` tinha JSON truncado (E088). O importador passou a aplicar `repairTruncatedJson()` automaticamente antes do parse, com fallback manual documentado em `ERRORS_SOLUTIONS.md`
 
 ---
 

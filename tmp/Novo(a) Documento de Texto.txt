@@ -1,0 +1,62 @@
+-- =========================================
+-- SOURCES
+-- =========================================
+CREATE TABLE sources (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  platform TEXT NOT NULL CHECK (platform IN ('discord')),
+  server_id TEXT NOT NULL,
+  channel_id TEXT NOT NULL,
+  enabled BOOLEAN DEFAULT true,
+  allow_paid BOOLEAN DEFAULT false,
+  publish_mode TEXT NOT NULL CHECK (
+    publish_mode IN ('auto_instant','auto_delay_10m','manual_review')
+  ),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- =========================================
+-- RAW MESSAGES
+-- =========================================
+CREATE TABLE imported_raw_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  source_id UUID REFERENCES sources(id) ON DELETE CASCADE,
+  external_id TEXT NOT NULL,
+  raw_text TEXT NOT NULL,
+  author TEXT,
+  message_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  processed BOOLEAN DEFAULT false,
+  UNIQUE(source_id, external_id)
+);
+
+-- =========================================
+-- CANDIDATES
+-- =========================================
+CREATE TABLE import_candidates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  source_id UUID REFERENCES sources(id) ON DELETE CASCADE,
+  external_id TEXT NOT NULL,
+  parsed_json JSONB NOT NULL,
+  confidence_score NUMERIC,
+  editorial_status TEXT CHECK (
+    editorial_status IN ('accepted','rejected','awaiting_review')
+  ),
+  publish_mode TEXT NOT NULL,
+  publish_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(source_id, external_id)
+);
+
+-- =========================================
+-- SETTINGS
+-- =========================================
+CREATE TABLE aggregator_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
+INSERT INTO aggregator_settings(key,value)
+VALUES ('aggregator_enabled','true');

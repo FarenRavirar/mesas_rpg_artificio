@@ -5,6 +5,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        VITE_ENABLE_DEVTOOLS: ${VITE_ENABLE_DEVTOOLS:-false}
     container_name: mesas-app
     restart: always
     expose:
