@@ -1,10 +1,11 @@
 # Plano Mestre — Anúncios de Mesas RPG (Portal Colaborativo)
 
-> Documento vivo de planejamento e engenharia. Versão 1.0 — consolidado em Março/2026.
+> Documento vivo de arquitetura. Versão 1.0 — consolidado em Março/2026.
 >
-> **Todo agente de IA que trabalhar neste projeto deve ler este documento na íntegra antes de escrever qualquer linha de código.**
+> **Leitura seletiva por seção — não ler na íntegra.** Consultar apenas a seção indicada por `AI_CONTEXT_INDEX.md` para o cenário da tarefa.
+> Seções de referência rápida: §4 banco · §5 roles · §6 auth · §9 visual · §10 compromissos · §12 rotas · §16 imagens.
 >
-> **FONTE ÚNICA DE VERDADE MESTRE:** Este documento define a arquitetura oficial do aplicativo de Anúncios de Mesas RPG do Artifício RPG — uma evolução natural do ecossistema do Grande Glossário de RPG, construída com os mesmos princípios: gratuita, sem anúncios, sem coleta de dados pessoais, feita para a comunidade.
+> **Fonte canônica de arquitetura.** Em conflito com qualquer outro arquivo, este prevalece.
 
 ---
 
@@ -17,24 +18,6 @@ Definir a arquitetura oficial, os contratos estruturais e o plano de execução 
 2. **Ecossistema Artifício:** Compartilha identidade visual, infraestrutura on-premise e filosofia comunitária com o Glossário. Os dois projetos são independentes mas coirmãos.
 3. **Ambientes previstos:** O beta roda em `mesasbeta.artificiorpg.com` e a produção permanece prevista para `mesas.artificiorpg.com`, ainda não publicada operacionalmente nesta rodada.
 4. **Missão declarada:** Facilitar que qualquer membro da comunidade brasileira de RPG encontre ou divulgue mesas com autonomia, consistência e sem barreiras de acesso.
-
-## Quando ler
-
-Antes de qualquer mudança que afete arquitetura, banco de dados, autenticação, fluxos de moderação, modelo de dados, ingestão automática de fontes externas, estrutura de categorias, deploy ou contratos entre o Front-end e o Back-end (API).
-
-## Não ler quando
-
-Para ajustes estritamente locais de componente sem impacto estrutural, usar as premissas em `AGENTS.md`.
-
-## Pré-requisitos
-
-- `AGENTS.md`
-
-## Procedimento obrigatório antes de qualquer implementação
-
-1. Ler este documento (`ARQUITETURA_PROJETO.md`) na íntegra.
-2. Nenhuma alteração de infraestrutura maior deve ser feita sem autorização.
-3. Todo código frontend deve respeitar rigorosamente os **Princípios Visuais Inegociáveis**.
 
 ---
 

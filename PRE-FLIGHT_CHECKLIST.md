@@ -6,17 +6,12 @@ Detectar problemas de ambiente, template, encoding e configuração antes de ini
 
 ## Quando ler
 
-Quando houver início de tarefa técnica, falha de execução, falha de leitura de arquivo, suspeita de inconsistência ou problema de conexão com Banco/API.
-
-Inclui também:
-- falhas de OAuth
-- falhas de Imgur
-- falhas de workers futuros
-- divergência entre beta e produção
+**Gate rápido (Passos 1–3):** sempre, em qualquer tarefa técnica — leva menos de 1 minuto.
+**Diagnóstico completo (Passos 4–19):** somente quando houver falha de execução, OAuth quebrado, container down, Imgur falhando ou suspeita de inconsistência de ambiente.
 
 ## Não ler quando
 
-Não é necessário em tarefas puramente conceituais sem execução.
+Tarefas puramente conceituais sem execução de código ou deploy.
 
 ## Pré-requisitos
 
@@ -46,42 +41,37 @@ Regra:
 
 ---
 
-## Passos
+## Gate rápido — sempre executar (Passos 1–3)
 
-### 1. Sanidade do shell local (Windows/PowerShell)
+### 1. Branch e diretório corretos
 
 ```powershell
+# Local
 Get-Location
-Write-Output "ok"
-Get-ChildItem -Force | Select-Object -First 20
+git rev-parse --abbrev-ref HEAD  # deve ser dev ou feature/<escopo>
 ```
 
-### 2. Sanidade do shell remoto (VM Oracle/bash)
+### 2. Presença de documentos centrais
 
-```bash
-pwd
-echo "ok"
-ls -la /opt/mesas-beta/
-docker ps | grep mesas-beta
+Verificar existência na raiz:
+- `AGENTS.md`, `AI_CONTEXT_INDEX.md`, `ARQUITETURA_PROJETO.md`
+- `GIT_WORKFLOW.md`, `OPERACAO_PRODUCAO.md`, `ERRORS_SOLUTIONS.md`
+- `database/migration_01_base_schema.sql`, `database/migration_02_system_taxonomy_and_ddal.sql`
+
+### 3. Beta respondendo
+
+```powershell
+curl.exe https://mesasbeta.artificiorpg.com/api/v1/health
+# Esperado: {"status":"ok","db":"connected"}
 ```
 
-### 3. Presença de documentos centrais
+Se os 3 passarem, seguir com a tarefa. Se qualquer um falhar, executar o diagnóstico completo abaixo.
 
-Verificar existência na raiz do repositório:
-- `AGENTS.md`
-- `ARQUITETURA_PROJETO.md`
-- `GIT_WORKFLOW.md`
-- `OPERACAO_PRODUCAO.md`
-- `ERRORS_SOLUTIONS.md`
-- `TODO_OPERACIONAL.md`
-- `FILA_IMPLEMENTACAO.md`
-- `GUIA_RAPIDO_OPERACIONAL.md`
+---
 
-Verificar existência dos arquivos de banco:
-- `database/init.sql`
-- `database/migration_01_base_schema.sql`
+## Diagnóstico completo — executar somente sob falha (Passos 4–19)
 
-### 4. Integridade básica de encoding
+### 4. Integridade de encoding
 
 ```powershell
 Get-Content -Raw -Encoding UTF8 .\AGENTS.md

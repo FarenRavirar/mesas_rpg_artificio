@@ -12,16 +12,16 @@ Resumo executivo para reduzir custo de contexto dos agentes, com navegação rá
 
 | Cenário | Ler primeiro (atalho) | Fonte canônica principal | Decisão rápida |
 |---|---|---|---|
-| Onboarding (3 etapas) | Seção 1 deste guia | `ARQUITETURA_PROJETO.md` §7.5 | `AuthCallback` deve redirecionar para `/onboarding` quando `onboarding_completed=false` |
-| Catálogo e busca pública | Seção 2 | `ARQUITETURA_PROJETO.md` §7.1-7.3 | Busca/filtros ficam no Frontend, API retorna dados públicos |
-| Taxonomia de sistemas (árvore + aliases) | Seção 2 | `ARQUITETURA_PROJETO.md` §4 e §7.5 | Modelar `sistema > edição > variante`; aliases servem para busca, não para duplicar sistema |
-| Selos oficiais (Covil/DDAL) | Seção 2 e 3 | `ARQUITETURA_PROJETO.md` §7.2, §7.4 e §7.6 | DDAL só é elegível no caminho `D&D > D&D 5e > D&D 2024` e exige metadados mínimos no backend |
-| Header/Footer globais | Seção 2 | `ARQUITETURA_PROJETO.md` §7.1-7.6 | Header sticky e footer institucional devem existir em todas as rotas/etapas |
-| Landing pública de mestre | Seção 3 | `ARQUITETURA_PROJETO.md` §7.4 | Nunca expor `avatar_deletehash`/`banner_deletehash` |
-| OAuth / JWT / roles | Seção 4 | `ARQUITETURA_PROJETO.md` §6 | Segurança e role no Backend, nunca no Frontend |
-| Imagens e Imgur | Seção 5 | `ARQUITETURA_PROJETO.md` §16 | Upload/remoção só no Backend |
-| Deploy / Git / promoção | Seção 6 | `GIT_WORKFLOW.md` + `OPERACAO_PRODUCAO.md` | Sem `commit`/`push` sem autorização explícita; beta ativo em `dev`; produção só validar publicamente quando a publicação operacional existir |
-| Erros de execução | Seção 7 | `ERRORS_SOLUTIONS.md` | Ao primeiro erro: parar e aplicar solução catalogada |
+| Onboarding (3 etapas) | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §7.5 | `AuthCallback` deve redirecionar para `/onboarding` quando `onboarding_completed=false` |
+| Catálogo e busca pública | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §7.1-7.3 | Busca/filtros ficam no Frontend, API retorna dados públicos |
+| Taxonomia de sistemas (árvore + aliases) | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §4 e §7.5 | Modelar `sistema > edição > variante`; aliases servem para busca, não para duplicar sistema |
+| Selos oficiais (Covil/DDAL) | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §7.2, §7.4 e §7.6 | DDAL só é elegível no caminho `D&D > D&D 5e > D&D 2024` e exige metadados mínimos no backend |
+| Header/Footer globais | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §7.1-7.6 | Header sticky e footer institucional devem existir em todas as rotas/etapas |
+| Landing pública de mestre | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §7.4 | Nunca expor `avatar_deletehash`/`banner_deletehash` |
+| OAuth / JWT / roles | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §6 | Segurança e role no Backend, nunca no Frontend |
+| Imagens e Imgur | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §16 | Upload/remoção só no Backend |
+| Deploy / Git / promoção | `AI_CONTEXT_INDEX.md` | `GIT_WORKFLOW.md` + `OPERACAO_PRODUCAO.md` | Sem `commit`/`push` sem autorização explícita; beta ativo em `dev`; produção só validar publicamente quando a publicação operacional existir |
+| Erros de execução | `AI_CONTEXT_INDEX.md` | `ERRORS_SOLUTIONS.md` | Ao primeiro erro: parar e aplicar solução catalogada |
 
 ---
 
@@ -40,102 +40,8 @@ Resumo executivo para reduzir custo de contexto dos agentes, com navegação rá
 
 ---
 
-## 1) Onboarding (atalho prático)
-
-### Endpoints mínimos
-- `GET /api/v1/me`
-- `GET /api/v1/me/options`
-- `PUT /api/v1/me/preferences`
-
-### Regra de navegação
-1. Login OAuth conclui em `/auth/callback`
-2. Front chama `/api/v1/me`
-3. Se `onboarding_completed=false` → `/onboarding`
-4. Se `true` → Home
-
-### Checklist rápido
-- [ ] `display_name` validado
-- [ ] mínimo 1 sistema favorito
-- [ ] upsert em `user_preferences`
-- [ ] payload público sem campos internos
-
----
-
-## 2) Catálogo público
-
-### Ordem visual mínima do card
-1. Tipo/audiência
-2. Cover
-3. Status contextual
-4. Título + sistema
-5. Mestre
-6. Vagas
-7. Modalidade/preço
-8. CTA
-
-### Regra de implementação
-- Filtro e experiência de busca no Frontend
-- API pública entrega só dados necessários ao card e detalhe
-
----
-
-## 3) Landing pública de mestre
-
-### Deve conter
-- Banner, avatar, nome
-- Bio longa
-- Idiomas/especialidades/badges
-- Estatísticas (`tables_count`, `avg_rating`, `reviews_count`)
-- Lista de mesas ativas
-
-### Nunca conter
-- `avatar_deletehash`
-- `banner_deletehash`
-
----
-
-## 4) OAuth, JWT e role
-
-### Fluxo
-1. OAuth Google no Backend
-2. Upsert em `users`/`profiles`
-3. Geração de JWT
-4. Front salva token e segue fluxo de onboarding
-
-### Regra admin master
-- Email `paulohenriquercc@gmail.com` deve manter role `admin`
-
----
-
-## 5) Imagens / Imgur
-
-### Regras pétreas
-- `IMGUR_CLIENT_ID` só em variável de ambiente
-- Upload/conversão/remoção apenas no Backend
-- Limpeza irreversível exige cuidado com `deletehash`
-
----
-
-## 6) Git e deploy
-
-### Regras operacionais
-- Sem `commit`/`push` sem autorização do usuário
-- `dev` publica em beta
-- `main` publica em produção
-
-### Validação pós-deploy
-- `gh run list` (campos compatíveis com VM)
-- checagem de logs Docker
-
----
-
-## 7) Tratamento de erros (obrigatório)
-
-Ao primeiro erro (`stderr`, crash, falha build/pipeline):
-1. Parar tentativa em loop
-2. Consultar `ERRORS_SOLUTIONS.md`
-3. Aplicar solução catalogada
-4. Se não existir ID, registrar novo caso no arquivo
+> As seções de detalhe (Onboarding, Catálogo, Landing, OAuth, Imgur, Git, Erros) foram removidas deste guia.
+> O roteamento por cenário está em `AI_CONTEXT_INDEX.md`. Os contratos canônicos estão em `ARQUITETURA_PROJETO.md`.
 
 ---
 

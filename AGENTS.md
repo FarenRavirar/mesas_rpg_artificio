@@ -31,20 +31,23 @@ Nunca pular este arquivo.
 
 ## Passos
 
-1. Ler regras base deste arquivo
-2. Ler `GUIA_RAPIDO_OPERACIONAL.md` (apenas trecho do cenário ativo)
-3. Ler `ARQUITETURA_PROJETO.md` deste repositório (sua única fonte canônica de arquitetura)
-4. Consultar arquivos canônicos por cenário
+1. Ler `RESUMO_EXECUCAO.md` — estado atual, bloqueios e próxima ação
+2. Ler regras base deste arquivo (`AGENTS.md`)
+3. Consultar `AI_CONTEXT_INDEX.md` — escolher cenário na matriz e ler só o arquivo indicado
+4. Nunca ler `ARQUITETURA_PROJETO.md` na íntegra — sempre por seção específica
 
 ## Leitura obrigatória
 
 1. Sempre iniciar por:
+   - `RESUMO_EXECUCAO.md` — estado atual do projeto e próxima ação
    - `AGENTS.md`
-2. Atalho de aceleração (apoio):
-   - `GUIA_RAPIDO_OPERACIONAL.md` (tabela + seção do cenário)
-3. Antes de modificar código:
-   - `ARQUITETURA_PROJETO.md`
-4. Consultar por situação:
+2. Roteador de contexto (substitui leitura em cascata):
+   - `AI_CONTEXT_INDEX.md` — matriz de leitura por cenário com orçamento de tokens
+3. Atalho de aceleração (apoio):
+   - `GUIA_RAPIDO_OPERACIONAL.md` (tabela de índice + checklists de fechamento)
+4. Antes de modificar código:
+   - `ARQUITETURA_PROJETO.md` — **somente a seção indicada pelo AI_CONTEXT_INDEX**, não na íntegra
+5. Consultar por situação:
    - Git/branch/merge/deploy: `GIT_WORKFLOW.md`
    - Operação em produção/beta: `OPERACAO_PRODUCAO.md`
    - Falha de ambiente/encoding/template: `PRE-FLIGHT_CHECKLIST.md`
@@ -75,6 +78,8 @@ Nunca produzir código sem:
 
 ## Fonte de verdade (single source of truth)
 
+- Estado atual do projeto e próxima ação: `RESUMO_EXECUCAO.md`
+- Roteamento de leitura por cenário e orçamento de tokens: `AI_CONTEXT_INDEX.md`
 - Arquitetura, contratos, princípios visuais e decisões: `ARQUITETURA_PROJETO.md`
 - Fluxo de Git/merge/deploy: `GIT_WORKFLOW.md`
 - Operação de produção/beta e validação pós-deploy: `OPERACAO_PRODUCAO.md`
@@ -82,7 +87,7 @@ Nunca produzir código sem:
 - Diagnóstico prévio de ambiente: `PRE-FLIGHT_CHECKLIST.md`
 - Backlog operacional vivo de melhorias e prioridades: `TODO_OPERACIONAL.md`
 - Fila operacional de implementação por lote/ciclo: `FILA_IMPLEMENTACAO.md`
-- Guia de aceleração de leitura (apoio, não canônico): `GUIA_RAPIDO_OPERACIONAL.md`
+- Guia de índice rápido e checklists de fechamento (apoio, não canônico): `GUIA_RAPIDO_OPERACIONAL.md`
 
 Se houver conflito entre orientação operacional e arquitetura, prevalece `ARQUITETURA_PROJETO.md`.
 
