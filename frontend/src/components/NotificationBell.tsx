@@ -1,236 +1,117 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
+import { Bell } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import '../styles/notifications.css';
+
+const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
 interface Notification {
   id: string;
-  type: 'suggestion_approved' | 'suggestion_rejected' | 'suggestion_edited' | 'system';
+  user_id: string;
+  type: string;
   title: string;
   message: string;
-  link: string | null;
   read: boolean;
   created_at: string;
 }
 
-export const NotificationBell: React.FC = () => {
+export const NotificationBell = () => {
   const { token } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Fechar dropdown ao clicar fora
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
+    if (!token) return;
+
+    const fetchNotifications = async () => {
+      try {
+        const response = await fetch(`${API_BASE}/api/v1/notifications`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setNotifications(data.data || []);
+          setUnreadCount(data.data?.filter((n: Notification) => !n.read).length || 0);
+        }
+      } catch (error) {
+        console.error('[NotificationBell] Erro ao buscar notificações:', error);
       }
     };
 
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 60000); // Poll a cada 1 minuto
+    return () => clearInterval(interval);
+  }, [token]);
 
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isOpen]);
-
-  // Buscar contador de não lidas
-  const fetchUnreadCount = async () => {
-    if (!token) return;
-
-    try {
-      const response = await fetch('/api/v1/notifications/unread-count', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setUnreadCount(data.count);
-      }
-    } catch (error) {
-      console.error('Erro ao buscar contador de notificações:', error);
-    }
-  };
-
-  // Buscar notificações
-  const fetchNotifications = async () => {
-    if (!token) return;
-
-    setLoading(true);
-    try {
-      const response = await fetch('/api/v1/notifications', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setNotifications(data.data);
-      }
-    } catch (error) {
-      console.error('Erro ao buscar notificações:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Marcar como lida
   const markAsRead = async (id: string) => {
     if (!token) return;
 
     try {
-      const response = await fetch(`/api/v1/notifications/${id}/read`, {
+      const response = await fetch(`${API_BASE}/api/v1/notifications/${id}/read`, {
         method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { Authorization: `Bearer ${token}` },
       });
-
       if (response.ok) {
-        setNotifications(prev =>
-          prev.map(n => n.id === id ? { ...n, read: true } : n)
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === id ? { ...n, read: true } : n))
         );
-        setUnreadCount(prev => Math.max(0, prev - 1));
+        setUnreadCount((prev) => Math.max(0, prev - 1));
       }
     } catch (error) {
-      console.error('Erro ao marcar notificação como lida:', error);
+      console.error('[NotificationBell] Erro ao marcar como lida:', error);
     }
-  };
-
-  // Marcar todas como lidas
-  const markAllAsRead = async () => {
-    if (!token) return;
-
-    try {
-      const response = await fetch('/api/v1/notifications/read-all', {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        setNotifications(prev =>
-          prev.map(n => ({ ...n, read: true }))
-        );
-        setUnreadCount(0);
-      }
-    } catch (error) {
-      console.error('Erro ao marcar todas como lidas:', error);
-    }
-  };
-
-  // Polling a cada 30 segundos
-  useEffect(() => {
-    if (!token) return;
-
-    fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 30000);
-
-    return () => clearInterval(interval);
-  }, [token]);
-
-  // Abrir dropdown
-  const handleToggle = () => {
-    if (!isOpen) {
-      fetchNotifications();
-    }
-    setIsOpen(!isOpen);
-  };
-
-  // Clicar em notificação
-  const handleNotificationClick = (notification: Notification) => {
-    if (!notification.read) {
-      markAsRead(notification.id);
-    }
-
-    if (notification.link) {
-      window.location.href = notification.link;
-    }
-
-    setIsOpen(false);
-  };
-
-  // Formatar data relativa
-  const formatRelativeTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Agora';
-    if (diffMins < 60) return `${diffMins}min atrás`;
-    if (diffHours < 24) return `${diffHours}h atrás`;
-    if (diffDays < 7) return `${diffDays}d atrás`;
-    return date.toLocaleDateString('pt-BR');
   };
 
   if (!token) return null;
 
   return (
-    <div className="notification-bell-container" ref={dropdownRef}>
+    <div className="relative">
       <button
-        className="notification-bell-button"
-        onClick={handleToggle}
+        onClick={() => setIsOpen(!isOpen)}
+        className="relative p-2 text-white/75 hover:text-white transition-colors"
         aria-label="Notificações"
       >
-        🔔
+        <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
-          <span className="notification-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>
+          <span className="absolute top-1 right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+            {unreadCount}
+          </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="notification-dropdown">
-          <div className="notification-dropdown-header">
-            <h3>Notificações</h3>
-            {unreadCount > 0 && (
-              <button
-                className="mark-all-read-btn"
-                onClick={markAllAsRead}
-              >
-                Marcar todas como lidas
-              </button>
-            )}
-          </div>
-
-          <div className="notification-dropdown-body">
-            {loading ? (
-              <div className="notification-loading">Carregando...</div>
-            ) : notifications.length === 0 ? (
-              <div className="notification-empty">
+        <>
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setIsOpen(false)}
+          />
+          <div className="absolute top-full right-0 mt-2 w-80 bg-[#1B2A4A] border border-white/10 rounded-lg shadow-2xl z-50 max-h-96 overflow-y-auto">
+            <div className="px-4 py-3 border-b border-white/10 font-bold text-white">
+              Notificações
+            </div>
+            {notifications.length === 0 ? (
+              <div className="px-4 py-8 text-center text-white/50 text-sm">
                 Nenhuma notificação
               </div>
             ) : (
-              <ul className="notification-list">
-                {notifications.map(notification => (
-                  <li
-                    key={notification.id}
-                    className={`notification-item ${!notification.read ? 'unread' : ''}`}
-                    onClick={() => handleNotificationClick(notification)}
-                  >
-                    <div className="notification-item-header">
-                      <span className="notification-title">{notification.title}</span>
-                      <span className="notification-time">
-                        {formatRelativeTime(notification.created_at)}
-                      </span>
-                    </div>
-                    <p className="notification-message">{notification.message}</p>
-                    {!notification.read && <span className="notification-unread-dot"></span>}
-                  </li>
-                ))}
-              </ul>
+              notifications.map((notif) => (
+                <div
+                  key={notif.id}
+                  onClick={() => !notif.read && markAsRead(notif.id)}
+                  className={`px-4 py-3 border-b border-white/5 cursor-pointer transition-colors ${
+                    notif.read ? 'bg-transparent' : 'bg-blue-500/10 hover:bg-blue-500/20'
+                  }`}
+                >
+                  <div className="font-semibold text-white text-sm mb-1">{notif.title}</div>
+                  <div className="text-white/70 text-xs mb-2">{notif.message}</div>
+                  <div className="text-white/40 text-xs">
+                    {new Date(notif.created_at).toLocaleString('pt-BR')}
+                  </div>
+                </div>
+              ))
             )}
           </div>
-        </div>
+        </>
       )}
     </div>
   );

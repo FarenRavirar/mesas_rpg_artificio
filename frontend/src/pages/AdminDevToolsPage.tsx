@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { jsonrepair } from 'jsonrepair';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 const STORAGE_KEY = 'dev_admin_token';
@@ -142,6 +143,15 @@ const splitPayloadForImport = (payload: unknown, chunkSize: number): unknown[] =
   }
 
   return chunks;
+};
+
+const sanitizeDiscordExporterJson = (rawJson: string): string => {
+  try {
+    return jsonrepair(rawJson);
+  } catch (error) {
+    // Se jsonrepair falhar, retornar o original
+    return rawJson;
+  }
 };
 
 const aggregateImportSummaries = (summaries: any[], dryRun: boolean) => {
@@ -354,16 +364,27 @@ export function AdminDevToolsPage() {
 
     try {
       const text = await file.text();
-      const parsed = JSON.parse(text);
+      let parsed: any;
+      
+      // Primeira tentativa: parse direto
+      try {
+        parsed = JSON.parse(text);
+      } catch (firstError) {
+        // Segunda tentativa: com sanitização
+        console.warn('[loadJsonFile] Parse inicial falhou, tentando sanitizar...', firstError);
+        const sanitized = sanitizeDiscordExporterJson(text);
+        parsed = JSON.parse(sanitized);
+        setImportFeedback('⚠️ JSON corrigido automaticamente (arquivo estava malformado).');
+      }
 
       setFileName(file.name);
       setParsedPayload(parsed);
       setPayloadPreview(summarizePayload(parsed));
-    } catch {
+    } catch (error: any) {
       setParsedPayload(null);
       setPayloadPreview([]);
       setFileName(file.name);
-      setImportError('Não foi possível ler este arquivo como JSON válido.');
+      setImportError(`Não foi possível ler este arquivo como JSON válido. ${error?.message || ''}`);
     }
   };
 

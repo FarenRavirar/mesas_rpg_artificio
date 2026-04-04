@@ -1,52 +1,35 @@
--- =============================================================================
--- migration_06_system_suggestions.sql
--- Sistema de sugestão colaborativa de sistemas de RPG
--- =============================================================================
+-- Migration 06: System Suggestions
+-- Tabela para sugestões de sistemas pelos usuários
 
-BEGIN;
-
--- Tabela de sugestões de sistemas
 CREATE TABLE IF NOT EXISTS system_suggestions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  node_type TEXT NOT NULL CHECK (node_type IN ('system', 'edition', 'variant', 'subsystem')),
-  parent_id UUID REFERENCES systems(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
   description TEXT,
-  aliases TEXT[],
-  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
-  
-  -- Log de aprovação/rejeição
-  reviewed_by UUID REFERENCES users(id),
-  reviewed_at TIMESTAMPTZ,
-  rejection_reason TEXT,
-  
-  -- Notificação
-  user_notified BOOLEAN DEFAULT FALSE,
-  
-  -- Timestamps
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  parent_id UUID REFERENCES systems(id) ON DELETE SET NULL,
+  suggestion_type VARCHAR(50) NOT NULL CHECK (suggestion_type IN ('new', 'edit', 'variant')),
+  status VARCHAR(50) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  admin_notes TEXT,
+  reviewed_at TIMESTAMP,
+  reviewed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
--- Índices para performance
-CREATE INDEX IF NOT EXISTS idx_system_suggestions_status ON system_suggestions(status);
-CREATE INDEX IF NOT EXISTS idx_system_suggestions_user_id ON system_suggestions(user_id);
-CREATE INDEX IF NOT EXISTS idx_system_suggestions_reviewed_at ON system_suggestions(reviewed_at);
-CREATE INDEX IF NOT EXISTS idx_system_suggestions_user_notified ON system_suggestions(user_notified) WHERE user_notified = FALSE;
+CREATE INDEX idx_system_suggestions_user_id ON system_suggestions(user_id);
+CREATE INDEX idx_system_suggestions_status ON system_suggestions(status);
+CREATE INDEX idx_system_suggestions_created_at ON system_suggestions(created_at DESC);
 
--- Trigger para atualizar updated_at
-CREATE OR REPLACE FUNCTION update_system_suggestions_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+-- Tabela de notificações
+CREATE TABLE IF NOT EXISTS notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type VARCHAR(100) NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  message TEXT NOT NULL,
+  read BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
 
-CREATE TRIGGER trigger_update_system_suggestions_updated_at
-  BEFORE UPDATE ON system_suggestions
-  FOR EACH ROW
-  EXECUTE FUNCTION update_system_suggestions_updated_at();
-
-COMMIT;
+CREATE INDEX idx_notifications_user_id ON notifications(user_id);
+CREATE INDEX idx_notifications_read ON notifications(read);
+CREATE INDEX idx_notifications_created_at ON notifications(created_at DESC);
