@@ -3,8 +3,6 @@ import { useAuth } from '../contexts/AuthContext';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 const STORAGE_KEY = 'dev_admin_token';
-const AUTH_TOKEN_KEY = '@ArtificioMesas:token';
-const AUTH_USER_KEY = '@ArtificioMesas:user';
 
 interface RouteTest {
   id: string;
@@ -349,41 +347,6 @@ export function AdminDevToolsPage() {
     });
   };
 
-  const applyTokenToSession = async () => {
-    const trimmed = token.trim();
-    if (!trimmed) return;
-
-    localStorage.setItem(AUTH_TOKEN_KEY, trimmed);
-
-    try {
-      const res = await fetch(`${API_BASE}/api/v1/me`, {
-        headers: { Authorization: `Bearer ${trimmed}` },
-      });
-
-      if (res.ok) {
-        const meJson = await res.json();
-        const apiUser = meJson?.data?.user;
-        const profile = meJson?.data?.profile;
-
-        if (apiUser?.id && apiUser?.role) {
-          localStorage.setItem(
-            AUTH_USER_KEY,
-            JSON.stringify({
-              id: apiUser.id,
-              role: apiUser.role,
-              name: profile?.display_name,
-              avatar_url: profile?.avatar_url,
-            })
-          );
-        }
-      }
-    } catch {
-      // best effort
-    }
-
-    window.location.reload();
-  };
-
   const loadJsonFile = async (file: File) => {
     setImportError(null);
     setImportFeedback(null);
@@ -686,24 +649,6 @@ export function AdminDevToolsPage() {
               }}
             >
               Limpar
-            </button>
-
-            <button
-              id="admin-apply-token-btn"
-              onClick={applyTokenToSession}
-              disabled={!token.trim()}
-              style={{
-                background: 'rgba(34,197,94,0.15)',
-                border: '1px solid rgba(34,197,94,0.35)',
-                borderRadius: 8,
-                padding: '0.62rem 0.85rem',
-                cursor: !token.trim() ? 'not-allowed' : 'pointer',
-                color: '#86efac',
-                fontSize: '0.8rem',
-                opacity: !token.trim() ? 0.5 : 1,
-              }}
-            >
-              Aplicar na sessão
             </button>
           </div>
 
