@@ -327,14 +327,15 @@ export function AdminDevToolsPage() {
     setRunningQuickTests(false);
   };
 
-  useEffect(() => {
-    const trimmed = token.trim();
-    if (!trimmed) return;
-    if (autoRunTokenRef.current === trimmed) return;
-
-    autoRunTokenRef.current = trimmed;
-    runAllQuickTests();
-  }, [token]);
+  // Auto-run desabilitado para evitar logout indevido
+  // useEffect(() => {
+  //   const trimmed = token.trim();
+  //   if (!trimmed) return;
+  //   if (autoRunTokenRef.current === trimmed) return;
+  //
+  //   autoRunTokenRef.current = trimmed;
+  //   runAllQuickTests();
+  // }, [token]);
 
   const runCustom = async () => {
     const path = customPath.trim() || '/api/v1/health';
