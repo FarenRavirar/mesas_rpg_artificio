@@ -7,7 +7,9 @@ import gmRoutes from './routes/gm';
 import gmPanelRoutes from './routes/gmPanel';
 import systemsRoutes from './routes/systems';
 import meRoutes from './routes/me';
-import 'express-async-errors'; // Adiciona handler global automatico para promises
+import aggregatorRoutes from './routes/aggregator';
+import aggregatorReviewRoutes from './routes/aggregatorReview';
+import 'express-async-errors';
 import { db } from './db';
 
 dotenv.config();
@@ -23,7 +25,7 @@ app.use(express.json());
 app.get('/api/v1/health', async (req, res) => {
   try {
     const defaultResponse = { status: 'ok', environment: process.env.APP_ENV || 'local' };
-    
+
     // Test DB connection usando Kysely
     if (process.env.DATABASE_URL) {
       const result = await db.selectFrom('users').select('id').limit(1).execute();
@@ -45,6 +47,8 @@ app.use('/api/v1/tables', tablesRoutes);
 app.use('/api/v1/systems', systemsRoutes);
 app.use('/api/v1/gm', gmPanelRoutes);  // Painel autenticado do mestre
 app.use('/api/v1/gm', gmRoutes);       // Perfil público do mestre
+app.use('/api/v1/aggregator', aggregatorRoutes);
+app.use('/api/v1/aggregator', aggregatorReviewRoutes);
 
 // Custom Error Handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

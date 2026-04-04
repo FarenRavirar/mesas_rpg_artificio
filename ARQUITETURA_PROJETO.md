@@ -61,6 +61,30 @@ Os recursos principais arquitetados incluem:
 | **Beta (Deploy Contínuo)** | `mesasbeta.artificiorpg.com` | `dev` | `mesas-beta-app` | Cloudflare Tunnel via `mesas-beta-app:80`, sem porta pública dedicada no host |
 | **Produção** | `mesas.artificiorpg.com` | `main` | `mesas-app` | Ainda não publicada operacionalmente nesta rodada |
 
+### 3.1 Credenciais e Nomes Canônicos do PostgreSQL
+
+> **Fonte de verdade para qualquer comando `psql`, dump, migration ou diagnóstico remoto.**
+
+| Parâmetro | Beta | Produção |
+|---|---|---|
+| Container DB | `mesas-beta-db` | `mesas-db` |
+| `POSTGRES_USER` | `admin` | `admin` |
+| `POSTGRES_DB` | `mesas_rpg` | `mesas_rpg` |
+| Porta interna | `5432` | `5432` |
+
+Comando padrão de acesso no beta:
+```bash
+docker exec mesas-beta-db psql -U admin -d mesas_rpg
+```
+
+Para confirmar credenciais em runtime (nunca assume o compose como única fonte):
+```bash
+docker exec mesas-beta-db env | grep POSTGRES
+```
+
+> [!CAUTION]
+> O banco **não se chama `mesas`** — o nome correto é `mesas_rpg`. Usar `-d mesas` resulta em `FATAL: database "mesas" does not exist`. Ver também `ERRORS_SOLUTIONS.md` E059.
+
 ---
 
 ## 4. Modelo de Dados (Entidades Principais)
@@ -372,11 +396,28 @@ Referência rápida das rotas estruturais da API. Todas as rotas mutáveis exige
 |---|---|---|---|
 | `GET` | `/api/v1/admin/tables/pending` | `admin` | Mesas aguardando moderação |
 | `PATCH` | `/api/v1/admin/tables/:id/moderate` | `admin` | Aprovar ou rejeitar mesa |
-| `GET` | `/api/v1/admin/sources` | `admin` | Listar fontes do AggregatorBot, previsto para fase posterior |
-| `POST` | `/api/v1/admin/sources` | `admin` | Cadastrar nova fonte, previsto para fase posterior |
-| `POST` | `/api/v1/admin/import/dry-run` | `admin` | Preview de importação em lote, previsto para fase posterior |
-| `POST` | `/api/v1/admin/import/commit` | `admin` | Confirmar importação em lote, previsto para fase posterior |
-| `GET` | `/api/v1/admin/import/logs` | `admin` | Histórico de ingestões do bot, previsto para fase posterior |
+
+### Aggregator Discord (Fase 7 — implementado, migration_05 aplicada no beta)
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| `GET` | `/api/v1/aggregator/sources` | `admin` | Listar fontes cadastradas |
+| `POST` | `/api/v1/aggregator/sources` | `admin` | Cadastrar nova fonte Discord |
+| `PUT` | `/api/v1/aggregator/sources/:id` | `admin` | Editar fonte |
+| `PATCH` | `/api/v1/aggregator/sources/:id/toggle` | `admin` | Habilitar/desabilitar fonte |
+| `POST` | `/api/v1/aggregator/import/file` | `admin` | Importar JSON de export Discord (body JSON, suporta `dry_run`) |
+| `POST` | `/api/v1/aggregator/import/source/:id/run` | `admin` | Re-processar mensagens brutas de uma source |
+| `GET` | `/api/v1/aggregator/exports/day` | `admin` | Exportação diária JSON de candidatos aceitos |
+| `GET` | `/api/v1/aggregator/exports/day.txt` | `admin` | Exportação diária TXT de candidatos aceitos |
+
+### Revisão Editorial (Aggregator)
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| `GET` | `/api/v1/aggregator/candidates` | `admin` | Listar candidatos (filtros: `status`, `source_id`, paginação) |
+| `GET` | `/api/v1/aggregator/candidates/:id` | `admin` | Detalhe de um candidato |
+| `PATCH` | `/api/v1/aggregator/candidates/:id/accept` | `admin` | Aceitar candidato para publicação |
+| `PATCH` | `/api/v1/aggregator/candidates/:id/reject` | `admin` | Rejeitar candidato |
+| `PATCH` | `/api/v1/aggregator/candidates/:id/review` | `admin` | Marcar candidato para revisão manual |
+
 
 ---
 

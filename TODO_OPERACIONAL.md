@@ -39,6 +39,7 @@
 | DEB-02 | 2/3/3 | **Paginação e performance do catálogo:** Avaliar paginação server-side ou cursor-based se volume de mesas ativas ultrapassar escala confortável para Fuse.js client-side. | Em aberto | Revisitar quando houver dados reais de volume. Fuse.js é suficiente para fase inicial. |
 | DEB-03 | 2/3/2 | **SEO estruturado:** Meta tags, Open Graph e sitemap para páginas de mesa e landing pages de mestres — importantes para compartilhamento social e descoberta orgânica. | Em aberto | Implementar junto ou logo após a Fase 2. |
 | DEB-04 | 2/2/3 | **Onboarding revisitável:** Permitir que usuário retorne ao fluxo de preferências após o onboarding inicial para atualizar sistemas, dias e plataformas favoritas. | Em aberto | UX secundária — não bloqueia nada. |
+| DEB-05 | 3/3/4 | **Risco de perda de URL de mídia no Aggregator Discord:** O `DiscordChatExporter` atual exporta `exportedLocalName` (caminho local) em vez da URL original da imagem. A heurística atual extrai URLs de `embeds.thumbnail`, `embeds.images` e `attachments.url`, mas não garante cobertura total. **Risco:** anúncios com imagens só anexadas como upload Discord perdem a referência de mídia na importação. Mitigação futura: implementar modo `integration_json` no exporter que preserve a URL original; até lá, o campo `media_urls` nos candidatos pode ficar incompleto. | Em aberto | Risco documentado em 04/04/2026. Não bloqueia a importação de texto; apenas afeta enriquecimento visual do candidato. |
 
 ---
 

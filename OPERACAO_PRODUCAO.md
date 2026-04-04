@@ -143,10 +143,22 @@ ssh ubuntu@137.131.250.231
    docker compose -f /opt/mesas-beta/docker-compose.beta.yml logs --tail=50 mesas-beta-app
    docker compose -f /opt/mesas-beta/docker-compose.beta.yml logs --tail=50 mesas-beta-api
    ```
-7. Quando houver workers futuros efetivamente ativos, validar nos logs da API:
-   ```bash
-   docker logs mesas-beta-api --tail 30 | grep -E "aggregator|cleanup|cron"
-   ```
+7. **Aggregator Discord (Fase 7 — migration_05 aplicada no beta em 04/04/2026):**
+   - Verificar tabelas no banco:
+     ```bash
+     docker exec mesas-beta-db psql -U admin -d mesas_rpg -t -c '\dt aggregator*'
+     ```
+   - Fluxo operacional de ingestão:
+     1. Criar source: `POST /api/v1/aggregator/sources` (requer JWT admin)
+     2. Importar export JSON local: `npm run aggregator:import -- <arquivo.json> --source-id=<uuid>`
+     3. Revisar candidatos: `GET /api/v1/aggregator/candidates?status=awaiting_review`
+     4. Aceitar/rejeitar: `PATCH /api/v1/aggregator/candidates/:id/accept` ou `/reject`
+   - Para dry-run sem persistir: `npm run aggregator:import -- <arquivo.json> --source-id=<uuid> --dry-run`
+   - Logs de erros de ingestão (quando worker automático for ativo):
+     ```bash
+     docker logs mesas-beta-api --tail 30 | grep -E "aggregator|cleanup|cron"
+     ```
+
 
 ### Produção (`main`)
 1. Confirmar conclusão do run no GitHub Actions:

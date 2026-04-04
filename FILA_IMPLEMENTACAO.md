@@ -142,18 +142,21 @@ Não é necessário em tarefas fora do modo lote.
 
 ---
 
-## Itens da fila — Lote: aggregatorbot (Fase 7) — BLOQUEADO
+## Itens da fila — Lote: aggregatorbot (Fase 7)
 
-> ⚠️ **Este lote só pode ser iniciado após fechamento confirmado das Fases 1 a 5.**
+> ⚠️ **Bloco originalmente bloqueado até fechamento das Fases 1–5. Exceção autorizada explicitamente pelo responsável em 04/04/2026 para implementação do pipeline de importação Discord (ingestão manual de export JSON) sem ativar o worker automático.**
 
 | ID | Fase | Tipo | Titulo | Descrição objetiva | Arquivos esperados | Status | Observação |
 |---|---|---|---|---|---|---|---|
-| 033 | Fase 7 | banco | Tabelas do AggregatorBot | Criar `sources` e `imported_tables` | `database/migration_04_aggregator.sql` | pendente | — |
-| 034 | Fase 7 | backend | Serviço AggregatorBot | Worker node-cron com coleta diária configurável por fonte, parse para schema `imported_tables`, deduplicação automática (ver regras em `ARQUITETURA_PROJETO.md` seção 4.5) | `backend/src/services/aggregatorService.ts`, `backend/src/jobs/aggregatorJob.ts` | pendente | Circuit breaker obrigatório |
-| 035 | Fase 7 | backend | CleanupWorker | Job node-cron diário que deleta imagens do Imgur para mesas com status `ended`/`cancelled` usando `deletehash` do banco, registra resultado em `imgur_cleanup_log` | `backend/src/jobs/cleanupJob.ts` | pendente | Deleção no Imgur é irreversível — ver `ARQUITETURA_PROJETO.md` seção 16.4 |
-| 036 | Fase 7 | backend | Endpoints admin de fontes e importação | `GET/POST /admin/sources`, `POST /admin/import/dry-run`, `POST /admin/import/commit`, `GET /admin/import/logs` | Ajuste em `adminRoutes.ts` | pendente | Dry run obrigatório antes de commit |
-| 037 | Fase 7 | frontend | Painel de fontes e logs no admin | Tela para cadastro de fontes externas, preview de importação com detecção de duplicatas, histórico de ingestões | Ajuste em `PainelAdminPage.tsx` | pendente | — |
-| 038 | Fase 7 | backend | Importador manual de mesas via JSON | Implementar ingestão em lote por payload versionado (`schema_version`) com idempotência (`source` + `external_id`), resolução de `gm_slug`/`system_path_slug`, validação de contatos (incluindo nick Discord em `contacts[channel=discord].value`) e relatório por item (`created`, `updated`, `failed`) | `backend/src/routes/admin.ts`, `backend/src/services/jsonTablesImporter.ts`, `backend/src/validators/jsonTablesImportSchema.ts` | pendente | Executar somente quando o responsável chamar explicitamente; depende de endpoints admin e fases 1–5 estáveis. |
+| 033 | Fase 7 | banco | Tabelas do Aggregator Discord | Migration com `aggregator_sources`, `aggregator_imported_raw_messages`, `aggregator_import_candidates`, `aggregator_settings` | `database/migration_05_aggregator_sources_and_queue.sql` | concluido | Schema aplicado. Tipagem Kysely estendida em `backend/src/db/types.ts`. |
+| 034 | Fase 7 | backend | Camada de domínio do Aggregator | Parser, normalizador, classificador de sistemas e formatter de publicação | `backend/src/domain/aggregator/*` | concluido | `parseExporterMessage`, `normalizeCandidate`, `classifySystem`, `formatForPublication`, `normalizeExporterPayload` implementados. |
+| 035-A | Fase 7 | backend | Serviços do Aggregator | sourceService, candidateService, rawImportService, importFromExporterService, exportService, publishService | `backend/src/services/aggregator/*` | concluido | Todos os serviços operantes. Lógica editorial (paid/custom/ambiguidade) no normalizador. |
+| 035-B | Fase 7 | backend | Rotas HTTP do Aggregator | Sources CRUD, import/file, import/source/:id/run, exportação diária JSON/TXT, revisão editorial (candidates) | `backend/src/routes/aggregator.ts`, `backend/src/routes/aggregatorReview.ts` | concluido | Montadas em `/api/v1/aggregator`. Todas requerem `authMiddleware + requireRole('admin')`. `tsc --noEmit` saiu com exit code 0. |
+| 035-C | Fase 7 | backend | Script CLI de importação | `importDiscordExport.ts` para ingestão manual de `export_exemple.json`, suporta `--dry-run`, `--source-id=`, `--export-only` | `backend/src/scripts/importDiscordExport.ts`, `backend/package.json` | concluido | Script `aggregator:import` adicionado ao `package.json`. |
+| 035-D | Fase 7 | backend | CleanupWorker | Job node-cron diário de deleção de imagens do Imgur para mesas encerradas | `backend/src/jobs/cleanupJob.ts` | pendente | Deleção no Imgur é irreversível — ver seção 16.4. Não ativar sem autorização explícita. |
+| 036 | Fase 7 | backend | AggregatorBot (worker automático) | Worker node-cron com coleta diária por fonte externa, deduplicação, circuit breaker | `backend/src/services/aggregatorService.ts`, `backend/src/jobs/aggregatorJob.ts` | pendente | Fora do escopo da exceção atual. Não implementar sem liberação das Fases 1–5. |
+| 037 | Fase 7 | frontend | Painel admin de fontes e logs | Tela para cadastro de fontes, preview de importação, histórico de ingestões | Ajuste em `PainelAdminPage.tsx` | pendente | Depende de Fase 4. |
+| 038 | Fase 7 | backend | Importador manual de mesas via JSON | Ingestão em lote por payload versionado com idempotência e relatório por item | `backend/src/routes/admin.ts`, `backend/src/services/jsonTablesImporter.ts` | pendente | Depende de endpoints admin e fases 1–5 estáveis. |
 
 ---
 

@@ -30,7 +30,8 @@
 |---|---|---|---|
 | migration_02 | Taxonomia + DDAL no banco | ✅ aplicada no beta | — |
 | migration_04 | Publisher role + contatos (REQ-11/REQ-12) | ✅ aplicada no beta | — |
-| 017A | systemsTreeImport | ✅ executado no beta | manter rotina `docker cp` + `docker exec` após rebuild até fix no Dockerfile |
+| migration_05 | Aggregator Discord — fontes, fila bruta, candidatos | ✅ aplicada no beta (04/04/2026) | — |
+| 017A | systemsTreeImport | ✅ executado no beta (132 nós, 280 aliases) | manter rotina `docker cp` + `docker exec` após rebuild até fix no Dockerfile |
 | 021A | Selos DDAL/Covil — backend+frontend | ⏳ em validação beta | QA E2E com dados reais no beta |
 | 021B | AppShell global | ✅ concluído | validar smoke visual no beta pós último deploy |
 | 022 | Endpoints GM autenticados | ⏳ em validação beta | validar CRUD com dados reais no beta |
@@ -38,6 +39,7 @@
 | 024 | `npm run build` frontend | ✅ concluído | 1746 módulos, dist/ ok |
 | 025 | `walkthrough.md` | ✅ concluído | escrito em `walkthrough.md` |
 | 026 | REQ-11 + REQ-12 (fullstack) | ✅ deployado em `dev`/beta | executar QA E2E de anunciante + contatos obrigatórios |
+| Fase 7 | Aggregator Discord — pipeline completo | ✅ backend implementado + migration aplicada no beta | 1) criar source via API, 2) importar export_exemple.json, 3) revisar candidatos via `/aggregator/candidates` |
 
 **Legenda:** ✅ concluído · ⏳ pronto local, aguardando validação beta · ⏸ bloqueado por dependência
 

@@ -1,0 +1,265 @@
+import { classifyPayment } from './classifyPayment';
+import { classifySystem } from './classifySystem';
+import { extractMediaLinks } from './extractMediaLinks';
+import { resolveMasterRecruiter } from './resolveMasterRecruiter';
+import type { KnownSystemAlias, NormalizedExporterMessage, ParsedMessageDraft } from './types';
+
+const URL_REGEX = /https?:\/\/[^\s)]+/gi;
+
+const cleanValue = (value: string): string => {
+  return value.replace(/[*_`~]/g, '').replace(/\s+/g, ' ').trim();
+};
+
+const sanitizeExtracted = (value: string | null): string | null => {
+  if (!value) return null;
+  const normalized = cleanValue(value);
+  return normalized.length > 0 ? normalized : null;
+};
+
+const extractHeadingTitle = (content: string): string | null => {
+  const heading = content
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find((line) => /^#{1,3}\s+/.test(line));
+
+  if (heading) {
+    return sanitizeExtracted(heading.replace(/^#{1,3}\s+/, ''));
+  }
+
+  const firstLine = content
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find((line) => line.length > 0);
+
+  return sanitizeExtracted(firstLine ?? null);
+};
+
+const stripPrefix = (line: string): string => {
+  return line
+    .replace(/^[\-•▬*]+\s*/, '')
+    .replace(/^\*+\s*/, '')
+    .replace(/\*+$/g, '')
+    .trim();
+};
+
+const lineValueByMatchers = (content: string, matchers: RegExp[]): string | null => {
+  const lines = content.split(/\r?\n/);
+
+  for (const rawLine of lines) {
+    const line = stripPrefix(rawLine);
+
+    for (const matcher of matchers) {
+      const match = line.match(matcher);
+      if (!match) continue;
+
+      const candidate = sanitizeExtracted(match[1] ?? null);
+      if (candidate) return candidate;
+    }
+  }
+
+  return null;
+};
+
+const extractSchedule = (content: string): string | null => {
+  const matchers = [
+    /(?:data\s*[&e]?\s*hor[aá]rios?|data\s*e\s*hora)\s*[:\-]\s*(.+)$/i,
+    /(?:hor[aá]rios?)\s*[:\-]\s*(.+)$/i,
+  ];
+
+  const direct = lineValueByMatchers(content, matchers);
+  if (direct) return direct;
+
+  const lines = content.split(/\r?\n/).map((line) => line.trim());
+  for (let index = 0; index < lines.length; index += 1) {
+    const current = lines[index];
+    if (!/data\s*[&e]?\s*hor[aá]rios?|data\s*e\s*hora|hor[aá]rios?/i.test(current)) continue;
+
+    const next = lines[index + 1] ?? '';
+    const cleaned = sanitizeExtracted(stripPrefix(next));
+    if (cleaned) return cleaned;
+  }
+
+  return null;
+};
+
+const extractSynopsis = (content: string): string | null => {
+  const lines = content.split(/\r?\n/);
+  const synopsisStart = lines.findIndex((line) => /sinopse|sobre\s+a\s+hist[oó]ria|sobre\s+esta\s+mesa/i.test(line));
+
+  if (synopsisStart >= 0) {
+    const snippet = lines
+      .slice(synopsisStart + 1)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .slice(0, 6)
+      .join(' ');
+
+    return sanitizeExtracted(snippet);
+  }
+
+  const fallback = lines
+    .map((line) => line.trim())
+    .filter((line) => line.length > 40)
+    .slice(0, 2)
+    .join(' ');
+
+  return sanitizeExtracted(fallback);
+};
+
+const extractRawMentions = (message: NormalizedExporterMessage): string[] => {
+  const mentionFromContent = Array.from(message.content.matchAll(/@([\w.-]{2,})/g)).map((match) => match[1].trim());
+  const mentionFromPayload = message.mentions
+    .map((mention) => mention.nickname ?? mention.name ?? null)
+    .filter((value): value is string => Boolean(value))
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+
+  const deduped = new Set<string>([...mentionFromContent, ...mentionFromPayload]);
+  return Array.from(deduped.values());
+};
+
+const extractExternalLinks = (message: NormalizedExporterMessage): string[] => {
+  const links = new Set<string>();
+
+  for (const match of message.content.match(URL_REGEX) ?? []) {
+    links.add(match.trim());
+  }
+
+  for (const embed of message.embeds) {
+    if (embed.url) links.add(embed.url.trim());
+
+    if (embed.thumbnail?.canonicalUrl) {
+      links.add(embed.thumbnail.canonicalUrl.trim());
+    }
+
+    if (embed.thumbnail?.url) {
+      links.add(embed.thumbnail.url.trim());
+    }
+
+    for (const image of embed.images) {
+      if (image.url) links.add(image.url.trim());
+    }
+  }
+
+  return Array.from(links.values()).filter((item) => /^https?:\/\//i.test(item));
+};
+
+const extractSignupText = (content: string): string | null => {
+  const lines = content.split(/\r?\n/).map((line) => line.trim());
+
+  const candidate = lines.find((line) => {
+    return /mand(ar|e)\s+(mensagem|dm)|interessad[oa]|inscri[cç][aã]o|formul[aá]rio|contato/i.test(line);
+  });
+
+  return sanitizeExtracted(candidate ?? null);
+};
+
+export interface ParseExporterMessageInput {
+  message: NormalizedExporterMessage;
+  sourceChannelId: string | null;
+  knownSystemAliases: KnownSystemAlias[];
+}
+
+export const parseExporterMessage = (input: ParseExporterMessageInput): ParsedMessageDraft => {
+  const { message, sourceChannelId, knownSystemAliases } = input;
+
+  const title = extractHeadingTitle(message.content);
+  const systemText = lineValueByMatchers(message.content, [
+    /sistema\s*[:\-]\s*(.+)$/i,
+    /system\s*[:\-]\s*(.+)$/i,
+  ]);
+
+  const style = lineValueByMatchers(message.content, [
+    /estilo(?:\/tem[aá]tica)?\s*[:\-]\s*(.+)$/i,
+    /tem[aá]tica\s*[:\-]\s*(.+)$/i,
+  ]);
+
+  const scheduleText = extractSchedule(message.content);
+  const slotsText = lineValueByMatchers(message.content, [
+    /(?:n[ºo]\s*de\s*)?vagas?\s*[:\-]\s*(.+)$/i,
+    /(\d+\s*\/\s*\d+\.?)/i,
+    /(\d+\s*vagas?)/i,
+  ]);
+
+  const ageRating = lineValueByMatchers(message.content, [
+    /classifica[cç][aã]o\s*[:\-]\s*(.+)$/i,
+    /faixa\s+et[aá]ria\s*[:\-]\s*(.+)$/i,
+  ]);
+
+  const location = lineValueByMatchers(message.content, [
+    /local\s*(?:do\s+jogo)?\s*[:\-]\s*(.+)$/i,
+  ]);
+
+  const platforms = lineValueByMatchers(message.content, [
+    /plataformas?\s*[:\-]\s*(.+)$/i,
+  ]);
+
+  const masterText = lineValueByMatchers(message.content, [
+    /mestre\s*[:\-]\s*(.+)$/i,
+  ]);
+
+  const payment = classifyPayment(message.content);
+  const systemClassification = classifySystem(systemText, message.content, knownSystemAliases);
+
+  const rawMentions = extractRawMentions(message);
+  const recruiterResolution = resolveMasterRecruiter({
+    recruiterName: message.author.nickname ?? message.author.name,
+    masterText,
+    rawMentions,
+  });
+
+  const mediaLinks = extractMediaLinks(message);
+  const externalLinks = extractExternalLinks(message);
+  const signupText = extractSignupText(message.content);
+  const synopsis = extractSynopsis(message.content);
+
+  const requiredSignals = [title, systemText ?? systemClassification.systemName, scheduleText, slotsText, location ?? platforms];
+  const availableSignals = requiredSignals.filter((item) => Boolean(item)).length;
+  const structuralConfidence = Math.min(1, availableSignals / requiredSignals.length);
+
+  const confidenceScore = Number(
+    Math.max(
+      0,
+      Math.min(
+        1,
+        structuralConfidence * 0.5
+          + payment.confidence * 0.2
+          + systemClassification.confidence * 0.25
+          + (recruiterResolution.isAmbiguous ? 0.0 : 0.05)
+      )
+    ).toFixed(2)
+  );
+
+  const needsReview =
+    systemClassification.needsReview
+    || recruiterResolution.isAmbiguous
+    || confidenceScore < 0.7
+    || !title
+    || (!systemText && !systemClassification.systemName);
+
+  return {
+    sourceMessageId: message.id,
+    sourceChannelId,
+    title,
+    system: systemClassification.systemName ?? systemText,
+    style,
+    scheduleText,
+    slotsText,
+    ageRating,
+    location,
+    platforms,
+    masterText: recruiterResolution.masterText,
+    recruiterName: recruiterResolution.recruiterName,
+    signupText,
+    synopsis,
+    isPaid: payment.isPaid,
+    priceText: payment.priceText,
+    isCustomSystem: systemClassification.isCustomSystem,
+    mediaLinks,
+    externalLinks,
+    rawMentions,
+    needsReview,
+    confidenceScore,
+    editorialReason: null,
+  };
+};

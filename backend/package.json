@@ -7,7 +7,8 @@
     "start": "node dist/server.js",
     "build": "tsc",
     "dev": "nodemon src/server.ts",
-    "systems:import-tree": "ts-node src/scripts/systemsTreeImport.ts"
+    "systems:import-tree": "ts-node src/scripts/systemsTreeImport.ts",
+    "aggregator:import": "ts-node src/scripts/importDiscordExport.ts"
   },
   "keywords": [],
   "author": "",
