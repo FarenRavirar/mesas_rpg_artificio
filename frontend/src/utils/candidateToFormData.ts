@@ -2,6 +2,8 @@
  * Mapeia dados extraídos de um candidato (parsed_json) para o formato do formulário de mesa
  */
 
+import { parseDiscordContent } from './parseDiscordContent';
+
 export interface CandidateFormData {
   title?: string;
   description?: string;
@@ -31,17 +33,23 @@ export interface CandidateFormData {
 export function sanitizeText(text: string | undefined | null): string | undefined {
   if (!text) return undefined;
 
-  // Remove prefixos comuns do Discord
+  // Remove prefixos comuns do Discord (com e sem acento)
   const prefixes = [
     /^#\s*Título:\s*/i,
+    /^#\s*Titulo:\s*/i,  // sem acento
     /^\*\*Título:\*\*\s*/i,
+    /^\*\*Titulo:\*\*\s*/i,  // sem acento
     /^Título:\s*/i,
+    /^Titulo:\s*/i,  // sem acento
     /^#\s*Sistema:\s*/i,
     /^\*\*Sistema:\*\*\s*/i,
     /^Sistema:\s*/i,
     /^#\s*Descrição:\s*/i,
+    /^#\s*Descricao:\s*/i,  // sem acento
     /^\*\*Descrição:\*\*\s*/i,
+    /^\*\*Descricao:\*\*\s*/i,  // sem acento
     /^Descrição:\s*/i,
+    /^Descricao:\s*/i,  // sem acento
     /^#\s*/,
     /^\*\*/,
   ];
@@ -111,53 +119,66 @@ export function mapCandidateToFormData(
 
   const mapped: CandidateFormData = {};
 
+  // Se o parsed_json tem um campo 'content' (mensagem do Discord),
+  // fazer parsing automático para extrair campos estruturados
+  let parsedContent: any = {};
+  if (parsed_json.content && typeof parsed_json.content === 'string') {
+    parsedContent = parseDiscordContent(parsed_json.content);
+  }
+
+  // Merge: parsedContent tem prioridade sobre campos já existentes no parsed_json
+  const enrichedJson = { ...parsed_json, ...parsedContent };
+
   // Título (sanitizado)
-  if (parsed_json.title) {
-    mapped.title = sanitizeText(parsed_json.title);
+  if (enrichedJson.title) {
+    mapped.title = sanitizeText(enrichedJson.title);
   }
 
   // Descrição (synopsis, sanitizada)
-  if (parsed_json.synopsis || parsed_json.description) {
-    mapped.description = sanitizeText(parsed_json.synopsis || parsed_json.description);
+  if (enrichedJson.synopsis || enrichedJson.description) {
+    mapped.description = sanitizeText(enrichedJson.synopsis || enrichedJson.description);
   }
 
   // Sistema (busca inteligente na árvore)
-  if (parsed_json.system && systemsTree) {
-    const systemId = findSystemId(parsed_json.system, systemsTree);
+  if (enrichedJson.system && systemsTree) {
+    const sanitizedSystem = sanitizeText(enrichedJson.system);
+    const systemId = findSystemId(sanitizedSystem, systemsTree);
     if (systemId) {
       mapped.system_id = systemId;
     }
   }
 
   // Tipo de mesa
-  if (parsed_json.type) {
+  if (enrichedJson.type) {
     const typeMap: Record<string, string> = {
       'campanha': 'campanha',
       'oneshot': 'oneshot',
       'one-shot': 'oneshot',
       'aventura': 'oneshot',
     };
-    const normalized = parsed_json.type.toLowerCase();
+    const normalized = enrichedJson.type.toLowerCase();
     mapped.type = typeMap[normalized] || 'campanha';
   }
 
   // Modalidade
-  if (parsed_json.modality) {
+  if (enrichedJson.modality) {
     const modalityMap: Record<string, string> = {
       'online': 'online',
       'presencial': 'presencial',
       'híbrida': 'hibrida',
       'hibrida': 'hibrida',
     };
-    const normalized = parsed_json.modality.toLowerCase();
+    const normalized = enrichedJson.modality.toLowerCase();
     mapped.modality = modalityMap[normalized] || 'online';
   }
 
   // Preço
-  if (parsed_json.isPaid !== undefined) {
-    mapped.price_type = parsed_json.isPaid ? 'paga' : 'gratuita';
-  } else if (parsed_json.priceText) {
-    const priceText = parsed_json.priceText.toLowerCase();
+  if (enrichedJson.isPaid !== undefined) {
+    mapped.price_type = enrichedJson.isPaid ? 'paga' : 'gratuita';
+  } else if (enrichedJson.price_type) {
+    mapped.price_type = enrichedJson.price_type;
+  } else if (enrichedJson.priceText) {
+    const priceText = enrichedJson.priceText.toLowerCase();
     if (priceText.includes('grátis') || priceText.includes('gratuita') || priceText.includes('free')) {
       mapped.price_type = 'gratuita';
     } else if (priceText.includes('paga') || priceText.includes('paid') || priceText.match(/r\$|reais/)) {
@@ -166,19 +187,19 @@ export function mapCandidateToFormData(
   }
 
   // Vagas
-  if (parsed_json.slots || parsed_json.maxPlayers || parsed_json.slots_total) {
-    const slots = parsed_json.slots || parsed_json.maxPlayers || parsed_json.slots_total;
+  if (enrichedJson.slots || enrichedJson.maxPlayers || enrichedJson.slots_total) {
+    const slots = enrichedJson.slots || enrichedJson.maxPlayers || enrichedJson.slots_total;
     mapped.slots_total = String(slots);
   }
 
   // Idioma
-  if (parsed_json.language) {
-    mapped.language = parsed_json.language;
+  if (enrichedJson.language) {
+    mapped.language = enrichedJson.language;
   }
 
   // Data de início
-  if (parsed_json.starts_at || parsed_json.startDate) {
-    const dateStr = parsed_json.starts_at || parsed_json.startDate;
+  if (enrichedJson.starts_at || enrichedJson.startDate) {
+    const dateStr = enrichedJson.starts_at || enrichedJson.startDate;
     // Tentar converter para formato ISO se necessário
     try {
       const date = new Date(dateStr);
@@ -192,7 +213,7 @@ export function mapCandidateToFormData(
   }
 
   // Frequência
-  if (parsed_json.frequency) {
+  if (enrichedJson.frequency) {
     const freqMap: Record<string, string> = {
       'semanal': 'semanal',
       'quinzenal': 'quinzenal',
@@ -201,47 +222,113 @@ export function mapCandidateToFormData(
       'biweekly': 'quinzenal',
       'monthly': 'mensal',
     };
-    const normalized = parsed_json.frequency.toLowerCase();
+    const normalized = enrichedJson.frequency.toLowerCase();
     if (freqMap[normalized]) {
       mapped.frequency = freqMap[normalized];
     } else {
       mapped.frequency = 'outros';
-      mapped.frequency_custom = parsed_json.frequency;
+      mapped.frequency_custom = enrichedJson.frequency;
     }
   }
 
   // Regras/Observações
-  if (parsed_json.rules_notes || parsed_json.rules || parsed_json.notes) {
+  if (enrichedJson.rules_notes || enrichedJson.rules || enrichedJson.notes) {
     mapped.rules_notes = sanitizeText(
-      parsed_json.rules_notes || parsed_json.rules || parsed_json.notes
+      enrichedJson.rules_notes || enrichedJson.rules || enrichedJson.notes
     );
   }
 
   // Banner URL
-  if (parsed_json.imageUrl || parsed_json.banner || parsed_json.thumbnail) {
-    mapped.banner_url = parsed_json.imageUrl || parsed_json.banner || parsed_json.thumbnail;
+  if (enrichedJson.imageUrl || enrichedJson.banner || enrichedJson.thumbnail || enrichedJson.image) {
+    mapped.banner_url = 
+      enrichedJson.imageUrl || 
+      enrichedJson.banner || 
+      enrichedJson.thumbnail || 
+      enrichedJson.image;
   }
 
   // Publisher role e nome do mestre (SEMPRE announcer para candidatos importados)
   mapped.publisher_role = 'announcer';
-  if (parsed_json.masterText || parsed_json.recruiterName || parsed_json.gmName) {
+  if (enrichedJson.masterText || enrichedJson.recruiterName || enrichedJson.gmName || enrichedJson.actual_gm_name) {
     mapped.actual_gm_name = sanitizeText(
-      parsed_json.masterText || parsed_json.recruiterName || parsed_json.gmName
+      enrichedJson.masterText || enrichedJson.recruiterName || enrichedJson.gmName || enrichedJson.actual_gm_name
     );
   } else {
     mapped.actual_gm_name = 'Não informado';
   }
 
-  // Contatos (Discord)
-  if (parsed_json.authorUsername || parsed_json.authorHandle) {
-    const discordValue = parsed_json.authorUsername || parsed_json.authorHandle;
-    mapped.contacts = [
-      {
-        channel: 'discord',
-        value: discordValue,
-        extra_url: parsed_json.discordServerUrl || undefined,
-      },
-    ];
+  // Contatos (mapear TODOS os canais disponíveis no JSON)
+  const contacts: Array<{ channel: string; value: string; extra_url?: string }> = [];
+
+  // Discord (prioridade 1: sempre adicionar se houver autor)
+  const discordValue = 
+    enrichedJson.authorUsername || 
+    enrichedJson.authorHandle || 
+    enrichedJson.author?.username ||
+    enrichedJson.author?.handle ||
+    enrichedJson.author?.name ||
+    enrichedJson.author?.nickname ||
+    enrichedJson.discordUsername ||
+    enrichedJson.discord_username ||
+    parsed_json.author?.name ||
+    parsed_json.author?.nickname;
+
+  if (discordValue) {
+    contacts.push({
+      channel: 'discord',
+      value: discordValue,
+      extra_url: enrichedJson.discordServerUrl || enrichedJson.discord_server_url || undefined,
+    });
+  }
+
+  // WhatsApp
+  if (enrichedJson.whatsapp || enrichedJson.whatsappNumber || enrichedJson.phone) {
+    contacts.push({
+      channel: 'whatsapp',
+      value: enrichedJson.whatsapp || enrichedJson.whatsappNumber || enrichedJson.phone,
+    });
+  }
+
+  // Email
+  if (enrichedJson.email || enrichedJson.contactEmail) {
+    contacts.push({
+      channel: 'email',
+      value: enrichedJson.email || enrichedJson.contactEmail,
+    });
+  }
+
+  // Telegram
+  if (enrichedJson.telegram || enrichedJson.telegramUsername) {
+    contacts.push({
+      channel: 'telegram',
+      value: enrichedJson.telegram || enrichedJson.telegramUsername,
+    });
+  }
+
+  // Outros (genérico)
+  if (enrichedJson.otherContact || enrichedJson.contact) {
+    contacts.push({
+      channel: 'outros',
+      value: enrichedJson.otherContact || enrichedJson.contact,
+    });
+  }
+
+  // Se encontrou algum contato, mapear
+  if (contacts.length > 0) {
+    mapped.contacts = contacts;
+  }
+
+  // Extrair imagem dos attachments do Discord se não houver banner_url
+  if (!mapped.banner_url && parsed_json.attachments && Array.isArray(parsed_json.attachments)) {
+    const imageAttachment = parsed_json.attachments.find((att: any) => 
+      att.url && (
+        att.fileName?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ||
+        att.url?.match(/\.(jpg|jpeg|png|gif|webp)(\?|$)/i)
+      )
+    );
+    if (imageAttachment?.url) {
+      mapped.banner_url = imageAttachment.url;
+    }
   }
 
   return mapped;

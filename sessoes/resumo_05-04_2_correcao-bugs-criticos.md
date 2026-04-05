@@ -572,11 +572,187 @@ Após implementação das 5 fases, foi realizada análise detalhada das 10 Heur�
 3. Se validação OK → alterar status para `concluido`
 4. Fase 4 (Item 058 - Botão Desfazer Rejeição, GUT 80)
 
-### [Data/Hora] - Deploy Final
-- [ ] Commit: [hash]
-- [ ] Deploy concluído
-- [ ] Validação completa: [resultado]
-- [ ] Documentação atualizada
+### [05/04/2026 01:52] - Deploy Concluído e Validação Beta
+
+**Commit:** `ef78d38`  
+**Deploy:** ✅ Workflow "Deploy Beta" concluído com sucesso (Run ID: 23994559448)  
+**Healthcheck:** ✅ `{"status":"ok","environment":"beta","db":"connected","usersSampled":true}`
+
+---
+
+## 🐛 Bugs Encontrados na Validação Beta (05/04/2026 01:59)
+
+### Bug 1: Prefixos técnicos não removidos ❌
+**Sintoma:** `# Titulo:`, `# Sistema:` e outros prefixos aparecem nos campos  
+**Exemplo:** Campo título mostra "# Titulo: Arquivo 13" ao invés de "Arquivo 13"  
+**Causa:** Regex de sanitização procura "Título" com acento, mas Discord envia "Titulo" sem acento  
+**Localização:** `frontend/src/utils/candidateToFormData.ts` linhas 36-44  
+**Impacto:** Viola H2 (Compatibilidade com mundo real)  
+**Prioridade:** ALTA (GUT 125)
+
+### Bug 2: Sistema não pré-selecionado ❌
+**Sintoma:** Sistema "Ashen Stars" existe no banco mas não é detectado pela busca fuzzy  
+**Exemplo:** Campo "Sistema da Mesa" fica vazio mesmo com sistema válido no JSON  
+**Causa provável:** Nome do sistema no JSON tem prefixo técnico ou busca fuzzy falhando  
+**Localização:** `frontend/src/utils/candidateToFormData.ts` linhas 62-104, 124-130  
+**Impacto:** Viola H6 (Reconhecimento)  
+**Prioridade:** ALTA (GUT 125)
+
+### Bug 3: Canal Discord não pré-preenchido ❌
+**Sintoma:** Aparece "WhatsApp" ao invés de "Discord" com username do autor  
+**Exemplo:** Campo "Canais de recrutamento" mostra WhatsApp mesmo sendo JSON do Discord  
+**Causa provável:** Campos `authorUsername`/`authorHandle` ausentes ou com nomes diferentes no JSON  
+**Localização:** `frontend/src/utils/candidateToFormData.ts` linhas 236-245  
+**Impacto:** Viola H6 (Reconhecimento)  
+**Prioridade:** ALTA (GUT 125)
+
+### Bug 4: Banner não pré-preenchido nem preview exibido ❌
+**Sintoma:** Campo "URL do Banner" fica vazio e preview não aparece mesmo com imagem no JSON  
+**Exemplo:** JSON contém `imageUrl` mas campo permanece com placeholder  
+**Causa provável:** Campo `imageUrl` não está sendo mapeado ou tem nome diferente no JSON  
+**Localização:** `frontend/src/utils/candidateToFormData.ts` linhas 220-223  
+**Impacto:** Viola H6 (Reconhecimento)  
+**Prioridade:** MÉDIA (GUT 64)
+
+---
+
+## 🔧 Plano de Correção dos Bugs
+
+### Correção 1: Adicionar padrões sem acento no regex de sanitização
+```typescript
+const prefixes = [
+  /^#\s*Título:\s*/i,
+  /^#\s*Titulo:\s*/i,  // ← SEM acento
+  /^#\s*Sistema:\s*/i,  // ← SEM acento
+  /^#\s*Descrição:\s*/i,
+  /^#\s*Descricao:\s*/i,  // ← SEM acento
+  // ... outros padrões
+];
+```
+
+### Correção 2: Sanitizar nome do sistema antes da busca
+```typescript
+if (parsed_json.system && systemsTree) {
+  const sanitizedSystem = sanitizeText(parsed_json.system);  // ← Adicionar sanitização
+  const systemId = findSystemId(sanitizedSystem, systemsTree);
+  if (systemId) {
+    mapped.system_id = systemId;
+  }
+}
+```
+
+### Correção 3: Adicionar fallbacks para campos de autor do Discord
+```typescript
+// Verificar estrutura real do JSON e adicionar todos os possíveis nomes de campo
+const discordValue = 
+  parsed_json.authorUsername || 
+  parsed_json.authorHandle || 
+  parsed_json.author?.username ||
+  parsed_json.author?.handle ||
+  parsed_json.discordUsername;
+```
+
+### Correção 4: Adicionar fallbacks para campo de imagem
+```typescript
+if (parsed_json.imageUrl || parsed_json.banner || parsed_json.thumbnail || parsed_json.image) {
+  mapped.banner_url = 
+    parsed_json.imageUrl || 
+    parsed_json.banner || 
+    parsed_json.thumbnail || 
+    parsed_json.image;
+}
+```
+
+---
+
+### [05/04/2026 02:09] - Implementação de Parser TypeScript (Solução Temporária)
+
+**Descoberta:** O backend NÃO faz parsing inteligente do conteúdo das mensagens do Discord. Apenas normaliza estrutura (author, attachments, embeds) mas não extrai campos do `content`.
+
+**Solução Temporária Implementada:**
+1. Criado `frontend/src/utils/parseDiscordContent.ts` - Parser com regex para extrair campos
+2. Integrado no `candidateToFormData.ts` - Parsing automático do `content` antes do mapeamento
+3. Extração automática de imagem dos `attachments` do Discord
+4. Detecção automática do autor para contato Discord
+
+**Arquivos Modificados:**
+- `frontend/src/utils/parseDiscordContent.ts` (NOVO - 150 linhas)
+- `frontend/src/utils/candidateToFormData.ts` (MODIFICADO - integração completa)
+
+**Build Validado:** Frontend 411.80 kB (gzip: 119.53 kB) - exit 0
+
+**Limitações da Solução TS:**
+- Parsing acontece a cada renderização (ineficiente)
+- Regex simples não captura variações complexas
+- Difícil manter e expandir
+- Não valida dados extraídos
+
+---
+
+### [05/04/2026 02:13] - Plano de Parsing Inteligente com Python
+
+**Decisão:** Criar parser Python no backend para parsing robusto e definitivo
+
+**Plano Criado:** `sessoes/resumo_05-04_3_parsing_inteligente.md`
+
+**Stack Proposta:**
+- **spaCy** (NLP core) + modelo `pt_core_news_lg`
+- **dateparser** (datas em português)
+- **phonenumbers** (validação de contatos)
+- **pydantic** (validação de schema)
+
+**Arquitetura:**
+```
+Discord JSON → Backend Node.js → Python Parser → Banco (parsed_json enriquecido)
+```
+
+**Fases de Implementação:**
+1. Setup e Dependências (Item 059)
+2. Parser Core (Item 060)
+3. Integração com Backend Node.js (Item 061)
+4. Testes com Mensagens Reais (Item 062)
+5. Deploy e Validação em Beta (Item 063)
+6. Migração Gradual e Cleanup (Item 064)
+
+**Vantagens:**
+- Parsing acontece UMA VEZ no backend (eficiente)
+- NLP robusto captura variações complexas
+- Validação com pydantic
+- Dados já chegam estruturados no banco
+- Reutilizável para outros agregadores
+
+**Status:** Planejamento completo - aguardando aprovação para implementação
+
+---
+
+## 🏁 Fechamento da Sessão
+
+### [Data/Hora] - Commit e Deploy das Correções
+- [ ] Revisão final do código
+- [ ] Build validado (exit 0)
+- [ ] Commit criado com mensagem descritiva
+- [ ] Push para branch `dev`
+- [ ] Deploy automático para beta concluído
+- [ ] Validação manual em `mesasbeta.artificiorpg.com/gestao`
+- [ ] Campos auto-preenchidos corretamente
+- [ ] Documentação atualizada (TODO, FILA, RESUMO, AMBIENTE)
+- [ ] Sessão encerrada
+
+**Mensagem de Commit Sugerida:**
+```
+fix(aggregator): corrige mapeamento de candidatos e adiciona parser TS
+
+- Corrige sanitização de prefixos sem acento (#titulo, #sistema)
+- Adiciona sanitização antes da busca fuzzy de sistema
+- Mapeia TODOS os contatos (Discord, WhatsApp, Email, Telegram, Outros)
+- Adiciona fallbacks para banner/imagem + extração de attachments
+- Implementa parser TypeScript para extrair campos do content
+- Detecta automaticamente autor do Discord para contatos
+
+Refs: REQ-19 (UX Improvements), resumo_05-04_2
+```
+
+**Próxima Sessão:** `resumo_05-04_3_parsing_inteligente.md` (Implementação do parser Python)
 
 ---
 
