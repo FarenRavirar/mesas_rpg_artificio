@@ -72,6 +72,7 @@ export interface TableDetail extends TableCard {
   scenario_name?: string | null;
   scenario_subgenres?: string[];
   schedules?: TableSchedule[];
+  origin?: 'manual' | 'imported';
   ddal_season?: string | null;
   ddal_duration?: string | null;
   ddal_format?: string | null;

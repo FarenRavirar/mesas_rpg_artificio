@@ -51,6 +51,8 @@ export const GestaoPage = () => {
   const [approvingSuggestionId, setApprovingSuggestionId] = useState<string | null>(null);
   const [rejectingSuggestionId, setRejectingSuggestionId] = useState<string | null>(null);
   const [rejectingCandidateId, setRejectingCandidateId] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [approvingCandidateId, setApprovingCandidateId] = useState<string | null>(null);
   const [rejectingAll, setRejectingAll] = useState(false);
   const [undoingCandidateId, setUndoingCandidateId] = useState<string | null>(null);
 
@@ -77,6 +79,9 @@ export const GestaoPage = () => {
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const [bulkDeleteConfirmed, setBulkDeleteConfirmed] = useState(false);
   const [deletingBulk, setDeletingBulk] = useState(false);
+
+  // CORREÇÃO DT-09: State para edição de candidatos antes da aprovação
+  const [editedCandidate, setEditedCandidate] = useState<any>(null);
 
   /** Mapeamento pré-computado: candidateId -> CandidateFormData */
   const candidateMappedData = useMemo(() => {
@@ -569,20 +574,48 @@ export const GestaoPage = () => {
     }
   };
 
+  // CORREÇÃO DT-09, DT-10, DT-11: Aprovar candidato com dados editados, redirect e loading
   const handleApproveCandidate = async (id: string) => {
     if (!token) return;
     if (!confirm('Aprovar este candidato e criar mesa?')) return;
 
+    // CORREÇÃO DT-11: Loading state
+    setApprovingCandidateId(id);
+    if (approvingCandidateId) console.log('[GestaoPage] Aprovando candidato:', approvingCandidateId);
+
     try {
+      // CORREÇÃO DT-09: Enviar dados editados se houver
+      let body: any = undefined;
+      
+      if (editedCandidate && Object.keys(editedCandidate).length > 0) {
+        body = JSON.stringify(editedCandidate);
+        console.log('[GestaoPage] Enviando overrides editados:', editedCandidate);
+      }
+
       const response = await fetch(`${API_BASE}/api/v1/aggregator/candidates/${id}/approve`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}` 
+        },
+        body,
       });
 
       if (response.ok) {
+        const data = await response.json();
         toast.success('Candidato aprovado com sucesso!');
-        fetchCandidates();
-        setSelectedCandidate(null);
+        
+        // CORREÇÃO DT-10: Redirecionar para mesa criada
+        if (data.data?.slug) {
+          toast.success(`Redirecionando para mesa criada...`, { duration: 2000 });
+          setTimeout(() => {
+            window.location.href = `/mesa/${data.data.slug}`;
+          }, 2000);
+        } else {
+          fetchCandidates();
+          setSelectedCandidate(null);
+          setEditedCandidate(null);
+        }
       } else {
         const data = await response.json();
         toast.error(`Erro: ${data.error}`);
@@ -590,6 +623,9 @@ export const GestaoPage = () => {
     } catch (error) {
       console.error('[GestaoPage] Erro ao aprovar candidato:', error);
       toast.error('Erro ao aprovar candidato');
+    } finally {
+      // CORREÇÃO DT-11: Limpar loading state
+      setApprovingCandidateId(null);
     }
   };
 
@@ -1439,52 +1475,128 @@ export const GestaoPage = () => {
                       {showRawData ? 'Ocultar' : 'Ver'} dados brutos (JSON)
                     </button>
                   </div>
-                  
-                  <div className="grid grid-cols-2 gap-3 text-sm mb-3">
-                    <div>
-                      <span className="text-white/60">Título:</span>
-                      <span className="text-white ml-2">{selectedCandidate.parsed_json.title || 'Não informado'}</span>
+
+                  {/* Dados brutos (JSON) */}
+                  {showRawData && (
+                    <div className="mt-4 pt-4 border-t border-blue-500/20">
+                      <pre className="text-xs text-white/80 bg-black/30 p-3 rounded overflow-x-auto max-h-96">
+                        {JSON.stringify(selectedCandidate.parsed_json, null, 2)}
+                      </pre>
                     </div>
+                  )}
+                </div>
+
+                {/* CORREÇÃO DT-09: Formulário de Edição Inline */}
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-white mb-2">
+                      Título da Mesa *
+                    </label>
+                    <input
+                      type="text"
+                      defaultValue={selectedCandidate.parsed_json.title || ''}
+                      onChange={(e) => setEditedCandidate(prev => ({ ...prev, title: e.target.value }))}
+                      className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                      placeholder="Digite o título da mesa"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-white mb-2">
+                      Descrição da Mesa * (Markdown/HTML suportado)
+                    </label>
+                    <MarkdownEditor
+                      value={editedCandidate?.description || selectedCandidate.parsed_json.description || selectedCandidate.parsed_json.synopsis || ''}
+                      onChange={(text) => setEditedCandidate(prev => ({ ...prev, description: text }))}
+                      placeholder="Descreva a mesa, campanha ou oneshot..."
+                      height={400}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <span className="text-white/60">Sistema:</span>
-                      <span className="text-white ml-2">{selectedCandidate.parsed_json.system || 'Não identificado'}</span>
+                      <label className="block text-sm font-semibold text-white mb-2">
+                        Sistema
+                      </label>
+                      <input
+                        type="text"
+                        defaultValue={selectedCandidate.parsed_json.system || ''}
+                        onChange={(e) => setEditedCandidate(prev => ({ ...prev, system: e.target.value }))}
+                        className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        placeholder="Ex: D&D 5e"
+                      />
                     </div>
+
                     <div>
-                      <span className="text-white/60">Modalidade:</span>
-                      <span className="text-white ml-2">{selectedCandidate.parsed_json.modality || 'Não informado'}</span>
-                    </div>
-                    <div>
-                      <span className="text-white/60">Tipo:</span>
-                      <span className="text-white ml-2">{selectedCandidate.parsed_json.type || 'Não informado'}</span>
-                    </div>
-                    <div>
-                      <span className="text-white/60">Vagas:</span>
-                      <span className="text-white ml-2">{selectedCandidate.parsed_json.slots || selectedCandidate.parsed_json.maxPlayers || 'Não informado'}</span>
-                    </div>
-                    <div>
-                      <span className="text-white/60">Idioma:</span>
-                      <span className="text-white ml-2">{selectedCandidate.parsed_json.language || 'Não informado'}</span>
-                    </div>
-                    <div>
-                      <span className="text-white/60">Confiança:</span>
-                      <span className="text-white ml-2">{Math.round((selectedCandidate.confidence_score || 0) * 100)}%</span>
+                      <label className="block text-sm font-semibold text-white mb-2">
+                        Vagas
+                      </label>
+                      <input
+                        type="number"
+                        defaultValue={selectedCandidate.parsed_json.slots_total || selectedCandidate.parsed_json.slots || 4}
+                        onChange={(e) => setEditedCandidate(prev => ({ ...prev, slots_total: parseInt(e.target.value) }))}
+                        className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        min="1"
+                      />
                     </div>
                   </div>
 
-                  {selectedCandidate.parsed_json.synopsis && (
-                    <div className="text-sm mt-3 pt-3 border-t border-blue-500/20">
-                      <span className="text-white/60">Descrição:</span>
-                      <p className="text-white mt-1 line-clamp-3">{selectedCandidate.parsed_json.synopsis}</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-white mb-2">
+                        Tipo
+                      </label>
+                      <select
+                        defaultValue={selectedCandidate.parsed_json.type || 'oneshot'}
+                        onChange={(e) => setEditedCandidate(prev => ({ ...prev, type: e.target.value }))}
+                        className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                      >
+                        <option value="oneshot">One-shot</option>
+                        <option value="campaign">Campanha</option>
+                        <option value="adventure">Aventura</option>
+                        <option value="west_marches">West Marches</option>
+                      </select>
                     </div>
-                  )}
+
+                    <div>
+                      <label className="block text-sm font-semibold text-white mb-2">
+                        Modalidade
+                      </label>
+                      <select
+                        defaultValue={selectedCandidate.parsed_json.modality || 'online'}
+                        onChange={(e) => setEditedCandidate(prev => ({ ...prev, modality: e.target.value }))}
+                        className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                      >
+                        <option value="online">Online</option>
+                        <option value="presencial">Presencial</option>
+                        <option value="hibrido">Híbrido</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-white mb-2">
+                      Preço
+                    </label>
+                    <select
+                      defaultValue={selectedCandidate.parsed_json.price_type || 'gratuita'}
+                      onChange={(e) => setEditedCandidate(prev => ({ ...prev, price_type: e.target.value }))}
+                      className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                    >
+                      <option value="gratuita">Gratuita</option>
+                      <option value="paga">Paga</option>
+                    </select>
+                  </div>
 
                   {/* Preview de Banner */}
                   {(candidateMappedData.get(selectedCandidate.id)?.banner_url || 
                     selectedCandidate.parsed_json.imageUrl || 
                     selectedCandidate.parsed_json.banner || 
-                    selectedCandidate.parsed_json.thumbnail) ? (
-                    <div className="text-sm mt-3 pt-3 border-t border-blue-500/20">
-                      <span className="text-white/60 block mb-2">Preview do Banner:</span>
+                    selectedCandidate.parsed_json.thumbnail) && (
+                    <div>
+                      <label className="block text-sm font-semibold text-white mb-2">
+                        Preview do Banner
+                      </label>
                       <img
                         src={
                           candidateMappedData.get(selectedCandidate.id)?.banner_url ||
@@ -1497,39 +1609,41 @@ export const GestaoPage = () => {
                         onError={(e) => { e.currentTarget.src = bannerPlaceholder; }}
                       />
                     </div>
-                  ) : (
-                    <div className="text-sm mt-3 pt-3 border-t border-blue-500/20">
-                      <span className="text-white/60 block mb-2">Preview do Banner:</span>
-                      <img
-                        src={bannerPlaceholder}
-                        alt="Placeholder — sem banner"
-                        className="w-full max-h-48 object-cover rounded border border-blue-500/30 opacity-50"
-                      />
-                      <p className="text-white/40 text-xs mt-1">Sem imagem detectada — placeholder padrão</p>
-                    </div>
-                  )}
-
-                  {/* Dados brutos (JSON) */}
-                  {showRawData && (
-                    <div className="mt-4 pt-4 border-t border-blue-500/20">
-                      <pre className="text-xs text-white/80 bg-black/30 p-3 rounded overflow-x-auto">
-                        {JSON.stringify(selectedCandidate.parsed_json, null, 2)}
-                      </pre>
-                    </div>
                   )}
                 </div>
 
-                {/* Formulário Editável */}
-                <CreateTableForm
-                  token={token!}
-                  initialData={mapCandidateToFormData(selectedCandidate.parsed_json, systemsTree)}
-                  mode="review"
-                  candidateId={selectedCandidate.id}
-                  onSuccess={() => {
-                    setSelectedCandidate(null);
-                    fetchCandidates();
-                  }}
-                />
+                {/* Botões de Ação */}
+                <div className="flex gap-3 justify-end mt-6 pt-6 border-t border-white/10">
+                  <button
+                    onClick={() => {
+                      setSelectedCandidate(null);
+                      setEditedCandidate(null);
+                    }}
+                    className="px-6 py-2 bg-white/5 hover:bg-white/10 text-white font-semibold rounded-lg border border-white/10 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={() => handleRejectCandidate(selectedCandidate.id)}
+                    disabled={rejectingCandidateId === selectedCandidate.id}
+                    className="px-6 py-2 bg-red-500/20 hover:bg-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-red-400 font-semibold rounded-lg border border-red-500/50 transition-colors flex items-center gap-2"
+                  >
+                    {rejectingCandidateId === selectedCandidate.id && (
+                      <span className="inline-block w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin"></span>
+                    )}
+                    Rejeitar
+                  </button>
+                  <button
+                    onClick={() => handleApproveCandidate(selectedCandidate.id)}
+                    disabled={approvingCandidateId === selectedCandidate.id}
+                    className="px-6 py-2 bg-green-500/20 hover:bg-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-green-400 font-semibold rounded-lg border border-green-500/50 transition-colors flex items-center gap-2"
+                  >
+                    {approvingCandidateId === selectedCandidate.id && (
+                      <span className="inline-block w-4 h-4 border-2 border-green-400/30 border-t-green-400 rounded-full animate-spin"></span>
+                    )}
+                    Aprovar e Publicar
+                  </button>
+                </div>
               </div>
             </div>
           </div>

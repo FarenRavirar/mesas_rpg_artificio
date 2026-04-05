@@ -337,6 +337,7 @@ router.patch('/candidates/:id/undo-rejection', authMiddleware, requireRole('admi
 // Aprova um candidato e cria uma mesa a partir dele
 router.post('/candidates/:id/approve', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
   const { id } = req.params;
+  const userId = (req as any).user.userId;
 
   if (!id) {
     return res.status(400).json({ error: 'ID do candidato é obrigatório.' });
@@ -344,6 +345,17 @@ router.post('/candidates/:id/approve', authMiddleware, requireRole('admin'), asy
 
   try {
     const { db } = await import('../db');
+    
+    // CORREÇÃO DT-02: Buscar gm_profile do admin que está aprovando
+    const adminGmProfile = await db
+      .selectFrom('gm_profiles')
+      .select(['id'])
+      .where('user_id', '=', userId)
+      .executeTakeFirst();
+
+    if (!adminGmProfile) {
+      return res.status(403).json({ error: 'Admin precisa ter perfil de mestre para aprovar candidatos.' });
+    }
     
     // Buscar candidato
     const candidate = await db
@@ -366,61 +378,202 @@ router.post('/candidates/:id/approve', authMiddleware, requireRole('admin'), asy
     // Extrair dados do parsed_json
     const parsedData = candidate.parsed_json as any;
     
-    // Criar mesa usando os mesmos campos que POST /api/v1/gm/tables
-    const tableData: any = {
-      title: parsedData.title || 'Mesa Importada',
-      description: parsedData.description || parsedData.synopsis_narrative || '',
-      type: parsedData.type || 'oneshot',
-      modality: parsedData.modality || 'online',
-      system_id: parsedData.system_id || null,
-      price_type: parsedData.price_type || 'free',
-      slots_total: parsedData.slots_total ? Number(parsedData.slots_total) : null,
-      language: parsedData.language || 'pt-BR',
-      publisher_role: 'gm',
-      origin: 'imported',
-      gm_id: req.user!.userId,
-      status: 'active',
-      synopsis_narrative: parsedData.synopsis_narrative || null,
-      benefits_text: parsedData.benefits_text || null,
-      gm_bio: parsedData.gm_bio || null,
-      setting_name: parsedData.setting_name || null,
-      setting_styles: parsedData.setting_styles || null,
-      rules_notes: parsedData.rules_notes || null,
-      banner_url: parsedData.banner_url || null,
-      is_covil: parsedData.is_covil || false,
-      starts_at: parsedData.starts_at || null,
-      frequency: parsedData.frequency || null,
-      city: parsedData.city || null,
-      state: parsedData.state || null,
-    };
+    // CORREÇÃO DT-09: Merge de overrides editados pelo admin (req.body tem prioridade)
+    const overrides = req.body || {};
+    const mergedData = { ...parsedData, ...overrides };
+    
+    console.log('[POST /aggregator/candidates/:id/approve] Overrides recebidos:', {
+      hasOverrides: Object.keys(overrides).length > 0,
+      overrideKeys: Object.keys(overrides),
+    });
+    
+    // CORREÇÃO DT-04: Validar campos obrigatórios
+    if (!mergedData.title || !mergedData.title.trim()) {
+      return res.status(400).json({ error: 'Candidato sem título válido. Não pode ser aprovado.' });
+    }
 
-    // Inserir mesa
-    const insertedTable = await db
-      .insertInto('tables')
-      .values(tableData)
-      .returningAll()
-      .executeTakeFirstOrThrow();
+    // CORREÇÃO DT-07: Validar description com fallback seguro
+    const description = mergedData.description || mergedData.synopsis_narrative || mergedData.synopsis || '';
+    if (!description.trim()) {
+      return res.status(400).json({ error: 'Candidato sem descrição válida. Não pode ser aprovado.' });
+    }
 
-    // Atualizar candidato
-    await db
-      .updateTable('aggregator_import_candidates')
-      .set({
-        editorial_status: 'accepted',
-        published_table_id: insertedTable.id,
-        updated_at: new Date(),
-      })
-      .where('id', '=', id)
-      .executeTakeFirst();
+    // CORREÇÃO DT-03: Mapear price_type corretamente
+    let priceType = 'gratuita';
+    if (mergedData.price_type === 'paga' || mergedData.price_type === 'paid') {
+      priceType = 'paga';
+    } else if (mergedData.isPaid === true) {
+      priceType = 'paga';
+    }
+
+    // CORREÇÃO DT-05: Buscar scenario_id se setting_name existir
+    let scenarioId: string | null = null;
+    if (mergedData.setting_name && typeof mergedData.setting_name === 'string') {
+      const scenario = await db
+        .selectFrom('scenarios')
+        .select(['id'])
+        .where('name', 'ilike', mergedData.setting_name.trim())
+        .executeTakeFirst();
+      
+      if (scenario) {
+        scenarioId = scenario.id;
+      }
+    }
+
+    // CORREÇÃO DT-06: Log estruturado antes de criar mesa
+    console.log('[POST /aggregator/candidates/:id/approve] Criando mesa:', {
+      candidateId: id,
+      title: mergedData.title,
+      hasContacts: !!mergedData.contacts,
+      hasSchedules: !!mergedData.schedules,
+      priceType,
+      scenarioId,
+      adminGmProfileId: adminGmProfile.id,
+    });
+
+    // Criar mesa em transação
+    const result = await db.transaction().execute(async (trx) => {
+      // CORREÇÃO DT-01, DT-12, DT-13, DT-14: Persistir TODOS os campos extraídos
+      const tableData: any = {
+        title: mergedData.title.trim(),
+        description: description.trim(),
+        type: mergedData.type || 'oneshot',
+        modality: mergedData.modality || 'online',
+        system_id: mergedData.system_id || null,
+        scenario_id: scenarioId,
+        price_type: priceType,
+        slots_total: mergedData.slots_total ? Number(mergedData.slots_total) : 4,
+        language: mergedData.language || 'Português',
+        // CORREÇÃO DT-15: publisher_role correto para importados
+        publisher_role: 'announcer',
+        actual_gm_name: mergedData.actual_gm_name || mergedData.masterText || mergedData.recruiterName || 'Não informado',
+        origin: 'imported',
+        gm_id: adminGmProfile.id,
+        status: 'active',
+        // Campos editoriais (REQ-28)
+        synopsis_narrative: mergedData.synopsis_narrative || null,
+        benefits_text: mergedData.benefits_text || null,
+        gm_bio: mergedData.gm_bio || null,
+        // Cenário e estilos (REQ-28)
+        setting_name: mergedData.setting_name || null,
+        setting_styles: Array.isArray(mergedData.setting_styles) ? mergedData.setting_styles : null,
+        // Campos básicos
+        rules_notes: mergedData.rules_notes || null,
+        banner_url: mergedData.banner_url || null,
+        is_covil: mergedData.is_covil || false,
+        starts_at: mergedData.starts_at ? new Date(mergedData.starts_at) : null,
+        // CORREÇÃO DT-13: Persistir frequency
+        frequency: mergedData.frequency || null,
+        frequency_custom: mergedData.frequency_custom || null,
+        city: mergedData.city || null,
+        state: mergedData.state || null,
+        // CORREÇÃO DT-14: Campos avançados (REQ-26)
+        master_display_name: mergedData.master_display_name || null,
+        campaign_length: mergedData.campaign_length || null,
+        level_range: mergedData.level_range || null,
+        billing_text: mergedData.billing_text || mergedData.priceText || null,
+        session_zero_free: mergedData.session_zero_free || false,
+        synopsis: mergedData.synopsis || null,
+        style_text: mergedData.style_text || null,
+        listing_excerpt: mergedData.listing_excerpt || null,
+        technical_requirements: mergedData.technical_requirements || null,
+        // CORREÇÃO DT-12: Requisitos técnicos
+        requires_pc: mergedData.requires_pc || false,
+        requires_camera: mergedData.requires_camera || false,
+        requires_microphone: mergedData.requires_microphone || false,
+      };
+
+      const insertedTable = await trx
+        .insertInto('tables')
+        .values(tableData)
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      // CORREÇÃO DT-01: Persistir contacts
+      if (mergedData.contacts && Array.isArray(mergedData.contacts) && mergedData.contacts.length > 0) {
+        await trx
+          .insertInto('table_contacts')
+          .values(
+            mergedData.contacts.map((contact: any, index: number) => ({
+              table_id: insertedTable.id,
+              channel: contact.channel || 'outros',
+              value: contact.value || '',
+              label: contact.label || null,
+              discord_server_url: contact.extra_url || contact.discord_server_url || null,
+              sort_order: index,
+            }))
+          )
+          .execute();
+      }
+
+      // CORREÇÃO DT-01: Persistir schedules
+      if (mergedData.schedules && Array.isArray(mergedData.schedules) && mergedData.schedules.length > 0) {
+        await trx
+          .insertInto('table_schedules')
+          .values(
+            mergedData.schedules.map((schedule: any, index: number) => ({
+              table_id: insertedTable.id,
+              day_of_week: schedule.day_of_week,
+              start_time: schedule.start_time,
+              end_time: schedule.end_time || null,
+              frequency: schedule.frequency || 'semanal',
+              slots_per_session: schedule.slots_per_session || null,
+              is_ongoing: schedule.is_ongoing ?? false,
+              notes: schedule.notes || null,
+              sort_order: index,
+            }))
+          )
+          .execute();
+      }
+
+      // Atualizar candidato
+      await trx
+        .updateTable('aggregator_import_candidates')
+        .set({
+          editorial_status: 'accepted',
+          published_table_id: insertedTable.id,
+          updated_at: new Date(),
+        })
+        .where('id', '=', id)
+        .executeTakeFirst();
+
+      return insertedTable;
+    });
+
+    // CORREÇÃO DT-06: Log estruturado de sucesso
+    console.log('[POST /aggregator/candidates/:id/approve] Mesa criada com sucesso:', {
+      tableId: result.id,
+      slug: result.slug,
+      candidateId: id,
+    });
 
     return res.status(201).json({ 
       data: { 
         message: 'Candidato aprovado e mesa criada com sucesso.',
-        tableId: insertedTable.id,
-        slug: insertedTable.slug
+        tableId: result.id,
+        slug: result.slug
       } 
     });
   } catch (error: any) {
-    console.error('[POST /aggregator/candidates/:id/approve]', error);
+    // CORREÇÃO DT-06: Log estruturado de erro
+    console.error('[POST /aggregator/candidates/:id/approve] Erro ao aprovar candidato:', {
+      candidateId: id,
+      errorMessage: error.message,
+      errorCode: error.code,
+      errorDetail: error.detail,
+      errorConstraint: error.constraint,
+      stack: error.stack,
+    });
+    
+    // Retornar erro específico quando possível
+    if (error.code === '23502') {
+      return res.status(400).json({ error: `Campo obrigatório ausente: ${error.column || 'desconhecido'}` });
+    }
+    
+    if (error.code === '23503') {
+      return res.status(400).json({ error: `Referência inválida: ${error.detail || 'verifique system_id ou scenario_id'}` });
+    }
+    
     return res.status(500).json({ error: 'Erro ao aprovar candidato: ' + error.message });
   }
 });

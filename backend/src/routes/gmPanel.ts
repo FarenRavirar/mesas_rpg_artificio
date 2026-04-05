@@ -1086,6 +1086,81 @@ router.patch('/tables/:id/status', authMiddleware, async (req: Request, res: Res
   }
 });
 
+
+
+// DELETE /api/v1/gm/tables/:id — Deleta mesa própria
+router.delete('/tables/:id', authMiddleware, async (req: Request, res: Response) => {
+  const userId = (req as any).user.userId;
+  const { id } = req.params;
+
+  try {
+    const gmProfile = await db
+      .selectFrom('gm_profiles')
+      .select('id')
+      .where('user_id', '=', userId)
+      .executeTakeFirst();
+
+    if (!gmProfile) {
+      return res.status(403).json({ error: 'Perfil de mestre não encontrado.' });
+    }
+
+    // Verificar se mesa existe e pertence ao GM
+    const existingTable = await db
+      .selectFrom('tables')
+      .select(['id', 'title', 'gm_id', 'origin'])
+      .where('id', '=', id)
+      .where('gm_id', '=', gmProfile.id)
+      .executeTakeFirst();
+
+    if (!existingTable) {
+      return res.status(404).json({ error: 'Mesa não encontrada ou sem permissão.' });
+    }
+
+    // Deletar em transação (schedules, contacts, candidate reference, depois table)
+    await db.transaction().execute(async (trx) => {
+      // CORREÇÃO DT-08: Limpar published_table_id do candidato original se mesa for importada
+      if (existingTable.origin === 'imported') {
+        await trx
+          .updateTable('aggregator_import_candidates')
+          .set({ 
+            published_table_id: null,
+            editorial_status: 'awaiting_review',
+            updated_at: new Date(),
+          })
+          .where('published_table_id', '=', id)
+          .execute();
+      }
+
+      // Deletar schedules
+      await trx
+        .deleteFrom('table_schedules')
+        .where('table_id', '=', id)
+        .execute();
+
+      // Deletar contatos
+      await trx
+        .deleteFrom('table_contacts')
+        .where('table_id', '=', id)
+        .execute();
+
+      // Deletar mesa
+      await trx
+        .deleteFrom('tables')
+        .where('id', '=', id)
+        .execute();
+    });
+
+    return res.json({ 
+      data: { 
+        message: `Mesa "${existingTable.title}" deletada com sucesso.` 
+      } 
+    });
+  } catch (error: any) {
+    console.error('[DELETE /gm/tables/:id]', error);
+    return res.status(500).json({ error: 'Erro ao deletar mesa.' });
+  }
+});
+
 // =============================================================================
 // ROTAS ADMINISTRATIVAS (CRUD)
 // =============================================================================

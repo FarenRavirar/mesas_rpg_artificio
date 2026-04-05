@@ -477,7 +477,7 @@ export const MesaPage = () => {
               </div>
             )}
 
-            {table.gm_slug && (
+            {table.gm_slug && table.origin !== 'imported' && (
               <Link
                 to={`/mestre/${table.gm_slug}`}
                 id="mesa-link-mestre"
