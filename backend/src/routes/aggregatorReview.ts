@@ -36,7 +36,7 @@ router.get('/candidates', async (req: Request, res: Response) => {
   }
 
   const page = asPositiveInt(req.query.page, 1);
-  const limit = asPositiveInt(req.query.limit, 20);
+  const limit = asPositiveInt(req.query.limit, 1000);
 
   try {
     const result = await candidateService.list({

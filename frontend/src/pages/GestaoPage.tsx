@@ -574,8 +574,8 @@ export const GestaoPage = () => {
     if (!confirm('Aprovar este candidato e criar mesa?')) return;
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/aggregator/candidates/${id}/accept`, {
-        method: 'PATCH',
+      const response = await fetch(`${API_BASE}/api/v1/aggregator/candidates/${id}/approve`, {
+        method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
 
