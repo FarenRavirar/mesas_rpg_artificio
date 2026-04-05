@@ -126,4 +126,26 @@ router.patch('/candidates/:id/review', async (req: Request, res: Response) => {
   }
 });
 
+// PUT /api/v1/aggregator/candidates/:id — Editar parsed_json do candidato
+router.put('/candidates/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { parsed_json } = req.body;
+
+  if (!parsed_json || typeof parsed_json !== 'object') {
+    return res.status(400).json({ error: 'Campo parsed_json é obrigatório e deve ser um objeto.' });
+  }
+
+  try {
+    const updated = await candidateService.update(id, parsed_json as Record<string, unknown>);
+    if (!updated) {
+      return res.status(404).json({ error: 'Candidato não encontrado.' });
+    }
+
+    return res.json({ data: updated });
+  } catch (error: any) {
+    console.error('[PUT /aggregator/candidates/:id]', error);
+    return res.status(500).json({ error: 'Erro ao atualizar candidato.' });
+  }
+});
+
 export default router;

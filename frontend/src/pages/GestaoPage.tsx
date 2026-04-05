@@ -19,12 +19,25 @@ interface SystemSuggestion {
   reviewed_by: string | null;
 }
 
+interface AggregatorCandidate {
+  id: string;
+  source_id: string | null;
+  editorial_status: 'accepted' | 'rejected' | 'awaiting_review';
+  parsed_json: Record<string, any>;
+  confidence_score: number;
+  rejection_reason: string | null;
+  created_at: string;
+}
+
 export const GestaoPage = () => {
   const { token, user } = useAuth();
   const navigate = useNavigate();
   const [suggestions, setSuggestions] = useState<SystemSuggestion[]>([]);
+  const [candidates, setCandidates] = useState<AggregatorCandidate[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
+  const [activeTab, setActiveTab] = useState<'systems' | 'tables'>('systems');
+  const [selectedCandidate, setSelectedCandidate] = useState<AggregatorCandidate | null>(null);
 
   useEffect(() => {
     if (!user || user.role !== 'admin') {
@@ -32,8 +45,12 @@ export const GestaoPage = () => {
       return;
     }
 
-    fetchSuggestions();
-  }, [user, navigate, filter]);
+    if (activeTab === 'systems') {
+      fetchSuggestions();
+    } else {
+      fetchCandidates();
+    }
+  }, [user, navigate, filter, activeTab]);
 
   const fetchSuggestions = async () => {
     if (!token) return;
@@ -109,6 +126,77 @@ export const GestaoPage = () => {
     }
   };
 
+  const fetchCandidates = async () => {
+    if (!token) return;
+
+    setLoading(true);
+    try {
+      const status = filter === 'all' ? '' : `?editorial_status=${filter === 'pending' ? 'awaiting_review' : filter}`;
+      const response = await fetch(`${API_BASE}/api/v1/aggregator/candidates${status}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCandidates(data.data || []);
+      }
+    } catch (error) {
+      console.error('[GestaoPage] Erro ao buscar candidatos:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApproveCandidate = async (id: string) => {
+    if (!token) return;
+    if (!confirm('Aprovar este candidato e criar mesa?')) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/aggregator/candidates/${id}/accept`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        alert('Candidato aprovado! Mesa criada com sucesso.');
+        fetchCandidates();
+      } else {
+        const data = await response.json();
+        alert(`Erro: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('[GestaoPage] Erro ao aprovar candidato:', error);
+      alert('Erro ao aprovar candidato');
+    }
+  };
+
+  const handleRejectCandidate = async (id: string) => {
+    const reason = prompt('Motivo da rejeição:');
+    if (!reason || !token) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/aggregator/candidates/${id}/reject`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ reason }),
+      });
+
+      if (response.ok) {
+        alert('Candidato rejeitado!');
+        fetchCandidates();
+      } else {
+        const data = await response.json();
+        alert(`Erro: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('[GestaoPage] Erro ao rejeitar candidato:', error);
+      alert('Erro ao rejeitar candidato');
+    }
+  };
+
   if (!user || user.role !== 'admin') {
     return null;
   }
@@ -138,10 +226,36 @@ export const GestaoPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0F1A2E] via-[#1B2A4A] to-[#0F1A2E] py-8">
       <div className="container mx-auto px-6 max-w-6xl">
-        <h1 className="text-3xl font-bold text-white mb-2">Gestão de Sugestões de Sistemas</h1>
-        <p className="text-white/60 mb-8">Aprove ou rejeite sugestões enviadas pela comunidade</p>
+        <h1 className="text-3xl font-bold text-white mb-2">Gestão Administrativa</h1>
+        <p className="text-white/60 mb-8">Aprove ou rejeite conteúdo enviado pela comunidade</p>
 
-        <div className="flex flex-wrap gap-3 mb-8">
+        {/* Abas de navegação */}
+        <div className="flex gap-3 mb-6 border-b border-white/10">
+          <button
+            onClick={() => setActiveTab('systems')}
+            className={`px-6 py-3 font-semibold transition-all ${
+              activeTab === 'systems'
+                ? 'text-white border-b-2 border-blue-500'
+                : 'text-white/60 hover:text-white/80'
+            }`}
+          >
+            Sugestões de Sistemas
+          </button>
+          <button
+            onClick={() => setActiveTab('tables')}
+            className={`px-6 py-3 font-semibold transition-all ${
+              activeTab === 'tables'
+                ? 'text-white border-b-2 border-blue-500'
+                : 'text-white/60 hover:text-white/80'
+            }`}
+          >
+            Mesas Importadas
+          </button>
+        </div>
+
+        {activeTab === 'systems' && (
+          <>
+            <div className="flex flex-wrap gap-3 mb-8">
           <button
             onClick={() => setFilter('pending')}
             className={`px-4 py-2 rounded-lg font-semibold transition-all ${
@@ -249,6 +363,203 @@ export const GestaoPage = () => {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+          </>
+        )}
+
+        {activeTab === 'tables' && (
+          <>
+            <div className="flex flex-wrap gap-3 mb-8">
+              <button
+                onClick={() => setFilter('pending')}
+                className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                  filter === 'pending'
+                    ? 'bg-yellow-500/20 text-yellow-400 border-2 border-yellow-500/50'
+                    : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10'
+                }`}
+              >
+                Pendentes
+              </button>
+              <button
+                onClick={() => setFilter('approved')}
+                className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                  filter === 'approved'
+                    ? 'bg-green-500/20 text-green-400 border-2 border-green-500/50'
+                    : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10'
+                }`}
+              >
+                Aprovadas
+              </button>
+              <button
+                onClick={() => setFilter('rejected')}
+                className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                  filter === 'rejected'
+                    ? 'bg-red-500/20 text-red-400 border-2 border-red-500/50'
+                    : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10'
+                }`}
+              >
+                Rejeitadas
+              </button>
+              <button
+                onClick={() => setFilter('all')}
+                className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                  filter === 'all'
+                    ? 'bg-blue-500/20 text-blue-400 border-2 border-blue-500/50'
+                    : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10'
+                }`}
+              >
+                Todas
+              </button>
+            </div>
+
+            {loading ? (
+              <div className="text-center py-12 text-white/50">Carregando...</div>
+            ) : candidates.length === 0 ? (
+              <div className="bg-[#1B2A4A]/50 border border-white/10 rounded-lg p-12 text-center">
+                <p className="text-white/50">Nenhum candidato encontrado</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {candidates.map((candidate) => {
+                  const parsed = candidate.parsed_json || {};
+                  const title = parsed.title || 'Sem título';
+                  const system = parsed.system || 'Sistema não identificado';
+                  const masterText = parsed.masterText || parsed.recruiterName || 'Não informado';
+                  const confidence = Math.round((candidate.confidence_score || 0) * 100);
+
+                  return (
+                    <div
+                      key={candidate.id}
+                      className="bg-[#1B2A4A]/50 border border-white/10 rounded-lg p-6 hover:border-white/20 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
+                          
+                          <div className="flex flex-wrap items-center gap-4 text-sm text-white/60 mb-3">
+                            <span><strong>Sistema:</strong> {system}</span>
+                            <span><strong>Mestre:</strong> {masterText}</span>
+                            <span><strong>Confiança:</strong> <span className={confidence >= 70 ? 'text-green-400' : 'text-yellow-400'}>{confidence}%</span></span>
+                          </div>
+
+                          {parsed.synopsis && (
+                            <p className="text-white/80 mb-3 line-clamp-2">{parsed.synopsis}</p>
+                          )}
+
+                          {candidate.rejection_reason && (
+                            <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-3">
+                              <p className="text-red-400 text-sm">
+                                <strong>Motivo da rejeição:</strong> {candidate.rejection_reason}
+                              </p>
+                            </div>
+                          )}
+
+                          <div className="text-xs text-white/40">
+                            Importado em: {new Date(candidate.created_at).toLocaleString('pt-BR')}
+                          </div>
+                        </div>
+
+                        {candidate.editorial_status === 'awaiting_review' && (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setSelectedCandidate(candidate)}
+                              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-colors"
+                            >
+                              Revisar
+                            </button>
+                            <button
+                              onClick={() => handleApproveCandidate(candidate.id)}
+                              className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg transition-colors"
+                            >
+                              Aprovar
+                            </button>
+                            <button
+                              onClick={() => handleRejectCandidate(candidate.id)}
+                              className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-colors"
+                            >
+                              Rejeitar
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Modal de Revisão */}
+        {selectedCandidate && (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-6">
+            <div className="bg-[#1B2A4A] border border-white/20 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-[#1B2A4A] border-b border-white/10 p-6 flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-white">Revisar Candidato</h2>
+                <button
+                  onClick={() => setSelectedCandidate(null)}
+                  className="text-white/60 hover:text-white text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6">
+                {/* Informações Principais */}
+                <div>
+                  <h3 className="text-lg font-bold text-white mb-3">Informações Extraídas</h3>
+                  <div className="bg-[#0F1A2E] border border-white/10 rounded-lg p-4 space-y-2">
+                    <div><strong className="text-white/80">Título:</strong> <span className="text-white">{selectedCandidate.parsed_json.title || 'Não informado'}</span></div>
+                    <div><strong className="text-white/80">Sistema:</strong> <span className="text-white">{selectedCandidate.parsed_json.system || 'Não identificado'}</span></div>
+                    <div><strong className="text-white/80">Mestre:</strong> <span className="text-white">{selectedCandidate.parsed_json.masterText || selectedCandidate.parsed_json.recruiterName || 'Não informado'}</span></div>
+                    <div><strong className="text-white/80">Confiança:</strong> <span className="text-white">{Math.round((selectedCandidate.confidence_score || 0) * 100)}%</span></div>
+                    {selectedCandidate.parsed_json.synopsis && (
+                      <div><strong className="text-white/80">Sinopse:</strong> <span className="text-white">{selectedCandidate.parsed_json.synopsis}</span></div>
+                    )}
+                    {selectedCandidate.parsed_json.signupText && (
+                      <div><strong className="text-white/80">Contato:</strong> <span className="text-white">{selectedCandidate.parsed_json.signupText}</span></div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Dados Brutos */}
+                <div>
+                  <h3 className="text-lg font-bold text-white mb-3">Dados Brutos (JSON)</h3>
+                  <pre className="bg-[#0F1A2E] border border-white/10 rounded-lg p-4 text-xs text-white/80 overflow-x-auto">
+                    {JSON.stringify(selectedCandidate.parsed_json, null, 2)}
+                  </pre>
+                </div>
+
+                {/* Ações */}
+                <div className="flex gap-3 justify-end pt-4 border-t border-white/10">
+                  <button
+                    onClick={() => setSelectedCandidate(null)}
+                    className="px-6 py-2 bg-white/5 hover:bg-white/10 text-white font-semibold rounded-lg transition-colors"
+                  >
+                    Fechar
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleRejectCandidate(selectedCandidate.id);
+                      setSelectedCandidate(null);
+                    }}
+                    className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-colors"
+                  >
+                    Rejeitar
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleApproveCandidate(selectedCandidate.id);
+                      setSelectedCandidate(null);
+                    }}
+                    className="px-6 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg transition-colors"
+                  >
+                    Aprovar e Publicar
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

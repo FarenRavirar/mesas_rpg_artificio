@@ -297,6 +297,10 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
     ddal_org_code,
     ddal_setting,
     ddal_rules_notes,
+    frequency,
+    frequency_custom,
+    rules_notes,
+    banner_url,
   } = req.body;
 
   if (!title || !type || !modality) {
@@ -318,6 +322,17 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
   if (safePublisherRole === 'announcer' && !safeActualGmName) {
     return res.status(400).json({ error: 'Quando for anunciante, informe o nome do mestre real.' });
   }
+
+  // Validação de frequência
+  const safeFrequency = frequency && ['semanal', 'quinzenal', 'mensal', 'outros'].includes(frequency) ? frequency : null;
+  const safeFrequencyCustom = sanitizeOptionalText(frequency_custom);
+  
+  if (safeFrequency === 'outros' && !safeFrequencyCustom) {
+    return res.status(400).json({ error: 'Quando frequência for "Outros", informe a descrição customizada.' });
+  }
+
+  const safeRulesNotes = sanitizeOptionalText(rules_notes);
+  const safeBannerUrl = sanitizeOptionalText(banner_url);
 
   const safeIsDdal = parseOptionalBoolean(is_ddal) ?? false;
   const safeDdalCode = sanitizeOptionalText(ddal_code);
@@ -406,6 +421,10 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
           ddal_org_code: safeIsDdal ? safeDdalOrgCode : null,
           ddal_setting: safeIsDdal ? safeDdalSetting : null,
           ddal_rules_notes: safeIsDdal ? safeDdalRulesNotes : null,
+          frequency: safeFrequency,
+          frequency_custom: safeFrequency === 'outros' ? safeFrequencyCustom : null,
+          rules_notes: safeRulesNotes,
+          banner_url: safeBannerUrl,
           status: 'active',
         })
         .returning([

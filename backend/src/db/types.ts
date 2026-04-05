@@ -161,6 +161,10 @@ export interface TablesTable {
   ddal_org_code: string | null;
   ddal_setting: string | null;
   ddal_rules_notes: string | null;
+  frequency: 'semanal' | 'quinzenal' | 'mensal' | 'outros' | null;
+  frequency_custom: string | null;
+  rules_notes: string | null;
+  banner_url: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }

@@ -40,9 +40,50 @@ export const candidateService = {
     if (!candidate) return null;
 
     const parsedJson = candidate.parsed_json as Record<string, unknown> | null;
-    const rawTitle = typeof parsedJson?.title === 'string' ? parsedJson.title.trim() : '';
-    const title = rawTitle || 'Anúncio importado';
+    if (!parsedJson) {
+      throw new Error('Candidato sem parsed_json válido');
+    }
 
+    // Extrair campos do parsed_json
+    const rawTitle = typeof parsedJson.title === 'string' ? parsedJson.title.trim() : '';
+    const title = rawTitle || 'Anúncio importado';
+    const description = typeof parsedJson.synopsis === 'string' ? parsedJson.synopsis.trim() : null;
+    const masterText = typeof parsedJson.masterText === 'string' ? parsedJson.masterText.trim() : null;
+    const recruiterName = typeof parsedJson.recruiterName === 'string' ? parsedJson.recruiterName.trim() : null;
+    const signupText = typeof parsedJson.signupText === 'string' ? parsedJson.signupText.trim() : null;
+
+    // Validar contatos obrigatórios
+    if (!signupText) {
+      throw new Error('Candidato sem informação de contato. Edite o candidato e adicione ao menos um canal de contato antes de aprovar.');
+    }
+
+    // Buscar user genérico mestre_externo
+    const externalUser = await db
+      .selectFrom('users')
+      .select('id')
+      .where('google_id', '=', 'external_gm_system')
+      .executeTakeFirst();
+
+    if (!externalUser) {
+      throw new Error('User genérico mestre_externo não encontrado. Execute migration_08_external_gm.sql');
+    }
+
+    // Criar GM Profile temporário
+    const gmNickname = masterText || recruiterName || 'Mestre Externo';
+    const gmSlug = `importado-${Date.now().toString(36)}`;
+
+    const [gmProfile] = await db
+      .insertInto('gm_profiles')
+      .values({
+        user_id: externalUser.id,
+        slug: gmSlug,
+        nickname: gmNickname,
+        bio_long: `Perfil temporário para mesa importada. Mestre: ${gmNickname}`,
+      })
+      .returning(['id', 'slug'])
+      .execute();
+
+    // Gerar slug da mesa
     const baseSlug = title
       .toLowerCase()
       .normalize('NFD')
@@ -51,29 +92,47 @@ export const candidateService = {
       .trim()
       .replace(/\s+/g, '-')
       .substring(0, 80);
-    const slug = `${baseSlug}-${Date.now().toString(36)}`;
+    const tableSlug = `${baseSlug}-${Date.now().toString(36)}`;
 
-    const newTable = await db
-      .insertInto('tables')
-      .values({
-        slug,
-        gm_id: null,
-        origin: 'imported',
-        source_id: candidate.source_id ?? null,
-        title,
-        status: 'active',
-        type: 'campanha',
-        modality: 'online',
-        price_type: 'gratuita',
-      })
-      .returning(['id', 'slug', 'title', 'origin', 'source_id', 'created_at'])
-      .executeTakeFirstOrThrow();
+    // Criar mesa com transação
+    const result = await db.transaction().execute(async (trx) => {
+      const [newTable] = await trx
+        .insertInto('tables')
+        .values({
+          slug: tableSlug,
+          gm_id: gmProfile.id,
+          origin: 'imported',
+          source_id: candidate.source_id ?? null,
+          title,
+          description,
+          status: 'active',
+          type: 'campanha',
+          modality: 'online',
+          price_type: parsedJson.isPaid === true ? 'paga' : 'gratuita',
+        })
+        .returning(['id', 'slug', 'title', 'origin', 'source_id', 'created_at'])
+        .execute();
+
+      // Criar contato básico com signupText
+      await trx
+        .insertInto('table_contacts')
+        .values({
+          table_id: newTable.id,
+          channel: 'discord',
+          value: signupText,
+          label: 'Contato para inscrição',
+          sort_order: 0,
+        })
+        .execute();
+
+      return newTable;
+    });
 
     return updateAggregatorCandidateEditorialStatus(candidateId, {
       editorialStatus: 'accepted',
       rejectionReason: null,
       publishAt: new Date(),
-      publishedTableId: newTable.id,
+      publishedTableId: result.id,
     });
   },
 
@@ -93,5 +152,22 @@ export const candidateService = {
       publishAt: null,
       publishedTableId: null,
     });
+  },
+
+  async update(candidateId: string, updatedParsedJson: Record<string, unknown>) {
+    const candidate = await getAggregatorCandidateById(candidateId);
+    if (!candidate) return null;
+
+    // Atualizar parsed_json do candidato
+    await db
+      .updateTable('aggregator_import_candidates')
+      .set({
+        parsed_json: updatedParsedJson,
+        updated_at: new Date(),
+      })
+      .where('id', '=', candidateId)
+      .execute();
+
+    return getAggregatorCandidateById(candidateId);
   },
 };
