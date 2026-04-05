@@ -43,11 +43,13 @@ Use para localizar o erro sem varrer a tabela inteira:
 | Docker / Containers / Rede | E038, E039, E057 |
 | Git / Versionamento | E036, E071, E072, E101 |
 | TypeScript / Frontend / Build | E041, E042, E046, E067, E074 |
+| React / Frontend / Performance | E104 |
 | Banco de Dados / SQL / PostgreSQL | E043, E049, E054, E059, E064, E065, E068, E075, E086, E088 |
 | Ferramentas automatizadas / Agentes | E045, E050, E051, E052, E053, E058, E060, E061, E062, E063, E066, E070, E073, E076, E085, E091, E094, E095, E096, E097, E099, E100 |
 | PowerShell — comandos Unix inexistentes / software externo | E085, E094 |
 | Backend / API Node.js | E078, E087, E089, E092, E093, E098 |
 | Imgur / Upload de Imagens | E079, E080, E081 |
+| Autenticação / Sessão | E103 |
 | AggregatorBot / CleanupWorker | E082, E083, E084 |
 | SSH / Conexão Remota | E102 |
 | Autenticação / Sessão | E103 |
@@ -201,5 +203,13 @@ Use para localizar o erro sem varrer a tabela inteira:
 | ID | Sintoma | Causa provável | Diagnóstico rápido | Solução validada | Prevenção |
 |---|---|---|---|---|---|
 | E103 | Usuários sendo deslogados inesperadamente durante o uso da aplicação | JWT expirando muito rápido (15 minutos padrão); validação agressiva com backend a cada navegação; reload forçado ao detectar mudança de token entre abas | Usuário relata logout após ~15 minutos de uso; logs do frontend mostram chamadas frequentes para `/api/v1/me`; `window.location.reload()` sendo chamado no storage listener | Aumentar `JWT_EXPIRES_IN` de `15m` para `7d` no `.env`; modificar `AuthContext.tsx` para validar com backend apenas se token expirar em < 5 minutos; remover `window.location.reload()` do storage listener e substituir por atualização de estado React. Ver `walkthrough.md` (04/04/2026) para detalhes completos | Usar `JWT_EXPIRES_IN=7d` como padrão para web apps; implementar validação inteligente que só chama backend quando necessário; sincronizar sessão entre abas via estado React em vez de reload |
+
+---
+
+## Categoria: React / Frontend / Performance
+
+| ID | Sintoma | Causa provável | Diagnóstico rápido | Solução validada | Prevenção |
+|---|---|---|---|---|---|
+| E104 | Loop infinito de re-renderização no console do navegador — stack trace mostra `setInterval` e chamadas repetidas `Dl/El` | `useEffect` com dependência em propriedade de objeto (`obj.prop`) que é modificado dentro do próprio `useEffect`, criando ciclo: `useEffect` → `setState` → novo objeto → `useEffect` → ... | Console do navegador mostra centenas/milhares de linhas repetindo `Dl @ index-XXX.js:8` e `El @ index-XXX.js:8`; página trava ou fica extremamente lenta; CPU em 100% | **Remover a propriedade do objeto das dependências do `useEffect`** e adicionar guard interno para evitar criação desnecessária de objeto. Exemplo: `useEffect(() => { if (!condition) { setState(prev => prev.prop ? {...prev, prop: false} : prev); } }, [condition])` em vez de `useEffect(() => { if (!condition && state.prop) { setState(prev => ({...prev, prop: false})); } }, [state.prop, condition])` | Nunca incluir propriedades de objetos (`obj.prop`) nas dependências de `useEffect` se o próprio `useEffect` modifica esse objeto; sempre adicionar guard `if (prev.prop !== newValue)` antes de criar novo objeto no `setState`; usar `useCallback` e `useMemo` para estabilizar referências de objetos |
 
 ---

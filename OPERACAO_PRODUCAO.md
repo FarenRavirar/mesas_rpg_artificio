@@ -413,3 +413,208 @@ git worktree list
 - Sem autorização explícita, não promover
 - Sem validação do beta, não promover
 - Sem consistência documental mínima, não promover
+
+---
+
+## 11. Heurísticas de Usabilidade (10 Heurísticas de Nielsen)
+
+> [!IMPORTANT]
+> **REGRA OBRIGATÓRIA:** Toda nova funcionalidade de interface deve respeitar as 10 heurísticas de usabilidade de Jakob Nielsen desde o design inicial. Interfaces que violam essas heurísticas devem ser rejeitadas ou corrigidas antes do merge.
+
+### 11.1 Visibilidade do Status do Sistema
+
+**Princípio:** O sistema deve sempre manter os usuários informados sobre o que está acontecendo, através de feedback apropriado em tempo razoável.
+
+**Aplicação prática:**
+- Indicadores de carregamento durante requisições assíncronas
+- Feedback visual ao salvar/publicar mesas (spinner, mensagem de sucesso)
+- Breadcrumbs ou indicador de posição no fluxo de onboarding
+- Status de aprovação/rejeição visível em sugestões de sistemas
+- Badge de contador em notificações não lidas
+
+**Exemplo negativo:** Botão "Publicar Mesa" que não mostra feedback enquanto processa, deixando o usuário sem saber se clicou corretamente.
+
+**Exemplo positivo:** Playlist do YouTube mostra qual vídeo está sendo reproduzido, quais já foram assistidos e quais vêm a seguir.
+
+---
+
+### 11.2 Compatibilidade entre o Sistema e o Mundo Real
+
+**Princípio:** O sistema deve falar a linguagem do usuário, com palavras, frases e conceitos familiares, ao invés de jargão técnico. Seguir convenções do mundo real, fazendo a informação aparecer em ordem natural e lógica.
+
+**Aplicação prática:**
+- Usar "Mestre" ao invés de "GM" ou "Dungeon Master" quando o contexto for brasileiro
+- Ícones reconhecíveis (lupa para busca, sino para notificações, engrenagem para configurações)
+- Linguagem natural em mensagens de erro ("Você precisa preencher o título da mesa" ao invés de "Campo 'title' é obrigatório")
+- Termos do universo RPG que a comunidade já conhece
+
+**Exemplo negativo:** Modal de revisão de candidatos mostrando JSON bruto ao invés de campos formatados.
+
+**Exemplo positivo:** Usar ícone de d20 para representar sistemas de RPG, megafone para "Apenas Anunciante".
+
+---
+
+### 11.3 Controle e Liberdade para o Usuário
+
+**Princípio:** Usuários frequentemente escolhem funções por engano e precisam de uma "saída de emergência" claramente marcada para sair do estado indesejado sem ter que passar por um diálogo extenso.
+
+**Aplicação prática:**
+- Botão "Cancelar" em todos os formulários
+- Confirmação antes de ações destrutivas (deletar mesa, rejeitar candidato)
+- Possibilidade de editar mesa após publicação
+- Desfazer ações quando possível (ex: restaurar mesa deletada da lixeira)
+- Fechar modais com ESC ou clicando fora
+
+**Exemplo negativo:** Formulário de criação de mesa sem botão "Cancelar", forçando o usuário a preencher ou fechar a aba.
+
+**Exemplo positivo:** Gmail permite recuperar e-mails deletados da lixeira.
+
+---
+
+### 11.4 Consistência e Padronização
+
+**Princípio:** Usuários não devem ter que se perguntar se palavras, situações ou ações diferentes significam a mesma coisa. Seguir convenções de plataforma.
+
+**Aplicação prática:**
+- Botões de ação primária sempre na mesma cor (ex: verde para aprovar, vermelho para rejeitar)
+- Layout consistente entre páginas (header, footer, navegação)
+- Padrão de formulários (labels, placeholders, validação)
+- Nomenclatura consistente ("Mesa" vs "Anúncio", escolher um e manter)
+- Ícones com significado consistente em toda a aplicação
+
+**Exemplo negativo:** Botão "Salvar" em uma página e "Confirmar" em outra para a mesma ação.
+
+**Exemplo positivo:** Material Design do Google mantém padrões visuais e de interação consistentes em todos os produtos.
+
+---
+
+### 11.5 Prevenção de Erros
+
+**Princípio:** Melhor do que boas mensagens de erro é um design cuidadoso que previne que o problema ocorra. Eliminar condições propensas a erro ou verificar e apresentar aos usuários uma opção de confirmação antes de se comprometerem com a ação.
+
+**Aplicação prática:**
+- Validação em tempo real de campos obrigatórios
+- Desabilitar botão "Publicar" até que todos os campos obrigatórios estejam preenchidos
+- Confirmação antes de deletar mesa ou rejeitar candidato
+- Limitar caracteres em campos com limite (ex: título com 100 caracteres)
+- Prevenir envio de formulário incompleto
+
+**Exemplo negativo:** Permitir publicar mesa sem contato, gerando erro apenas no backend.
+
+**Exemplo positivo:** Caixa de confirmação ao deletar arquivo no Windows.
+
+---
+
+### 11.6 Reconhecimento em Vez de Memorização
+
+**Princípio:** Minimizar a carga de memória do usuário tornando objetos, ações e opções visíveis. O usuário não deve ter que lembrar informações de uma parte do diálogo para outra. Instruções de uso do sistema devem estar visíveis ou facilmente recuperáveis quando apropriado.
+
+**Aplicação prática:**
+- Dropdown de sistemas ao invés de campo de texto livre
+- Autocomplete em campos de busca
+- Histórico de buscas recentes
+- Pré-preencher formulários com dados já conhecidos
+- Mostrar preview de imagem após upload
+
+**Exemplo negativo:** Exigir que o usuário lembre o slug exato do sistema para criar uma mesa.
+
+**Exemplo positivo:** Salvar arquivo no Excel mostra pastas recentes e sugestões de nome baseadas no conteúdo.
+
+---
+
+### 11.7 Eficiência e Flexibilidade de Uso
+
+**Princípio:** Aceleradores — invisíveis para usuários novatos — podem frequentemente acelerar a interação para usuários experientes, de modo que o sistema possa atender tanto usuários inexperientes quanto experientes.
+
+**Aplicação prática:**
+- Atalhos de teclado (Enter para enviar formulário, ESC para fechar modal)
+- Ações em lote (aprovar/rejeitar múltiplos candidatos)
+- Filtros avançados no catálogo para usuários experientes
+- Modo de edição rápida para mestres com muitas mesas
+- Botão "Aprovar" rápido vs "Revisar" detalhado para candidatos
+
+**Exemplo negativo:** Forçar admin a revisar cada candidato individualmente sem opção de aprovação em lote.
+
+**Exemplo positivo:** Alt+Tab, Ctrl+C/Ctrl+V, Windows+D são atalhos que aceleram tarefas comuns.
+
+---
+
+### 11.8 Estética e Design Minimalista
+
+**Princípio:** Diálogos não devem conter informação irrelevante ou raramente necessária. Cada unidade extra de informação em um diálogo compete com as unidades relevantes de informação e diminui sua visibilidade relativa.
+
+**Aplicação prática:**
+- Mostrar apenas campos essenciais no card de mesa do catálogo
+- Detalhes secundários em abas ou seções expansíveis
+- Evitar poluição visual com informações técnicas (IDs, timestamps internos)
+- Priorizar informação relevante para a decisão do usuário
+- Usar hierarquia visual (tamanho, cor, espaçamento)
+
+**Exemplo negativo:** Modal de revisão mostrando JSON bruto com todos os campos técnicos.
+
+**Exemplo positivo:** Medium mantém interface limpa focando no conteúdo, com controles secundários discretos.
+
+---
+
+### 11.9 Ajudar Usuários a Reconhecer, Diagnosticar e Recuperar-se de Erros
+
+**Princípio:** Mensagens de erro devem ser expressas em linguagem simples (sem códigos), indicar precisamente o problema e sugerir construtivamente uma solução.
+
+**Aplicação prática:**
+- Mensagens de erro claras e acionáveis ("Título da mesa é obrigatório" ao invés de "Erro 400")
+- Destacar campo com erro no formulário
+- Sugerir correção ("Você quis dizer 'D&D 5e'?")
+- Evitar jargão técnico em mensagens visíveis ao usuário
+- Mostrar motivo de rejeição de forma clara
+
+**Exemplo negativo:** Erro genérico "Falha ao criar mesa" sem indicar qual campo está incorreto.
+
+**Exemplo positivo:** Formulário de cadastro do Spotify destaca campos não preenchidos e explica o que está errado.
+
+---
+
+### 11.10 Ajuda e Documentação
+
+**Princípio:** Embora seja melhor que o sistema possa ser usado sem documentação, pode ser necessário fornecer ajuda e documentação. Qualquer informação deve ser fácil de buscar, focada na tarefa do usuário, listar passos concretos a serem realizados e não ser muito extensa.
+
+**Aplicação prática:**
+- Tooltips em campos complexos (ex: "O que é DDAL?")
+- Link "Saiba mais" em funcionalidades avançadas
+- FAQ acessível no footer
+- Mensagens de ajuda contextual (ex: "Primeira vez criando uma mesa? Veja nosso guia")
+- Documentação de API para desenvolvedores
+
+**Exemplo negativo:** Usuário não sabe o que é "publisher_role" e não há explicação disponível.
+
+**Exemplo positivo:** Aplicativos com seção "Ajuda" acessível, tutoriais interativos ou chatbot de suporte.
+
+---
+
+### 11.11 Checklist de Validação UX
+
+Ao implementar ou revisar uma funcionalidade, validar:
+
+- [ ] **H1 - Visibilidade:** Há feedback visual para todas as ações do usuário?
+- [ ] **H2 - Linguagem:** A interface usa termos familiares à comunidade RPG brasileira?
+- [ ] **H3 - Controle:** Usuário pode cancelar/desfazer ações facilmente?
+- [ ] **H4 - Consistência:** Padrões visuais e de interação são consistentes?
+- [ ] **H5 - Prevenção:** Erros comuns são prevenidos por design?
+- [ ] **H6 - Reconhecimento:** Usuário não precisa memorizar informações entre telas?
+- [ ] **H7 - Eficiência:** Há atalhos para usuários experientes?
+- [ ] **H8 - Minimalismo:** Apenas informação essencial está visível?
+- [ ] **H9 - Recuperação:** Mensagens de erro são claras e acionáveis?
+- [ ] **H10 - Ajuda:** Há documentação/ajuda contextual quando necessário?
+
+---
+
+### 11.12 Exemplos de Violações Identificadas (REQ-17)
+
+| Componente | Heurística Violada | Problema | Solução Proposta |
+|---|---|---|---|
+| Modal "Revisar Candidato" | H8 (Minimalismo), H6 (Reconhecimento) | Mostra JSON bruto inútil ao invés de formulário editável | Substituir por formulário de edição de mesa pré-preenchido |
+| Gestão de Mesas Importadas | H7 (Eficiência) | Falta botão "Rejeitar Todas" para ações em lote | Adicionar botão de rejeição em lote |
+| Gestão de Mesas Importadas | H6 (Reconhecimento) | Falta filtros de preço (Grátis/Pagas/Não Identificadas) | Adicionar filtros de preço com detecção automática |
+| Formulários em geral | H5 (Prevenção) | Validação apenas no backend, sem feedback em tempo real | Implementar validação client-side com feedback visual |
+
+**Nota:** Lista será expandida durante auditoria completa (REQ-17).
+

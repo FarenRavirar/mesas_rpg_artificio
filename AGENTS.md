@@ -2,6 +2,41 @@
 
 Governança de agentes de IA neste repositório.
 
+---
+
+## ⚠️ CHECKLIST OBRIGATÓRIA — LEIA ANTES DE QUALQUER AÇÃO
+
+> [!CAUTION]
+> **TODO AGENTE DEVE EXECUTAR ESTA CHECKLIST NO INÍCIO DE QUALQUER SESSÃO:**
+
+### 1️⃣ IMEDIATAMENTE ao iniciar sessão:
+- [ ] Criar arquivo de resumo em `/sessoes/resumo_[dia-mes]_[task-curta].md` (ver seção "Protocolo de Continuidade de Sessão" linha 123)
+- [ ] Ler `RESUMO_EXECUCAO.md` — estado atual do projeto e próxima ação
+- [ ] Ler este arquivo (`AGENTS.md`) completamente
+
+### 2️⃣ Antes de modificar código:
+- [ ] Consultar `AI_CONTEXT_INDEX.md` — escolher cenário e ler arquivo indicado
+- [ ] Ler seção específica de `ARQUITETURA_PROJETO.md` (NUNCA na íntegra)
+- [ ] Consultar `GIT_WORKFLOW.md` se envolver Git/branch/deploy
+
+### 3️⃣ Por situação específica:
+- [ ] **Erro encontrado?** → Consultar `ERRORS_SOLUTIONS.md` IMEDIATAMENTE (linha 87)
+- [ ] **Planejando feature?** → Consultar `TODO_OPERACIONAL.md`
+- [ ] **Executando lote?** → Consultar `FILA_IMPLEMENTACAO.md`
+- [ ] **Deploy/produção?** → Consultar `OPERACAO_PRODUCAO.md`
+- [ ] **Sessões anteriores?** → Consultar `/sessoes/` (resumos históricos)
+
+### 4️⃣ Durante execução:
+- [ ] Atualizar resumo da sessão conforme progride (marcar `[x]` nos itens)
+- [ ] Seguir as 10 Heurísticas de Nielsen em qualquer mudança de UI (linha 186)
+- [ ] NUNCA fazer `git commit` ou `git push` sem autorização explícita (linha 209)
+
+### 5️⃣ Ao final da sessão:
+- [ ] Garantir que resumo em `/sessoes/` está completo e atualizado
+- [ ] Atualizar documentos relevantes (TODO, FILA, ERRORS_SOLUTIONS, etc.)
+
+---
+
 ## Objetivo
 
 Arquivo bootstrap: define regras mínimas de execução e aponta as fontes canônicas do **Anúncios de Mesas RPG** (Portal Colaborativo Fullstack).
@@ -183,6 +218,7 @@ Se houver conflito entre orientação operacional e arquitetura, prevalece `ARQU
 - **Discord:** Quando implementado, será apenas vínculo opcional de perfil para contexto comunitário, selos e leitura autorizada de cargos públicos. Não deve substituir o Google OAuth como autenticação principal.
 - **Elevação de role:** Um `player` torna-se `gm` ao criar o primeiro `gm_profile`. Esta lógica é exclusiva do Backend. O Frontend não decide elevação de role.
 - **Compromissos públicos inegociáveis** (ver `ARQUITETURA_PROJETO.md` seção 10): gratuidade, sem anúncios e sem coleta desnecessária de dados são restrições de produto, não de preferência. Nenhuma feature pode violar esses compromissos.
+- **10 Heurísticas de Nielsen (UX obrigatória):** Toda nova funcionalidade de interface deve respeitar as 10 heurísticas de usabilidade de Jakob Nielsen desde o design inicial. Consultar documentação completa em `OPERACAO_PRODUCAO.md` seção "Heurísticas de Usabilidade". Ao propor ou implementar qualquer componente, modal, formulário ou fluxo de interação, validar contra as heurísticas: (1) Visibilidade do status, (2) Compatibilidade com mundo real, (3) Controle e liberdade, (4) Consistência, (5) Prevenção de erros, (6) Reconhecimento vs memorização, (7) Eficiência e flexibilidade, (8) Design minimalista, (9) Recuperação de erros, (10) Ajuda e documentação. Interfaces que violam essas heurísticas devem ser rejeitadas ou corrigidas antes do merge.
 
 ## Regra de idioma
 

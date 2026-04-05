@@ -160,6 +160,19 @@ Não é necessário em tarefas fora do modo lote.
 
 ---
 
+## Itens da fila — Lote: auditoria-ux-nielsen (REQ-17)
+
+| ID | Fase | Tipo | GUT | Titulo | Descrição objetiva | Arquivos esperados | Status | Observação |
+|---|---|---|---|---|---|---|---|---|
+| 039 | Fase 4 | frontend | 4/5/4 | Substituir modal "Revisar Candidato" por formulário editável | Remover modal inútil que mostra JSON bruto. Botão "Revisar" deve abrir formulário de edição de mesa (CreateTableForm) pré-preenchido com dados do candidato, permitindo correção e aprovação direta. Viola H8 (Minimalismo) e H6 (Reconhecimento). | `frontend/src/pages/GestaoPage.tsx`, `frontend/src/pages/PainelMestrePage.tsx`, `frontend/src/utils/candidateToFormData.ts` | em_validacao | **Implementado (05/04/2026):** Modal inútil removido, CreateTableForm exportado e integrado no modal de revisão com mapeamento automático de dados via `mapCandidateToFormData`. Build validado. **Aguardando validação em beta antes de marcar como concluído.** |
+| 040 | Fase 4 | frontend | 4/4/4 | Adicionar botão "Rejeitar Todas" em Mesas Importadas | Adicionar botão de rejeição em lote para candidatos pendentes na aba "Mesas Importadas". Visível apenas quando filtro = "Pendentes". Viola H7 (Eficiência). | `frontend/src/pages/GestaoPage.tsx` | pendente | Melhoria de eficiência para admin. |
+| 041 | Fase 4 | backend | 4/4/4 | Endpoint de rejeição em lote | Criar `PATCH /api/v1/aggregator/candidates/reject-all` que rejeita todos os candidatos com `editorial_status = 'awaiting_review'` de uma vez, com motivo padrão. | `backend/src/routes/aggregator.ts` | pendente | Suporte ao item 040. |
+| 042 | Fase 4 | frontend | 4/4/3 | Adicionar filtros de preço em Mesas Importadas | Adicionar filtros "Grátis", "Pagas", "Não Identificadas" na aba "Mesas Importadas". Detecção automática baseada em campos do JSON (`isPaid`, `priceText`, etc.). Viola H6 (Reconhecimento). | `frontend/src/pages/GestaoPage.tsx` | pendente | Facilita triagem de candidatos por tipo de mesa. |
+| 043 | Fase 4 | backend | 3/3/3 | Helper de detecção de preço e Covil do Lich | Criar funções `detectPriceType(parsed_json)` e `isCovil(parsed_json)` no candidateService para classificar mesas importadas. | `backend/src/services/aggregator/candidateService.ts` | pendente | Suporte ao item 042. Detecção de Covil via análise de texto/links. |
+| 044 | Fase 2-4 | frontend | 4/5/5 | Auditoria UX completa (10 Heurísticas de Nielsen) | Criar plano de ação detalhado auditando toda a interface (catálogo, painel do mestre, gestão, onboarding) contra as 10 heurísticas. Identificar gaps por heurística, priorizar correções críticas, implementar melhorias incrementais. | Múltiplos arquivos | pendente | REQ-17. Documentação completa em `OPERACAO_PRODUCAO.md` seção 11. Regra obrigatória adicionada ao `AGENTS.md`. Executar após estabilização das Fases 1-3. |
+
+---
+
 ## Validação
 
 - Itens da fila com status consistente.

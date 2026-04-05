@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle, XCircle, Clock } from 'lucide-react';
+import { CreateTableForm } from './PainelMestrePage';
+import { mapCandidateToFormData } from '../utils/candidateToFormData';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
@@ -491,12 +493,15 @@ export const GestaoPage = () => {
           </>
         )}
 
-        {/* Modal de Revisão */}
+        {/* Modal de Revisão com Formulário Editável */}
         {selectedCandidate && (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-6">
-            <div className="bg-[#1B2A4A] border border-white/20 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="sticky top-0 bg-[#1B2A4A] border-b border-white/10 p-6 flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-white">Revisar Candidato</h2>
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-6 overflow-y-auto">
+            <div className="bg-[#1B2A4A] border border-white/20 rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto my-6">
+              <div className="sticky top-0 bg-[#1B2A4A] border-b border-white/10 p-6 flex items-center justify-between z-10">
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Revisar e Editar Mesa</h2>
+                  <p className="text-sm text-white/60 mt-1">Corrija os dados extraídos e aprove para publicação</p>
+                </div>
                 <button
                   onClick={() => setSelectedCandidate(null)}
                   className="text-white/60 hover:text-white text-2xl"
@@ -505,59 +510,37 @@ export const GestaoPage = () => {
                 </button>
               </div>
 
-              <div className="p-6 space-y-6">
-                {/* Informações Principais */}
-                <div>
-                  <h3 className="text-lg font-bold text-white mb-3">Informações Extraídas</h3>
-                  <div className="bg-[#0F1A2E] border border-white/10 rounded-lg p-4 space-y-2">
-                    <div><strong className="text-white/80">Título:</strong> <span className="text-white">{selectedCandidate.parsed_json.title || 'Não informado'}</span></div>
-                    <div><strong className="text-white/80">Sistema:</strong> <span className="text-white">{selectedCandidate.parsed_json.system || 'Não identificado'}</span></div>
-                    <div><strong className="text-white/80">Mestre:</strong> <span className="text-white">{selectedCandidate.parsed_json.masterText || selectedCandidate.parsed_json.recruiterName || 'Não informado'}</span></div>
-                    <div><strong className="text-white/80">Confiança:</strong> <span className="text-white">{Math.round((selectedCandidate.confidence_score || 0) * 100)}%</span></div>
-                    {selectedCandidate.parsed_json.synopsis && (
-                      <div><strong className="text-white/80">Sinopse:</strong> <span className="text-white">{selectedCandidate.parsed_json.synopsis}</span></div>
-                    )}
-                    {selectedCandidate.parsed_json.signupText && (
-                      <div><strong className="text-white/80">Contato:</strong> <span className="text-white">{selectedCandidate.parsed_json.signupText}</span></div>
-                    )}
+              <div className="p-6">
+                {/* Informações do Candidato */}
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-6">
+                  <h3 className="text-sm font-semibold text-blue-300 mb-2">Dados Extraídos Automaticamente</h3>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="text-white/60">Título:</span>
+                      <span className="text-white ml-2">{selectedCandidate.parsed_json.title || 'Não informado'}</span>
+                    </div>
+                    <div>
+                      <span className="text-white/60">Sistema:</span>
+                      <span className="text-white ml-2">{selectedCandidate.parsed_json.system || 'Não identificado'}</span>
+                    </div>
+                    <div>
+                      <span className="text-white/60">Confiança:</span>
+                      <span className="text-white ml-2">{Math.round((selectedCandidate.confidence_score || 0) * 100)}%</span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Dados Brutos */}
-                <div>
-                  <h3 className="text-lg font-bold text-white mb-3">Dados Brutos (JSON)</h3>
-                  <pre className="bg-[#0F1A2E] border border-white/10 rounded-lg p-4 text-xs text-white/80 overflow-x-auto">
-                    {JSON.stringify(selectedCandidate.parsed_json, null, 2)}
-                  </pre>
-                </div>
-
-                {/* Ações */}
-                <div className="flex gap-3 justify-end pt-4 border-t border-white/10">
-                  <button
-                    onClick={() => setSelectedCandidate(null)}
-                    className="px-6 py-2 bg-white/5 hover:bg-white/10 text-white font-semibold rounded-lg transition-colors"
-                  >
-                    Fechar
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleRejectCandidate(selectedCandidate.id);
-                      setSelectedCandidate(null);
-                    }}
-                    className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-colors"
-                  >
-                    Rejeitar
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleApproveCandidate(selectedCandidate.id);
-                      setSelectedCandidate(null);
-                    }}
-                    className="px-6 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg transition-colors"
-                  >
-                    Aprovar e Publicar
-                  </button>
-                </div>
+                {/* Formulário Editável */}
+                <CreateTableForm
+                  token={token!}
+                  initialData={mapCandidateToFormData(selectedCandidate.parsed_json)}
+                  mode="review"
+                  candidateId={selectedCandidate.id}
+                  onSuccess={() => {
+                    setSelectedCandidate(null);
+                    fetchCandidates();
+                  }}
+                />
               </div>
             </div>
           </div>

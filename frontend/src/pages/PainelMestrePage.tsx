@@ -55,6 +55,19 @@ interface FlattenedSystemNode {
 interface CreateTableFormProps {
   token: string;
   onSuccess: () => void;
+  initialData?: {
+    title?: string;
+    description?: string;
+    type?: string;
+    modality?: string;
+    price_type?: string;
+    slots_total?: string;
+    language?: string;
+    publisher_role?: 'gm' | 'announcer';
+    actual_gm_name?: string;
+  };
+  mode?: 'create' | 'review';
+  candidateId?: string;
 }
 
 interface DdalFormState {
@@ -127,7 +140,7 @@ function SelectField({ label, id, children, ...props }: SelectHTMLAttributes<HTM
   );
 }
 
-function CreateTableForm({ token, onSuccess }: CreateTableFormProps) {
+export function CreateTableForm({ token, onSuccess, initialData, mode = 'create', candidateId }: CreateTableFormProps) {
   const [systemsTree, setSystemsTree] = useState<SystemTreeNode[]>([]);
   const [systemsLoading, setSystemsLoading] = useState(true);
   const [systemsError, setSystemsError] = useState<string | null>(null);
@@ -139,17 +152,17 @@ function CreateTableForm({ token, onSuccess }: CreateTableFormProps) {
   const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState({
-    title: '',
-    description: '',
-    type: 'campanha',
+    title: initialData?.title || '',
+    description: initialData?.description || '',
+    type: initialData?.type || 'campanha',
     audience: 'livre',
-    modality: 'online',
-    price_type: 'gratuita',
+    modality: initialData?.modality || 'online',
+    price_type: initialData?.price_type || 'gratuita',
     price_value: '',
-    slots_total: '4',
+    slots_total: initialData?.slots_total || '4',
     experience_level: 'todos',
     starts_at: '',
-    language: 'Português',
+    language: initialData?.language || 'Português',
   });
 
   const [ddal, setDdal] = useState<DdalFormState>({
@@ -165,8 +178,8 @@ function CreateTableForm({ token, onSuccess }: CreateTableFormProps) {
     ddal_rules_notes: '',
   });
 
-  const [publisherRole, setPublisherRole] = useState<'gm' | 'announcer'>('gm');
-  const [actualGmName, setActualGmName] = useState('');
+  const [publisherRole, setPublisherRole] = useState<'gm' | 'announcer'>(initialData?.publisher_role || 'gm');
+  const [actualGmName, setActualGmName] = useState(initialData?.actual_gm_name || '');
   const [contacts, setContacts] = useState<ContactFormEntry[]>([
     {
       channel: 'whatsapp',
@@ -217,10 +230,15 @@ function CreateTableForm({ token, onSuccess }: CreateTableFormProps) {
   }, [selectedSystem]);
 
   useEffect(() => {
-    if (!isDdalEligibleSelection && ddal.is_ddal) {
-      setDdal((prev) => ({ ...prev, is_ddal: false }));
+    if (!isDdalEligibleSelection) {
+      setDdal((prev) => {
+        if (prev.is_ddal) {
+          return { ...prev, is_ddal: false };
+        }
+        return prev;
+      });
     }
-  }, [ddal.is_ddal, isDdalEligibleSelection]);
+  }, [isDdalEligibleSelection]);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -304,6 +322,26 @@ function CreateTableForm({ token, onSuccess }: CreateTableFormProps) {
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error ?? 'Erro desconhecido');
+      }
+
+      // Se estiver em modo review, marcar candidato como aceito
+      if (mode === 'review' && candidateId) {
+        try {
+          const acceptRes = await fetch(`/api/v1/aggregator/candidates/${candidateId}/accept`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (!acceptRes.ok) {
+            console.error('Falha ao marcar candidato como aceito, mas mesa foi criada com sucesso');
+          }
+        } catch (acceptErr) {
+          console.error('Erro ao marcar candidato como aceito:', acceptErr);
+          // Não falhar a operação inteira se apenas a marcação falhar
+        }
       }
 
       onSuccess();
@@ -713,7 +751,10 @@ function CreateTableForm({ token, onSuccess }: CreateTableFormProps) {
         id="btn-criar-mesa"
         className="w-full py-4 bg-[var(--color-artificio-orange)] hover:bg-[var(--color-artificio-orange-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-colors cursor-pointer"
       >
-        {loading ? 'Publicando...' : 'Publicar Mesa'}
+        {loading 
+          ? (mode === 'review' ? 'Aprovando...' : 'Publicando...') 
+          : (mode === 'review' ? 'Aprovar e Publicar' : 'Publicar Mesa')
+        }
       </button>
 
       <SystemSuggestionModal
