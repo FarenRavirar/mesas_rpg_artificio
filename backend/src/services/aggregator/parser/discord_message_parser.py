@@ -662,12 +662,26 @@ def extract_description_blocks(content: str) -> dict:
     
     # Extrair sinopse narrativa (primeiro bloco longo após título)
     synopsis_match = re.search(
-        r'(?:sinopse|sobre\s+a\s+história|sobre\s+esta\s+mesa|história|narrativa|descrição)\s*:?\s*\n+((?:.+\n?)+?)(?:\n\n|$)',
+        r'(?:sinopse|sobre\s+a\s+história|sobre\s+esta\s+mesa|história|narrativa|descrição|resumo\s+da\s+história)\s*:?\s*\n+((?:(?!▬\s*\*?\*?(?:sistema|vagas?|tipo|modalidade|idioma|data|horário|preço|mestre|contato|plataforma|requisitos?|regras?|inscrições?)).+\n?)+?)(?:\n\n|▬|$)',
         content_clean,
         re.IGNORECASE | re.DOTALL
     )
     if synopsis_match:
-        blocks['synopsis_narrative'] = synopsis_match.group(1).strip()[:1000]
+        # Limpar linhas que começam com marcadores estruturados
+        raw_text = synopsis_match.group(1).strip()
+        # Remover linhas que são claramente metadados
+        narrative_lines = []
+        for line in raw_text.split('\n'):
+            stripped = line.strip()
+            # Parar se encontrar linha de metadado estruturado
+            if re.match(r'^▬\s*\*?\*?(?:sistema|vagas?|tipo|modalidade|idioma|data|horário|preço|mestre|contato|plataforma|requisitos?|regras?|inscrições?)', stripped, re.IGNORECASE):
+                break
+            # Ignorar linhas muito curtas ou vazias
+            if len(stripped) > 10:
+                narrative_lines.append(line)
+        
+        if narrative_lines:
+            blocks['synopsis_narrative'] = '\n'.join(narrative_lines).strip()[:1000]
     else:
         # Fallback: pegar parágrafos longos iniciais
         paragraphs = [p.strip() for p in content_clean.split('\n\n') if len(p.strip()) > 100]

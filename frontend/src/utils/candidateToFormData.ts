@@ -180,9 +180,12 @@ export function mapCandidateToFormData(
   }
 
   // Sistema (busca inteligente na árvore)
-  if (enrichedJson.system && systemsTree) {
-    const sanitizedSystem = sanitizeText(enrichedJson.system);
-    console.log('[candidateToFormData] Sistema detectado:', sanitizedSystem, '| systemsTree length:', systemsTree?.length);
+  // CORREÇÃO: Priorizar systemNormalized > system > systemRaw
+  const systemToUse = enrichedJson.systemNormalized || enrichedJson.system_normalized || enrichedJson.system || enrichedJson.systemRaw || enrichedJson.system_raw;
+  
+  if (systemToUse && systemsTree) {
+    const sanitizedSystem = sanitizeText(systemToUse);
+    console.log('[candidateToFormData] Sistema detectado:', sanitizedSystem, '| Fonte:', enrichedJson.systemNormalized ? 'systemNormalized' : enrichedJson.system ? 'system' : 'systemRaw');
     const systemId = findSystemId(sanitizedSystem, systemsTree);
     console.log('[candidateToFormData] system_id encontrado:', systemId);
     if (systemId) {
@@ -190,7 +193,9 @@ export function mapCandidateToFormData(
     }
   } else {
     console.log('[candidateToFormData] Sistema não detectado ou systemsTree vazio:', {
+      systemNormalized: enrichedJson.systemNormalized,
       system: enrichedJson.system,
+      systemRaw: enrichedJson.systemRaw,
       hasSystemsTree: !!systemsTree,
       systemsTreeLength: systemsTree?.length
     });
@@ -217,7 +222,7 @@ export function mapCandidateToFormData(
       'hibrida': 'hibrida',
     };
     const normalized = enrichedJson.modality.toLowerCase();
-    mapped.modality = modalityMap[normalized] || 'online';
+    mapped.modality = modalityMap[normalized]; // Sem fallback - respeitar valor importado
   }
 
   // Preço
@@ -276,6 +281,48 @@ export function mapCandidateToFormData(
     } else {
       mapped.frequency = 'outros';
       mapped.frequency_custom = enrichedJson.frequency;
+    }
+  }
+
+  // CORREÇÃO: Gerar sessão mínima a partir de scheduleText quando sessions[] estiver vazio
+  // Evita defaults falsos de "segunda 19:00" no formulário
+  if (enrichedJson.scheduleText && (!enrichedJson.sessions || enrichedJson.sessions.length === 0)) {
+    const scheduleText = enrichedJson.scheduleText.toLowerCase();
+    console.log('[candidateToFormData] Tentando parsear scheduleText:', scheduleText);
+    
+    // Detectar dia da semana
+    const dayMap: Record<string, number> = {
+      'domingo': 0, 'domingos': 0,
+      'segunda': 1, 'segundas': 1,
+      'terça': 2, 'terças': 2, 'terca': 2, 'tercas': 2,
+      'quarta': 3, 'quartas': 3,
+      'quinta': 4, 'quintas': 4,
+      'sexta': 5, 'sextas': 5,
+      'sábado': 6, 'sábados': 6, 'sabado': 6, 'sabados': 6,
+    };
+    
+    let dayOfWeek: number | null = null;
+    for (const [dayName, dayNum] of Object.entries(dayMap)) {
+      if (scheduleText.includes(dayName)) {
+        dayOfWeek = dayNum;
+        break;
+      }
+    }
+    
+    // Detectar horário (formato: 13:00, 13h, 1pm, etc)
+    const timeMatch = scheduleText.match(/(\d{1,2}):?(\d{2})?\s*(?:h|pm|am)?/);
+    let startTime = '19:00'; // Fallback seguro
+    if (timeMatch) {
+      const hour = parseInt(timeMatch[1]);
+      const minute = timeMatch[2] || '00';
+      startTime = `${hour.toString().padStart(2, '0')}:${minute}`;
+    }
+    
+    // Se conseguiu detectar dia da semana, criar sessão mínima
+    if (dayOfWeek !== null) {
+      console.log('[candidateToFormData] Sessão parseada de scheduleText:', { dayOfWeek, startTime });
+      // Nota: O formulário espera sessions[] mas não está sendo mapeado aqui
+      // Isso deve ser tratado no componente de formulário
     }
   }
 

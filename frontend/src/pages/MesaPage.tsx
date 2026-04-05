@@ -489,7 +489,7 @@ export const MesaPage = () => {
 
             {user?.role === 'admin' && table.id && (
               <Link
-                to={`/painel-mestre?edit=${table.id}`}
+                to={`/painel?edit=${table.id}`}
                 id="mesa-link-editar-admin"
                 className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[var(--color-artificio-orange)] hover:bg-[var(--color-artificio-orange-hover)] text-white font-semibold transition-colors"
               >

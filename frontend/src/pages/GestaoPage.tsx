@@ -33,6 +33,7 @@ interface AggregatorCandidate {
   confidence_score: number;
   rejection_reason: string | null;
   created_at: string;
+  created_table_slug?: string | null; // Slug da mesa criada após aprovação
 }
 
 export const GestaoPage = () => {
@@ -1423,6 +1424,15 @@ export const GestaoPage = () => {
 
                         {candidate.editorial_status === 'accepted' && (
                           <div className="flex gap-2">
+                            {candidate.created_table_slug && (
+                              <button
+                                onClick={() => window.open(`/mesa/${candidate.created_table_slug}`, '_blank')}
+                                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
+                                title="Ver mesa criada"
+                              >
+                                Ver Mesa
+                              </button>
+                            )}
                             <button
                               onClick={() => handleDeleteCandidate(candidate.id)}
                               className="p-2 bg-gray-700 hover:bg-gray-800 text-white rounded-lg transition-colors"
