@@ -29,7 +29,7 @@ RUN apk add --no-cache vips-dev fftw-dev build-base python3 py3-pip
 
 # Copiar e instalar dependências Python
 COPY backend/requirements.txt ./
-RUN pip3 install --no-cache-dir -r requirements.txt && \
+RUN pip3 install --no-cache-dir --break-system-packages -r requirements.txt && \
     python3 -m spacy download pt_core_news_lg
 
 COPY backend/package*.json ./
