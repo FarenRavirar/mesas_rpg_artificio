@@ -443,22 +443,20 @@ export function CreateTableForm({ token, onSuccess, initialData, mode = 'create'
         </div>
 
         {/* Cenário (opcional) */}
-        {selectedSystemId && (
-          <div className="md:col-span-2 rounded-2xl border border-white/10 bg-[#13213f]/60 p-4 space-y-3">
-            <div>
-              <p className="text-sm font-semibold text-white">Cenário (opcional)</p>
-              <p className="text-xs text-white/60 mt-1">
-                Cenários são independentes de sistemas. Ex: Forgotten Realms pode ser jogado em D&D ou Pathfinder.
-              </p>
-            </div>
-
-            <ScenarioSelector
-              selectedScenarioId={selectedScenarioId}
-              onSelect={setSelectedScenarioId}
-              disabled={loading}
-            />
+        <div className="md:col-span-2 rounded-2xl border border-white/10 bg-[#13213f]/60 p-4 space-y-3">
+          <div>
+            <p className="text-sm font-semibold text-white">Cenário (opcional)</p>
+            <p className="text-xs text-white/60 mt-1">
+              Cenários são independentes de sistemas. Ex: Forgotten Realms pode ser jogado em D&D ou Pathfinder.
+            </p>
           </div>
-        )}
+
+          <ScenarioSelector
+            selectedScenarioId={selectedScenarioId}
+            onSelect={setSelectedScenarioId}
+            disabled={loading}
+          />
+        </div>
 
         <div className="md:col-span-2 rounded-2xl border border-white/10 bg-[#13213f]/60 p-4 space-y-3" id="painel-mestre-publisher-role-block">
           <div>
