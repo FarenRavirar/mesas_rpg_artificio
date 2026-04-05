@@ -8,6 +8,8 @@ import { SystemTreeSelector } from '../components/SystemTreeSelector';
 import { ScenarioSelector } from '../components/ScenarioSelector';
 import { SystemSuggestionModal } from '../components/SystemSuggestionModal';
 import { ContactsFormBlock, type ContactFormEntry } from '../components/ContactsFormBlock';
+import { SessionRepeater, type SessionSchedule } from '../components/SessionRepeater';
+import { SettingStylesField } from '../components/SettingStylesField';
 import toast from 'react-hot-toast';
 import type { SystemTreeNode } from '../types/systems';
 import type { TableContact } from '../types/tables';
@@ -78,6 +80,22 @@ interface CreateTableFormProps {
     frequency_custom?: string;
     rules_notes?: string;
     contacts?: Array<{ channel: string; value: string; extra_url?: string }>;
+    // CORREÇÃO: Adicionar campos avançados (REQ-26)
+    master_display_name?: string;
+    campaign_length?: string;
+    level_range?: string;
+    billing_text?: string;
+    session_zero_free?: boolean;
+    synopsis?: string;
+    style_text?: string;
+    listing_excerpt?: string;
+    technical_requirements?: string;
+    requires_pc?: boolean;
+    requires_camera?: boolean;
+    requires_microphone?: boolean;
+    // Campos de cenário e estilos (REQ-28)
+    setting_name?: string;
+    setting_styles?: string[];
   };
   mode?: 'create' | 'review';
   candidateId?: string;
@@ -201,18 +219,46 @@ export function CreateTableForm({ token, onSuccess, initialData, mode = 'create'
       label: '',
       discord_server_url: '',
     },
-  ]);
+  ])
   const [contactsError, setContactsError] = useState<string | null>(null);
 
-  const [isOngoing, setIsOngoing] = useState(false);
-  const [frequency, setFrequency] = useState(initialData?.frequency || '');
-  const [frequencyCustom, setFrequencyCustom] = useState(initialData?.frequency_custom || '');
+  // Estado de sessões (substitui frequency, isOngoing, starts_at)
+  const [sessions, setSessions] = useState<SessionSchedule[]>([
+    {
+      day_of_week: 'segunda',
+      start_time: '19:00',
+      end_time: '22:00',
+      frequency: 'semanal',
+      slots_per_session: null,
+      is_ongoing: false,
+      notes: '',
+      sort_order: 0,
+    },
+  ]);
+
   const [rulesNotes, setRulesNotes] = useState(initialData?.rules_notes || '');
   const [bannerUrl, setBannerUrl] = useState(initialData?.banner_url || '');
   const [gmAvatarUrl] = useState(initialData?.gm_avatar_url || ''); // readonly, apenas visual
   const [isCovilMesa, setIsCovilMesa] = useState(initialData?.is_covil ?? false);
   const [bannerError, setBannerError] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
+
+  // Estados para campos avançados (REQ-26)
+  const [masterDisplayName, setMasterDisplayName] = useState(initialData?.master_display_name || '');
+  const [campaignLength, setCampaignLength] = useState(initialData?.campaign_length || '');
+  const [levelRange, setLevelRange] = useState(initialData?.level_range || '');
+  const [billingText, setBillingText] = useState(initialData?.billing_text || '');
+  const [sessionZeroFree, setSessionZeroFree] = useState(initialData?.session_zero_free || false);
+  const [synopsis, setSynopsis] = useState(initialData?.synopsis || '');
+  const [styleText, setStyleText] = useState(initialData?.style_text || '');
+  const [listingExcerpt, setListingExcerpt] = useState(initialData?.listing_excerpt || '');
+  const [technicalRequirements, setTechnicalRequirements] = useState(initialData?.technical_requirements || '');
+  const [requiresPc, setRequiresPc] = useState(initialData?.requires_pc || false);
+  const [requiresCamera, setRequiresCamera] = useState(initialData?.requires_camera || false);
+  const [requiresMicrophone, setRequiresMicrophone] = useState(initialData?.requires_microphone || false);
+  // Estados para cenário e estilos (REQ-28)
+  const [settingName, setSettingName] = useState(initialData?.setting_name || '');
+  const [settingStyles, setSettingStyles] = useState<string[]>(initialData?.setting_styles || []);
 
   const fetchSystemsTree = async () => {
     setSystemsLoading(true);
@@ -327,12 +373,11 @@ export function CreateTableForm({ token, onSuccess, initialData, mode = 'create'
         scenario_id: selectedScenarioId || null,
         price_value: form.price_value ? parseFloat(form.price_value) : null,
         slots_total: parseInt(form.slots_total, 10),
-        starts_at: isOngoing ? null : (form.starts_at || null),
+        starts_at: null, // Removido - agora usa schedules
         publisher_role: publisherRole,
         actual_gm_name: publisherRole === 'announcer' ? safeActualGmName : null,
         contacts: sanitizedContacts,
-        frequency: frequency || null,
-        frequency_custom: frequency === 'outros' ? frequencyCustom : null,
+        schedules: sessions, // Novo campo - array de horários
         rules_notes: rulesNotes.trim() || null,
         banner_url: bannerUrl.trim() || null,
         is_covil: mode === 'review' ? isCovilMesa : false,
@@ -346,6 +391,22 @@ export function CreateTableForm({ token, onSuccess, initialData, mode = 'create'
         ddal_org_code: ddal.is_ddal ? ddal.ddal_org_code || null : null,
         ddal_setting: ddal.is_ddal ? ddal.ddal_setting || null : null,
         ddal_rules_notes: ddal.is_ddal ? ddal.ddal_rules_notes || null : null,
+        // Campos avançados (REQ-26)
+        master_display_name: masterDisplayName.trim() || null,
+        campaign_length: campaignLength.trim() || null,
+        level_range: levelRange.trim() || null,
+        billing_text: billingText.trim() || null,
+        session_zero_free: sessionZeroFree,
+        synopsis: synopsis.trim() || null,
+        style_text: styleText.trim() || null,
+        listing_excerpt: listingExcerpt.trim() || null,
+        technical_requirements: technicalRequirements.trim() || null,
+        requires_pc: requiresPc,
+        requires_camera: requiresCamera,
+        requires_microphone: requiresMicrophone,
+        // Campos de cenário e estilos (REQ-28)
+        setting_name: settingName.trim() || null,
+        setting_styles: settingStyles.length > 0 ? settingStyles : null,
       };
 
       const res = await fetch('/api/v1/gm/tables', {
@@ -566,60 +627,6 @@ export function CreateTableForm({ token, onSuccess, initialData, mode = 'create'
           onChange={handleChange}
         />
 
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2 mb-1">
-            <input
-              type="checkbox"
-              id="is_ongoing"
-              checked={isOngoing}
-              onChange={(e) => {
-                setIsOngoing(e.target.checked);
-                if (e.target.checked) setForm(prev => ({ ...prev, starts_at: '' }));
-              }}
-              className="h-4 w-4 rounded border-white/20 bg-white/10 text-[var(--color-artificio-orange)] focus:ring-[var(--color-artificio-orange)]"
-            />
-            <label htmlFor="is_ongoing" className="text-sm text-white/70 cursor-pointer">
-              Mesa já em andamento
-            </label>
-          </div>
-          
-          <InputField
-            label={isOngoing ? "Mesa em Andamento" : "Data de Início (opcional)"}
-            id="starts_at"
-            name="starts_at"
-            type="datetime-local"
-            value={form.starts_at}
-            onChange={handleChange}
-            disabled={isOngoing}
-          />
-        </div>
-
-        <SelectField
-          label="Frequência das Sessões"
-          id="frequency"
-          name="frequency"
-          value={frequency}
-          onChange={(e) => setFrequency(e.target.value)}
-        >
-          <option value="">Não especificada</option>
-          <option value="semanal">Semanal</option>
-          <option value="quinzenal">Quinzenal</option>
-          <option value="mensal">Mensal</option>
-          <option value="outros">Outros</option>
-        </SelectField>
-
-        {frequency === 'outros' && (
-          <InputField
-            label="Descreva a frequência *"
-            id="frequency_custom"
-            name="frequency_custom"
-            value={frequencyCustom}
-            onChange={(e) => setFrequencyCustom(e.target.value)}
-            placeholder="Ex: A cada 15 dias, sempre aos sábados"
-            required
-          />
-        )}
-
         <InputField
           label="Idioma"
           id="language"
@@ -627,6 +634,15 @@ export function CreateTableForm({ token, onSuccess, initialData, mode = 'create'
           value={form.language}
           onChange={handleChange}
           placeholder="Português"
+        />
+      </div>
+
+      {/* Sessões estruturadas - substitui frequency, isOngoing, starts_at */}
+      <div className="rounded-2xl border border-white/10 bg-[#13213f]/60 p-4">
+        <SessionRepeater
+          sessions={sessions}
+          onChange={setSessions}
+          disabled={loading}
         />
       </div>
 
@@ -709,6 +725,174 @@ export function CreateTableForm({ token, onSuccess, initialData, mode = 'create'
         }}
         error={contactsError}
       />
+
+      {/* Campos Avançados (REQ-26) */}
+      <section className="rounded-2xl border border-white/10 bg-[#13213f]/60 p-5 space-y-4">
+        <div>
+          <h3 className="text-lg font-bold text-white mb-1">Campos Avançados (Opcional)</h3>
+          <p className="text-xs text-white/60">Informações adicionais para enriquecer o anúncio da mesa</p>
+        </div>
+
+        {/* Bloco A: Identificação do mestre */}
+        <div className="space-y-3">
+          <p className="text-sm font-semibold text-white/80">Identificação do Mestre</p>
+          <InputField
+            label="Nome de Exibição do Mestre (opcional)"
+            id="master_display_name"
+            value={masterDisplayName}
+            onChange={(e) => setMasterDisplayName(e.target.value)}
+            placeholder="Ex: Mestre Arandur"
+          />
+          <p className="text-xs text-white/50">Útil se você usa um nome artístico diferente do seu perfil</p>
+        </div>
+
+        {/* Bloco B: Detalhes da campanha */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <InputField
+            label="Duração da Campanha (opcional)"
+            id="campaign_length"
+            value={campaignLength}
+            onChange={(e) => setCampaignLength(e.target.value)}
+            placeholder="Ex: 6 meses, 12 sessões, Indeterminada"
+          />
+          <InputField
+            label="Faixa de Nível (opcional)"
+            id="level_range"
+            value={levelRange}
+            onChange={(e) => setLevelRange(e.target.value)}
+            placeholder="Ex: 1-5, 10-15, Épico 20+"
+          />
+        </div>
+
+        {/* Bloco D: Cobrança detalhada */}
+        {form.price_type === 'paga' && (
+          <div className="space-y-3">
+            <p className="text-sm font-semibold text-white/80">Detalhes de Cobrança</p>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="billing_text" className="text-sm font-medium text-white/70">Texto Descritivo sobre Cobrança</label>
+              <textarea
+                id="billing_text"
+                value={billingText}
+                onChange={(e) => setBillingText(e.target.value)}
+                rows={2}
+                placeholder="Ex: Pagamento via PIX após cada sessão, Mensalidade com desconto para trimestre"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all resize-none"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="session_zero_free"
+                checked={sessionZeroFree}
+                onChange={(e) => setSessionZeroFree(e.target.checked)}
+                className="h-4 w-4 rounded border-white/20 bg-white/10 text-[var(--color-artificio-orange)] focus:ring-[var(--color-artificio-orange)]"
+              />
+              <label htmlFor="session_zero_free" className="text-sm text-white/70 cursor-pointer">
+                Sessão zero é gratuita
+              </label>
+            </div>
+          </div>
+        )}
+
+        {/* Bloco E: Descrições expandidas */}
+        <div className="space-y-3">
+          <p className="text-sm font-semibold text-white/80">Descrições Expandidas</p>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="synopsis" className="text-sm font-medium text-white/70">Sinopse Narrativa (opcional)</label>
+            <textarea
+              id="synopsis"
+              value={synopsis}
+              onChange={(e) => setSynopsis(e.target.value)}
+              rows={4}
+              placeholder="Uma sinopse mais longa e imersiva da campanha..."
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all resize-none"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="style_text" className="text-sm font-medium text-white/70">Estilo de Jogo (opcional)</label>
+            <textarea
+              id="style_text"
+              value={styleText}
+              onChange={(e) => setStyleText(e.target.value)}
+              rows={2}
+              placeholder="Ex: Roleplay pesado, Combate tático, Sandbox político"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all resize-none"
+            />
+          </div>
+          <InputField
+            label="Resumo Curto (opcional)"
+            id="listing_excerpt"
+            value={listingExcerpt}
+            onChange={(e) => setListingExcerpt(e.target.value)}
+            placeholder="Resumo alternativo para listagens"
+          />
+        </div>
+
+        {/* Bloco F: Requisitos técnicos */}
+        <div className="space-y-3">
+          <p className="text-sm font-semibold text-white/80">Requisitos Técnicos</p>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="technical_requirements" className="text-sm font-medium text-white/70">Requisitos Detalhados (opcional)</label>
+            <textarea
+              id="technical_requirements"
+              value={technicalRequirements}
+              onChange={(e) => setTechnicalRequirements(e.target.value)}
+              rows={2}
+              placeholder="Ex: Roll20 + Discord, Foundry VTT com módulos X, Y"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all resize-none"
+            />
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="requires_pc"
+                checked={requiresPc}
+                onChange={(e) => setRequiresPc(e.target.checked)}
+                className="h-4 w-4 rounded border-white/20 bg-white/10 text-[var(--color-artificio-orange)] focus:ring-[var(--color-artificio-orange)]"
+              />
+              <label htmlFor="requires_pc" className="text-sm text-white/70 cursor-pointer">
+                Requer computador (não funciona em mobile)
+              </label>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="requires_camera"
+                checked={requiresCamera}
+                onChange={(e) => setRequiresCamera(e.target.checked)}
+                className="h-4 w-4 rounded border-white/20 bg-white/10 text-[var(--color-artificio-orange)] focus:ring-[var(--color-artificio-orange)]"
+              />
+              <label htmlFor="requires_camera" className="text-sm text-white/70 cursor-pointer">
+                Requer câmera ligada durante as sessões
+              </label>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="requires_microphone"
+                checked={requiresMicrophone}
+                onChange={(e) => setRequiresMicrophone(e.target.checked)}
+                className="h-4 w-4 rounded border-white/20 bg-white/10 text-[var(--color-artificio-orange)] focus:ring-[var(--color-artificio-orange)]"
+              />
+              <label htmlFor="requires_microphone" className="text-sm text-white/70 cursor-pointer">
+                Requer microfone funcional (obrigatório)
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* Bloco G: Cenário e Estilos (REQ-28) */}
+        <div className="space-y-3">
+          <p className="text-sm font-semibold text-white/80">Cenário e Estilos</p>
+          <SettingStylesField
+            settingName={settingName}
+            settingStyles={settingStyles}
+            onSettingNameChange={setSettingName}
+            onSettingStylesChange={setSettingStyles}
+          />
+        </div>
+      </section>
 
       {isDdalEligibleSelection && (
         <section className="rounded-2xl border border-amber-300/30 bg-amber-500/10 p-5 space-y-4" id="painel-mestre-ddal-block">

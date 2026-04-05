@@ -114,6 +114,15 @@ export interface ParsedMessageDraft {
   tags?: string[];
   requiresPc?: boolean;
   
+  // REQ-28: Importação Inteligente - Novos campos
+  bannerUrl?: string | null;
+  avatarUrl?: string | null;
+  requiresCamera?: boolean;
+  requiresMicrophone?: boolean;
+  isOngoing?: boolean;
+  settingName?: string | null;
+  settingStyles?: string[];
+  
   // Fase B: Múltiplos horários e vagas detalhadas
   sessions?: SessionSchedule[];
   slotsTotal?: number | null;

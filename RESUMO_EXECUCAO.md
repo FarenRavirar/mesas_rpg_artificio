@@ -92,18 +92,18 @@
 
 **Ambiente beta:** Estável e operacional em `mesasbeta.artificiorpg.com`
 
-**Última sessão concluída (05/04/2026):**
-- Correção de bugs críticos E120 e E121
-- E120: JWT expirando em 15min (hardcode em docker-compose.yml corrigido)
-- E121: Bulk delete falhando com 500 (validação UUID + retorno estruturado implementado)
-- 5 arquivos modificados, 3 auditorias realizadas, builds validados
+**Última sessão concluída (05/04/2026 - 18:24):**
+- REQ-28 expandido para cobrir fluxo completo de importação inteligente
+- Documentação canônica atualizada: `TODO_OPERACIONAL.md`, `ARQUITETURA_PROJETO.md`
+- Arquitetura consolidada: 5 camadas (Parser Python → Normalização → FormPatch → Revisão → Persistência)
+- Backend Fase 1 mantido: `setting_name` e `setting_styles` funcionais (5/5 testes passando)
 
 **Próxima ação prioritária:**
-Deploy no beta com restart de containers para aplicar correção do JWT. Validar: (1) sessão permanece ativa por 7 dias, (2) bulk delete de candidatos funciona corretamente.
+Expandir parser Python (`discord_message_parser.py`) com todos os campos do plano de importação inteligente: `banner_url`, `avatar_url`, `external_links`, `is_paid`, `priceText`, `signupText`, `requires_pc/camera/microphone`, `is_ongoing`, `reviewFlags`. Atualizar schemas Pydantic e TypeScript. Garantir que `enrichedFields` preserve todos os campos sem perda silenciosa.
 
 **REQs identificados e pendentes (integrados ao TODO_OPERACIONAL.md):**
 - REQ-21: Melhorias críticas no formulário (14 lacunas — plataformas, faixa etária, editor rico)
-- REQ-28: Cenário e Estilos com Sugestões Automáticas
+- REQ-28: Importação Inteligente — Backend Fase 1 concluído, pendente Fases 2-6 (parser expandido, auto-preenchimento, abertura de blocos, overrides, página pública)
 
 ---
 
@@ -112,18 +112,16 @@ Deploy no beta com restart de containers para aplicar correção do JWT. Validar
 | Campo | Valor |
 |---|---|
 | Branch | `dev` |
-| Hash | `3071300` |
-| Mensagem | `feat: Adicionar aba CRUD completa na página de gestão` |
+| Hash | `ec238f2` |
+| Mensagem | `fix(REQ-28): Garante que types.ts está sincronizado com schema do banco` |
 | Deploy beta | ✅ success |
 | Build | ✅ Backend e Frontend compilam sem erros |
 
 **Commits desta sessão:**
-1. `fe8dfbf` — Rotas CRUD sistemas
-2. `be1ca16` — Rotas CRUD cenários
-3. `0b07d1e` — Modais de edição (`SystemEditModal`, `ScenarioEditModal`)
-4. `3071300` — Aba CRUD na `GestaoPage`
+1. `79ffde6` — `feat(REQ-28): Implementa extração de cenário e estilos no fluxo de importação`
+2. `ec238f2` — `fix(REQ-28): Garante que types.ts está sincronizado com schema do banco`
 
-**Commit anterior:** `a4dc87f` — `fix(aggregator): corrige mapeamento de candidatos e adiciona parser TS` — ✅ success
+**Commit anterior:** `3071300` — `feat: Adicionar aba CRUD completa na página de gestão` — ✅ success
 
 ---
 

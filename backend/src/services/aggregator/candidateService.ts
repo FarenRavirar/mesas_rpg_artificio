@@ -61,7 +61,7 @@ export const candidateService = {
     return getAggregatorCandidateById(candidateId);
   },
 
-  async accept(candidateId: string) {
+  async accept(candidateId: string, overrides?: Record<string, unknown> | null) {
     const candidate = await getAggregatorCandidateById(candidateId);
     if (!candidate) return null;
 
@@ -70,24 +70,33 @@ export const candidateService = {
       throw new Error('Candidato sem parsed_json válido');
     }
 
-    // Extrair campos do parsed_json
-    const enrichedFields = (parsedJson.enrichedFields ?? {}) as Record<string, unknown>;
-    const rawTitle = typeof parsedJson.title === 'string' ? parsedJson.title.trim() : '';
+    // REQ-28: Merge de overrides (dados revisados pelo admin têm prioridade)
+    const mergedJson = overrides ? { ...parsedJson, ...overrides } : parsedJson;
+    
+    console.log('[candidateService.accept] Overrides recebidos:', overrides ? 'sim' : 'não');
+    if (overrides) {
+      console.log('[candidateService.accept] Campos com override:', Object.keys(overrides));
+    }
+
+    // Extrair campos do parsed_json (agora com merge)
+    const enrichedFields = (mergedJson.enrichedFields ?? {}) as Record<string, unknown>;
+    const rawTitle = typeof mergedJson.title === 'string' ? mergedJson.title.trim() : '';
     const title = rawTitle || 'Anúncio importado';
-    const description = typeof parsedJson.synopsis === 'string' ? parsedJson.synopsis.trim() : null;
-    const masterText = typeof parsedJson.masterText === 'string' ? parsedJson.masterText.trim() : null;
-    const recruiterName = typeof parsedJson.recruiterName === 'string' ? parsedJson.recruiterName.trim() : null;
-    const signupText = typeof parsedJson.signupText === 'string' ? parsedJson.signupText.trim() : null;
+    const description = typeof mergedJson.synopsis === 'string' ? mergedJson.synopsis.trim() : null;
+    const masterText = typeof mergedJson.masterText === 'string' ? mergedJson.masterText.trim() : null;
+    const recruiterName = typeof mergedJson.recruiterName === 'string' ? mergedJson.recruiterName.trim() : null;
+    const signupText = typeof mergedJson.signupText === 'string' ? mergedJson.signupText.trim() : null;
+    
     // banner_url: prioridade enrichedFields.banner_url > parsedJson.imageUrl/banner/thumbnail
     const bannerUrl = (
       typeof enrichedFields.banner_url === 'string' ? enrichedFields.banner_url :
-      typeof parsedJson.imageUrl === 'string' ? parsedJson.imageUrl :
-      typeof parsedJson.banner === 'string' ? parsedJson.banner :
-      typeof parsedJson.thumbnail === 'string' ? parsedJson.thumbnail :
+      typeof mergedJson.imageUrl === 'string' ? mergedJson.imageUrl :
+      typeof mergedJson.banner === 'string' ? mergedJson.banner :
+      typeof mergedJson.thumbnail === 'string' ? mergedJson.thumbnail :
       null
     ) || null;
 
-    // REQ-28: Cenário e estilos
+    // REQ-28: Cenário e estilos (com prioridade para overrides)
     const settingName = typeof enrichedFields.setting_name === 'string' 
       ? enrichedFields.setting_name.trim() 
       : null;
@@ -152,9 +161,9 @@ export const candidateService = {
           status: 'active',
           type: 'campanha',
           modality: 'online',
-          price_type: parsedJson.isPaid === true ? 'paga' : 'gratuita',
+          price_type: mergedJson.isPaid === true ? 'paga' : 'gratuita',
           banner_url: bannerUrl,
-          is_covil: detectIsCovil(parsedJson),
+          is_covil: detectIsCovil(mergedJson),
           imported_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
           setting_name: settingName,
           setting_styles: settingStyles,

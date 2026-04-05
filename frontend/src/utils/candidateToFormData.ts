@@ -440,6 +440,7 @@ export function mapCandidateToFormData(
   // REQ-28: Cenário e estilos
   if (enrichedJson.setting_name) {
     mapped.setting_name = sanitizeText(enrichedJson.setting_name);
+    console.log('[candidateToFormData] setting_name mapeado:', mapped.setting_name);
   }
 
   if (enrichedJson.setting_styles && Array.isArray(enrichedJson.setting_styles)) {
@@ -447,7 +448,27 @@ export function mapCandidateToFormData(
       .filter((s: any): s is string => typeof s === 'string' && s.trim().length > 0)
       .map((s: string) => s.trim())
       .slice(0, 10); // Limitar a 10 estilos
+    console.log('[candidateToFormData] setting_styles mapeado:', mapped.setting_styles);
   }
+  
+  // REQ-28: Billing text (priceText do parser)
+  if (enrichedJson.priceText) {
+    mapped.billing_text = sanitizeText(enrichedJson.priceText);
+    console.log('[candidateToFormData] billing_text mapeado de priceText:', mapped.billing_text);
+  }
+  
+  // Log consolidado de campos REQ-28
+  console.log('[candidateToFormData] Campos REQ-28 mapeados:', {
+    banner_url: mapped.banner_url ? 'presente' : 'ausente',
+    gm_avatar_url: mapped.gm_avatar_url ? 'presente' : 'ausente',
+    price_type: mapped.price_type,
+    billing_text: mapped.billing_text ? 'presente' : 'ausente',
+    requires_camera: mapped.requires_camera,
+    requires_microphone: mapped.requires_microphone,
+    requires_pc: mapped.requires_pc,
+    setting_name: mapped.setting_name ? 'presente' : 'ausente',
+    setting_styles: mapped.setting_styles?.length || 0,
+  });
 
   return mapped;
 }

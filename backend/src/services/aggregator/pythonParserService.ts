@@ -47,6 +47,17 @@ interface ParsedMessageResult {
   // REQ-28: Cenário e estilos
   setting_name?: string;
   setting_styles?: string[];
+  
+  // REQ-28: Importação Inteligente - Novos campos
+  banner_url?: string;
+  avatar_url?: string;
+  external_links?: string[];
+  is_paid?: boolean;
+  priceText?: string;
+  requires_camera?: boolean;
+  requires_microphone?: boolean;
+  is_ongoing?: boolean;
+  reviewFlags?: string[];
 }
 
 /**

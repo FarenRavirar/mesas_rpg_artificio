@@ -14,6 +14,21 @@ export interface TableContact {
   sort_order: number;
 }
 
+export type DayOfWeek = 'segunda' | 'terça' | 'quarta' | 'quinta' | 'sexta' | 'sábado' | 'domingo';
+export type ScheduleFrequency = 'semanal' | 'quinzenal' | 'mensal' | 'avulsa';
+
+export interface TableSchedule {
+  id: string;
+  day_of_week: DayOfWeek;
+  start_time: string; // HH:MM:SS
+  end_time: string | null;
+  frequency: ScheduleFrequency;
+  slots_per_session: number | null;
+  is_ongoing: boolean;
+  notes: string | null;
+  sort_order: number;
+}
+
 export interface TableCard {
   id: string;
   slug: string;
@@ -56,12 +71,29 @@ export interface TableDetail extends TableCard {
   gm_bio: string | null;
   scenario_name?: string | null;
   scenario_subgenres?: string[];
+  schedules?: TableSchedule[];
   ddal_season?: string | null;
   ddal_duration?: string | null;
   ddal_format?: string | null;
   ddal_org_code?: string | null;
   ddal_setting?: string | null;
   ddal_rules_notes?: string | null;
+  // Campos avançados (REQ-26)
+  master_display_name?: string | null;
+  campaign_length?: string | null;
+  level_range?: string | null;
+  billing_text?: string | null;
+  session_zero_free?: boolean;
+  synopsis?: string | null;
+  style_text?: string | null;
+  listing_excerpt?: string | null;
+  technical_requirements?: string | null;
+  requires_pc?: boolean;
+  requires_camera?: boolean;
+  requires_microphone?: boolean;
+  // Campos de cenário e estilos (REQ-28)
+  setting_name?: string | null;
+  setting_styles?: string[] | null;
 }
 
 export interface TablesResponse {

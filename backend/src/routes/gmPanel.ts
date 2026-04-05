@@ -302,6 +302,21 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
     rules_notes,
     banner_url,
     is_covil,
+    // CORREÇÃO: Adicionar campos avançados (REQ-26)
+    master_display_name,
+    campaign_length,
+    level_range,
+    billing_text,
+    session_zero_free,
+    synopsis,
+    style_text,
+    listing_excerpt,
+    technical_requirements,
+    requires_pc,
+    requires_camera,
+    requires_microphone,
+    // CORREÇÃO: Adicionar schedules (REQ-27)
+    schedules,
   } = req.body;
 
   if (!title || !type || !modality) {
@@ -346,6 +361,24 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
   const safeDdalOrgCode = sanitizeOptionalText(ddal_org_code);
   const safeDdalSetting = sanitizeOptionalText(ddal_setting);
   const safeDdalRulesNotes = sanitizeOptionalText(ddal_rules_notes);
+
+  // CORREÇÃO: Sanitizar campos avançados (REQ-26)
+  const safeMasterDisplayName = sanitizeOptionalText(master_display_name);
+  const safeCampaignLength = sanitizeOptionalText(campaign_length);
+  const safeLevelRange = sanitizeOptionalText(level_range);
+  const safeBillingText = sanitizeOptionalText(billing_text);
+  const safeSessionZeroFree = parseOptionalBoolean(session_zero_free) ?? false;
+  const safeSynopsis = sanitizeOptionalText(synopsis);
+  const safeStyleText = sanitizeOptionalText(style_text);
+  const safeListingExcerpt = sanitizeOptionalText(listing_excerpt);
+  const safeTechnicalRequirements = sanitizeOptionalText(technical_requirements);
+  const safeRequiresPc = parseOptionalBoolean(requires_pc) ?? false;
+  const safeRequiresCamera = parseOptionalBoolean(requires_camera) ?? false;
+  const safeRequiresMicrophone = parseOptionalBoolean(requires_microphone) ?? false;
+
+  // Sanitizar campos de cenário e estilos (REQ-28)
+  const safeSettingName = sanitizeOptionalText(req.body.setting_name);
+  const safeSettingStyles = sanitizeStringArray(req.body.setting_styles);
 
   if (safeIsDdal) {
     if (!system_id || typeof system_id !== 'string') {
@@ -428,6 +461,22 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
           rules_notes: safeRulesNotes,
           banner_url: safeBannerUrl,
           is_covil: safeIsCovil,
+          // CORREÇÃO: Persistir campos avançados (REQ-26)
+          master_display_name: safeMasterDisplayName,
+          campaign_length: safeCampaignLength,
+          level_range: safeLevelRange,
+          billing_text: safeBillingText,
+          session_zero_free: safeSessionZeroFree,
+          synopsis: safeSynopsis,
+          style_text: safeStyleText,
+          listing_excerpt: safeListingExcerpt,
+          technical_requirements: safeTechnicalRequirements,
+          requires_pc: safeRequiresPc,
+          requires_camera: safeRequiresCamera,
+          requires_microphone: safeRequiresMicrophone,
+          // Campos de cenário e estilos (REQ-28)
+          setting_name: safeSettingName,
+          setting_styles: safeSettingStyles.length > 0 ? safeSettingStyles : null,
           status: 'active',
         })
         .returning([
@@ -458,6 +507,26 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
           }))
         )
         .execute();
+
+      // CORREÇÃO: Persistir schedules (REQ-27)
+      if (schedules && Array.isArray(schedules) && schedules.length > 0) {
+        await trx
+          .insertInto('table_schedules')
+          .values(
+            schedules.map((schedule: any, index: number) => ({
+              table_id: insertedTable.id,
+              day_of_week: schedule.day_of_week,
+              start_time: schedule.start_time,
+              end_time: schedule.end_time || null,
+              frequency: schedule.frequency,
+              slots_per_session: schedule.slots_per_session || null,
+              is_ongoing: schedule.is_ongoing ?? false,
+              notes: schedule.notes || null,
+              sort_order: index,
+            }))
+          )
+          .execute();
+      }
 
       return {
         ...insertedTable,
@@ -509,6 +578,21 @@ router.put('/tables/:id', authMiddleware, async (req: Request, res: Response) =>
     ddal_org_code,
     ddal_setting,
     ddal_rules_notes,
+    // CORREÇÃO: Adicionar campos avançados (REQ-26)
+    master_display_name,
+    campaign_length,
+    level_range,
+    billing_text,
+    session_zero_free,
+    synopsis,
+    style_text,
+    listing_excerpt,
+    technical_requirements,
+    requires_pc,
+    requires_camera,
+    requires_microphone,
+    // CORREÇÃO: Adicionar schedules (REQ-27)
+    schedules,
   } = req.body;
 
   try {
@@ -642,6 +726,26 @@ router.put('/tables/:id', authMiddleware, async (req: Request, res: Response) =>
           ddal_org_code: nextIsDdal ? nextDdalOrgCode : null,
           ddal_setting: nextIsDdal ? nextDdalSetting : null,
           ddal_rules_notes: nextIsDdal ? nextDdalRulesNotes : null,
+          // CORREÇÃO: Persistir campos avançados (REQ-26)
+          master_display_name: hasOwn('master_display_name') ? sanitizeOptionalText(master_display_name) : undefined,
+          campaign_length: hasOwn('campaign_length') ? sanitizeOptionalText(campaign_length) : undefined,
+          level_range: hasOwn('level_range') ? sanitizeOptionalText(level_range) : undefined,
+          billing_text: hasOwn('billing_text') ? sanitizeOptionalText(billing_text) : undefined,
+          session_zero_free: hasOwn('session_zero_free') ? (parseOptionalBoolean(session_zero_free) ?? false) : undefined,
+          synopsis: hasOwn('synopsis') ? sanitizeOptionalText(synopsis) : undefined,
+          style_text: hasOwn('style_text') ? sanitizeOptionalText(style_text) : undefined,
+          listing_excerpt: hasOwn('listing_excerpt') ? sanitizeOptionalText(listing_excerpt) : undefined,
+          technical_requirements: hasOwn('technical_requirements') ? sanitizeOptionalText(technical_requirements) : undefined,
+          requires_pc: hasOwn('requires_pc') ? (parseOptionalBoolean(requires_pc) ?? false) : undefined,
+          requires_camera: hasOwn('requires_camera') ? (parseOptionalBoolean(requires_camera) ?? false) : undefined,
+          requires_microphone: hasOwn('requires_microphone') ? (parseOptionalBoolean(requires_microphone) ?? false) : undefined,
+          // Campos de cenário e estilos (REQ-28)
+          setting_name: hasOwn('setting_name') ? sanitizeOptionalText(req.body.setting_name) : undefined,
+          // CORREÇÃO DT-05: Evitar duplicação de sanitizeStringArray
+          setting_styles: hasOwn('setting_styles') ? (() => {
+            const sanitized = sanitizeStringArray(req.body.setting_styles);
+            return sanitized.length > 0 ? sanitized : null;
+          })() : undefined,
         })
         .where('id', '=', id)
         .where('gm_id', '=', gmProfile.id)
@@ -681,6 +785,35 @@ router.put('/tables/:id', authMiddleware, async (req: Request, res: Response) =>
                 label: contact.label,
                 discord_server_url: contact.discord_server_url,
                 sort_order: contact.sort_order,
+              }))
+            )
+            .execute();
+        }
+      }
+
+      // CORREÇÃO #11: Atualizar schedules (REQ-27) se fornecidos
+      if (hasOwn('schedules')) {
+        // Deletar schedules existentes
+        await trx
+          .deleteFrom('table_schedules')
+          .where('table_id', '=', updatedTable.id)
+          .execute();
+
+        // CORREÇÃO #12: Validar e inserir novos schedules
+        if (schedules && Array.isArray(schedules) && schedules.length > 0) {
+          await trx
+            .insertInto('table_schedules')
+            .values(
+              schedules.map((schedule: any, index: number) => ({
+                table_id: updatedTable.id,
+                day_of_week: schedule.day_of_week,
+                start_time: schedule.start_time,
+                end_time: schedule.end_time || null,
+                frequency: schedule.frequency,
+                slots_per_session: schedule.slots_per_session || null,
+                is_ongoing: schedule.is_ongoing ?? false,
+                notes: schedule.notes || null,
+                sort_order: index,
               }))
             )
             .execute();
@@ -757,6 +890,22 @@ router.get('/tables', authMiddleware, async (req: Request, res: Response) => {
         't.ddal_tier',
         't.created_at',
         't.updated_at',
+        // CORREÇÃO #13: Retornar campos avançados (REQ-26)
+        't.master_display_name',
+        't.campaign_length',
+        't.level_range',
+        't.billing_text',
+        't.session_zero_free',
+        't.synopsis',
+        't.style_text',
+        't.listing_excerpt',
+        't.technical_requirements',
+        't.requires_pc',
+        't.requires_camera',
+        't.requires_microphone',
+        // CORREÇÃO DT-18: Retornar campos de cenário e estilos (REQ-28)
+        't.setting_name',
+        't.setting_styles',
         's.name as system_name',
       ])
       .where('t.gm_id', '=', gmProfile.id)
@@ -798,12 +947,29 @@ router.get('/tables', authMiddleware, async (req: Request, res: Response) => {
       });
     }
 
-    const tablesWithContacts = tables.map((table) => ({
+    // CORREÇÃO #13: Buscar schedules (REQ-27)
+    const schedules = await db
+      .selectFrom('table_schedules')
+      .selectAll()
+      .where('table_id', 'in', tableIds)
+      .orderBy('sort_order', 'asc')
+      .execute();
+
+    const schedulesByTable = new Map<string, Array<any>>();
+    for (const schedule of schedules) {
+      if (!schedulesByTable.has(schedule.table_id)) {
+        schedulesByTable.set(schedule.table_id, []);
+      }
+      schedulesByTable.get(schedule.table_id)!.push(schedule);
+    }
+
+    const tablesWithContactsAndSchedules = tables.map((table) => ({
       ...table,
       contacts: contactsByTable.get(table.id) ?? [],
+      schedules: schedulesByTable.get(table.id) ?? [],
     }));
 
-    return res.json({ data: tablesWithContacts });
+    return res.json({ data: tablesWithContactsAndSchedules });
   } catch (error: any) {
     console.error('[GET /gm/tables]', error);
     return res.status(500).json({ error: 'Erro ao buscar mesas do mestre.' });

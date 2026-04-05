@@ -46,13 +46,32 @@ const normalizeMessage = async (item: unknown): Promise<NormalizedExporterMessag
         message_id: id,
         attachments: rawAttachments, // Passar attachments para extrair banner_url
         author: author, // Passar author completo para extrair avatar_url
+        embeds: rawEmbeds, // Passar embeds para extrair external_links
       };
       
       const parsed = await parsePythonMessage(content, metadata);
       enrichedFields = parsed as Record<string, unknown>;
-      console.log(`[Python Parser] Sucesso para mensagem ${id}: confiança ${enrichedFields.confidence}`);
+      
+      // Log detalhado dos campos extraídos (REQ-28)
+      console.log(`[normalizeExporterPayload] Mensagem ${id} - Parser Python executado`);
+      console.log(`[normalizeExporterPayload] Confidence: ${enrichedFields.confidence}`);
+      console.log(`[normalizeExporterPayload] Campos extraídos:`, {
+        setting_name: enrichedFields.setting_name || '(vazio)',
+        setting_styles: enrichedFields.setting_styles || '(vazio)',
+        banner_url: enrichedFields.banner_url || '(vazio)',
+        avatar_url: enrichedFields.avatar_url || '(vazio)',
+        is_paid: enrichedFields.is_paid ?? '(vazio)',
+        priceText: enrichedFields.priceText || '(vazio)',
+        requires_camera: enrichedFields.requires_camera ?? '(vazio)',
+        requires_microphone: enrichedFields.requires_microphone ?? '(vazio)',
+        is_ongoing: enrichedFields.is_ongoing ?? '(vazio)',
+        external_links: enrichedFields.external_links || '(vazio)',
+        reviewFlags: enrichedFields.reviewFlags || '(vazio)',
+      });
+      
     } catch (error) {
-      console.warn(`[Python Parser] Falhou para mensagem ${id}, usando fallback:`, error);
+      console.warn(`[normalizeExporterPayload] Parser Python falhou para mensagem ${id}:`, error);
+      console.warn(`[normalizeExporterPayload] Fallback: campos vazios, parsing TypeScript será usado`);
       // Fallback: campos vazios, o parser TS do frontend será usado
       enrichedFields = {};
     }

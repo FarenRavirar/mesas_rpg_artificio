@@ -136,6 +136,25 @@ def parse_message(content: str, metadata: Optional[Dict[str, Any]] = None) -> Di
     extracted['external_links'] = extract_external_links(content, metadata)
     
     # ========================================================================
+    # REQ-28: IMPORTAÇÃO INTELIGENTE - NOVOS CAMPOS
+    # ========================================================================
+    
+    # 24. Is paid (boolean baseado em price_type)
+    extracted['is_paid'] = extract_is_paid(content, extracted.get('price_type'))
+    
+    # 25. Price text (texto descritivo do preço)
+    extracted['priceText'] = extract_price_text(content, extracted.get('price_amount'))
+    
+    # 26. Requires camera
+    extracted['requires_camera'] = extract_requires_camera(content)
+    
+    # 27. Requires microphone
+    extracted['requires_microphone'] = extract_requires_microphone(content)
+    
+    # 28. Is ongoing (mesa em andamento)
+    extracted['is_ongoing'] = extract_is_ongoing(content)
+    
+    # ========================================================================
     # FASE B: FUNCIONALIDADES AVANÇADAS
     # ========================================================================
     
@@ -1122,6 +1141,149 @@ def extract_external_links(content: str, metadata: Optional[Dict[str, Any]] = No
                         links.append(url)
     
     return list(set(links))  # Remover duplicatas
+
+
+# ============================================================================
+# REQ-28: IMPORTAÇÃO INTELIGENTE - NOVOS CAMPOS
+# ============================================================================
+
+def extract_is_paid(content: str, price_type: Optional[str] = None) -> bool:
+    """
+    Determina se a mesa é paga.
+    
+    Regras:
+    - Se price_type == 'paga' → True
+    - Se encontrar valor monetário → True
+    - Se encontrar "grátis"/"gratuita" explicitamente → False
+    - Padrão → False
+    """
+    if price_type == 'paga':
+        return True
+    
+    content_lower = content.lower()
+    
+    # Detectar valor monetário
+    price_patterns = [
+        r'r\$\s*\d+',
+        r'\d+\s*reais',
+        r'valor:\s*r?\$?\s*\d+',
+        r'paga', r'pago', r'mesa paga'
+    ]
+    
+    for pattern in price_patterns:
+        if re.search(pattern, content_lower):
+            return True
+    
+    # Detectar gratuita explicitamente
+    free_keywords = ['gratuita', 'grátis', 'free', 'sem custo', 'de graça']
+    if any(keyword in content_lower for keyword in free_keywords):
+        return False
+    
+    return False
+
+
+def extract_price_text(content: str, price_amount: Optional[float] = None) -> Optional[str]:
+    """
+    Extrai texto descritivo do preço.
+    
+    Exemplos:
+    - "R$ 25 por sessão"
+    - "R$ 50/mês"
+    - "Contribuição voluntária"
+    """
+    content_lower = content.lower()
+    
+    # Se já tem valor numérico, formatar
+    if price_amount and price_amount > 0:
+        # Tentar extrair contexto (por sessão, por mês, etc.)
+        context_patterns = [
+            r'r\$\s*\d+(?:[,\.]\d{2})?\s*(por\s+\w+|/\w+)',
+            r'valor:\s*r?\$?\s*\d+(?:[,\.]\d{2})?\s*(por\s+\w+|/\w+)',
+        ]
+        
+        for pattern in context_patterns:
+            match = re.search(pattern, content_lower)
+            if match:
+                return match.group(0).strip()
+        
+        # Fallback: apenas o valor
+        return f"R$ {price_amount:.2f}".replace('.', ',')
+    
+    # Detectar textos descritivos
+    descriptive_patterns = [
+        r'(?:preço|valor|cobrança):\s*(.+?)(?:\n|$)',
+        r'(contribuição\s+voluntária)',
+        r'(valor\s+sugerido)',
+        r'(pague\s+quanto\s+quiser)',
+        r'(sessão\s+zero\s+gratuita)',
+    ]
+    
+    for pattern in descriptive_patterns:
+        match = re.search(pattern, content_lower, re.IGNORECASE)
+        if match:
+            text = match.group(1).strip()
+            text = re.sub(r'\*\*|\*|__', '', text)
+            return text[:100] if text else None
+    
+    return None
+
+
+def extract_requires_camera(content: str) -> bool:
+    """Detecta se requer câmera."""
+    content_lower = content.lower()
+    return any(phrase in content_lower for phrase in [
+        'câmera obrigatória',
+        'obrigatório câmera',
+        'necessário câmera',
+        'requer câmera',
+        'precisa de câmera',
+        'cam obrigatória',
+        'webcam obrigatória',
+        'com câmera',
+        'câmera ligada',
+    ])
+
+
+def extract_requires_microphone(content: str) -> bool:
+    """Detecta se requer microfone."""
+    content_lower = content.lower()
+    return any(phrase in content_lower for phrase in [
+        'microfone obrigatório',
+        'obrigatório microfone',
+        'necessário microfone',
+        'requer microfone',
+        'precisa de microfone',
+        'mic obrigatório',
+        'com microfone',
+        'áudio obrigatório',
+    ])
+
+
+def extract_is_ongoing(content: str) -> bool:
+    """
+    Detecta se a mesa está em andamento (já começou).
+    
+    Indicadores:
+    - "em andamento"
+    - "mesa fechada"
+    - "campanha em progresso"
+    - "já começou"
+    """
+    content_lower = content.lower()
+    return any(phrase in content_lower for phrase in [
+        'em andamento',
+        'em progresso',
+        'já começou',
+        'já iniciou',
+        'mesa fechada',
+        'campanha em andamento',
+        'sessão em andamento',
+        'vaga por desistência',
+        'vaga aberta por saída',
+    ])
+
+
+
 
 
 

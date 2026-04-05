@@ -14,6 +14,8 @@ import notificationsRoutes from './routes/notifications';
 import meRoutes from './routes/me';
 import aggregatorRoutes from './routes/aggregator';
 import aggregatorReviewRoutes from './routes/aggregatorReview';
+import settingsRoutes from './routes/settings';
+import adminSettingSuggestionsRoutes from './routes/adminSettingSuggestions';
 import 'express-async-errors';
 import { db } from './db';
 
@@ -59,6 +61,9 @@ app.use('/api/v1/gm', gmPanelRoutes);  // Painel autenticado do mestre
 app.use('/api/v1/gm', gmRoutes);       // Perfil público do mestre
 app.use('/api/v1/aggregator', aggregatorRoutes);
 app.use('/api/v1/aggregator', aggregatorReviewRoutes);
+app.use('/api/v1/settings', settingsRoutes);  // REQ-28: Sugestões de estilos por cenário
+app.use('/api/v1/admin/setting-suggestions', adminSettingSuggestionsRoutes);  // REQ-28: Admin CRUD
+
 
 
 // Custom Error Handler

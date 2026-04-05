@@ -70,11 +70,13 @@ router.get('/candidates/:id', async (req: Request, res: Response) => {
 });
 
 // PATCH /api/v1/aggregator/candidates/:id/accept
+// REQ-28: Aceita body opcional com overrides de campos revisados
 router.patch('/candidates/:id/accept', async (req: Request, res: Response) => {
   const { id } = req.params;
+  const overrides = req.body && typeof req.body === 'object' ? req.body : null;
 
   try {
-    const updated = await candidateService.accept(id);
+    const updated = await candidateService.accept(id, overrides);
     if (!updated) {
       return res.status(404).json({ error: 'Candidato não encontrado.' });
     }

@@ -225,6 +225,204 @@ export const MesaPage = () => {
                 </div>
               </div>
             </section>
+
+            {table.schedules && table.schedules.length > 0 && (
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-5" id="mesa-schedules">
+                <h2 className="text-lg font-bold mb-3 inline-flex items-center gap-2">
+                  <CalendarClock className="w-5 h-5" /> Horários das Sessões
+                </h2>
+                <div className="space-y-3">
+                  {table.schedules.map((schedule) => {
+                    const dayLabels: Record<string, string> = {
+                      segunda: 'Segunda-feira',
+                      terça: 'Terça-feira',
+                      quarta: 'Quarta-feira',
+                      quinta: 'Quinta-feira',
+                      sexta: 'Sexta-feira',
+                      sábado: 'Sábado',
+                      domingo: 'Domingo',
+                    };
+
+                    const frequencyLabels: Record<string, string> = {
+                      semanal: 'Semanal',
+                      quinzenal: 'Quinzenal',
+                      mensal: 'Mensal',
+                      avulsa: 'Avulsa',
+                    };
+
+                    const startTime = schedule.start_time.substring(0, 5); // HH:MM
+                    const endTime = schedule.end_time ? schedule.end_time.substring(0, 5) : null;
+
+                    return (
+                      <div
+                        key={schedule.id}
+                        className="rounded-xl border border-white/10 bg-[#13213f]/70 p-4 space-y-2"
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="px-2 py-1 rounded-md bg-[var(--color-artificio-orange)]/20 border border-[var(--color-artificio-orange)]/40 text-[var(--color-artificio-orange)] text-xs font-semibold">
+                            {dayLabels[schedule.day_of_week] || schedule.day_of_week}
+                          </span>
+                          <span className="px-2 py-1 rounded-md bg-white/10 border border-white/15 text-white/90 text-xs font-semibold">
+                            {startTime}{endTime ? ` - ${endTime}` : ''}
+                          </span>
+                          <span className="px-2 py-1 rounded-md bg-blue-500/20 border border-blue-300/40 text-blue-100 text-xs">
+                            {frequencyLabels[schedule.frequency] || schedule.frequency}
+                          </span>
+                          {schedule.is_ongoing && (
+                            <span className="px-2 py-1 rounded-md bg-green-500/20 border border-green-300/40 text-green-100 text-xs">
+                              Em andamento
+                            </span>
+                          )}
+                        </div>
+
+                        {schedule.slots_per_session && (
+                          <p className="text-sm text-white/70">
+                            <Users className="w-3.5 h-3.5 inline mr-1" />
+                            {schedule.slots_per_session} vagas por sessão
+                          </p>
+                        )}
+
+                        {schedule.notes && (
+                          <p className="text-sm text-white/80 leading-relaxed">
+                            {schedule.notes}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
+            {/* Sinopse Narrativa (REQ-26) */}
+            {table.synopsis && (
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <h2 className="text-lg font-bold mb-3">Sinopse</h2>
+                <p className="text-white/80 leading-relaxed whitespace-pre-wrap">{table.synopsis}</p>
+                {/* CORREÇÃO: Exibir listing_excerpt quando diferente da sinopse */}
+                {table.listing_excerpt && table.listing_excerpt !== table.synopsis && (
+                  <div className="mt-3 p-3 rounded-lg bg-white/5 border border-white/10">
+                    <p className="text-xs font-semibold text-white/60 mb-1">Resumo Curto</p>
+                    <p className="text-sm text-white/80">{table.listing_excerpt}</p>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* Estilo de Jogo (REQ-26) */}
+            {table.style_text && (
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <h2 className="text-lg font-bold mb-3">Estilo de Jogo</h2>
+                <p className="text-white/80 leading-relaxed whitespace-pre-wrap">{table.style_text}</p>
+              </section>
+            )}
+
+            {/* Detalhes da Campanha (REQ-26) */}
+            {(table.campaign_length || table.level_range) && (
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <h2 className="text-lg font-bold mb-3">Detalhes da Campanha</h2>
+                <div className="space-y-2">
+                  {table.campaign_length && (
+                    <p className="text-sm text-white/80">
+                      <span className="font-semibold text-white/90">Duração:</span> {table.campaign_length}
+                    </p>
+                  )}
+                  {table.level_range && (
+                    <p className="text-sm text-white/80">
+                      <span className="font-semibold text-white/90">Faixa de Nível:</span> {table.level_range}
+                    </p>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {/* Cobrança Detalhada (REQ-26) */}
+            {(table.billing_text || table.session_zero_free) && (
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <h2 className="text-lg font-bold mb-3">Informações de Cobrança</h2>
+                <div className="space-y-2">
+                  {table.billing_text && (
+                    <p className="text-white/80 leading-relaxed whitespace-pre-wrap">{table.billing_text}</p>
+                  )}
+                  {table.session_zero_free && (
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-500/20 border border-green-500/40 text-green-400 text-sm font-semibold">
+                      ✓ Sessão zero gratuita
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {/* Requisitos Técnicos (REQ-26) */}
+            {(table.technical_requirements || table.requires_pc || table.requires_camera || table.requires_microphone) && (
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <h2 className="text-lg font-bold mb-3">Requisitos Técnicos</h2>
+                <div className="space-y-3">
+                  {table.technical_requirements && (
+                    <p className="text-white/80 leading-relaxed whitespace-pre-wrap">{table.technical_requirements}</p>
+                  )}
+                  {(table.requires_pc || table.requires_camera || table.requires_microphone) && (
+                    <div className="flex flex-wrap gap-2">
+                      {table.requires_pc && (
+                        <span className="px-3 py-1.5 rounded-lg bg-blue-500/20 border border-blue-500/40 text-blue-300 text-xs font-semibold">
+                          💻 Requer PC
+                        </span>
+                      )}
+                      {table.requires_camera && (
+                        <span className="px-3 py-1.5 rounded-lg bg-purple-500/20 border border-purple-500/40 text-purple-300 text-xs font-semibold">
+                          📹 Câmera obrigatória
+                        </span>
+                      )}
+                      {table.requires_microphone && (
+                        <span className="px-3 py-1.5 rounded-lg bg-pink-500/20 border border-pink-500/40 text-pink-300 text-xs font-semibold">
+                          🎤 Microfone obrigatório
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {/* Cenário e Estilos (REQ-28) */}
+            {(table.setting_name || (table.setting_styles && table.setting_styles.length > 0)) && (
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <h2 className="text-lg font-bold mb-3">Cenário e Estilos</h2>
+                <div className="space-y-3">
+                  {table.setting_name && (
+                    <p className="text-sm text-white/80">
+                      <span className="font-semibold text-white/90">Cenário:</span> {table.setting_name}
+                    </p>
+                  )}
+                  {/* CORREÇÃO DT-22: Validar se setting_styles é array válido antes de mapear */}
+                  {table.setting_styles && Array.isArray(table.setting_styles) && table.setting_styles.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-white/60 mb-2">Estilos/Temáticas:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {table.setting_styles.map((style, index) => (
+                          <span
+                            key={`${index}-${style}`}
+                            className="px-3 py-1.5 rounded-lg bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 text-xs font-semibold"
+                          >
+                            {style}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {/* Nome de Exibição do Mestre (REQ-26) */}
+            {table.master_display_name && (
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <h2 className="text-lg font-bold mb-3">Mestre</h2>
+                <p className="text-white/80">
+                  <span className="font-semibold text-white/90">Nome de Exibição:</span> {table.master_display_name}
+                </p>
+              </section>
+            )}
           </div>
 
           <aside className="rounded-2xl border border-white/10 bg-white/5 p-5 space-y-4 lg:sticky lg:top-6">

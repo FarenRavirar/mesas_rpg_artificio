@@ -49,3 +49,9 @@ export const requireRole = (roles: UserRole | UserRole[]) => {
     next();
   };
 };
+
+// Middleware específico para rotas admin
+export const requireAdmin = [
+  authMiddleware,
+  requireRole('admin')
+];

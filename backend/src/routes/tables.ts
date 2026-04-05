@@ -46,7 +46,7 @@ router.get('/', async (req: Request, res: Response) => {
         't.slug',
         't.title',
         't.description',
-        't.cover_url',
+        sql<string | null>`t.banner_url`.as('cover_url'),
         't.status',
         't.type',
         't.audience',
@@ -68,6 +68,9 @@ router.get('/', async (req: Request, res: Response) => {
         't.ddal_code',
         't.ddal_name',
         't.ddal_tier',
+        // CORREÇÃO DT-19: Retornar campos de cenário e estilos (REQ-28)
+        't.setting_name',
+        't.setting_styles',
         's.name as system_name',
         's.slug as system_slug',
         'gm.slug as gm_slug',
@@ -188,7 +191,7 @@ router.get('/:slug', async (req: Request, res: Response) => {
         't.slug',
         't.title',
         't.description',
-        't.cover_url',
+        sql<string | null>`t.banner_url`.as('cover_url'),
         't.status',
         't.type',
         't.audience',
@@ -220,6 +223,22 @@ router.get('/:slug', async (req: Request, res: Response) => {
         't.ddal_org_code',
         't.ddal_setting',
         't.ddal_rules_notes',
+        // CORREÇÃO: Retornar campos avançados (REQ-26)
+        't.master_display_name',
+        't.campaign_length',
+        't.level_range',
+        't.billing_text',
+        't.session_zero_free',
+        't.synopsis',
+        't.style_text',
+        't.listing_excerpt',
+        't.technical_requirements',
+        't.requires_pc',
+        't.requires_camera',
+        't.requires_microphone',
+        // Campos de cenário e estilos (REQ-28)
+        't.setting_name',
+        't.setting_styles',
         's.name as system_name',
         's.slug as system_slug',
         'gm.slug as gm_slug',
@@ -255,7 +274,15 @@ router.get('/:slug', async (req: Request, res: Response) => {
       .orderBy('sort_order', 'asc')
       .execute();
 
-    res.json({ data: { ...table, contacts } });
+    // CORREÇÃO: Buscar schedules (REQ-27)
+    const schedules = await db
+      .selectFrom('table_schedules')
+      .selectAll()
+      .where('table_id', '=', table.id)
+      .orderBy('sort_order', 'asc')
+      .execute();
+
+    res.json({ data: { ...table, contacts, schedules } });
   } catch (error: any) {
     console.error('[GET /tables/:slug]', error);
     res.status(500).json({ error: 'Erro ao buscar mesa.' });

@@ -86,6 +86,13 @@ class ParsedMessage(BaseModel):
     requires_pc: Optional[bool] = None  # Se requer PC para jogar
     external_links: List[str] = Field(default_factory=list)  # Links de formulários, sites, etc.
     
+    # REQ-28: Importação Inteligente - Novos campos
+    is_paid: Optional[bool] = None  # Se a mesa é paga (boolean)
+    priceText: Optional[str] = None  # Texto descritivo do preço (ex: "R$ 25 por sessão")
+    requires_camera: Optional[bool] = None  # Se requer câmera
+    requires_microphone: Optional[bool] = None  # Se requer microfone
+    is_ongoing: Optional[bool] = None  # Se a mesa está em andamento (já começou)
+    
     # Fase B: Múltiplos horários e vagas detalhadas
     sessions: List[SessionSchedule] = Field(default_factory=list)  # Array de sessões estruturadas
     slots_total: Optional[int] = None  # Total de vagas

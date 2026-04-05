@@ -253,10 +253,32 @@ export const parseExporterMessage = (input: ParseExporterMessageInput): ParsedMe
   const publisherRole = enriched.publisher_role ?? null;
   const isSamePerson = enriched.is_same_person ?? true;
   
+  // REQ-28: Importação Inteligente - Novos campos
+  const bannerUrl = enriched.banner_url ?? null;
+  const avatarUrl = enriched.avatar_url ?? null;
+  const isPaidFromParser = enriched.is_paid ?? null;
+  const priceTextFromParser = enriched.priceText ?? null;
+  const requiresCamera = enriched.requires_camera ?? false;
+  const requiresMicrophone = enriched.requires_microphone ?? false;
+  const isOngoing = enriched.is_ongoing ?? false;
+  const settingName = enriched.setting_name ?? null;
+  const settingStyles = Array.isArray(enriched.setting_styles) ? enriched.setting_styles : [];
+  
+  // Log de priorização (REQ-28)
+  console.log(`[parseExporterMessage] Mensagem ${message.id} - Priorizando enrichedFields`);
+  console.log(`[parseExporterMessage] setting_name: ${settingName ? 'Parser Python' : 'vazio'}`);
+  console.log(`[parseExporterMessage] setting_styles: ${settingStyles.length > 0 ? 'Parser Python' : 'vazio'}`);
+  console.log(`[parseExporterMessage] banner_url: ${bannerUrl ? 'Parser Python' : 'vazio'}`);
+  console.log(`[parseExporterMessage] is_paid: ${isPaidFromParser !== null ? 'Parser Python' : 'fallback TypeScript'}`);
+  console.log(`[parseExporterMessage] requires_camera: ${requiresCamera ? 'Parser Python' : 'false'}`);
+  console.log(`[parseExporterMessage] requires_microphone: ${requiresMicrophone ? 'Parser Python' : 'false'}`);
+  console.log(`[parseExporterMessage] is_ongoing: ${isOngoing ? 'Parser Python' : 'false'}`);
+  
   // Metadados do parser Python
   const parserMissingFields = Array.isArray(enriched.missingFields) ? enriched.missingFields : [];
   const parserReviewFlags = Array.isArray(enriched.reviewFlags) ? enriched.reviewFlags : [];
   const parserConfidenceByField = enriched.confidence_by_field ?? {};
+
 
 
   const requiredSignals = [title, systemText ?? systemClassification.systemName, scheduleText, slotsText, location ?? platforms];
@@ -298,8 +320,8 @@ export const parseExporterMessage = (input: ParseExporterMessageInput): ParsedMe
     recruiterName: recruiterResolution.recruiterName,
     signupText,
     synopsis,
-    isPaid: payment.isPaid,
-    priceText: payment.priceText,
+    isPaid: isPaidFromParser !== null ? isPaidFromParser : payment.isPaid,
+    priceText: priceTextFromParser ?? payment.priceText,
     isCustomSystem: systemClassification.isCustomSystem,
     mediaLinks,
     externalLinks: allExternalLinks,
@@ -315,6 +337,15 @@ export const parseExporterMessage = (input: ParseExporterMessageInput): ParsedMe
     experienceRequired,
     tags,
     requiresPc,
+    
+    // REQ-28: Importação Inteligente - Novos campos
+    bannerUrl,
+    avatarUrl,
+    requiresCamera,
+    requiresMicrophone,
+    isOngoing,
+    settingName,
+    settingStyles,
     
     // Fase B: Múltiplos horários e vagas detalhadas
     sessions,
