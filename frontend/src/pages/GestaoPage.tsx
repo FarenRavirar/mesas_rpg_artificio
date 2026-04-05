@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle, XCircle, Clock } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { CreateTableForm } from './PainelMestrePage';
 import { mapCandidateToFormData } from '../utils/candidateToFormData';
 
@@ -36,16 +37,29 @@ export const GestaoPage = () => {
   const navigate = useNavigate();
   const [suggestions, setSuggestions] = useState<SystemSuggestion[]>([]);
   const [candidates, setCandidates] = useState<AggregatorCandidate[]>([]);
+  const [systemsTree, setSystemsTree] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
   const [activeTab, setActiveTab] = useState<'systems' | 'tables'>('systems');
   const [selectedCandidate, setSelectedCandidate] = useState<AggregatorCandidate | null>(null);
+  const [showRawData, setShowRawData] = useState(false);
+  
+  // Estados de loading para spinners
+  const [approvingSuggestionId, setApprovingSuggestionId] = useState<string | null>(null);
+  const [rejectingSuggestionId, setRejectingSuggestionId] = useState<string | null>(null);
+  const [rejectingCandidateId, setRejectingCandidateId] = useState<string | null>(null);
+  const [rejectingAll, setRejectingAll] = useState(false);
+  const [undoingCandidateId, setUndoingCandidateId] = useState<string | null>(null);
+
 
   useEffect(() => {
     if (!user || user.role !== 'admin') {
       navigate('/');
       return;
     }
+
+    // Carregar árvore de sistemas uma vez ao montar
+    fetchSystemsTree();
 
     if (activeTab === 'systems') {
       fetchSuggestions();
@@ -78,32 +92,52 @@ export const GestaoPage = () => {
     }
   };
 
-  const handleApprove = async (id: string) => {
+  const fetchSystemsTree = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/systems?view=tree`);
+      if (response.ok) {
+        const data = await response.json();
+        setSystemsTree(data.data || []);
+      }
+    } catch (error) {
+      console.error('[GestaoPage] Erro ao buscar árvore de sistemas:', error);
+    }
+  };
+
+  const handleApprove = async (id: string, editedData?: { name: string; description: string | null }) => {
     if (!token) return;
-    if (!confirm('Aprovar esta sugestão?')) return;
+    setApprovingSuggestionId(id);
 
     try {
       const response = await fetch(`${API_BASE}/api/v1/admin/system-suggestions/${id}/approve`, {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(editedData || {}),
       });
 
       if (response.ok) {
-        alert('Sugestão aprovada!');
+        toast.success('Sistema aprovado com sucesso!');
         fetchSuggestions();
       } else {
         const data = await response.json();
-        alert(`Erro: ${data.error}`);
+        toast.error(`Erro: ${data.error}`);
       }
     } catch (error) {
       console.error('[GestaoPage] Erro ao aprovar:', error);
-      alert('Erro ao aprovar sugestão');
+      toast.error('Erro ao aprovar sistema');
+    } finally {
+      setApprovingSuggestionId(null);
     }
   };
 
   const handleReject = async (id: string) => {
     const reason = prompt('Motivo da rejeição:');
     if (!reason || !token) return;
+
+    setRejectingSuggestionId(id);
 
     try {
       const response = await fetch(`${API_BASE}/api/v1/admin/system-suggestions/${id}/reject`, {
@@ -116,15 +150,17 @@ export const GestaoPage = () => {
       });
 
       if (response.ok) {
-        alert('Sugestão rejeitada!');
+        toast.success('Sistema rejeitado!');
         fetchSuggestions();
       } else {
         const data = await response.json();
-        alert(`Erro: ${data.error}`);
+        toast.error(`Erro: ${data.error}`);
       }
     } catch (error) {
       console.error('[GestaoPage] Erro ao rejeitar:', error);
-      alert('Erro ao rejeitar sugestão');
+      toast.error('Erro ao rejeitar sistema');
+    } finally {
+      setRejectingSuggestionId(null);
     }
   };
 
@@ -160,21 +196,24 @@ export const GestaoPage = () => {
       });
 
       if (response.ok) {
-        alert('Candidato aprovado! Mesa criada com sucesso.');
+        toast.success('Candidato aprovado com sucesso!');
         fetchCandidates();
+        setSelectedCandidate(null);
       } else {
         const data = await response.json();
-        alert(`Erro: ${data.error}`);
+        toast.error(`Erro: ${data.error}`);
       }
     } catch (error) {
       console.error('[GestaoPage] Erro ao aprovar candidato:', error);
-      alert('Erro ao aprovar candidato');
+      toast.error('Erro ao aprovar candidato');
     }
   };
 
   const handleRejectCandidate = async (id: string) => {
-    const reason = prompt('Motivo da rejeição:');
-    if (!reason || !token) return;
+    if (!token) return;
+    if (!confirm('Rejeitar este candidato? Esta ação não pode ser desfeita.')) return;
+
+    setRejectingCandidateId(id);
 
     try {
       const response = await fetch(`${API_BASE}/api/v1/aggregator/candidates/${id}/reject`, {
@@ -183,21 +222,87 @@ export const GestaoPage = () => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ reason }),
+        body: JSON.stringify({ reason: 'Rejeitado pelo admin' }),
       });
 
       if (response.ok) {
-        alert('Candidato rejeitado!');
+        toast.success('Candidato rejeitado!');
         fetchCandidates();
       } else {
         const data = await response.json();
-        alert(`Erro: ${data.error}`);
+        toast.error(`Erro: ${data.error}`);
       }
     } catch (error) {
       console.error('[GestaoPage] Erro ao rejeitar candidato:', error);
-      alert('Erro ao rejeitar candidato');
+      toast.error('Erro ao rejeitar candidato');
+    } finally {
+      setRejectingCandidateId(null);
     }
   };
+
+  const handleRejectAll = async () => {
+    if (!token) return;
+    
+    const pendingCount = candidates.filter(c => c.editorial_status === 'awaiting_review').length;
+    if (pendingCount === 0) {
+      toast.error('Não há candidatos pendentes para rejeitar');
+      return;
+    }
+    
+    if (!confirm(`Rejeitar TODOS os ${pendingCount} candidatos pendentes? Esta ação não pode ser desfeita.`)) return;
+
+    setRejectingAll(true);
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/aggregator/candidates/reject-all`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        toast.success(data.data.message);
+        fetchCandidates();
+      } else {
+        const data = await response.json();
+        toast.error(`Erro: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('[GestaoPage] Erro ao rejeitar candidatos em lote:', error);
+      toast.error('Erro ao rejeitar candidatos em lote');
+    } finally {
+      setRejectingAll(false);
+    }
+  };
+
+  const handleUndoRejection = async (id: string) => {
+    if (!token) return;
+    if (!confirm('Desfazer rejeição? O candidato voltará para revisão.')) return;
+
+    setUndoingCandidateId(id);
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/aggregator/candidates/${id}/undo-rejection`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        toast.success(data.data.message);
+        fetchCandidates();
+      } else {
+        const data = await response.json();
+        toast.error(`Erro: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('[GestaoPage] Erro ao desfazer rejeição:', error);
+      toast.error('Erro ao desfazer rejeição');
+    } finally {
+      setUndoingCandidateId(null);
+    }
+  };
+
 
   if (!user || user.role !== 'admin') {
     return null;
@@ -224,6 +329,15 @@ export const GestaoPage = () => {
         return 'text-yellow-400';
     }
   };
+
+  // Filtrar candidatos por status editorial
+  const filteredCandidates = candidates.filter(candidate => {
+    if (filter === 'all') return true;
+    if (filter === 'pending') return candidate.editorial_status === 'awaiting_review';
+    if (filter === 'approved') return candidate.editorial_status === 'accepted';
+    if (filter === 'rejected') return candidate.editorial_status === 'rejected';
+    return true;
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0F1A2E] via-[#1B2A4A] to-[#0F1A2E] py-8">
@@ -350,14 +464,22 @@ export const GestaoPage = () => {
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleApprove(suggestion.id)}
-                        className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg transition-colors"
+                        disabled={approvingSuggestionId === suggestion.id}
+                        className="px-4 py-2 bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
                       >
+                        {approvingSuggestionId === suggestion.id && (
+                          <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                        )}
                         Aprovar
                       </button>
                       <button
                         onClick={() => handleReject(suggestion.id)}
-                        className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-colors"
+                        disabled={rejectingSuggestionId === suggestion.id}
+                        className="px-4 py-2 bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
                       >
+                        {rejectingSuggestionId === suggestion.id && (
+                          <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                        )}
                         Rejeitar
                       </button>
                     </div>
@@ -413,6 +535,20 @@ export const GestaoPage = () => {
               >
                 Todas
               </button>
+
+              {/* Botão de rejeição em lote - visível apenas em "Pendentes" */}
+              {filter === 'pending' && filteredCandidates.length > 0 && (
+                <button
+                  onClick={handleRejectAll}
+                  disabled={rejectingAll}
+                  className="ml-auto px-4 py-2 bg-red-500/20 hover:bg-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-red-400 font-semibold rounded-lg border border-red-500/50 transition-colors flex items-center gap-2"
+                >
+                  {rejectingAll && (
+                    <span className="inline-block w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin"></span>
+                  )}
+                  Rejeitar Todas ({filteredCandidates.length})
+                </button>
+              )}
             </div>
 
             {loading ? (
@@ -478,9 +614,28 @@ export const GestaoPage = () => {
                             </button>
                             <button
                               onClick={() => handleRejectCandidate(candidate.id)}
-                              className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-colors"
+                              disabled={rejectingCandidateId === candidate.id}
+                              className="px-4 py-2 bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
                             >
+                              {rejectingCandidateId === candidate.id && (
+                                <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                              )}
                               Rejeitar
+                            </button>
+                          </div>
+                        )}
+
+                        {candidate.editorial_status === 'rejected' && (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleUndoRejection(candidate.id)}
+                              disabled={undoingCandidateId === candidate.id}
+                              className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
+                            >
+                              {undoingCandidateId === candidate.id && (
+                                <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                              )}
+                              Desfazer
                             </button>
                           </div>
                         )}
@@ -513,8 +668,17 @@ export const GestaoPage = () => {
               <div className="p-6">
                 {/* Informações do Candidato */}
                 <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-6">
-                  <h3 className="text-sm font-semibold text-blue-300 mb-2">Dados Extraídos Automaticamente</h3>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-blue-300">Dados Extraídos Automaticamente</h3>
+                    <button
+                      onClick={() => setShowRawData(!showRawData)}
+                      className="text-xs text-blue-400 hover:text-blue-300 underline"
+                    >
+                      {showRawData ? 'Ocultar' : 'Ver'} dados brutos (JSON)
+                    </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3 text-sm mb-3">
                     <div>
                       <span className="text-white/60">Título:</span>
                       <span className="text-white ml-2">{selectedCandidate.parsed_json.title || 'Não informado'}</span>
@@ -524,16 +688,67 @@ export const GestaoPage = () => {
                       <span className="text-white ml-2">{selectedCandidate.parsed_json.system || 'Não identificado'}</span>
                     </div>
                     <div>
+                      <span className="text-white/60">Modalidade:</span>
+                      <span className="text-white ml-2">{selectedCandidate.parsed_json.modality || 'Não informado'}</span>
+                    </div>
+                    <div>
+                      <span className="text-white/60">Tipo:</span>
+                      <span className="text-white ml-2">{selectedCandidate.parsed_json.type || 'Não informado'}</span>
+                    </div>
+                    <div>
+                      <span className="text-white/60">Vagas:</span>
+                      <span className="text-white ml-2">{selectedCandidate.parsed_json.slots || selectedCandidate.parsed_json.maxPlayers || 'Não informado'}</span>
+                    </div>
+                    <div>
+                      <span className="text-white/60">Idioma:</span>
+                      <span className="text-white ml-2">{selectedCandidate.parsed_json.language || 'Não informado'}</span>
+                    </div>
+                    <div>
                       <span className="text-white/60">Confiança:</span>
                       <span className="text-white ml-2">{Math.round((selectedCandidate.confidence_score || 0) * 100)}%</span>
                     </div>
                   </div>
+
+                  {selectedCandidate.parsed_json.synopsis && (
+                    <div className="text-sm mt-3 pt-3 border-t border-blue-500/20">
+                      <span className="text-white/60">Descrição:</span>
+                      <p className="text-white mt-1 line-clamp-3">{selectedCandidate.parsed_json.synopsis}</p>
+                    </div>
+                  )}
+
+                  {/* Preview de Banner */}
+                  {(selectedCandidate.parsed_json.imageUrl || selectedCandidate.parsed_json.banner || selectedCandidate.parsed_json.thumbnail) && (
+                    <div className="text-sm mt-3 pt-3 border-t border-blue-500/20">
+                      <span className="text-white/60 block mb-2">Preview do Banner:</span>
+                      <img
+                        src={selectedCandidate.parsed_json.imageUrl || selectedCandidate.parsed_json.banner || selectedCandidate.parsed_json.thumbnail}
+                        alt="Banner da mesa"
+                        className="w-full max-h-48 object-cover rounded border border-blue-500/30"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.nextElementSibling!.classList.remove('hidden');
+                        }}
+                      />
+                      <div className="hidden text-white/60 text-xs mt-2">
+                        ⚠️ Falha ao carregar imagem
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Dados brutos (JSON) */}
+                  {showRawData && (
+                    <div className="mt-4 pt-4 border-t border-blue-500/20">
+                      <pre className="text-xs text-white/80 bg-black/30 p-3 rounded overflow-x-auto max-h-64 overflow-y-auto">
+                        {JSON.stringify(selectedCandidate.parsed_json, null, 2)}
+                      </pre>
+                    </div>
+                  )}
                 </div>
 
                 {/* Formulário Editável */}
                 <CreateTableForm
                   token={token!}
-                  initialData={mapCandidateToFormData(selectedCandidate.parsed_json)}
+                  initialData={mapCandidateToFormData(selectedCandidate.parsed_json, systemsTree)}
                   mode="review"
                   candidateId={selectedCandidate.id}
                   onSuccess={() => {

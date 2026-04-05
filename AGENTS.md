@@ -10,17 +10,17 @@ Governança de agentes de IA neste repositório.
 > **TODO AGENTE DEVE EXECUTAR ESTA CHECKLIST NO INÍCIO DE QUALQUER SESSÃO:**
 
 ### 1️⃣ IMEDIATAMENTE ao iniciar sessão:
-- [ ] Criar arquivo de resumo em `/sessoes/resumo_[dia-mes]_[task-curta].md` (ver seção "Protocolo de Continuidade de Sessão" linha 123)
+- [ ] Criar arquivo de resumo em `/sessoes/resumo_[dia-mes]_[task-curta].md` (ver seção "Protocolo de Continuidade de Sessão")
 - [ ] Ler `RESUMO_EXECUCAO.md` — estado atual do projeto e próxima ação
 - [ ] Ler este arquivo (`AGENTS.md`) completamente
 
 ### 2️⃣ Antes de modificar código:
-- [ ] Consultar `AI_CONTEXT_INDEX.md` — escolher cenário e ler arquivo indicado
+- [ ] Consultar `GUIA_RAPIDO_OPERACIONAL.md` — tabela de índice para roteamento rápido
 - [ ] Ler seção específica de `ARQUITETURA_PROJETO.md` (NUNCA na íntegra)
 - [ ] Consultar `GIT_WORKFLOW.md` se envolver Git/branch/deploy
 
 ### 3️⃣ Por situação específica:
-- [ ] **Erro encontrado?** → Consultar `ERRORS_SOLUTIONS.md` IMEDIATAMENTE (linha 87)
+- [ ] **Erro encontrado?** → Consultar `ERRORS_SOLUTIONS.md` IMEDIATAMENTE
 - [ ] **Planejando feature?** → Consultar `TODO_OPERACIONAL.md`
 - [ ] **Executando lote?** → Consultar `FILA_IMPLEMENTACAO.md`
 - [ ] **Deploy/produção?** → Consultar `OPERACAO_PRODUCAO.md`
@@ -28,8 +28,8 @@ Governança de agentes de IA neste repositório.
 
 ### 4️⃣ Durante execução:
 - [ ] Atualizar resumo da sessão conforme progride (marcar `[x]` nos itens)
-- [ ] Seguir as 10 Heurísticas de Nielsen em qualquer mudança de UI (linha 186)
-- [ ] NUNCA fazer `git commit` ou `git push` sem autorização explícita (linha 209)
+- [ ] Seguir as 10 Heurísticas de Nielsen em qualquer mudança de UI
+- [ ] NUNCA fazer `git commit` ou `git push` sem autorização explícita
 
 ### 5️⃣ Ao final da sessão:
 - [ ] Garantir que resumo em `/sessoes/` está completo e atualizado
@@ -58,41 +58,21 @@ Sempre no início de qualquer tarefa no repositório.
 
 Nunca pular este arquivo.
 
-## Pré-requisitos
+## Roteamento de Contexto por Situação
 
-- Identificar o tipo de tarefa
-- Consultar `GUIA_RAPIDO_OPERACIONAL.md` (tabela-resumo + seção aplicável) para reduzir releitura extensa
-- Evitar loops de análise sem objetivo claro (obrigatório)
+Consultar os seguintes arquivos dependendo da situação:
 
-## Passos
+- **Git/branch/merge/deploy:** `GIT_WORKFLOW.md`
+- **Operação em produção/beta:** `OPERACAO_PRODUCAO.md`
+- **Falha de ambiente/encoding/template:** `PRE-FLIGHT_CHECKLIST.md`
+- **Erro recorrente e contorno validado:** `ERRORS_SOLUTIONS.md`
+- **Backlog de requisitos e prioridades (visão estratégica de produto):** `TODO_OPERACIONAL.md`
+- **Execução de lote com itens técnicos granulares (visão tática de implementação):** `FILA_IMPLEMENTACAO.md`
+- **Banco de Dados / API Backend (Node):** `ARQUITETURA_PROJETO.md` seção 4
+- **Imagens, upload e integração Imgur:** `ARQUITETURA_PROJETO.md` seção 16
+- **Ingestão automática de fontes externas:** `ARQUITETURA_PROJETO.md` seção 7.8
+- **Registro histórico de sessões anteriores:** `/sessoes/` (resumos datados de cada sessão de trabalho)
 
-1. Ler `RESUMO_EXECUCAO.md` — estado atual, bloqueios e próxima ação
-2. Ler regras base deste arquivo (`AGENTS.md`)
-3. Consultar `AI_CONTEXT_INDEX.md` — escolher cenário na matriz e ler só o arquivo indicado
-4. Nunca ler `ARQUITETURA_PROJETO.md` na íntegra — sempre por seção específica
-
-## Leitura obrigatória
-
-1. Sempre iniciar por:
-   - `RESUMO_EXECUCAO.md` — estado atual do projeto e próxima ação
-   - `AGENTS.md`
-2. Roteador de contexto (substitui leitura em cascata):
-   - `AI_CONTEXT_INDEX.md` — matriz de leitura por cenário com orçamento de tokens
-3. Atalho de aceleração (apoio):
-   - `GUIA_RAPIDO_OPERACIONAL.md` (tabela de índice + checklists de fechamento)
-4. Antes de modificar código:
-   - `ARQUITETURA_PROJETO.md` — **somente a seção indicada pelo AI_CONTEXT_INDEX**, não na íntegra
-5. Consultar por situação:
-   - Git/branch/merge/deploy: `GIT_WORKFLOW.md`
-   - Operação em produção/beta: `OPERACAO_PRODUCAO.md`
-   - Falha de ambiente/encoding/template: `PRE-FLIGHT_CHECKLIST.md`
-   - Erro recorrente e contorno validado: `ERRORS_SOLUTIONS.md`
-   - Backlog de requisitos e prioridades (visão estratégica de produto): `TODO_OPERACIONAL.md`
-   - Execução de lote com itens técnicos granulares (visão tática de implementação): `FILA_IMPLEMENTACAO.md`
-   - Banco de Dados / API Backend (Node): `ARQUITETURA_PROJETO.md` seção 4
-   - Imagens, upload e integração Imgur: `ARQUITETURA_PROJETO.md` seção 16
-   - Ingestão automática de fontes externas: `ARQUITETURA_PROJETO.md` seção 7.8
-   - Registro histórico de sessões anteriores: `/sessoes/` (resumos datados de cada sessão de trabalho)
 
 ### Diferença entre TODO_OPERACIONAL e FILA_IMPLEMENTACAO
 
@@ -114,6 +94,30 @@ Nunca pular este arquivo.
 - Um REQ do TODO pode gerar múltiplos itens na FILA
 - Exemplo: REQ-06 (Painel do mestre) → itens 022, 023, 024 na FILA
 - TODO = "O QUÊ fazer" (produto) | FILA = "COMO fazer" (técnico)
+
+## Protocolo de Documentação (Obrigatório)
+
+> [!CAUTION]
+> **REGRA PÉTREA DE DOCUMENTAÇÃO:**
+> Antes de adicionar, modificar ou mover qualquer informação nos arquivos de documentação (`TODO_OPERACIONAL.md`, `FILA_IMPLEMENTACAO.md`, `ERRORS_SOLUTIONS.md`, etc.), o agente DEVE:
+>
+> 1. **PARAR e perguntar a si mesmo:** "Onde essa informação deve ser registrada?"
+> 2. **CONSULTAR a seção 'Diferença entre TODO_OPERACIONAL e FILA_IMPLEMENTACAO'** (acima neste arquivo)
+> 3. **VALIDAR:** A informação é de produto (REQ) ou técnica (item da fila)?
+> 4. **APLICAR a regra correta:**
+>    - Se for **requisito de produto** (feature completa, visão estratégica) → `TODO_OPERACIONAL.md`
+>    - Se for **tarefa técnica** (arquivo específico, função, endpoint) → `FILA_IMPLEMENTACAO.md`
+>    - Se for **erro recorrente com solução validada** → `ERRORS_SOLUTIONS.md`
+> 5. **NUNCA assumir** sem consultar a documentação primeiro
+>
+> **Exemplo de aplicação correta:**
+> - Usuário pede: "Documente os 10 problemas encontrados"
+> - Agente pensa: "São problemas técnicos ou requisito de produto?"
+> - Agente consulta: Seção "Diferença entre TODO e FILA"
+> - Agente decide: "É um requisito de produto (REQ-18) que gera 10 itens técnicos (045-054)"
+> - Agente executa: Cria REQ-18 no TODO + itens 045-054 na FILA
+>
+> **Violação desta regra resulta em retrabalho e perda de confiança.**
 
 ## Princípio central
 
@@ -184,7 +188,7 @@ Ao executar tarefas com escopo definido e plano aprovado:
 ## Fonte de verdade (single source of truth)
 
 - Estado atual do projeto e próxima ação: `RESUMO_EXECUCAO.md`
-- Roteamento de leitura por cenário e orçamento de tokens: `AI_CONTEXT_INDEX.md`
+- Roteamento rápido por situação: `GUIA_RAPIDO_OPERACIONAL.md`
 - Arquitetura, contratos, princípios visuais e decisões: `ARQUITETURA_PROJETO.md`
 - Fluxo de Git/merge/deploy: `GIT_WORKFLOW.md`
 - Operação de produção/beta e validação pós-deploy: `OPERACAO_PRODUCAO.md`

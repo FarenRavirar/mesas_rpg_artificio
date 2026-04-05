@@ -12,24 +12,124 @@ export interface CandidateFormData {
   language?: string;
   publisher_role?: 'gm' | 'announcer';
   actual_gm_name?: string;
+  system_id?: string;
+  starts_at?: string;
+  frequency?: string;
+  frequency_custom?: string;
+  rules_notes?: string;
+  banner_url?: string;
+  contacts?: Array<{
+    channel: string;
+    value: string;
+    extra_url?: string;
+  }>;
 }
 
-export function mapCandidateToFormData(parsed_json: any): CandidateFormData {
+/**
+ * Remove prefixos técnicos do Discord de campos de texto
+ */
+export function sanitizeText(text: string | undefined | null): string | undefined {
+  if (!text) return undefined;
+
+  // Remove prefixos comuns do Discord
+  const prefixes = [
+    /^#\s*Título:\s*/i,
+    /^\*\*Título:\*\*\s*/i,
+    /^Título:\s*/i,
+    /^#\s*Sistema:\s*/i,
+    /^\*\*Sistema:\*\*\s*/i,
+    /^Sistema:\s*/i,
+    /^#\s*Descrição:\s*/i,
+    /^\*\*Descrição:\*\*\s*/i,
+    /^Descrição:\s*/i,
+    /^#\s*/,
+    /^\*\*/,
+  ];
+
+  let sanitized = text.trim();
+  
+  for (const prefix of prefixes) {
+    sanitized = sanitized.replace(prefix, '');
+  }
+
+  return sanitized.trim() || undefined;
+}
+
+/**
+ * Busca inteligente de sistema na árvore hierárquica
+ * Retorna o system_id se encontrado, null caso contrário
+ */
+export function findSystemId(
+  systemName: string | undefined | null,
+  systemsTree: any[]
+): string | null {
+  if (!systemName || !systemsTree || systemsTree.length === 0) {
+    return null;
+  }
+
+  const normalized = systemName.toLowerCase().trim();
+
+  // Busca recursiva na árvore
+  function searchInTree(nodes: any[]): string | null {
+    for (const node of nodes) {
+      // Verifica nome do nó
+      if (node.name && node.name.toLowerCase() === normalized) {
+        return node.id;
+      }
+
+      // Verifica aliases
+      if (node.aliases && Array.isArray(node.aliases)) {
+        for (const alias of node.aliases) {
+          if (alias.toLowerCase() === normalized) {
+            return node.id;
+          }
+        }
+      }
+
+      // Busca fuzzy (contém)
+      if (node.name && node.name.toLowerCase().includes(normalized)) {
+        return node.id;
+      }
+
+      // Busca recursiva nos filhos
+      if (node.children && node.children.length > 0) {
+        const found = searchInTree(node.children);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+
+  return searchInTree(systemsTree);
+}
+
+export function mapCandidateToFormData(
+  parsed_json: any,
+  systemsTree?: any[]
+): CandidateFormData {
   if (!parsed_json) return {};
 
   const mapped: CandidateFormData = {};
 
-  // Título
+  // Título (sanitizado)
   if (parsed_json.title) {
-    mapped.title = parsed_json.title;
+    mapped.title = sanitizeText(parsed_json.title);
   }
 
-  // Descrição (synopsis)
-  if (parsed_json.synopsis) {
-    mapped.description = parsed_json.synopsis;
+  // Descrição (synopsis, sanitizada)
+  if (parsed_json.synopsis || parsed_json.description) {
+    mapped.description = sanitizeText(parsed_json.synopsis || parsed_json.description);
   }
 
-  // Tipo de mesa (tentar inferir)
+  // Sistema (busca inteligente na árvore)
+  if (parsed_json.system && systemsTree) {
+    const systemId = findSystemId(parsed_json.system, systemsTree);
+    if (systemId) {
+      mapped.system_id = systemId;
+    }
+  }
+
+  // Tipo de mesa
   if (parsed_json.type) {
     const typeMap: Record<string, string> = {
       'campanha': 'campanha',
@@ -66,8 +166,8 @@ export function mapCandidateToFormData(parsed_json: any): CandidateFormData {
   }
 
   // Vagas
-  if (parsed_json.slots || parsed_json.maxPlayers) {
-    const slots = parsed_json.slots || parsed_json.maxPlayers;
+  if (parsed_json.slots || parsed_json.maxPlayers || parsed_json.slots_total) {
+    const slots = parsed_json.slots || parsed_json.maxPlayers || parsed_json.slots_total;
     mapped.slots_total = String(slots);
   }
 
@@ -76,12 +176,72 @@ export function mapCandidateToFormData(parsed_json: any): CandidateFormData {
     mapped.language = parsed_json.language;
   }
 
-  // Publisher role e nome do mestre
-  if (parsed_json.masterText) {
-    mapped.publisher_role = 'announcer';
-    mapped.actual_gm_name = parsed_json.masterText;
+  // Data de início
+  if (parsed_json.starts_at || parsed_json.startDate) {
+    const dateStr = parsed_json.starts_at || parsed_json.startDate;
+    // Tentar converter para formato ISO se necessário
+    try {
+      const date = new Date(dateStr);
+      if (!isNaN(date.getTime())) {
+        mapped.starts_at = date.toISOString().split('T')[0]; // YYYY-MM-DD
+      }
+    } catch {
+      // Se falhar, deixar como está
+      mapped.starts_at = dateStr;
+    }
+  }
+
+  // Frequência
+  if (parsed_json.frequency) {
+    const freqMap: Record<string, string> = {
+      'semanal': 'semanal',
+      'quinzenal': 'quinzenal',
+      'mensal': 'mensal',
+      'weekly': 'semanal',
+      'biweekly': 'quinzenal',
+      'monthly': 'mensal',
+    };
+    const normalized = parsed_json.frequency.toLowerCase();
+    if (freqMap[normalized]) {
+      mapped.frequency = freqMap[normalized];
+    } else {
+      mapped.frequency = 'outros';
+      mapped.frequency_custom = parsed_json.frequency;
+    }
+  }
+
+  // Regras/Observações
+  if (parsed_json.rules_notes || parsed_json.rules || parsed_json.notes) {
+    mapped.rules_notes = sanitizeText(
+      parsed_json.rules_notes || parsed_json.rules || parsed_json.notes
+    );
+  }
+
+  // Banner URL
+  if (parsed_json.imageUrl || parsed_json.banner || parsed_json.thumbnail) {
+    mapped.banner_url = parsed_json.imageUrl || parsed_json.banner || parsed_json.thumbnail;
+  }
+
+  // Publisher role e nome do mestre (SEMPRE announcer para candidatos importados)
+  mapped.publisher_role = 'announcer';
+  if (parsed_json.masterText || parsed_json.recruiterName || parsed_json.gmName) {
+    mapped.actual_gm_name = sanitizeText(
+      parsed_json.masterText || parsed_json.recruiterName || parsed_json.gmName
+    );
   } else {
-    mapped.publisher_role = 'gm';
+    mapped.actual_gm_name = 'Não informado';
+  }
+
+  // Contatos (Discord)
+  if (parsed_json.authorUsername || parsed_json.authorHandle) {
+    const discordValue = parsed_json.authorUsername || parsed_json.authorHandle;
+    mapped.contacts = [
+      {
+        channel: 'discord',
+        value: discordValue,
+        extra_url: parsed_json.discordServerUrl || undefined,
+      },
+    ];
   }
 
   return mapped;
@@ -134,3 +294,4 @@ export function detectPriceType(parsed_json: any): 'free' | 'paid' | 'unidentifi
 
   return 'unidentified';
 }
+

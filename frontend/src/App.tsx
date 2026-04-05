@@ -12,6 +12,7 @@ import { MesaPage } from './pages/MesaPage';
 import { MestrePage } from './pages/MestrePage';
 import { GestaoPage } from './pages/GestaoPage';
 import { AdminDevToolsPage } from './pages/AdminDevToolsPage';
+import { Toaster } from 'react-hot-toast';
 import './index.css';
 
 function AppRoutes() {
@@ -46,6 +47,29 @@ function App() {
           <AppRoutes />
         </AppShell>
       </AuthProvider>
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#1e293b',
+            color: '#fff',
+            border: '1px solid rgba(59, 130, 246, 0.3)',
+          },
+          success: {
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
     </BrowserRouter>
   );
 }

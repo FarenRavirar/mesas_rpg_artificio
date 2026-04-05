@@ -49,10 +49,9 @@ Use para localizar o erro sem varrer a tabela inteira:
 | PowerShell — comandos Unix inexistentes / software externo | E085, E094 |
 | Backend / API Node.js | E078, E087, E089, E092, E093, E098 |
 | Imgur / Upload de Imagens | E079, E080, E081 |
-| Autenticação / Sessão | E103 |
+| Autenticação / Sessão | E103, E105 |
 | AggregatorBot / CleanupWorker | E082, E083, E084 |
 | SSH / Conexão Remota | E102 |
-| Autenticação / Sessão | E103 |
 
 ---
 
@@ -203,6 +202,7 @@ Use para localizar o erro sem varrer a tabela inteira:
 | ID | Sintoma | Causa provável | Diagnóstico rápido | Solução validada | Prevenção |
 |---|---|---|---|---|---|
 | E103 | Usuários sendo deslogados inesperadamente durante o uso da aplicação | JWT expirando muito rápido (15 minutos padrão); validação agressiva com backend a cada navegação; reload forçado ao detectar mudança de token entre abas | Usuário relata logout após ~15 minutos de uso; logs do frontend mostram chamadas frequentes para `/api/v1/me`; `window.location.reload()` sendo chamado no storage listener | Aumentar `JWT_EXPIRES_IN` de `15m` para `7d` no `.env`; modificar `AuthContext.tsx` para validar com backend apenas se token expirar em < 5 minutos; remover `window.location.reload()` do storage listener e substituir por atualização de estado React. Ver `walkthrough.md` (04/04/2026) para detalhes completos | Usar `JWT_EXPIRES_IN=7d` como padrão para web apps; implementar validação inteligente que só chama backend quando necessário; sincronizar sessão entre abas via estado React em vez de reload |
+| E105 | Erros 401 Unauthorized no console ao acessar páginas administrativas (`/gestao`): `GET /api/v1/me 401`, `GET /api/v1/aggregator/sources 401`, `GET /api/v1/aggregator/candidates 401` | `AuthContext.tsx` usava caminhos relativos (`/api/v1/me` e `/api/v1/auth/logout`) ao invés de `${API_BASE}/api/v1/...`. Quando o frontend roda em dev local (`localhost:5173`), as requisições iam para `http://localhost:5173/api/v1/me` (que não existe) ao invés de `https://mesasbeta.artificiorpg.com/api/v1/me` | Console do navegador mostra múltiplos erros 401 ao carregar página; requisições para `/api/v1/me`, `/api/v1/aggregator/sources` e `/api/v1/aggregator/candidates` falham; página de gestão não carrega dados | Adicionar `const API_BASE = import.meta.env.VITE_API_URL ?? '';` no topo do `AuthContext.tsx` e corrigir todas as chamadas `fetch` para usar `${API_BASE}/api/v1/me` e `${API_BASE}/api/v1/auth/logout`. Validar build com `npm run build` | Sempre usar `API_BASE` em todas as requisições do frontend; nunca usar caminhos relativos (`/api/v1/...`) em contextos ou serviços que podem ser usados tanto em dev local quanto em produção; validar que todas as chamadas `fetch` no projeto usam `${API_BASE}` consistentemente |
 
 ---
 

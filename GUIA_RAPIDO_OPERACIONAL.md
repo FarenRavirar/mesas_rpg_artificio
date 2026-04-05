@@ -10,20 +10,20 @@ Resumo executivo para reduzir custo de contexto dos agentes, com navegação rá
 
 ## Índice rápido (use primeiro)
 
-| Cenário | Ler primeiro (atalho) | Fonte canônica principal | Decisão rápida |
-|---|---|---|---|
-| Onboarding (3 etapas) | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §7.5 | `AuthCallback` deve redirecionar para `/onboarding` quando `onboarding_completed=false` |
-| Catálogo e busca pública | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §7.1-7.3 | Busca/filtros ficam no Frontend, API retorna dados públicos |
-| Taxonomia de sistemas (árvore + aliases) | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §4 e §7.5 | Modelar `sistema > edição > variante`; aliases servem para busca, não para duplicar sistema |
-| Importação de mesas por JSON (lote) | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §4 e §7.8 | Exigir `schema_version`, idempotência (`source` + `external_id`), resolução por `system_path_slug` e ao menos 1 contato com `channel=discord` quando o lote pedir nick Discord |
-| Selos oficiais (Covil/DDAL) | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §7.2, §7.4 e §7.6 | DDAL só é elegível no caminho `D&D > D&D 5e > D&D 2024` e exige metadados mínimos no backend |
-| Header/Footer globais | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §7.1-7.6 | Header sticky e footer institucional devem existir em todas as rotas/etapas |
-| Landing pública de mestre | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §7.4 | Nunca expor `avatar_deletehash`/`banner_deletehash` |
-| OAuth / JWT / roles | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §6 | Segurança e role no Backend, nunca no Frontend |
-| Imagens e Imgur | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §16 | Upload/remoção só no Backend |
-| Deploy / Git / promoção | `AI_CONTEXT_INDEX.md` | `GIT_WORKFLOW.md` + `OPERACAO_PRODUCAO.md` | Sem `commit`/`push` sem autorização explícita; beta ativo em `dev`; produção só validar publicamente quando a publicação operacional existir |
-| Aggregator Discord (ingestão, revisão, exportação) | `AI_CONTEXT_INDEX.md` | `ARQUITETURA_PROJETO.md` §12 (rotas Aggregator) | Todas as rotas em `/api/v1/aggregator/*` requerem `admin`. Frontend: `/admin/devtools` visível apenas para admin (não-admin não vê link nem rota registrada). Badge operacional exibe `VITE_ENABLE_DEVTOOLS` para admin no header. Pipeline: source → import/file → candidates → accept/reject. CLI local: `npm run aggregator:import` com auto-reparo de JSON truncado (E088) e fallback manual em `ERRORS_SOLUTIONS.md` quando o reparo falhar. Split automático de JSON >1000 mensagens ocorre no Frontend em lotes de 1000 (IMPORT_CHUNK_SIZE); resumo agrega todos os lotes. Migration_05 aplicada no beta. |
-| Erros de execução | `AI_CONTEXT_INDEX.md` | `ERRORS_SOLUTIONS.md` | Ao primeiro erro: parar e aplicar solução catalogada |
+| Cenário | Fonte canônica principal | Decisão rápida |
+|---|---|---|
+| Onboarding (3 etapas) | `ARQUITETURA_PROJETO.md` §7.5 | `AuthCallback` deve redirecionar para `/onboarding` quando `onboarding_completed=false` |
+| Catálogo e busca pública | `ARQUITETURA_PROJETO.md` §7.1-7.3 | Busca/filtros ficam no Frontend, API retorna dados públicos |
+| Taxonomia de sistemas (árvore + aliases) | `ARQUITETURA_PROJETO.md` §4 e §7.5 | Modelar `sistema > edição > variante`; aliases servem para busca, não para duplicar sistema |
+| Importação de mesas por JSON (lote) | `ARQUITETURA_PROJETO.md` §4 e §7.8 | Exigir `schema_version`, idempotência (`source` + `external_id`), resolução por `system_path_slug` e ao menos 1 contato com `channel=discord` quando o lote pedir nick Discord |
+| Selos oficiais (Covil/DDAL) | `ARQUITETURA_PROJETO.md` §7.2, §7.4 e §7.6 | DDAL só é elegível no caminho `D&D > D&D 5e > D&D 2024` e exige metadados mínimos no backend |
+| Header/Footer globais | `ARQUITETURA_PROJETO.md` §7.1-7.6 | Header sticky e footer institucional devem existir em todas as rotas/etapas |
+| Landing pública de mestre | `ARQUITETURA_PROJETO.md` §7.4 | Nunca expor `avatar_deletehash`/`banner_deletehash` |
+| OAuth / JWT / roles | `ARQUITETURA_PROJETO.md` §6 | Segurança e role no Backend, nunca no Frontend |
+| Imagens e Imgur | `ARQUITETURA_PROJETO.md` §16 | Upload/remoção só no Backend |
+| Deploy / Git / promoção | `GIT_WORKFLOW.md` + `OPERACAO_PRODUCAO.md` | Sem `commit`/`push` sem autorização explícita; beta ativo em `dev`; produção só validar publicamente quando a publicação operacional existir |
+| Aggregator Discord (ingestão, revisão, exportação) | `ARQUITETURA_PROJETO.md` §12 (rotas Aggregator) | Todas as rotas em `/api/v1/aggregator/*` requerem `admin`. Frontend: `/admin/devtools` visível apenas para admin (não-admin não vê link nem rota registrada). Badge operacional exibe `VITE_ENABLE_DEVTOOLS` para admin no header. Pipeline: source → import/file → candidates → accept/reject. CLI local: `npm run aggregator:import` com auto-reparo de JSON truncado (E088) e fallback manual em `ERRORS_SOLUTIONS.md` quando o reparo falhar. Split automático de JSON >1000 mensagens ocorre no Frontend em lotes de 1000 (IMPORT_CHUNK_SIZE); resumo agrega todos os lotes. Migration_05 aplicada no beta. |
+| Erros de execução | `ERRORS_SOLUTIONS.md` | Ao primeiro erro: parar e aplicar solução catalogada |
 
 ---
 
@@ -43,7 +43,7 @@ Resumo executivo para reduzir custo de contexto dos agentes, com navegação rá
 ---
 
 > As seções de detalhe (Onboarding, Catálogo, Landing, OAuth, Imgur, Git, Erros) foram removidas deste guia.
-> O roteamento por cenário está em `AI_CONTEXT_INDEX.md`. Os contratos canônicos estão em `ARQUITETURA_PROJETO.md`.
+> O roteamento por cenário está na tabela de índice rápido acima. Os contratos canônicos estão em `ARQUITETURA_PROJETO.md`.
 
 ---
 

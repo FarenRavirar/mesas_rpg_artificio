@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { SystemTreeSelector } from '../components/SystemTreeSelector';
 import { SystemSuggestionModal } from '../components/SystemSuggestionModal';
 import { ContactsFormBlock, type ContactFormEntry } from '../components/ContactsFormBlock';
+import toast from 'react-hot-toast';
 import type { SystemTreeNode } from '../types/systems';
 import type { TableContact } from '../types/tables';
 
@@ -255,6 +256,22 @@ export function CreateTableForm({ token, onSuccess, initialData, mode = 'create'
     setError(null);
     setContactsError(null);
 
+    // Validação de título
+    if (!form.title || form.title.trim() === '') {
+      toast.error('Título é obrigatório');
+      setError('Título é obrigatório');
+      setLoading(false);
+      return;
+    }
+
+    // Validação de sistema
+    if (!selectedSystemId) {
+      toast.error('Sistema é obrigatório. Selecione um sistema na árvore.');
+      setError('Sistema é obrigatório');
+      setLoading(false);
+      return;
+    }
+
     const sanitizedContacts = contacts
       .map((contact) => ({
         channel: contact.channel,
@@ -272,6 +289,7 @@ export function CreateTableForm({ token, onSuccess, initialData, mode = 'create'
       }));
 
     if (sanitizedContacts.length === 0) {
+      toast.error('Informe pelo menos um canal de contato válido');
       setContactsError('Informe pelo menos um canal de contato válido para recrutamento.');
       setLoading(false);
       return;
@@ -279,6 +297,7 @@ export function CreateTableForm({ token, onSuccess, initialData, mode = 'create'
 
     const safeActualGmName = actualGmName.trim();
     if (publisherRole === 'announcer' && safeActualGmName.length < 2) {
+      toast.error('Informe o nome do mestre real');
       setError('Quando for anunciante, informe o nome do mestre real.');
       setLoading(false);
       return;
@@ -344,8 +363,10 @@ export function CreateTableForm({ token, onSuccess, initialData, mode = 'create'
         }
       }
 
+      toast.success(mode === 'review' ? 'Candidato aprovado! Mesa criada com sucesso.' : 'Mesa publicada com sucesso!');
       onSuccess();
     } catch (err: any) {
+      toast.error(err.message);
       setError(err.message);
     } finally {
       setLoading(false);

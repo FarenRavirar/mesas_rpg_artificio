@@ -255,4 +255,82 @@ router.get('/exports/day.txt', async (req: Request, res: Response) => {
   }
 });
 
+// PATCH /api/v1/aggregator/candidates/reject-all
+router.patch('/candidates/reject-all', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
+  try {
+    const { db } = await import('../db');
+    
+    // Rejeitar todos os candidatos com editorial_status = 'awaiting_review'
+    const result = await db
+      .updateTable('aggregator_import_candidates')
+      .set({
+        editorial_status: 'rejected',
+        rejection_reason: 'Rejeitado em lote pelo admin',
+        updated_at: new Date(),
+      })
+      .where('editorial_status', '=', 'awaiting_review')
+      .executeTakeFirst();
+
+    const rejectedCount = Number(result.numUpdatedRows || 0);
+
+    return res.json({ 
+      data: { 
+        rejectedCount,
+        message: `${rejectedCount} candidato(s) rejeitado(s) com sucesso.`
+      } 
+    });
+  } catch (error: any) {
+    console.error('[PATCH /aggregator/candidates/reject-all]', error);
+    return res.status(500).json({ error: 'Erro ao rejeitar candidatos em lote.' });
+  }
+});
+
+// Desfazer rejeição de candidato (admin only)
+router.patch('/candidates/:id/undo-rejection', authMiddleware, requireRole('admin'), async (req, res) => {
+  const { id } = req.params;
+
+  if (!id) {
+    return res.status(400).json({ error: 'ID do candidato é obrigatório.' });
+  }
+
+  try {
+    const { db } = await import('../db');
+    
+    // Verificar se o candidato existe e está rejeitado
+    const candidate = await db
+      .selectFrom('aggregator_import_candidates')
+      .select(['id', 'editorial_status'])
+      .where('id', '=', id)
+      .executeTakeFirst();
+
+    if (!candidate) {
+      return res.status(404).json({ error: 'Candidato não encontrado.' });
+    }
+
+    if (candidate.editorial_status !== 'rejected') {
+      return res.status(400).json({ error: 'Apenas candidatos rejeitados podem ser restaurados.' });
+    }
+
+    // Reverter status para awaiting_review
+    await db
+      .updateTable('aggregator_import_candidates')
+      .set({
+        editorial_status: 'awaiting_review',
+        rejection_reason: null,
+        updated_at: new Date(),
+      })
+      .where('id', '=', id)
+      .executeTakeFirst();
+
+    return res.json({ 
+      data: { 
+        message: 'Rejeição desfeita com sucesso. Candidato retornou para revisão.' 
+      } 
+    });
+  } catch (error: any) {
+    console.error('[PATCH /aggregator/candidates/:id/undo-rejection]', error);
+    return res.status(500).json({ error: 'Erro ao desfazer rejeição.' });
+  }
+});
+
 export default router;

@@ -16,8 +16,9 @@
 | `TODO_OPERACIONAL.md` | Backlog de requisitos (REQ-01, REQ-02...) com score GUT | Planejamento de features, priorização, roadmap |
 | `FILA_IMPLEMENTACAO.md` | Fila técnica de execução (001, 002...) por lote/fase | Durante execução de lote, antes de deploy |
 | `/sessoes/` | Registro histórico de sessões anteriores | Quando houver dúvida sobre decisões passadas, contexto de implementações anteriores |
+| `ambiente_atual_mesas.md` | Snapshot técnico de infraestrutura (containers, env vars, volumes) | Auditoria técnica, troubleshooting de ambiente, validação de deploy |
 
-**Relação:** TODO = visão estratégica (produto) | FILA = visão tática (técnico) | SESSOES = histórico rastreável
+**Relação:** TODO = visão estratégica (produto) | FILA = visão tática (técnico) | SESSOES = histórico rastreável | AMBIENTE = snapshot de infraestrutura
 
 ---
 
@@ -111,32 +112,29 @@ COPY --from=builder /app/arvores_de_sistemas.md ./
 
 **Próxima ação:** Aguardar autorização para commit e push para `dev`
 
-## Estado atual (04/04/2026)
+## Estado atual (05/04/2026)
 
 **Ambiente beta:** Estável e operacional em `mesasbeta.artificiorpg.com`
 
-**Última sessão:** Estabilização de Auth + Formulário de Nova Mesa + Auditoria Completa de Documentação
+**Última sessão:** Implementação de melhorias de UX Nielsen no fluxo de revisão (REQ-19)
 
-**Deployado nesta sessão (04/04/2026):**
-- Migration 09 aplicada: campos frequency, frequency_custom, rules_notes, banner_url em tables
-- Correção de logout inesperado: JWT_EXPIRES_IN=7d, validação inteligente, sincronização suave
-- Formulário de nova mesa expandido: checkbox "mesa em andamento", select frequência, textarea regras, input banner
-- Bug de busca de sistema corrigido (reset indevido)
+**Implementado nesta sessão (05/04/2026):**
+- REQ-19 Fase 1 (Item 055): Toast notifications modernas (react-hot-toast) substituindo alert()
+- REQ-19 Fase 2 (Item 056): Validação de campos obrigatórios antes de aprovar candidato
+- REQ-19 Fase 3 (Item 057): Spinners em todos os botões de ação durante operações assíncronas
+- REQ-19 Fase 4 (Item 058): Botão "Desfazer rejeição" com endpoint backend PATCH /candidates/:id/undo-rejection
+
+**Builds validados:**
+- Frontend: 409.09 kB (exit 0)
+- Backend: exit 0
 
 **Documentação atualizada nesta sessão:**
-- TODO_OPERACIONAL.md: REQ-03 revertido, REQ-16 adicionado, 4 status corrigidos
-- FILA_IMPLEMENTACAO.md: 13 itens atualizados para status correto (009, 014, 016-024)
-- OPERACAO_PRODUCAO.md: 4 correções críticas aplicadas
-- ERRORS_SOLUTIONS.md: E102 (SSH) e E103 (Logout) adicionados
-- AGENTS.md: Seção explicativa TODO vs FILA adicionada + referências a /sessoes/
-- RESUMO_EXECUCAO.md: Seção Documentos de Gestão adicionada
+- TODO_OPERACIONAL.md: REQ-19 atualizado para "Em validação"
+- FILA_IMPLEMENTACAO.md: Itens 055-058 marcados como "em_validacao"
+- sessoes/resumo_05-04_2_correcao-bugs-criticos.md: Fases 1-4 documentadas
+- task.md: Todas as fases marcadas como concluídas
 
-**Estrutura de sessões criada:**
-- Pasta /sessoes/ criada para registro histórico
-- 4 resumos de sessões anteriores movidos para /sessoes/
-- Protocolo de Continuidade de Sessão atualizado no AGENTS.md
-
-**Próxima ação:** Monitorar estabilidade do beta por 1 semana antes de promover para produção
+**Próxima ação:** Commit + push para `dev` → validação manual em beta → marcar itens 055-058 como "concluido"
 
 **Bloqueios:** Nenhum
 

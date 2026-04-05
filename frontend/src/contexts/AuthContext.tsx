@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 
+const API_BASE = import.meta.env.VITE_API_URL ?? '';
+
 export interface User {
   id: string;
   role: 'visitor' | 'player' | 'gm' | 'admin';
@@ -129,7 +131,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // Token próximo de expirar, validar com backend
       try {
-        const meRes = await fetch('/api/v1/me', {
+        const meRes = await fetch(`${API_BASE}/api/v1/me`, {
           headers: { Authorization: `Bearer ${storedToken}` },
         });
 
@@ -225,7 +227,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = useCallback(async () => {
     try {
       if (token) {
-        await fetch('/api/v1/auth/logout', {
+        await fetch(`${API_BASE}/api/v1/auth/logout`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,
