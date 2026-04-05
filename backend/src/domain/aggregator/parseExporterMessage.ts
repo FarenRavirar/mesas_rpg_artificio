@@ -163,38 +163,42 @@ export interface ParseExporterMessageInput {
 export const parseExporterMessage = (input: ParseExporterMessageInput): ParsedMessageDraft => {
   const { message, sourceChannelId, knownSystemAliases } = input;
 
-  const title = extractHeadingTitle(message.content);
-  const systemText = lineValueByMatchers(message.content, [
+  // Priorizar dados do parser Python (enrichedFields) quando disponíveis
+  const enriched = (message.enrichedFields || {}) as Record<string, any>;
+
+  const title = enriched.title ?? extractHeadingTitle(message.content);
+  const systemText = enriched.system ?? lineValueByMatchers(message.content, [
     /sistema\s*[:\-]\s*(.+)$/i,
     /system\s*[:\-]\s*(.+)$/i,
   ]);
 
-  const style = lineValueByMatchers(message.content, [
+  const style = enriched.style ?? lineValueByMatchers(message.content, [
     /estilo(?:\/tem[aá]tica)?\s*[:\-]\s*(.+)$/i,
     /tem[aá]tica\s*[:\-]\s*(.+)$/i,
   ]);
 
-  const scheduleText = extractSchedule(message.content);
-  const slotsText = lineValueByMatchers(message.content, [
+  const scheduleText = enriched.scheduleText ?? extractSchedule(message.content);
+  const slotsText = enriched.slotsText ?? lineValueByMatchers(message.content, [
+    /vagas?\s+dispon[íi]veis?[:\s]+(\d+)/i,  // "Vagas disponíveis: 2"
     /(?:n[ºo]\s*de\s*)?vagas?\s*[:\-]\s*(.+)$/i,
     /(\d+\s*\/\s*\d+\.?)/i,
-    /(\d+\s*vagas?)/i,
+    /(\d+)\s*vagas?/i,
   ]);
 
-  const ageRating = lineValueByMatchers(message.content, [
+  const ageRating = enriched.ageRating ?? lineValueByMatchers(message.content, [
     /classifica[cç][aã]o\s*[:\-]\s*(.+)$/i,
     /faixa\s+et[aá]ria\s*[:\-]\s*(.+)$/i,
   ]);
 
-  const location = lineValueByMatchers(message.content, [
+  const location = enriched.location ?? lineValueByMatchers(message.content, [
     /local\s*(?:do\s+jogo)?\s*[:\-]\s*(.+)$/i,
   ]);
 
-  const platforms = lineValueByMatchers(message.content, [
+  const platforms = enriched.platforms ?? lineValueByMatchers(message.content, [
     /plataformas?\s*[:\-]\s*(.+)$/i,
   ]);
 
-  const masterText = lineValueByMatchers(message.content, [
+  const masterText = enriched.masterText ?? lineValueByMatchers(message.content, [
     /mestre\s*[:\-]\s*(.+)$/i,
   ]);
 
@@ -203,15 +207,15 @@ export const parseExporterMessage = (input: ParseExporterMessageInput): ParsedMe
 
   const rawMentions = extractRawMentions(message);
   const recruiterResolution = resolveMasterRecruiter({
-    recruiterName: message.author.nickname ?? message.author.name,
+    recruiterName: enriched.recruiterName ?? message.author.nickname ?? message.author.name,
     masterText,
     rawMentions,
   });
 
   const mediaLinks = extractMediaLinks(message);
   const externalLinks = extractExternalLinks(message);
-  const signupText = extractSignupText(message.content);
-  const synopsis = extractSynopsis(message.content);
+  const signupText = enriched.signupText ?? extractSignupText(message.content);
+  const synopsis = enriched.synopsis ?? extractSynopsis(message.content);
 
   const requiredSignals = [title, systemText ?? systemClassification.systemName, scheduleText, slotsText, location ?? platforms];
   const availableSignals = requiredSignals.filter((item) => Boolean(item)).length;

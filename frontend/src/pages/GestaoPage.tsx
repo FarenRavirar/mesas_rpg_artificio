@@ -1113,7 +1113,7 @@ export const GestaoPage = () => {
                   {/* Dados brutos (JSON) */}
                   {showRawData && (
                     <div className="mt-4 pt-4 border-t border-blue-500/20">
-                      <pre className="text-xs text-white/80 bg-black/30 p-3 rounded overflow-x-auto max-h-64 overflow-y-auto">
+                      <pre className="text-xs text-white/80 bg-black/30 p-3 rounded overflow-x-auto">
                         {JSON.stringify(selectedCandidate.parsed_json, null, 2)}
                       </pre>
                     </div>
