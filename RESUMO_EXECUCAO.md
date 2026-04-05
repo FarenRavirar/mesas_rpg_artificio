@@ -68,19 +68,27 @@
 
 ~~`systemsTreeImport.ts` não executa no beta porque `arvores_de_sistemas.md` não está no container após rebuild.~~ **Resolvido em 04/04/2026** — `docker cp` + `docker exec` executados com sucesso após o deploy (125 nós atualizados, idempotente).
 
-**Bloqueio remanescente:** `arvores_de_sistemas.md` ainda não está no estágio `production` do Dockerfile — após o próximo rebuild o passo manual precisará ser repetido.
+**Atualização 05/04/2026:** Migração para `sistemas.json` e `cenarios.json` (com campo `subgenero`). Scripts serão reescritos para processar JSON. Dockerfile será atualizado para copiar ambos os arquivos. Aguardando recebimento dos arquivos.
 
-**Desbloqueio manual (após cada deploy):**
-```powershell
-scp -F C:\projetos\config arvores_de_sistemas.md faren:/tmp/arvores_de_sistemas.md
-ssh -F C:\projetos\config faren "docker cp /tmp/arvores_de_sistemas.md mesas-beta-api:/app/arvores_de_sistemas.md"
-ssh -F C:\projetos\config faren "docker exec mesas-beta-api sh -c 'cd /app && node dist/scripts/systemsTreeImport.js'"
+**Comandos de cópia manual (DEPRECATED - será substituído por cópia automática no Dockerfile):**
+```bash
+scp -F C:\projetos\config sistemas.json faren:/tmp/sistemas.json
+scp -F C:\projetos\config cenarios.json faren:/tmp/cenarios.json
+ssh -F C:\projetos\config faren "docker cp /tmp/sistemas.json mesas-beta-api:/app/sistemas.json"
+ssh -F C:\projetos\config faren "docker cp /tmp/cenarios.json mesas-beta-api:/app/cenarios.json"
+```
+
+**Fix permanente no Dockerfile (pendente):**
+```dockerfile
+COPY --from=builder /app/sistemas.json ./
+COPY --from=builder /app/cenarios.json ./
 ```
 
 **Desbloqueio permanente (quando autorizado):**
 Adicionar no estágio `production` do `backend/Dockerfile`:
 ```dockerfile
-COPY --from=builder /app/arvores_de_sistemas.md ./
+COPY --from=builder /app/sistemas.json ./
+COPY --from=builder /app/cenarios.json ./
 ```
 
 ---

@@ -719,7 +719,7 @@ Rodando via node-cron junto ao AggregatorBot, o `CleanupWorker` executa diariame
 | `ERRORS_SOLUTIONS.md` | Registro de erros conhecidos e suas soluções |
 | `CHANGELOG.md` | Histórico de versões e mudanças relevantes |
 | `docker-compose.yml` | Definição dos serviços: API, PostgreSQL, Nginx, AggregatorBot |
-| `arvores_de_sistemas.md` | precisa ser copiado manualmente para o container após rebuild: `scp ... faren:/tmp/ && docker cp /tmp/arvores_de_sistemas.md mesas-beta-api:/app/`. O arquivo não é copiado automaticamente pelo estágio `production` do Dockerfile ainda. |
+| `sistemas.json` e `cenarios.json` | **Atualização 05/04/2026:** Migração de `arvores_de_sistemas.md` para `sistemas.json` (taxonomia de sistemas com `name`, `aliases`, `editions`, `variants`) e novo `cenarios.json` (cenários com campo `subgenero`). Dockerfile será atualizado para copiar ambos automaticamente no build. Scripts de importação serão reescritos para processar JSON. Aguardando recebimento do `cenarios.json` para implementação completa. |
 ---
 
 > **Lembre-se:** Este é um presente do Artifício RPG para a comunidade brasileira de RPG.
