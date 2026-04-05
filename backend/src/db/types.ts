@@ -180,6 +180,20 @@ export interface TablesTable {
   frequency_custom: string | null;
   rules_notes: string | null;
   banner_url: string | null;
+  master_display_name: string | null;
+  campaign_length: string | null;
+  level_range: string | null;
+  billing_text: string | null;
+  session_zero_free: Generated<boolean>;
+  synopsis: string | null;
+  style_text: string | null;
+  listing_excerpt: string | null;
+  technical_requirements: string | null;
+  requires_pc: Generated<boolean>;
+  requires_camera: Generated<boolean>;
+  requires_microphone: Generated<boolean>;
+  setting_name: string | null;
+  setting_styles: string[] | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -216,6 +230,17 @@ export type TableSchedule = Selectable<TableSchedulesTable>;
 export type NewTableSchedule = Insertable<TableSchedulesTable>;
 export type TableScheduleUpdate = Updateable<TableSchedulesTable>;
 
+export interface SettingStyleSuggestionsTable {
+  id: Generated<string>;
+  setting_name: string;
+  suggested_styles: string[];
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export type SettingStyleSuggestion = Selectable<SettingStyleSuggestionsTable>;
+export type NewSettingStyleSuggestion = Insertable<SettingStyleSuggestionsTable>;
+export type SettingStyleSuggestionUpdate = Updateable<SettingStyleSuggestionsTable>;
 
 export interface AggregatorSourcesTable {
   id: Generated<string>;
@@ -326,6 +351,7 @@ export interface Database {
   tables: TablesTable;
   table_contacts: TableContactsTable;
   table_schedules: TableSchedulesTable;
+  setting_style_suggestions: SettingStyleSuggestionsTable;
   aggregator_sources: AggregatorSourcesTable;
   aggregator_imported_raw_messages: AggregatorImportedRawMessagesTable;
   aggregator_import_candidates: AggregatorImportCandidatesTable;
