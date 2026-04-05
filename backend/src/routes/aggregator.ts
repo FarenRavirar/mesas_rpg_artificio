@@ -333,4 +333,96 @@ router.patch('/candidates/:id/undo-rejection', authMiddleware, requireRole('admi
   }
 });
 
+// POST /api/v1/aggregator/candidates/:id/approve
+// Aprova um candidato e cria uma mesa a partir dele
+router.post('/candidates/:id/approve', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  if (!id) {
+    return res.status(400).json({ error: 'ID do candidato é obrigatório.' });
+  }
+
+  try {
+    const { db } = await import('../db');
+    
+    // Buscar candidato
+    const candidate = await db
+      .selectFrom('aggregator_import_candidates')
+      .selectAll()
+      .where('id', '=', id)
+      .executeTakeFirst();
+
+    if (!candidate) {
+      return res.status(404).json({ error: 'Candidato não encontrado.' });
+    }
+
+    if (candidate.editorial_status === 'accepted' && candidate.published_table_id) {
+      return res.status(400).json({ 
+        error: 'Candidato já foi aprovado.',
+        tableId: candidate.published_table_id 
+      });
+    }
+
+    // Extrair dados do parsed_json
+    const parsedData = candidate.parsed_json as any;
+    
+    // Criar mesa usando os mesmos campos que POST /api/v1/gm/tables
+    const tableData: any = {
+      title: parsedData.title || 'Mesa Importada',
+      description: parsedData.description || parsedData.synopsis_narrative || '',
+      type: parsedData.type || 'oneshot',
+      modality: parsedData.modality || 'online',
+      system_id: parsedData.system_id || null,
+      price_type: parsedData.price_type || 'free',
+      slots_total: parsedData.slots_total ? Number(parsedData.slots_total) : null,
+      language: parsedData.language || 'pt-BR',
+      publisher_role: 'gm',
+      origin: 'imported',
+      gm_id: req.user!.userId,
+      status: 'active',
+      synopsis_narrative: parsedData.synopsis_narrative || null,
+      benefits_text: parsedData.benefits_text || null,
+      gm_bio: parsedData.gm_bio || null,
+      setting_name: parsedData.setting_name || null,
+      setting_styles: parsedData.setting_styles || null,
+      rules_notes: parsedData.rules_notes || null,
+      banner_url: parsedData.banner_url || null,
+      is_covil: parsedData.is_covil || false,
+      starts_at: parsedData.starts_at || null,
+      frequency: parsedData.frequency || null,
+      city: parsedData.city || null,
+      state: parsedData.state || null,
+    };
+
+    // Inserir mesa
+    const insertedTable = await db
+      .insertInto('tables')
+      .values(tableData)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    // Atualizar candidato
+    await db
+      .updateTable('aggregator_import_candidates')
+      .set({
+        editorial_status: 'accepted',
+        published_table_id: insertedTable.id,
+        updated_at: new Date(),
+      })
+      .where('id', '=', id)
+      .executeTakeFirst();
+
+    return res.status(201).json({ 
+      data: { 
+        message: 'Candidato aprovado e mesa criada com sucesso.',
+        tableId: insertedTable.id,
+        slug: insertedTable.slug
+      } 
+    });
+  } catch (error: any) {
+    console.error('[POST /aggregator/candidates/:id/approve]', error);
+    return res.status(500).json({ error: 'Erro ao aprovar candidato: ' + error.message });
+  }
+});
+
 export default router;
