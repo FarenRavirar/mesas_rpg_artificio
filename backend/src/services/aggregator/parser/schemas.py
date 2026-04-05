@@ -68,7 +68,12 @@ class ParsedMessage(BaseModel):
     platforms: Optional[str] = None  # Plataformas de jogo (Discord, Roll20, Foundry, etc.)
     ageRating: Optional[str] = None  # Classificação indicativa (+18, +16, etc.)
     synopsis: Optional[str] = None  # Sinopse/descrição da mesa
-    style: Optional[str] = None  # Estilo/temática da mesa
+    style: Optional[str] = None  # Estilo/temática da mesa (legado)
+    
+    # REQ-28: Cenário e estilos
+    setting_name: Optional[str] = None  # Nome do cenário/ambientação
+    setting_styles: List[str] = Field(default_factory=list)  # Estilos como array
+    
     signupText: Optional[str] = None  # Texto de inscrição (como se inscrever)
     location: Optional[str] = None  # Localização para mesas presenciais
     

@@ -99,10 +99,16 @@ def parse_message(content: str, metadata: Optional[Dict[str, Any]] = None) -> Di
     # 19. Synopsis (sinopse/descrição)
     extracted['synopsis'] = extract_synopsis(content)
     
-    # 20. Style (estilo/temática)
+    # 20. Style (estilo/temática - legado)
     extracted['style'] = extract_style(content)
     
-    # 21. Signup Text (texto de inscrição)
+    # 21. Setting name (cenário - REQ-28)
+    extracted['setting_name'] = extract_setting_name(content)
+    
+    # 22. Setting styles (estilos como array - REQ-28)
+    extracted['setting_styles'] = extract_setting_styles(content)
+    
+    # 23. Signup Text (texto de inscrição)
     extracted['signupText'] = extract_signup_text(content)
     
     # 22. Location (localização para mesas presenciais)
@@ -571,7 +577,7 @@ def extract_synopsis(content: str) -> Optional[str]:
 
 
 def extract_style(content: str) -> Optional[str]:
-    """Extrai estilo/temática da mesa."""
+    """Extrai estilo/temática da mesa (legado - mantido por compatibilidade)."""
     patterns = [
         r'(?:estilo|temática|tema):\s*(.+?)(?:\n|$)',
     ]
@@ -584,6 +590,58 @@ def extract_style(content: str) -> Optional[str]:
             return style if style else None
     
     return None
+
+
+def extract_setting_name(content: str) -> Optional[str]:
+    """Extrai cenário/ambientação da mesa (REQ-28)."""
+    # Padrões explícitos
+    patterns = [
+        r'(?:cenário|ambientação|setting|mundo|universo):\s*(.+?)(?:\n|$)',
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, content, re.IGNORECASE)
+        if match:
+            setting = match.group(1).strip()
+            setting = re.sub(r'\*\*|\*|__', '', setting)
+            return setting if setting else None
+    
+    # Detecção de cenários conhecidos (apenas se mencionados explicitamente no texto)
+    known_settings = [
+        'Forgotten Realms', 'Reinos Esquecidos', 'Faerûn',
+        'Eberron', 'Ravenloft', 'Dark Sun', 'Greyhawk',
+        'Golarion', 'Varisia',
+        'Arkham', 'Innsmouth',
+        'Tormenta', 'Arton'
+    ]
+    
+    for setting in known_settings:
+        if setting.lower() in content.lower():
+            return setting
+    
+    return None
+
+
+def extract_setting_styles(content: str) -> List[str]:
+    """Extrai estilos/temáticas da mesa como array (REQ-28)."""
+    patterns = [
+        r'(?:estilos?|temáticas?|temas?|gêneros?):\s*(.+?)(?:\n|$)',
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, content, re.IGNORECASE)
+        if match:
+            styles_text = match.group(1).strip()
+            styles_text = re.sub(r'\*\*|\*|__', '', styles_text)
+            
+            # Split por vírgula, ponto-e-vírgula ou barra
+            styles = re.split(r'[,;/]', styles_text)
+            styles = [s.strip() for s in styles if s.strip()]
+            
+            # Limitar a 10 estilos
+            return styles[:10] if styles else []
+    
+    return []
 
 
 def extract_signup_text(content: str) -> Optional[str]:

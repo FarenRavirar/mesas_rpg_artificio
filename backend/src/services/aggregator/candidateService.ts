@@ -87,6 +87,15 @@ export const candidateService = {
       null
     ) || null;
 
+    // REQ-28: Cenário e estilos
+    const settingName = typeof enrichedFields.setting_name === 'string' 
+      ? enrichedFields.setting_name.trim() 
+      : null;
+
+    const settingStyles = Array.isArray(enrichedFields.setting_styles)
+      ? enrichedFields.setting_styles.filter((s): s is string => typeof s === 'string')
+      : null;
+
     // Validar contatos obrigatórios
     if (!signupText) {
       throw new Error('Candidato sem informação de contato. Edite o candidato e adicione ao menos um canal de contato antes de aprovar.');
@@ -147,6 +156,8 @@ export const candidateService = {
           banner_url: bannerUrl,
           is_covil: detectIsCovil(parsedJson),
           imported_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          setting_name: settingName,
+          setting_styles: settingStyles,
         })
         .returning(['id', 'slug', 'title', 'origin', 'source_id', 'is_covil', 'imported_expires_at', 'created_at'])
         .execute();

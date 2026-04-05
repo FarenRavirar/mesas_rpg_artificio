@@ -43,6 +43,10 @@ interface ParsedMessageResult {
   }>;
   confidence?: number;
   validation_error?: string;
+  
+  // REQ-28: Cenário e estilos
+  setting_name?: string;
+  setting_styles?: string[];
 }
 
 /**

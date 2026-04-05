@@ -27,6 +27,23 @@ export interface CandidateFormData {
     value: string;
     extra_url?: string;
   }>;
+  // Campos avançados (REQ-26)
+  master_display_name?: string;
+  campaign_length?: string;
+  level_range?: string;
+  billing_text?: string;
+  session_zero_free?: boolean;
+  synopsis?: string;
+  style_text?: string;
+  listing_excerpt?: string;
+  technical_requirements?: string;
+  requires_pc?: boolean;
+  requires_camera?: boolean;
+  requires_microphone?: boolean;
+  
+  // REQ-28: Cenário e estilos
+  setting_name?: string;
+  setting_styles?: string[];
 }
 
 /**
@@ -370,6 +387,67 @@ export function mapCandidateToFormData(
 
   // Detecção automática de Covil do Lich
   mapped.is_covil = isCovil(parsedContent) || isCovil(parsed_json);
+
+  // Campos avançados (REQ-26) - mapeamento do parser Python
+  if (enrichedJson.master_display_name || enrichedJson.masterDisplayName) {
+    mapped.master_display_name = sanitizeText(enrichedJson.master_display_name || enrichedJson.masterDisplayName);
+  }
+
+  if (enrichedJson.campaign_length || enrichedJson.campaignLength || enrichedJson.duration) {
+    mapped.campaign_length = sanitizeText(enrichedJson.campaign_length || enrichedJson.campaignLength || enrichedJson.duration);
+  }
+
+  if (enrichedJson.level_range || enrichedJson.levelRange || enrichedJson.levels) {
+    mapped.level_range = sanitizeText(enrichedJson.level_range || enrichedJson.levelRange || enrichedJson.levels);
+  }
+
+  if (enrichedJson.billing_text || enrichedJson.billingText || enrichedJson.paymentDetails) {
+    mapped.billing_text = sanitizeText(enrichedJson.billing_text || enrichedJson.billingText || enrichedJson.paymentDetails);
+  }
+
+  if (enrichedJson.session_zero_free !== undefined || enrichedJson.sessionZeroFree !== undefined) {
+    mapped.session_zero_free = enrichedJson.session_zero_free || enrichedJson.sessionZeroFree || false;
+  }
+
+  if (enrichedJson.synopsis) {
+    mapped.synopsis = sanitizeText(enrichedJson.synopsis);
+  }
+
+  if (enrichedJson.style_text || enrichedJson.styleText || enrichedJson.playStyle) {
+    mapped.style_text = sanitizeText(enrichedJson.style_text || enrichedJson.styleText || enrichedJson.playStyle);
+  }
+
+  if (enrichedJson.listing_excerpt || enrichedJson.listingExcerpt || enrichedJson.excerpt) {
+    mapped.listing_excerpt = sanitizeText(enrichedJson.listing_excerpt || enrichedJson.listingExcerpt || enrichedJson.excerpt);
+  }
+
+  if (enrichedJson.technical_requirements || enrichedJson.technicalRequirements || enrichedJson.requirements) {
+    mapped.technical_requirements = sanitizeText(enrichedJson.technical_requirements || enrichedJson.technicalRequirements || enrichedJson.requirements);
+  }
+
+  if (enrichedJson.requires_pc !== undefined || enrichedJson.requiresPc !== undefined) {
+    mapped.requires_pc = enrichedJson.requires_pc || enrichedJson.requiresPc || false;
+  }
+
+  if (enrichedJson.requires_camera !== undefined || enrichedJson.requiresCamera !== undefined) {
+    mapped.requires_camera = enrichedJson.requires_camera || enrichedJson.requiresCamera || false;
+  }
+
+  if (enrichedJson.requires_microphone !== undefined || enrichedJson.requiresMicrophone !== undefined) {
+    mapped.requires_microphone = enrichedJson.requires_microphone || enrichedJson.requiresMicrophone || false;
+  }
+
+  // REQ-28: Cenário e estilos
+  if (enrichedJson.setting_name) {
+    mapped.setting_name = sanitizeText(enrichedJson.setting_name);
+  }
+
+  if (enrichedJson.setting_styles && Array.isArray(enrichedJson.setting_styles)) {
+    mapped.setting_styles = enrichedJson.setting_styles
+      .filter((s: any): s is string => typeof s === 'string' && s.trim().length > 0)
+      .map((s: string) => s.trim())
+      .slice(0, 10); // Limitar a 10 estilos
+  }
 
   return mapped;
 }
