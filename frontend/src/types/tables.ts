@@ -94,6 +94,9 @@ export interface TableDetail extends TableCard {
   // Campos de cenário e estilos (REQ-28)
   setting_name?: string | null;
   setting_styles?: string[] | null;
+  // REQ-28 Fase 7: Campos editoriais separados
+  synopsis_narrative?: string | null;
+  benefits_text?: string | null;
 }
 
 export interface TablesResponse {

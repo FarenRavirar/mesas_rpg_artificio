@@ -266,6 +266,21 @@ router.get('/me', authMiddleware, async (req: Request, res: Response) => {
 router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
   const userId = (req as any).user.userId;
 
+  // Log do payload recebido para diagnóstico
+  console.log('[POST /gm/tables] Payload recebido:', {
+    userId,
+    bodyKeys: Object.keys(req.body),
+    title: req.body.title,
+    type: req.body.type,
+    modality: req.body.modality,
+    hasSchedules: Array.isArray(req.body.schedules),
+    schedulesCount: Array.isArray(req.body.schedules) ? req.body.schedules.length : 0,
+    hasContacts: Array.isArray(req.body.contacts),
+    contactsCount: Array.isArray(req.body.contacts) ? req.body.contacts.length : 0,
+    settingName: req.body.setting_name,
+    settingStyles: req.body.setting_styles,
+  });
+
   const {
     title,
     description,
@@ -380,6 +395,20 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
   const safeSettingName = sanitizeOptionalText(req.body.setting_name);
   const safeSettingStyles = sanitizeStringArray(req.body.setting_styles);
 
+  // REQ-28 Fase 6: Sanitizar campos editoriais separados
+  const safeSynopsisNarrative = sanitizeOptionalText(req.body.synopsis_narrative);
+  const safeBenefitsText = sanitizeOptionalText(req.body.benefits_text);
+  const safeGmBio = sanitizeOptionalText(req.body.gm_bio);
+
+  // CORREÇÃO E128: Validar price_value quando price_type for 'paga'
+  const safePriceType = price_type ?? 'gratuita';
+  if (safePriceType === 'paga') {
+    const parsedPriceValue = Number(price_value);
+    if (!price_value || isNaN(parsedPriceValue) || parsedPriceValue <= 0) {
+      return res.status(400).json({ error: 'Para mesas pagas, informe um valor válido maior que zero.' });
+    }
+  }
+
   if (safeIsDdal) {
     if (!system_id || typeof system_id !== 'string') {
       return res.status(400).json({ error: 'Para marcar DDAL, selecione o sistema D&D 5e 2024.' });
@@ -433,7 +462,7 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
           type,
           audience: audience ?? 'livre',
           modality,
-          price_type: price_type ?? 'gratuita',
+          price_type: safePriceType,
           price_value: price_value ?? null,
           price_frequency: price_frequency ?? null,
           slots_total: slots_total ?? 4,
@@ -477,6 +506,10 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
           // Campos de cenário e estilos (REQ-28)
           setting_name: safeSettingName,
           setting_styles: safeSettingStyles.length > 0 ? safeSettingStyles : null,
+          // REQ-28 Fase 6: Campos editoriais separados
+          synopsis_narrative: safeSynopsisNarrative,
+          benefits_text: safeBenefitsText,
+          gm_bio: safeGmBio,
           status: 'active',
         })
         .returning([
@@ -536,7 +569,41 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
 
     return res.status(201).json({ data: newTable });
   } catch (error: any) {
-    console.error('[POST /gm/tables]', error);
+    console.error('[POST /gm/tables] Erro ao criar mesa:', {
+      message: error.message,
+      code: error.code,
+      detail: error.detail,
+      constraint: error.constraint,
+      table: error.table,
+      column: error.column,
+      stack: error.stack,
+    });
+    
+    // Retornar erro mais específico quando possível
+    if (error.code === '23502') {
+      return res.status(400).json({ 
+        error: `Campo obrigatório ausente: ${error.column || 'desconhecido'}` 
+      });
+    }
+    
+    if (error.code === '23503') {
+      return res.status(400).json({ 
+        error: `Referência inválida: ${error.detail || 'verifique os dados enviados'}` 
+      });
+    }
+    
+    if (error.code === '23505') {
+      return res.status(400).json({ 
+        error: `Valor duplicado: ${error.detail || 'já existe'}` 
+      });
+    }
+    
+    if (error.code === '22P02') {
+      return res.status(400).json({ 
+        error: `Tipo de dado inválido: ${error.message}` 
+      });
+    }
+    
     return res.status(500).json({ error: 'Erro ao criar mesa.' });
   }
 });

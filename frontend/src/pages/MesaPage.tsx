@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { CalendarClock, Compass, Crown, Globe, MapPin, Megaphone, ShieldCheck, Sparkles, Swords, Users } from 'lucide-react';
+import { CalendarClock, Compass, Crown, Edit, Globe, MapPin, Megaphone, ShieldCheck, Sparkles, Swords, Users } from 'lucide-react';
 import { TableContacts } from '../components/TableContacts';
 import type { TableDetail } from '../types/tables';
 import { applySeo } from '../utils/seo';
+import { useAuth } from '../contexts/AuthContext';
 
 const modalityLabel: Record<string, string> = {
   online: 'Online',
@@ -20,6 +21,7 @@ const experienceLabel: Record<string, string> = {
 
 export const MesaPage = () => {
   const { slug } = useParams<{ slug: string }>();
+  const { user } = useAuth();
   const [table, setTable] = useState<TableDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -309,6 +311,34 @@ export const MesaPage = () => {
               </section>
             )}
 
+            {/* REQ-28 Fase 7: Narrativa Principal */}
+            {table.synopsis_narrative && (
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <h2 className="text-lg font-bold mb-3">Sobre a História</h2>
+                <p className="text-white/80 leading-relaxed whitespace-pre-wrap">{table.synopsis_narrative}</p>
+              </section>
+            )}
+
+            {/* REQ-28 Fase 7: Benefícios e Diferenciais */}
+            {table.benefits_text && (
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <h2 className="text-lg font-bold mb-3 inline-flex items-center gap-2">
+                  <Sparkles className="w-5 h-5" /> O que você vai encontrar
+                </h2>
+                <p className="text-white/80 leading-relaxed whitespace-pre-wrap">{table.benefits_text}</p>
+              </section>
+            )}
+
+            {/* REQ-28 Fase 7: Sobre o Mestre */}
+            {table.gm_bio && (
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <h2 className="text-lg font-bold mb-3 inline-flex items-center gap-2">
+                  <Crown className="w-5 h-5" /> Sobre o Mestre
+                </h2>
+                <p className="text-white/80 leading-relaxed whitespace-pre-wrap">{table.gm_bio}</p>
+              </section>
+            )}
+
             {/* Estilo de Jogo (REQ-26) */}
             {table.style_text && (
               <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
@@ -437,13 +467,15 @@ export const MesaPage = () => {
               <p className="flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-[var(--color-artificio-orange)]" /> Idioma: {table.language}</p>
             </div>
 
-            <div className="rounded-xl border border-white/10 bg-[#13213f] p-4">
-              <p className="text-xs text-white/60 mb-1">Investimento</p>
-              <p className="font-bold text-lg text-[var(--color-artificio-orange)]">
-                {table.price_type === 'gratuita' ? 'Mesa Gratuita' : `R$ ${table.price_value ?? 0}`}
-              </p>
-              {table.price_frequency && <p className="text-xs text-white/60 mt-1">Cobrança por {table.price_frequency}</p>}
-            </div>
+            {table.price_value && (
+              <div className="rounded-xl border border-white/10 bg-[#13213f] p-4">
+                <p className="text-xs text-white/60 mb-1">Investimento</p>
+                <p className="font-bold text-lg text-[var(--color-artificio-orange)]">
+                  R$ {table.price_value}
+                </p>
+                {table.price_frequency && <p className="text-xs text-white/60 mt-1">Cobrança por {table.price_frequency}</p>}
+              </div>
+            )}
 
             {table.gm_slug && (
               <Link
@@ -452,6 +484,16 @@ export const MesaPage = () => {
                 className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-white/15 hover:border-[var(--color-artificio-orange)] hover:text-[var(--color-artificio-orange)] transition-colors"
               >
                 <Crown className="w-4 h-4" /> Ver perfil do mestre
+              </Link>
+            )}
+
+            {user?.role === 'admin' && table.id && (
+              <Link
+                to={`/painel-mestre?edit=${table.id}`}
+                id="mesa-link-editar-admin"
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[var(--color-artificio-orange)] hover:bg-[var(--color-artificio-orange-hover)] text-white font-semibold transition-colors"
+              >
+                <Edit className="w-4 h-4" /> Editar Mesa (ADM)
               </Link>
             )}
 

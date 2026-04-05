@@ -194,6 +194,9 @@ export interface TablesTable {
   requires_microphone: Generated<boolean>;
   setting_name: string | null;
   setting_styles: string[] | null;
+  synopsis_narrative: string | null;
+  benefits_text: string | null;
+  gm_bio: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }

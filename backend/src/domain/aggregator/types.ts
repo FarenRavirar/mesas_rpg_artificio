@@ -123,6 +123,14 @@ export interface ParsedMessageDraft {
   settingName?: string | null;
   settingStyles?: string[];
   
+  // REQ-28 Fase 2: Campos editoriais separados
+  synopsisNarrative?: string | null;
+  rulesNotes?: string | null;
+  signupTextFromBlocks?: string | null;
+  benefitsText?: string | null;
+  gmBio?: string | null;
+  description?: string | null;
+  
   // Fase B: Múltiplos horários e vagas detalhadas
   sessions?: SessionSchedule[];
   slotsTotal?: number | null;

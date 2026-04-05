@@ -99,6 +99,16 @@ def parse_message(content: str, metadata: Optional[Dict[str, Any]] = None) -> Di
     # 19. Synopsis (sinopse/descrição)
     extracted['synopsis'] = extract_synopsis(content)
     
+    # REQ-28 Fase 1: Blocos editoriais separados
+    description_blocks = extract_description_blocks(content)
+    extracted['synopsis_narrative'] = description_blocks.get('synopsis_narrative')
+    extracted['rules_notes'] = description_blocks.get('rules_notes')
+    extracted['signup_text'] = description_blocks.get('signup_text')
+    extracted['benefits_text'] = description_blocks.get('benefits_text')
+    extracted['gm_bio'] = description_blocks.get('gm_bio')
+    # description = synopsis_narrative na primeira importação
+    extracted['description'] = description_blocks.get('synopsis_narrative')
+    
     # 20. Style (estilo/temática - legado)
     extracted['style'] = extract_style(content)
     
@@ -108,8 +118,9 @@ def parse_message(content: str, metadata: Optional[Dict[str, Any]] = None) -> Di
     # 22. Setting styles (estilos como array - REQ-28)
     extracted['setting_styles'] = extract_setting_styles(content)
     
-    # 23. Signup Text (texto de inscrição)
-    extracted['signupText'] = extract_signup_text(content)
+    # 23. Signup Text (texto de inscrição - mantido por compatibilidade)
+    if not extracted.get('signup_text'):
+        extracted['signupText'] = extract_signup_text(content)
     
     # 22. Location (localização para mesas presenciais)
     extracted['location'] = extract_location(content)
@@ -223,22 +234,40 @@ def parse_message(content: str, metadata: Optional[Dict[str, Any]] = None) -> Di
 
 
 def extract_title(content: str) -> Optional[str]:
-    """Extrai título da mensagem."""
+    """Extrai título da mensagem, removendo prefixos comuns."""
     lines = content.strip().split('\n')
     
-    # Tentar primeira linha com #
+    # Padrões de prefixo a remover
+    title_prefixes = [
+        r'^[»▬\-•*]+\s*Título\s*:?\s*',
+        r'^[»▬\-•*]+\s*Title\s*:?\s*',
+        r'^#+\s*Título\s*:?\s*',
+        r'^#+\s*Title\s*:?\s*',
+    ]
+    
     for line in lines:
         line = line.strip()
+        if not line or line.startswith('▬▬'):
+            continue
+        
+        # Tentar remover prefixos conhecidos
+        for prefix_pattern in title_prefixes:
+            cleaned = re.sub(prefix_pattern, '', line, flags=re.IGNORECASE)
+            if cleaned and cleaned != line:
+                # Remover markdown residual
+                cleaned = re.sub(r'\*\*|\*|__', '', cleaned)
+                if cleaned.strip():
+                    return cleaned.strip()[:100]
+        
+        # Fallback: primeira linha com # ou primeira linha útil
         if line.startswith('#'):
             title = re.sub(r'^#+\s*', '', line)
-            title = re.sub(r'\*\*|\*|__', '', title)  # Remover markdown
-            return title.strip() if title else None
-    
-    # Fallback: primeira linha não vazia
-    for line in lines:
-        line = line.strip()
-        if line and not line.startswith('▬') and not line.startswith('-'):
-            return line[:100]  # Limitar a 100 chars
+            title = re.sub(r'\*\*|\*|__', '', title)
+            if title.strip():
+                return title.strip()[:100]
+        
+        if len(line) > 3 and not line.startswith('▬'):
+            return line[:100]
     
     return None
 
@@ -595,6 +624,95 @@ def extract_synopsis(content: str) -> Optional[str]:
     return None
 
 
+def extract_description_blocks(content: str) -> dict:
+    """
+    Extrai blocos editoriais separados do anúncio (REQ-28 Fase 1).
+    
+    Retorna:
+        {
+            'synopsis_narrative': str,  # Bloco narrativo principal
+            'rules_notes': str,         # Regras e observações
+            'signup_text': str,         # Instruções de inscrição
+            'benefits_text': str,       # Benefícios e diferenciais
+            'gm_bio': str              # Sobre o mestre
+        }
+    """
+    blocks = {
+        'synopsis_narrative': None,
+        'rules_notes': None,
+        'signup_text': None,
+        'benefits_text': None,
+        'gm_bio': None
+    }
+    
+    lines = content.split('\n')
+    
+    # Remover linhas decorativas
+    cleaned_lines = []
+    for line in lines:
+        stripped = line.strip()
+        # Ignorar linhas puramente decorativas
+        if re.match(r'^[▬\-=_*]{3,}$', stripped):
+            continue
+        if stripped in ['▬ Imagem ▬', '▬ Banner ▬', '▬ Foto ▬', '▬ Imagens ▬']:
+            continue
+        cleaned_lines.append(line)
+    
+    content_clean = '\n'.join(cleaned_lines)
+    
+    # Extrair sinopse narrativa (primeiro bloco longo após título)
+    synopsis_match = re.search(
+        r'(?:sinopse|sobre\s+a\s+história|sobre\s+esta\s+mesa|história|narrativa|descrição)\s*:?\s*\n+((?:.+\n?)+?)(?:\n\n|$)',
+        content_clean,
+        re.IGNORECASE | re.DOTALL
+    )
+    if synopsis_match:
+        blocks['synopsis_narrative'] = synopsis_match.group(1).strip()[:1000]
+    else:
+        # Fallback: pegar parágrafos longos iniciais
+        paragraphs = [p.strip() for p in content_clean.split('\n\n') if len(p.strip()) > 100]
+        if paragraphs:
+            blocks['synopsis_narrative'] = paragraphs[0][:1000]
+    
+    # Extrair regras e observações
+    rules_match = re.search(
+        r'(?:regras?|observações?|avisos?|informações?\s+importantes?|requisitos?)\s*:?\s*\n+((?:.+\n?)+?)(?:\n\n|$)',
+        content_clean,
+        re.IGNORECASE | re.DOTALL
+    )
+    if rules_match:
+        blocks['rules_notes'] = rules_match.group(1).strip()[:1000]
+    
+    # Extrair instruções de inscrição
+    signup_match = re.search(
+        r'(?:inscrições?|interessados?|como\s+participar|para\s+participar|contato)\s*:?\s*\n+((?:.+\n?)+?)(?:\n\n|$)',
+        content_clean,
+        re.IGNORECASE | re.DOTALL
+    )
+    if signup_match:
+        blocks['signup_text'] = signup_match.group(1).strip()[:500]
+    
+    # Extrair benefícios
+    benefits_match = re.search(
+        r'(?:benefícios?|diferenciais?|o\s+que\s+oferecemos|incluso|material\s+incluído)\s*:?\s*\n+((?:.+\n?)+?)(?:\n\n|$)',
+        content_clean,
+        re.IGNORECASE | re.DOTALL
+    )
+    if benefits_match:
+        blocks['benefits_text'] = benefits_match.group(1).strip()[:500]
+    
+    # Extrair bio do mestre
+    gm_bio_match = re.search(
+        r'(?:sobre\s+o\s+mestre|sobre\s+mim|quem\s+sou|experiência\s+do\s+mestre)\s*:?\s*\n+((?:.+\n?)+?)(?:\n\n|$)',
+        content_clean,
+        re.IGNORECASE | re.DOTALL
+    )
+    if gm_bio_match:
+        blocks['gm_bio'] = gm_bio_match.group(1).strip()[:500]
+    
+    return blocks
+
+
 def extract_style(content: str) -> Optional[str]:
     """Extrai estilo/temática da mesa (legado - mantido por compatibilidade)."""
     patterns = [
@@ -623,7 +741,9 @@ def extract_setting_name(content: str) -> Optional[str]:
         if match:
             setting = match.group(1).strip()
             setting = re.sub(r'\*\*|\*|__', '', setting)
-            return setting if setting else None
+            # Validar que não é genérico demais (rejeitar se tiver barra ou for muito curto)
+            if setting and len(setting) > 3 and '/' not in setting:
+                return setting
     
     # Detecção de cenários conhecidos (apenas se mencionados explicitamente no texto)
     known_settings = [
@@ -631,7 +751,8 @@ def extract_setting_name(content: str) -> Optional[str]:
         'Eberron', 'Ravenloft', 'Dark Sun', 'Greyhawk',
         'Golarion', 'Varisia',
         'Arkham', 'Innsmouth',
-        'Tormenta', 'Arton'
+        'Tormenta', 'Arton',
+        'Percy Jackson', 'Camp Half-Blood'
     ]
     
     for setting in known_settings:
@@ -657,8 +778,18 @@ def extract_setting_styles(content: str) -> List[str]:
             styles = re.split(r'[,;/]', styles_text)
             styles = [s.strip() for s in styles if s.strip()]
             
+            # Filtrar estilos válidos (não podem ser nomes de sistema)
+            valid_styles = []
+            for style in styles:
+                # Ignorar se parecer nome de sistema
+                lower_style = style.lower()
+                if any(sys in lower_style for sys in ['d&d', 'pathfinder', 'call of cthulhu', 'coc', 'dungeons', 'dragons']):
+                    continue
+                if len(style) > 2 and len(style) < 30:
+                    valid_styles.append(style)
+            
             # Limitar a 10 estilos
-            return styles[:10] if styles else []
+            return valid_styles[:10] if valid_styles else []
     
     return []
 

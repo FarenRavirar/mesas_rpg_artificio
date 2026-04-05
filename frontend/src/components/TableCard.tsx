@@ -105,9 +105,11 @@ export function TableCardComponent({ table }: { table: TableCard }) {
             {table.slots_filled}/{table.slots_total}
           </span>
           <span>{experienceLabels[table.experience_level] ?? table.experience_level}</span>
-          <span className={table.price_type === 'gratuita' ? 'text-emerald-400 font-semibold' : 'text-yellow-400 font-semibold'}>
-            {table.price_type === 'gratuita' ? 'Gratuita' : `R$ ${table.price_value}`}
-          </span>
+          {table.price_value && (
+            <span className="text-yellow-400 font-semibold">
+              R$ {table.price_value}
+            </span>
+          )}
         </div>
       </div>
     </Link>

@@ -99,11 +99,20 @@
 - Backend Fase 1 mantido: `setting_name` e `setting_styles` funcionais (5/5 testes passando)
 
 **Próxima ação prioritária:**
-Expandir parser Python (`discord_message_parser.py`) com todos os campos do plano de importação inteligente: `banner_url`, `avatar_url`, `external_links`, `is_paid`, `priceText`, `signupText`, `requires_pc/camera/microphone`, `is_ongoing`, `reviewFlags`. Atualizar schemas Pydantic e TypeScript. Garantir que `enrichedFields` preserve todos os campos sem perda silenciosa.
+**[RESOLVIDO]** ~~Erro 500 em `POST /api/v1/gm/tables`~~ — Causa raiz confirmada (constraint `price_value_required`), validação adicionada no código, build validado. Ver E128 e item 137 da fila.
+
+**[RESOLVIDO]** ~~Banner não preenchido no fluxo de importação~~ — Causa raiz confirmada (bug de mapeamento em `candidateToFormData.ts`), correção aplicada, build validado. Ver E129 e item 138 da fila.
+
+**[PRÓXIMO BLOQUEADOR]** Corrigir descrição incompleta no fluxo de importação (E130, item 139). Definir regra editorial clara para composição de descrição longa: separar `synopsis`, `rules_notes`, `signupText` em campos apropriados. Validar cadeia completa: parser Python extrai blocos textuais → candidateToFormData mapeia corretamente → formulário exibe texto completo → POST /api/v1/gm/tables persiste sem truncamento → API pública retorna descrição completa → MesaPage renderiza. Ver `sessoes/plano_json 2.md` linhas 357-430 para backlog detalhado.
+
+**Após correção da descrição, próximas ações em ordem:**
+1. Expandir parser Python com todos os campos do plano de importação inteligente
+2. Implementar auto-preenchimento completo e comportamento inteligente da UI
+3. Implementar persistência com overrides
 
 **REQs identificados e pendentes (integrados ao TODO_OPERACIONAL.md):**
 - REQ-21: Melhorias críticas no formulário (14 lacunas — plataformas, faixa etária, editor rico)
-- REQ-28: Importação Inteligente — Backend Fase 1 concluído, pendente Fases 2-6 (parser expandido, auto-preenchimento, abertura de blocos, overrides, página pública)
+- REQ-28: Importação Inteligente — 2 de 3 bugs críticos resolvidos (E128 ✅, E129 ✅), pendente E130, depois Fases 2-6
 
 ---
 

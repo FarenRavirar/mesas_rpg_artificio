@@ -74,6 +74,12 @@ class ParsedMessage(BaseModel):
     setting_name: Optional[str] = None  # Nome do cenário/ambientação
     setting_styles: List[str] = Field(default_factory=list)  # Estilos como array
     
+    # REQ-28 Fase 2: Campos editoriais separados
+    synopsis_narrative: Optional[str] = None  # Bloco narrativo principal
+    benefits_text: Optional[str] = None  # Benefícios e diferenciais
+    gm_bio: Optional[str] = None  # Sobre o mestre
+    signup_text: Optional[str] = None  # Instruções de inscrição (snake_case)
+    
     signupText: Optional[str] = None  # Texto de inscrição (como se inscrever)
     location: Optional[str] = None  # Localização para mesas presenciais
     

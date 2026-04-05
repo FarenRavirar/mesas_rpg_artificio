@@ -264,6 +264,14 @@ export const parseExporterMessage = (input: ParseExporterMessageInput): ParsedMe
   const settingName = enriched.setting_name ?? null;
   const settingStyles = Array.isArray(enriched.setting_styles) ? enriched.setting_styles : [];
   
+  // REQ-28 Fase 2: Campos editoriais separados
+  const synopsisNarrative = enriched.synopsis_narrative ?? null;
+  const rulesNotes = enriched.rules_notes ?? null;
+  const signupTextFromBlocks = enriched.signup_text ?? null;
+  const benefitsText = enriched.benefits_text ?? null;
+  const gmBio = enriched.gm_bio ?? null;
+  const description = enriched.description ?? null;
+  
   // Log de priorização (REQ-28)
   console.log(`[parseExporterMessage] Mensagem ${message.id} - Priorizando enrichedFields`);
   console.log(`[parseExporterMessage] setting_name: ${settingName ? 'Parser Python' : 'vazio'}`);
@@ -346,6 +354,14 @@ export const parseExporterMessage = (input: ParseExporterMessageInput): ParsedMe
     isOngoing,
     settingName,
     settingStyles,
+    
+    // REQ-28 Fase 2: Campos editoriais separados
+    synopsisNarrative,
+    rulesNotes,
+    signupTextFromBlocks,
+    benefitsText,
+    gmBio,
+    description,
     
     // Fase B: Múltiplos horários e vagas detalhadas
     sessions,

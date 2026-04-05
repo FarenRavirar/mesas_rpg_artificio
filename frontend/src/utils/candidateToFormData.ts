@@ -54,6 +54,9 @@ export function sanitizeText(text: string | undefined | null): string | undefine
 
   // Remove prefixos comuns do Discord (com e sem acento)
   const prefixes = [
+    /^[»▬\-•*]+\s*Título\s*:?\s*/i,
+    /^[»▬\-•*]+\s*Titulo\s*:?\s*/i,
+    /^[»▬\-•*]+\s*Title\s*:?\s*/i,
     /^#\s*Título:\s*/i,
     /^#\s*Titulo:\s*/i,  // sem acento
     /^\*\*Título:\*\*\s*/i,
@@ -159,9 +162,16 @@ export function mapCandidateToFormData(
     mapped.title = sanitizeText(enrichedJson.title);
   }
 
-  // Descrição (synopsis, sanitizada)
-  if (enrichedJson.synopsis || enrichedJson.description) {
-    mapped.description = sanitizeText(enrichedJson.synopsis || enrichedJson.description);
+  // Descrição (priorizar campos editoriais separados - REQ-28 Fase 4)
+  if (enrichedJson.description) {
+    // description já vem limpo do parser Python
+    mapped.description = sanitizeText(enrichedJson.description);
+  } else if (enrichedJson.synopsis_narrative) {
+    // Fallback para synopsis_narrative
+    mapped.description = sanitizeText(enrichedJson.synopsis_narrative);
+  } else if (enrichedJson.synopsis) {
+    // Fallback para synopsis (legado)
+    mapped.description = sanitizeText(enrichedJson.synopsis);
   }
 
   // Sistema (busca inteligente na árvore)
@@ -273,8 +283,8 @@ export function mapCandidateToFormData(
 
   // Banner URL (prioridade: enrichedFields.banner_url > imageUrl > banner > thumbnail > image)
   // O parser Python persiste URLs de imagens em enrichedFields.banner_url
-  if (parsedContent.banner_url) {
-    mapped.banner_url = parsedContent.banner_url;
+  if (enrichedJson.banner_url) {
+    mapped.banner_url = enrichedJson.banner_url;
   } else if (enrichedJson.imageUrl || enrichedJson.banner || enrichedJson.thumbnail || enrichedJson.image) {
     mapped.banner_url =
       enrichedJson.imageUrl ||
@@ -284,8 +294,8 @@ export function mapCandidateToFormData(
   }
 
   // Avatar do mestre (apenas visual, não persiste no banco)
-  if (parsedContent.avatar_url) {
-    mapped.gm_avatar_url = parsedContent.avatar_url;
+  if (enrichedJson.avatar_url) {
+    mapped.gm_avatar_url = enrichedJson.avatar_url;
   }
 
   // Publisher role e nome do mestre (SEMPRE announcer para candidatos importados)
@@ -436,6 +446,11 @@ export function mapCandidateToFormData(
 
   if (enrichedJson.requires_microphone !== undefined) {
     mapped.requires_microphone = enrichedJson.requires_microphone || false;
+  }
+
+  // REQ-28 Fase 4: Campos editoriais separados
+  if (enrichedJson.rules_notes) {
+    mapped.rules_notes = sanitizeText(enrichedJson.rules_notes);
   }
 
   // REQ-28: Cenário e estilos

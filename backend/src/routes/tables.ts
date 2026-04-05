@@ -239,6 +239,10 @@ router.get('/:slug', async (req: Request, res: Response) => {
         // Campos de cenário e estilos (REQ-28)
         't.setting_name',
         't.setting_styles',
+        // REQ-28 Fase 7: Campos editoriais separados
+        't.synopsis_narrative',
+        't.benefits_text',
+        't.gm_bio',
         's.name as system_name',
         's.slug as system_slug',
         'gm.slug as gm_slug',

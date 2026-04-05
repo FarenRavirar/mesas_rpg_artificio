@@ -1479,11 +1479,19 @@ export const GestaoPage = () => {
                   )}
 
                   {/* Preview de Banner */}
-                  {(selectedCandidate.parsed_json.imageUrl || selectedCandidate.parsed_json.banner || selectedCandidate.parsed_json.thumbnail) ? (
+                  {(candidateMappedData.get(selectedCandidate.id)?.banner_url || 
+                    selectedCandidate.parsed_json.imageUrl || 
+                    selectedCandidate.parsed_json.banner || 
+                    selectedCandidate.parsed_json.thumbnail) ? (
                     <div className="text-sm mt-3 pt-3 border-t border-blue-500/20">
                       <span className="text-white/60 block mb-2">Preview do Banner:</span>
                       <img
-                        src={selectedCandidate.parsed_json.imageUrl || selectedCandidate.parsed_json.banner || selectedCandidate.parsed_json.thumbnail}
+                        src={
+                          candidateMappedData.get(selectedCandidate.id)?.banner_url ||
+                          selectedCandidate.parsed_json.imageUrl || 
+                          selectedCandidate.parsed_json.banner || 
+                          selectedCandidate.parsed_json.thumbnail
+                        }
                         alt="Banner da mesa"
                         className="w-full max-h-48 object-cover rounded border border-blue-500/30"
                         onError={(e) => { e.currentTarget.src = bannerPlaceholder; }}
