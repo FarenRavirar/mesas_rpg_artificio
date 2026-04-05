@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import bannerPlaceholder from '../assets/banner_placeholder.webp';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle, XCircle, Clock } from 'lucide-react';
@@ -50,6 +51,15 @@ export const GestaoPage = () => {
   const [rejectingCandidateId, setRejectingCandidateId] = useState<string | null>(null);
   const [rejectingAll, setRejectingAll] = useState(false);
   const [undoingCandidateId, setUndoingCandidateId] = useState<string | null>(null);
+
+  /** Mapeamento pré-computado: candidateId -> CandidateFormData */
+  const candidateMappedData = useMemo(() => {
+    const map = new Map<string, ReturnType<typeof mapCandidateToFormData>>();
+    for (const c of candidates) {
+      map.set(c.id, mapCandidateToFormData(c.parsed_json, systemsTree));
+    }
+    return map;
+  }, [candidates, systemsTree]);
 
 
   useEffect(() => {
@@ -565,6 +575,7 @@ export const GestaoPage = () => {
                   const system = parsed.system || 'Sistema não identificado';
                   const masterText = parsed.masterText || parsed.recruiterName || 'Não informado';
                   const confidence = Math.round((candidate.confidence_score || 0) * 100);
+                  const mappedCandidate = candidateMappedData.get(candidate.id);
 
                   return (
                     <div
@@ -573,7 +584,14 @@ export const GestaoPage = () => {
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
-                          <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="text-xl font-bold text-white">{title}</h3>
+                            {mappedCandidate?.is_covil && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-orange-900/50 text-orange-300 border border-orange-500/40 flex-shrink-0">
+                                🏰 Covil do Lich
+                              </span>
+                            )}
+                          </div>
                           
                           <div className="flex flex-wrap items-center gap-4 text-sm text-white/60 mb-3">
                             <span><strong>Sistema:</strong> {system}</span>
@@ -656,6 +674,11 @@ export const GestaoPage = () => {
                 <div>
                   <h2 className="text-2xl font-bold text-white">Revisar e Editar Mesa</h2>
                   <p className="text-sm text-white/60 mt-1">Corrija os dados extraídos e aprove para publicação</p>
+                  {candidateMappedData.get(selectedCandidate.id)?.is_covil && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 mt-2 rounded-full text-xs font-bold bg-orange-900/50 text-orange-300 border border-orange-500/40">
+                      🏰 Covil do Lich
+                    </span>
+                  )}
                 </div>
                 <button
                   onClick={() => setSelectedCandidate(null)}
@@ -717,21 +740,25 @@ export const GestaoPage = () => {
                   )}
 
                   {/* Preview de Banner */}
-                  {(selectedCandidate.parsed_json.imageUrl || selectedCandidate.parsed_json.banner || selectedCandidate.parsed_json.thumbnail) && (
+                  {(selectedCandidate.parsed_json.imageUrl || selectedCandidate.parsed_json.banner || selectedCandidate.parsed_json.thumbnail) ? (
                     <div className="text-sm mt-3 pt-3 border-t border-blue-500/20">
                       <span className="text-white/60 block mb-2">Preview do Banner:</span>
                       <img
                         src={selectedCandidate.parsed_json.imageUrl || selectedCandidate.parsed_json.banner || selectedCandidate.parsed_json.thumbnail}
                         alt="Banner da mesa"
                         className="w-full max-h-48 object-cover rounded border border-blue-500/30"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          e.currentTarget.nextElementSibling!.classList.remove('hidden');
-                        }}
+                        onError={(e) => { e.currentTarget.src = bannerPlaceholder; }}
                       />
-                      <div className="hidden text-white/60 text-xs mt-2">
-                        ⚠️ Falha ao carregar imagem
-                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-sm mt-3 pt-3 border-t border-blue-500/20">
+                      <span className="text-white/60 block mb-2">Preview do Banner:</span>
+                      <img
+                        src={bannerPlaceholder}
+                        alt="Placeholder — sem banner"
+                        className="w-full max-h-48 object-cover rounded border border-blue-500/30 opacity-50"
+                      />
+                      <p className="text-white/40 text-xs mt-1">Sem imagem detectada — placeholder padrão</p>
                     </div>
                   )}
 

@@ -54,7 +54,7 @@ git rev-parse --abbrev-ref HEAD  # deve ser dev ou feature/<escopo>
 ### 2. Presença de documentos centrais
 
 Verificar existência na raiz:
-- `AGENTS.md`, `AI_CONTEXT_INDEX.md`, `ARQUITETURA_PROJETO.md`
+- `AGENTS.md`, `ARQUITETURA_PROJETO.md`, `ambiente_atual_mesas.md`
 - `GIT_WORKFLOW.md`, `OPERACAO_PRODUCAO.md`, `ERRORS_SOLUTIONS.md`
 - `database/migration_01_base_schema.sql`, `database/migration_02_system_taxonomy_and_ddal.sql`
 
@@ -125,13 +125,17 @@ grep "IMGUR_CLIENT_ID" /opt/mesas-beta/.env | grep -v "^#" | grep -v "=$"
 
 Se ausente ou vazio, nenhum upload de imagem funcionará.
 
-### 8. Dependências Python para scripts auxiliares
+### 8. Dependências Python para scripts e parser do backend
 
 ```bash
+# Para scripts auxiliares locais (pasta /testes/)
 python -c "import psycopg2, pandas, openpyxl"
+
+# Para o parser do backend (discord_message_parser.py) no container:
+docker exec mesas-beta-api python3 -c "import re, json, datetime"
 ```
 
-Se falhar, criar ou ativar ambiente e instalar dependências necessárias antes de continuar scripts auxiliares.
+Se o parser falhar dentro do container, verificar se `python3` está instalado via alpine packages no `Dockerfile` do backend. Ver `ERRORS_SOLUTIONS.md` E107.
 
 ### 9. Verificação dos containers no beta
 
@@ -266,6 +270,7 @@ Antes de qualquer commit, confirmar:
 | Upload de imagem ocorre apenas no backend | ☐ |
 | Elevação de `player` para `gm` ocorre apenas no backend | ☐ |
 | Nenhuma feature viola gratuidade, ausência de anúncios ou minimização de dados | ☐ |
+| `gm_avatar_url` (avatar do mestre importado via Discord) **não é persistido** no banco de dados | ☐ |
 
 ---
 

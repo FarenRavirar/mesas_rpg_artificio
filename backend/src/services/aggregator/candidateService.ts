@@ -12,6 +12,32 @@ export interface ListCandidatesInput {
   limit?: number;
 }
 
+/**
+ * Detecta se a mesa u00e9 do Covil do Lich pela anu00e1lise textual do parsed_json.
+ * Mesma lu00f3gica aplicada no frontend (isCovil em candidateToFormData.ts).
+ */
+const detectIsCovil = (parsedJson: Record<string, unknown>): boolean => {
+  const enriched = parsedJson.enrichedFields as Record<string, unknown> | null | undefined;
+  const textFields = [
+    parsedJson.title,
+    parsedJson.synopsis,
+    parsedJson.masterText,
+    parsedJson.signupText,
+    parsedJson.source,
+    enriched?.title,
+    enriched?.synopsis,
+  ]
+    .filter((v): v is string => typeof v === 'string')
+    .join(' ')
+    .toLowerCase();
+
+  return (
+    textFields.includes('covil do lich') ||
+    textFields.includes('covillich') ||
+    textFields.includes('covil')
+  );
+};
+
 const sanitizePage = (value: number | undefined): number => {
   if (!Number.isFinite(value)) return 1;
   return Math.max(1, Math.floor(value as number));
@@ -45,12 +71,21 @@ export const candidateService = {
     }
 
     // Extrair campos do parsed_json
+    const enrichedFields = (parsedJson.enrichedFields ?? {}) as Record<string, unknown>;
     const rawTitle = typeof parsedJson.title === 'string' ? parsedJson.title.trim() : '';
     const title = rawTitle || 'Anúncio importado';
     const description = typeof parsedJson.synopsis === 'string' ? parsedJson.synopsis.trim() : null;
     const masterText = typeof parsedJson.masterText === 'string' ? parsedJson.masterText.trim() : null;
     const recruiterName = typeof parsedJson.recruiterName === 'string' ? parsedJson.recruiterName.trim() : null;
     const signupText = typeof parsedJson.signupText === 'string' ? parsedJson.signupText.trim() : null;
+    // banner_url: prioridade enrichedFields.banner_url > parsedJson.imageUrl/banner/thumbnail
+    const bannerUrl = (
+      typeof enrichedFields.banner_url === 'string' ? enrichedFields.banner_url :
+      typeof parsedJson.imageUrl === 'string' ? parsedJson.imageUrl :
+      typeof parsedJson.banner === 'string' ? parsedJson.banner :
+      typeof parsedJson.thumbnail === 'string' ? parsedJson.thumbnail :
+      null
+    ) || null;
 
     // Validar contatos obrigatórios
     if (!signupText) {
@@ -109,8 +144,11 @@ export const candidateService = {
           type: 'campanha',
           modality: 'online',
           price_type: parsedJson.isPaid === true ? 'paga' : 'gratuita',
+          banner_url: bannerUrl,
+          is_covil: detectIsCovil(parsedJson),
+          imported_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         })
-        .returning(['id', 'slug', 'title', 'origin', 'source_id', 'created_at'])
+        .returning(['id', 'slug', 'title', 'origin', 'source_id', 'is_covil', 'imported_expires_at', 'created_at'])
         .execute();
 
       // Criar contato básico com signupText

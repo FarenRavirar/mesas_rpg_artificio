@@ -109,25 +109,29 @@ COPY --from=builder /app/arvores_de_sistemas.md ./
 
 **Ambiente beta:** Estável e operacional em `mesasbeta.artificiorpg.com`
 
-**Última sessão:** Implementação de melhorias de UX Nielsen no fluxo de revisão (REQ-19)
+**Sessão anterior concluída:** REQ-19 — Melhorias UX Nielsen (itens 055-058, commit a4dc87f)
 
-**Implementado nesta sessão (05/04/2026):**
-- REQ-19 Fase 1 (Item 055): Toast notifications modernas (react-hot-toast) substituindo alert()
-- REQ-19 Fase 2 (Item 056): Validação de campos obrigatórios antes de aprovar candidato
-- REQ-19 Fase 3 (Item 057): Spinners em todos os botões de ação durante operações assíncronas
-- REQ-19 Fase 4 (Item 058): Botão "Desfazer rejeição" com endpoint backend PATCH /candidates/:id/undo-rejection
+**Sessão atual em andamento (REQ-20 — Integração de Mídia e Covil do Lich):**
+- Parser Python: extração de `banner_url` (attachments) e `avatar_url` (author) ✅ implementado
+- Schema Pydantic: campos `banner_url` e `avatar_url` adicionados ✅
+- `normalizeExporterPayload.ts`: passa `attachments` e `author` completo ao parser ✅
+- `candidateToFormData.ts`: `banner_url` e `gm_avatar_url` mapeados do `enrichedFields` ✅
+- **Em execução:** `is_covil` (migration_10), preview visual no formulário, checkbox Covil, retenção no AdminDevTools
 
-**Builds validados:**
-- Frontend: 409.09 kB (exit 0)
-- Backend: exit 0
+**Decisões arquiteturais desta sessão:**
+- `gm_avatar_url` — Opção B: apenas pré-preenche o formulário visualmente, NÃO persiste no banco (URL externa do Discord não sobe para Imgur neste fluxo)
+- `is_covil` — persiste no banco como boolean (similar ao `is_ddal`)
+- Selo "Covil do Lich" — detectado automaticamente pelo parser, editável pelo admin
+- `imported_expires_at` — campo no banco para expiração configurável via AdminDevTools
 
-**Documentação atualizada nesta sessão:**
-- TODO_OPERACIONAL.md: REQ-19 atualizado para "Em validação"
-- FILA_IMPLEMENTACAO.md: Itens 055-058 marcados como "em_validacao"
-- sessoes/resumo_05-04_2_correcao-bugs-criticos.md: Fases 1-4 documentadas
-- task.md: Todas as fases marcadas como concluídas
-
-**Próxima ação:** Commit + push para `dev` → validação manual em beta → marcar itens 055-058 como "concluido"
+**Próximas ações (REQ-20):**
+1. Criar `migration_10_covil_and_expiration.sql` com `is_covil` e `imported_expires_at`
+2. Adicionar preview de banner no `CreateTableForm` (PainelMestrePage.tsx)
+3. Adicionar campo avatar do mestre (visual only, mode=review) com preview
+4. Adicionar bloco "Covil do Lich" com checkbox e auto-detecção
+5. Atualizar `candidateToFormData.ts` para mapear `is_covil` automaticamente
+6. Expandir preview de revisão em `GestaoPage.tsx` (banner + avatar + badge Covil)
+7. Adicionar seção de Retenção no `AdminDevToolsPage.tsx`
 
 **Bloqueios:** Nenhum
 

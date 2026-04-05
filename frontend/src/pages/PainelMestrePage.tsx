@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import bannerPlaceholder from '../assets/banner_placeholder.webp';
 import type { ChangeEvent, FormEvent, InputHTMLAttributes, SelectHTMLAttributes } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { PlusCircle, ChevronRight, Dice1, Globe, MapPin, Users, ShieldCheck, Sparkles } from 'lucide-react';
@@ -66,6 +67,15 @@ interface CreateTableFormProps {
     language?: string;
     publisher_role?: 'gm' | 'announcer';
     actual_gm_name?: string;
+    banner_url?: string;       // URL do banner (preenchimento automático)
+    gm_avatar_url?: string;   // Avatar Discord do mestre (apenas visual)
+    is_covil?: boolean;       // Detectado pelo parser, editável
+    system_id?: string;
+    starts_at?: string;
+    frequency?: string;
+    frequency_custom?: string;
+    rules_notes?: string;
+    contacts?: Array<{ channel: string; value: string; extra_url?: string }>;
   };
   mode?: 'create' | 'review';
   candidateId?: string;
@@ -192,10 +202,14 @@ export function CreateTableForm({ token, onSuccess, initialData, mode = 'create'
   const [contactsError, setContactsError] = useState<string | null>(null);
 
   const [isOngoing, setIsOngoing] = useState(false);
-  const [frequency, setFrequency] = useState('');
-  const [frequencyCustom, setFrequencyCustom] = useState('');
-  const [rulesNotes, setRulesNotes] = useState('');
-  const [bannerUrl, setBannerUrl] = useState('');
+  const [frequency, setFrequency] = useState(initialData?.frequency || '');
+  const [frequencyCustom, setFrequencyCustom] = useState(initialData?.frequency_custom || '');
+  const [rulesNotes, setRulesNotes] = useState(initialData?.rules_notes || '');
+  const [bannerUrl, setBannerUrl] = useState(initialData?.banner_url || '');
+  const [gmAvatarUrl] = useState(initialData?.gm_avatar_url || ''); // readonly, apenas visual
+  const [isCovilMesa, setIsCovilMesa] = useState(initialData?.is_covil ?? false);
+  const [bannerError, setBannerError] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
 
   const fetchSystemsTree = async () => {
     setSystemsLoading(true);
@@ -317,6 +331,7 @@ export function CreateTableForm({ token, onSuccess, initialData, mode = 'create'
         frequency_custom: frequency === 'outros' ? frequencyCustom : null,
         rules_notes: rulesNotes.trim() || null,
         banner_url: bannerUrl.trim() || null,
+        is_covil: mode === 'review' ? isCovilMesa : false,
         is_ddal: isDdalEligibleSelection ? ddal.is_ddal : false,
         ddal_code: ddal.is_ddal ? ddal.ddal_code || null : null,
         ddal_name: ddal.is_ddal ? ddal.ddal_name || null : null,
@@ -626,9 +641,45 @@ export function CreateTableForm({ token, onSuccess, initialData, mode = 'create'
         id="banner_url"
         name="banner_url"
         value={bannerUrl}
-        onChange={(e) => setBannerUrl(e.target.value)}
+        onChange={(e) => { setBannerUrl(e.target.value); setBannerError(false); }}
         placeholder="https://exemplo.com/banner.jpg"
       />
+
+      {/* Preview do banner: mostra placeholder no modo review se não houver URL */}
+      {(bannerUrl && !bannerError) ? (
+        <div className="overflow-hidden rounded-xl border border-white/10">
+          <img
+            src={bannerUrl}
+            alt="Preview do banner"
+            onError={() => setBannerError(true)}
+            className="w-full max-h-48 object-cover"
+          />
+        </div>
+      ) : mode === 'review' && (
+        <div className="overflow-hidden rounded-xl border border-white/10 opacity-50">
+          <img
+            src={bannerPlaceholder}
+            alt="Placeholder — sem banner definido"
+            className="w-full max-h-48 object-cover"
+          />
+          <p className="text-center text-xs text-white/40 py-1 bg-black/40">Sem banner — placeholder padrão será exibido</p>
+        </div>
+      )}
+
+      {mode === 'review' && gmAvatarUrl && !avatarError && (
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
+          <img
+            src={gmAvatarUrl}
+            alt="Avatar do mestre (Discord)"
+            onError={() => setAvatarError(true)}
+            className="w-12 h-12 rounded-full object-cover border-2 border-white/20 flex-shrink-0"
+          />
+          <div>
+            <p className="text-xs font-semibold text-white/80">Avatar do mestre (importado do Discord)</p>
+            <p className="text-xs text-white/40">Não é salvo no banco. Apenas referência visual.</p>
+          </div>
+        </div>
+      )}
 
       <ContactsFormBlock
         contacts={contacts}
@@ -757,6 +808,29 @@ export function CreateTableForm({ token, onSuccess, initialData, mode = 'create'
               </div>
             </div>
           )}
+        </section>
+      )}
+
+      {mode === 'review' && (
+        <section className="rounded-2xl border border-orange-500/30 bg-orange-900/10 p-5 space-y-3" id="painel-mestre-covil-block">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-orange-200 flex items-center gap-2">
+                🏰 Mesa do Covil do Lich
+              </p>
+              <p className="text-xs text-orange-100/70 mt-1">Detectado automaticamente pelo parser. Pode ser editado antes de publicar.</p>
+            </div>
+            <label htmlFor="covil-toggle" className="inline-flex items-center gap-2 text-sm text-orange-100 cursor-pointer">
+              <input
+                id="covil-toggle"
+                type="checkbox"
+                checked={isCovilMesa}
+                onChange={(e) => setIsCovilMesa(e.target.checked)}
+                className="h-4 w-4 rounded border-orange-300/30 bg-orange-900/20 text-orange-400"
+              />
+              É Covil do Lich
+            </label>
+          </div>
         </section>
       )}
 

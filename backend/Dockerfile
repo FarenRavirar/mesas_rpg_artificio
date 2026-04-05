@@ -24,7 +24,13 @@ FROM node:22-alpine AS production
 WORKDIR /app
 
 # Dependências de runtime do Sharp (processamento de imagem WebP)
-RUN apk add --no-cache vips-dev fftw-dev build-base python3
+# + Python3 e pip para parser de mensagens do Discord
+RUN apk add --no-cache vips-dev fftw-dev build-base python3 py3-pip
+
+# Copiar e instalar dependências Python
+COPY backend/requirements.txt ./
+RUN pip3 install --no-cache-dir -r requirements.txt && \
+    python3 -m spacy download pt_core_news_lg
 
 COPY backend/package*.json ./
 RUN npm ci --omit=dev

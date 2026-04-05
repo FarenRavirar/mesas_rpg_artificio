@@ -145,12 +145,19 @@ const splitPayloadForImport = (payload: unknown, chunkSize: number): unknown[] =
   return chunks;
 };
 
-const sanitizeDiscordExporterJson = (rawJson: string): string => {
+const sanitizeDiscordExporterJson = (rawJson: string): { json: string; wasRepaired: boolean; repairFailed: boolean } => {
+  // Se já u00e9 JSON válido, retorna sem modificar
   try {
-    return jsonrepair(rawJson);
-  } catch (error) {
-    // Se jsonrepair falhar, retornar o original
-    return rawJson;
+    JSON.parse(rawJson);
+    return { json: rawJson, wasRepaired: false, repairFailed: false };
+  } catch {
+    // JSON inválido u2014 tentar reparar com jsonrepair
+    try {
+      const repaired = jsonrepair(rawJson);
+      return { json: repaired, wasRepaired: true, repairFailed: false };
+    } catch {
+      return { json: rawJson, wasRepaired: false, repairFailed: true };
+    }
   }
 };
 
@@ -233,6 +240,10 @@ export function AdminDevToolsPage() {
   const [importError, setImportError] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<any>(null);
   const [importingJson, setImportingJson] = useState(false);
+  const [jsonWasRepaired, setJsonWasRepaired] = useState(false);
+  const [jsonRepairFailed, setJsonRepairFailed] = useState(false);
+  const [jsonRepairBannerDismissed, setJsonRepairBannerDismissed] = useState(false);
+  const [importProgress, setImportProgress] = useState<{ current: number; total: number } | null>(null);
 
   const autoRunTokenRef = useRef('');
 
@@ -361,20 +372,35 @@ export function AdminDevToolsPage() {
     setImportError(null);
     setImportFeedback(null);
     setImportResult(null);
+    setJsonWasRepaired(false);
+    setJsonRepairFailed(false);
+    setJsonRepairBannerDismissed(false);
 
     try {
       const text = await file.text();
       let parsed: any;
-      
+
       // Primeira tentativa: parse direto
       try {
         parsed = JSON.parse(text);
-      } catch (firstError) {
-        // Segunda tentativa: com sanitização
-        console.warn('[loadJsonFile] Parse inicial falhou, tentando sanitizar...', firstError);
-        const sanitized = sanitizeDiscordExporterJson(text);
-        parsed = JSON.parse(sanitized);
-        setImportFeedback('⚠️ JSON corrigido automaticamente (arquivo estava malformado).');
+        // JSON válido sem reparos
+      } catch {
+        // Segunda tentativa: com jsonrepair
+        console.warn('[loadJsonFile] Parse inicial falhou, tentando reparar...');
+        const repairResult = sanitizeDiscordExporterJson(text);
+        if (repairResult.repairFailed) {
+          // jsonrepair também falhou
+          setJsonRepairFailed(true);
+          setParsedPayload(null);
+          setPayloadPreview([]);
+          setFileName(file.name);
+          setImportError(`Não foi possível reparar este arquivo JSON. Verifique se o arquivo está corrompido.`);
+          return;
+        }
+        parsed = JSON.parse(repairResult.json);
+        if (repairResult.wasRepaired) {
+          setJsonWasRepaired(true);
+        }
       }
 
       setFileName(file.name);
@@ -484,6 +510,7 @@ export function AdminDevToolsPage() {
       for (let index = 0; index < payloadChunks.length; index += 1) {
         if (payloadChunks.length > 1) {
           setImportFeedback(`Importando lote ${index + 1}/${payloadChunks.length}...`);
+          setImportProgress({ current: index + 1, total: payloadChunks.length });
         }
 
         const res = await fetch(`${API_BASE}/api/v1/aggregator/import/file`, {
@@ -532,6 +559,7 @@ export function AdminDevToolsPage() {
       setImportError(`Falha de rede no import: ${err?.message ?? String(err)}`);
     } finally {
       setImportingJson(false);
+      setImportProgress(null);
     }
   };
 
@@ -1030,6 +1058,67 @@ export function AdminDevToolsPage() {
             </button>
           </div>
 
+          {/* Barra de progresso para chunks múltiplos */}
+          {importProgress && importProgress.total > 1 && (
+            <div style={{ marginTop: '0.7rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
+                <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Lote {importProgress.current} de {importProgress.total}</span>
+                <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{Math.round((importProgress.current / importProgress.total) * 100)}%</span>
+              </div>
+              <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 4, overflow: 'hidden' }}>
+                <div
+                  style={{
+                    height: '100%',
+                    width: `${(importProgress.current / importProgress.total) * 100}%`,
+                    background: '#E8521A',
+                    borderRadius: 4,
+                    transition: 'width 0.3s ease',
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Banner amarelo: JSON reparado automaticamente */}
+          {jsonWasRepaired && !jsonRepairBannerDismissed && (
+            <div style={{
+              marginTop: '0.7rem',
+              background: 'rgba(234,179,8,0.12)',
+              border: '1px solid rgba(234,179,8,0.35)',
+              borderRadius: 8,
+              padding: '0.6rem 0.8rem',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+              gap: '0.5rem',
+            }}>
+              <p style={{ margin: 0, color: '#fde047', fontSize: '0.73rem' }}>
+                ⚠️ JSON corrompido detectado e corrigido automaticamente com jsonrepair. Revise os dados antes de importar.
+              </p>
+              <button
+                onClick={() => setJsonRepairBannerDismissed(true)}
+                style={{ background: 'none', border: 'none', color: '#fde047', cursor: 'pointer', fontSize: '0.7rem', flexShrink: 0, padding: '0 0.2rem' }}
+              >
+                Entendi
+              </button>
+            </div>
+          )}
+
+          {/* Banner vermelho: JSON irrecuperável */}
+          {jsonRepairFailed && (
+            <div style={{
+              marginTop: '0.7rem',
+              background: 'rgba(239,68,68,0.12)',
+              border: '1px solid rgba(239,68,68,0.35)',
+              borderRadius: 8,
+              padding: '0.6rem 0.8rem',
+            }}>
+              <p style={{ margin: 0, color: '#f87171', fontSize: '0.73rem' }}>
+                ❌ Não foi possível reparar o JSON mesmo com jsonrepair. O arquivo pode estar muito corrompido ou em formato incompatível.
+              </p>
+            </div>
+          )}
+
           {importFeedback && <p style={{ margin: '0.45rem 0 0 0', color: '#22c55e', fontSize: '0.73rem' }}>{importFeedback}</p>}
           {importError && <p style={{ margin: '0.45rem 0 0 0', color: '#ef4444', fontSize: '0.73rem' }}>{importError}</p>}
 
@@ -1052,6 +1141,33 @@ export function AdminDevToolsPage() {
               </p>
             </div>
           )}
+        </section>
+
+        {/* Seção: Retenção de Mesas Importadas */}
+        <section
+          style={{
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 12,
+            padding: '1rem 1.2rem',
+          }}
+        >
+          <h2 style={{ margin: '0 0 0.4rem 0', fontSize: '0.92rem', color: '#f8fafc' }}>⏳ Retenção de Mesas Importadas</h2>
+          <p style={{ margin: '0 0 0.8rem 0', color: '#94a3b8', fontSize: '0.74rem' }}>
+            Mesas importadas via JSON Discord expiram automaticamente. O campo <code style={{ color: '#93c5fd' }}>imported_expires_at</code> é definido no momento do aceite.
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+            <label style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+              Prazo padrão atual:
+              <strong style={{ color: '#e2e8f0', marginLeft: '0.4rem' }}>30 dias (fixo no backend)</strong>
+            </label>
+          </div>
+          <div style={{ marginTop: '0.6rem', background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.25)', borderRadius: 8, padding: '0.55rem 0.75rem' }}>
+            <p style={{ margin: 0, color: '#fde047', fontSize: '0.7rem' }}>
+              ⚠️ A configuração de prazo via painel está planejada. Atualmente, o prazo de 30 dias é aplicado automaticamente pelo backend no momento do aceite.
+              Mesas expiradas serão removidas pelo CleanupWorker (ver ARQUITETURA_PROJETO.md seção 7).
+            </p>
+          </div>
         </section>
 
         {result && (

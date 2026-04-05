@@ -301,6 +301,7 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
     frequency_custom,
     rules_notes,
     banner_url,
+    is_covil,
   } = req.body;
 
   if (!title || !type || !modality) {
@@ -335,6 +336,7 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
   const safeBannerUrl = sanitizeOptionalText(banner_url);
 
   const safeIsDdal = parseOptionalBoolean(is_ddal) ?? false;
+  const safeIsCovil = parseOptionalBoolean(is_covil) ?? false;
   const safeDdalCode = sanitizeOptionalText(ddal_code);
   const safeDdalName = sanitizeOptionalText(ddal_name);
   const safeDdalTier = sanitizeOptionalTier(ddal_tier);
@@ -425,6 +427,7 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
           frequency_custom: safeFrequency === 'outros' ? safeFrequencyCustom : null,
           rules_notes: safeRulesNotes,
           banner_url: safeBannerUrl,
+          is_covil: safeIsCovil,
           status: 'active',
         })
         .returning([

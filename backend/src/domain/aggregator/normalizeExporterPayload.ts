@@ -1,4 +1,5 @@
 import type { NormalizedExporterMessage, NormalizedExporterPayload } from './types';
+import { parseMessage as parsePythonMessage } from '../../services/aggregator/pythonParserService';
 
 const asRecord = (value: unknown): Record<string, unknown> | null => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -20,7 +21,7 @@ const toMessages = (value: unknown): unknown[] => {
   return Array.isArray(value) ? value : [];
 };
 
-const normalizeMessage = (item: unknown): NormalizedExporterMessage | null => {
+const normalizeMessage = async (item: unknown): Promise<NormalizedExporterMessage | null> => {
   const record = asRecord(item);
   if (!record) return null;
 
@@ -32,12 +33,38 @@ const normalizeMessage = (item: unknown): NormalizedExporterMessage | null => {
   const rawEmbeds = Array.isArray(record.embeds) ? record.embeds : [];
   const rawMentions = Array.isArray(record.mentions) ? record.mentions : [];
 
+  const content = asString(record.content) ?? '';
+  
+  // Tentar parsing inteligente com Python
+  let enrichedFields: Record<string, unknown> = {};
+  if (content) {
+    try {
+      const metadata = {
+        author_username: author ? asString(author.name) ?? undefined : undefined,
+        author_handle: author ? asString(author.nickname) ?? undefined : undefined,
+        timestamp: asString(record.timestamp) ?? undefined,
+        message_id: id,
+        attachments: rawAttachments, // Passar attachments para extrair banner_url
+        author: author, // Passar author completo para extrair avatar_url
+      };
+      
+      const parsed = await parsePythonMessage(content, metadata);
+      enrichedFields = parsed as Record<string, unknown>;
+      console.log(`[Python Parser] Sucesso para mensagem ${id}: confiança ${enrichedFields.confidence}`);
+    } catch (error) {
+      console.warn(`[Python Parser] Falhou para mensagem ${id}, usando fallback:`, error);
+      // Fallback: campos vazios, o parser TS do frontend será usado
+      enrichedFields = {};
+    }
+  }
+
   return {
     id,
     type: asString(record.type),
     timestamp: asString(record.timestamp),
     timestampEdited: asString(record.timestampEdited),
-    content: asString(record.content) ?? '',
+    content,
+    enrichedFields, // Campos extraídos pelo parser Python
     author: {
       id: author ? asString(author.id) : null,
       name: author ? asString(author.name) : null,
@@ -112,7 +139,7 @@ const normalizeMessage = (item: unknown): NormalizedExporterMessage | null => {
   };
 };
 
-export const normalizeExporterPayload = (payload: unknown): NormalizedExporterPayload => {
+export const normalizeExporterPayload = async (payload: unknown): Promise<NormalizedExporterPayload> => {
   const root = asRecord(payload);
   if (!root) {
     throw new Error('Payload inválido: o JSON exportado deve ser um objeto.');
@@ -121,9 +148,11 @@ export const normalizeExporterPayload = (payload: unknown): NormalizedExporterPa
   const guild = asRecord(root.guild);
   const channel = asRecord(root.channel);
 
-  const messages = toMessages(root.messages)
-    .map(normalizeMessage)
-    .filter((message): message is NormalizedExporterMessage => Boolean(message));
+  const rawMessages = toMessages(root.messages);
+  const messagePromises = rawMessages.map(normalizeMessage);
+  const resolvedMessages = await Promise.all(messagePromises);
+  
+  const messages = resolvedMessages.filter((message): message is NormalizedExporterMessage => Boolean(message));
 
   if (messages.length === 0) {
     throw new Error('Payload inválido: nenhuma mensagem válida foi encontrada no export.');

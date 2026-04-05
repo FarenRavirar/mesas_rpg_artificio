@@ -47,6 +47,7 @@ export interface NormalizedExporterMessage {
   timestamp: string | null;
   timestampEdited: string | null;
   content: string;
+  enrichedFields?: Record<string, unknown>; // Campos extraídos pelo parser Python
   author: ExporterAuthor;
   attachments: ExporterAttachment[];
   embeds: ExporterEmbed[];

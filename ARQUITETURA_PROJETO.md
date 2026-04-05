@@ -129,9 +129,22 @@ docker exec mesas-beta-db env | grep POSTGRES
 | `gm_id` | FK para `gm_profiles` (null se importado sem vínculo) |
 | `system_id` | FK para `systems` |
 | `title`, `description`, `cover_url`, `cover_source_type`, `cover_origin_url`, `cover_deletehash`, `cover_imgur_id` | Conteúdo editorial da mesa e metadados de imagem hospedada ou reaproveitada externamente |
+| `banner_url` | URL externa de banner/capa (migration_09) — aceita URLs diretas do Discord sem reupload para Imgur |
+| `frequency` | Frequência das sessões: `semanal`, `quinzenal`, `mensal`, `avulsa` (migration_09) |
+| `frequency_custom` | Descrição livre de frequência quando `frequency = 'avulsa'` (migration_09) |
+| `rules_notes` | Regras, avisos ou notas especiais da mesa (migration_09) |
+| `is_ddal` | Mesa vinculada ao programa D&D Adventurers League (DDAL) |
+| `ddal_code`, `ddal_name`, `ddal_tier` | Metadados DDAL — obrigatórios quando `is_ddal = true` |
+| `publisher_role` | Quem está publicando: `gm` (o próprio mestre) ou `announcer` (apenas divulgador) |
+| `actual_gm_name` | Nome do mestre real quando `publisher_role = 'announcer'` |
 | `starts_at` | Data/hora de início |
 | `experience_level` | `todos`, `iniciante`, `intermediario`, `veterano` |
 | `slug` | Gerado automaticamente via `slugify.ts` |
+| `is_covil` *(migration_10 — pendente)* | BOOLEAN — indica que a mesa pertence ao programa Covil do Lich; detectado automaticamente via parser Python, editável pelo admin |
+| `imported_expires_at` *(migration_10 — pendente)* | TIMESTAMPTZ — data de expiração configurável para mesas importadas via JSON do Discord; política gerenciável pelo AdminDevTools |
+
+> **Nota sobre `gm_avatar_url` (Decisão Arquitetural — 05/04/2026):** O campo de avatar do mestre importado via Discord **NÃO é persistido** no banco de dados. A URL extraída pelo parser Python (`enrichedFields.avatar_url`) é usada apenas para pré-preencher visualmente o formulário de revisão. O mestre real será vinculado à mesa via `gm_id` quando reivindicar o anúncio importado.
+
 
 ### 4.3 Automação de Integridade (Slugs)
 

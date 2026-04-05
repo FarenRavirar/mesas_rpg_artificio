@@ -20,6 +20,8 @@ export interface CandidateFormData {
   frequency_custom?: string;
   rules_notes?: string;
   banner_url?: string;
+  gm_avatar_url?: string;   // URL do avatar Discord (apenas visual, não persiste no banco)
+  is_covil?: boolean;       // Detectado pelo parser, editável pelo admin
   contacts?: Array<{
     channel: string;
     value: string;
@@ -119,10 +121,16 @@ export function mapCandidateToFormData(
 
   const mapped: CandidateFormData = {};
 
-  // Se o parsed_json tem um campo 'content' (mensagem do Discord),
-  // fazer parsing automático para extrair campos estruturados
+  // PRIORIDADE 1: enrichedFields do parser Python (backend)
+  // Se o backend já fez o parsing com Python, usar esses dados
   let parsedContent: any = {};
-  if (parsed_json.content && typeof parsed_json.content === 'string') {
+  if (parsed_json.enrichedFields && Object.keys(parsed_json.enrichedFields).length > 0) {
+    console.log('[candidateToFormData] Usando enrichedFields do parser Python');
+    parsedContent = parsed_json.enrichedFields;
+  } 
+  // PRIORIDADE 2: Fallback para parser TS (frontend) se enrichedFields não existir
+  else if (parsed_json.content && typeof parsed_json.content === 'string') {
+    console.log('[candidateToFormData] Fallback: usando parser TS do frontend');
     parsedContent = parseDiscordContent(parsed_json.content);
   }
 
@@ -238,13 +246,21 @@ export function mapCandidateToFormData(
     );
   }
 
-  // Banner URL
-  if (enrichedJson.imageUrl || enrichedJson.banner || enrichedJson.thumbnail || enrichedJson.image) {
-    mapped.banner_url = 
-      enrichedJson.imageUrl || 
-      enrichedJson.banner || 
-      enrichedJson.thumbnail || 
+  // Banner URL (prioridade: enrichedFields.banner_url > imageUrl > banner > thumbnail > image)
+  // O parser Python persiste URLs de imagens em enrichedFields.banner_url
+  if (parsedContent.banner_url) {
+    mapped.banner_url = parsedContent.banner_url;
+  } else if (enrichedJson.imageUrl || enrichedJson.banner || enrichedJson.thumbnail || enrichedJson.image) {
+    mapped.banner_url =
+      enrichedJson.imageUrl ||
+      enrichedJson.banner ||
+      enrichedJson.thumbnail ||
       enrichedJson.image;
+  }
+
+  // Avatar do mestre (apenas visual, não persiste no banco)
+  if (parsedContent.avatar_url) {
+    mapped.gm_avatar_url = parsedContent.avatar_url;
   }
 
   // Publisher role e nome do mestre (SEMPRE announcer para candidatos importados)
@@ -330,6 +346,9 @@ export function mapCandidateToFormData(
       mapped.banner_url = imageAttachment.url;
     }
   }
+
+  // Detecção automática de Covil do Lich
+  mapped.is_covil = isCovil(parsedContent) || isCovil(parsed_json);
 
   return mapped;
 }

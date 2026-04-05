@@ -95,7 +95,7 @@ const run = async () => {
 
   // Valida estrutura antes de enviar ao serviço
   try {
-    normalizeExporterPayload(rawJson);
+    await normalizeExporterPayload(rawJson);
   } catch (err: any) {
     console.error(`[aggregator:import] Payload inválido: ${err?.message ?? err}`);
     await db.destroy();

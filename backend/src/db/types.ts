@@ -161,6 +161,8 @@ export interface TablesTable {
   ddal_org_code: string | null;
   ddal_setting: string | null;
   ddal_rules_notes: string | null;
+  is_covil: Generated<boolean>;
+  imported_expires_at: Date | null;
   frequency: 'semanal' | 'quinzenal' | 'mensal' | 'outros' | null;
   frequency_custom: string | null;
   rules_notes: string | null;

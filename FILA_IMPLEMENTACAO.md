@@ -196,7 +196,21 @@ Não é necessário em tarefas fora do modo lote.
 
 ---
 
-## Validação
+## Itens da fila — Lote: midia-covil-retencao (REQ-20)
+
+> Integração completa de mídia Discord (banner/avatar), selo Covil do Lich e política de retenção de mesas importadas.
+
+| ID | Fase | Tipo | GUT | Titulo | Descrição objetiva | Arquivos esperados | Status | Observação |
+|---|---|---|---|---|---|---|---|---|
+| 068 | Fase 4 | banco | 5/5/5 | Migration: is_covil e imported_expires_at | Criar migration com `ALTER TABLE tables ADD COLUMN IF NOT EXISTS is_covil BOOLEAN NOT NULL DEFAULT FALSE, ADD COLUMN IF NOT EXISTS imported_expires_at TIMESTAMPTZ;` | `database/migration_10_covil_and_expiration.sql` | pendente | Similar ao `is_ddal`. Aplicar no beta via `docker exec mesas-beta-db psql ...` após push. |
+| 069 | Fase 4 | frontend | 4/5/5 | Preview de banner no CreateTableForm | Adicionar pré-visualização de imagem abaixo do campo `bannerUrl` no formulário. Imagem se atualiza ao digitar URL. `onError` oculta preview com fallback de texto. Auto-preenchimento via `initialData.banner_url`. | `frontend/src/pages/PainelMestrePage.tsx` | pendente | Campo `bannerUrl` já existe como estado. Só falta o elemento de preview. |
+| 070 | Fase 4 | frontend | 4/5/4 | Campo avatar mestre (visual only, mode=review) | Adicionar campo "Avatar do Mestre (importado)" com input de URL e preview circular, visível apenas no modo `review`. Apenas pré-preenche o formulário — NÃO é enviado no payload do backend. Auto-preenchido via `initialData.gm_avatar_url`. | `frontend/src/pages/PainelMestrePage.tsx` | pendente | Opção B confirmada: não persiste no banco. URL vem de `enrichedFields.avatar_url` do parser Python. |
+| 071 | Fase 4 | frontend | 5/5/5 | Bloco "Covil do Lich" com checkbox e auto-detecção | Adicionar seção similar ao DDAL com checkbox "É Covil do Lich". Estado `isCovil` auto-preenchido por `initialData.is_covil`. Admin pode marcar/desmarcar. Exibir aviso visual quando marcado. Enviar `is_covil: boolean` no payload de submit. | `frontend/src/pages/PainelMestrePage.tsx` | pendente | Visual: borda roxa, ícone ☠️, badge "Covil do Lich" pré-visualizado. |
+| 072 | Fase 4 | frontend | 4/5/5 | Mapear is_covil em candidateToFormData | Chamar `isCovil()` na função `mapCandidateToFormData()` usando `enrichedFields` + `parsed_json` e popular `is_covil: true/false` no resultado. Expandir `isCovil()` para verificar `guild.name`, `channel.name` e `enrichedFields.source`. | `frontend/src/utils/candidateToFormData.ts` | pendente | Função `isCovil()` já existe mas não é chamada no mapeamento. |
+| 073 | Fase 4 | frontend | 4/4/5 | Expandir preview de revisão em GestaoPage | Atualizar o modal de revisão para: (1) ler `banner_url` de `enrichedFields.banner_url` ou `attachments[0].url`; (2) mostrar avatar do mestre com preview circular quando disponível; (3) exibir badge "☠️ Covil do Lich" em roxo nos cards e no modal quando detectado. | `frontend/src/pages/GestaoPage.tsx` | pendente | Importar `isCovil()` do `candidateToFormData.ts`. |
+| 074 | Fase 4 | frontend | 3/4/4 | Seção de Retenção no AdminDevTools | Adicionar seção "🗂️ Retenção de Mesas Importadas" no AdminDevTools com: input de dias (padrão 30), botão "Ver mesas afetadas" (dry-run via API), botão "Aplicar e remover" com confirmação explícita. API: `GET /api/v1/admin/imported-retention?days=X` (preview) e `DELETE /api/v1/admin/imported-retention?days=X` (execução). | `frontend/src/pages/AdminDevToolsPage.tsx`, `backend/src/routes/adminRoutes.ts` | pendente | Operação de remoção é irreversível — exigir confirmação double-check. |
+
+
 
 - Itens da fila com status consistente.
 - Fases 6 e 7 com status `pendente` até liberação explícita do responsável.

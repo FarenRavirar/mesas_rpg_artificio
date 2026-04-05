@@ -32,7 +32,7 @@ const resolveSource = async (sourceId: string | undefined, guildId: string | nul
 
 export const importFromExporterService = {
   async importPayload(input: ImportFromExporterInput): Promise<ImportSummary> {
-    const normalizedPayload = normalizeExporterPayload(input.payload);
+    const normalizedPayload = await normalizeExporterPayload(input.payload);
 
     const source = await resolveSource(input.sourceId, normalizedPayload.guildId, normalizedPayload.channelId);
 

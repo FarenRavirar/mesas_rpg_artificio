@@ -255,7 +255,7 @@ ssh ubuntu@137.131.250.231
    docker compose -f /opt/mesas-beta/docker-compose.beta.yml logs --tail=50 mesas-beta-app
    docker compose -f /opt/mesas-beta/docker-compose.beta.yml logs --tail=50 mesas-beta-api
    ```
-7. **Aggregator Discord (Fase 7 — migration_05 aplicada no beta em 04/04/2026):**
+7. **Aggregator Discord (migration_05 aplicada no beta em 04/04/2026):**
    - Verificar tabelas no banco:
      ```bash
      docker exec mesas-beta-db psql -U admin -d mesas_rpg -t -c '\dt aggregator*'
@@ -266,9 +266,19 @@ ssh ubuntu@137.131.250.231
      3. Revisar candidatos: `GET /api/v1/aggregator/candidates?status=awaiting_review`
      4. Aceitar/rejeitar: `PATCH /api/v1/aggregator/candidates/:id/accept` ou `/reject`
    - Para dry-run sem persistir: `npm run aggregator:import -- <arquivo.json> --source-id=<uuid> --dry-run`
-   - Logs de erros de ingestão (quando worker automático for ativo):
+   - Logs de erros de ingestão:
      ```bash
      docker logs mesas-beta-api --tail 30 | grep -E "aggregator|cleanup|cron"
+     ```
+8. **Parser Python e mídia Discord (REQ-20 — migration_10 pendente):**
+   - Verificar se migration_10 foi aplicada:
+     ```bash
+     docker exec mesas-beta-db psql -U admin -d mesas_rpg -t -c "SELECT column_name FROM information_schema.columns WHERE table_name='tables' AND column_name IN ('is_covil','imported_expires_at');"
+     ```
+   - Se retornar 0 linhas, a migration_10 não foi aplicada ainda.
+   - Verificar se Python está disponível no container da API:
+     ```bash
+     docker exec mesas-beta-api python3 --version
      ```
 
 
@@ -607,7 +617,7 @@ Ao implementar ou revisar uma funcionalidade, validar:
 
 ---
 
-### 11.12 Exemplos de Violações Identificadas (REQ-17)
+### 11.12 Exemplos de Violações Identificadas (REQ-17/REQ-20)
 
 | Componente | Heurística Violada | Problema | Solução Proposta |
 |---|---|---|---|
@@ -615,6 +625,8 @@ Ao implementar ou revisar uma funcionalidade, validar:
 | Gestão de Mesas Importadas | H7 (Eficiência) | Falta botão "Rejeitar Todas" para ações em lote | Adicionar botão de rejeição em lote |
 | Gestão de Mesas Importadas | H6 (Reconhecimento) | Falta filtros de preço (Grátis/Pagas/Não Identificadas) | Adicionar filtros de preço com detecção automática |
 | Formulários em geral | H5 (Prevenção) | Validação apenas no backend, sem feedback em tempo real | Implementar validação client-side com feedback visual |
+| Formulário de Criação/Edição de Mesa | H6 (Reconhecimento) | Sem pré-visualização de banner e avatar do mestre | Adicionar preview inline de banner_url e avatar do mestre (REQ-20) |
+| Revisão de Candidatos (GestaoPage) | H1 (Visibilidade) | Sem indicação visual de mesas do Covil do Lich | Adicionar badge "Covil do Lich" pré-detectado pelo parser Python (REQ-20) |
+| AdminDevTools | H3 (Controle) | Não há controle de retenção de mesas importadas | Adicionar configuração de dias de expiração (REQ-20, migration_10) |
 
 **Nota:** Lista será expandida durante auditoria completa (REQ-17).
-
