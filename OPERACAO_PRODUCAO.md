@@ -30,6 +30,118 @@ Regras operacionais:
 
 ---
 
+## 0. Arquivos de Configuração no Servidor
+
+### 0.1 Localização dos Arquivos `.env`
+
+| Ambiente | Localização | Função | Observações |
+|---|---|---|---|
+| Beta | `/opt/mesas-beta/.env` | Variáveis de ambiente compartilhadas por todos os containers beta | **Único `.env` do beta**, não existe `/opt/mesas-beta/backend/.env` |
+| Produção | `/opt/mesas/.env` | Variáveis de ambiente compartilhadas por todos os containers de produção | **Único `.env` de produção**, não existe `/opt/mesas/backend/.env` |
+
+**Estrutura do `.env` (Beta):**
+```env
+# Servidor
+PORT=3000
+NODE_ENV=production
+
+# Banco de Dados
+DATABASE_URL=postgresql://usuario:senha@mesas-beta-db:5432/mesas_rpg
+
+# Google OAuth
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+GOOGLE_CALLBACK_URL=https://mesasbeta.artificiorpg.com/api/v1/auth/google/callback
+
+# JWT
+JWT_SECRET=...
+JWT_EXPIRES_IN=7d  # Atualizado em 04/04/2026 (era 15m)
+
+# Frontend
+FRONTEND_URL=https://mesasbeta.artificiorpg.com
+
+# Imgur
+IMGUR_CLIENT_ID=...
+```
+
+**Como editar `.env` no servidor:**
+```bash
+ssh -F C:\projetos\config faren
+nano /opt/mesas-beta/.env
+# Editar → Ctrl+O → Enter → Ctrl+X
+```
+
+**Após editar `.env`, reiniciar containers:**
+```bash
+docker restart mesas-beta-api mesas-beta-app
+```
+
+---
+
+### 0.2 Localização dos Arquivos Docker Compose
+
+| Ambiente | Localização | Função | Observações |
+|---|---|---|---|
+| Beta | `/opt/mesas-beta/docker-compose.beta.yml` | Define containers beta (app, api, db) | Usado pelo workflow de deploy automático |
+| Produção | `/opt/mesas/docker-compose.prod.yml` | Define containers de produção (app, api, db) | Ainda não publicado operacionalmente |
+
+**Estrutura do Compose (Beta):**
+```yaml
+services:
+  mesas-beta-db:
+    image: postgres:15
+    container_name: mesas-beta-db
+    env_file: .env  # ← Lê /opt/mesas-beta/.env
+    volumes:
+      - pgdata_mesas_beta:/var/lib/postgresql/data
+    networks:
+      - mesas-beta-network
+
+  mesas-beta-api:
+    build: ./backend
+    container_name: mesas-beta-api
+    env_file: .env  # ← Lê /opt/mesas-beta/.env
+    depends_on:
+      - mesas-beta-db
+    networks:
+      - mesas-beta-network
+
+  mesas-beta-app:
+    build: ./frontend
+    container_name: mesas-beta-app
+    depends_on:
+      - mesas-beta-api
+    networks:
+      - mesas-beta-network
+```
+
+**Nomes dos Serviços vs Nomes dos Containers:**
+- **Serviços no compose:** Definidos em `services:` (ex: `mesas-beta-db`)
+- **Nomes dos containers:** Definidos em `container_name:` (ex: `mesas-beta-db`)
+- **Para reiniciar:** Use o **nome do container**, não o nome do serviço
+
+**Comandos corretos:**
+```bash
+# ✅ CORRETO: Usar nome do container
+docker restart mesas-beta-api mesas-beta-app
+
+# ❌ ERRADO: Usar docker compose com nome de serviço
+docker compose -f docker-compose.beta.yml restart backend frontend
+# (Falha: "no such service: backend")
+```
+
+**Listar containers em execução:**
+```bash
+docker ps --filter 'name=mesas-beta' --format '{{.Names}}'
+# Saída:
+# mesas-beta-api
+# mesas-beta-app
+# mesas-beta-db
+```
+
+---
+
+
 ## 1. Ambientes
 
 | Ambiente | Branch | Pasta no servidor | Containers principais | Exposição atual | URL |

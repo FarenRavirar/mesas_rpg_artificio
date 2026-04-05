@@ -117,6 +117,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         });
       }
 
+      // Validação inteligente: só chamar backend se token expirar em < 5 minutos
+      const expiresIn = decoded?.exp ? (decoded.exp * 1000 - Date.now()) : 0;
+      const shouldRevalidate = expiresIn < 5 * 60 * 1000; // 5 minutos
+
+      if (!shouldRevalidate) {
+        // Token ainda válido por mais de 5 minutos, não precisa validar
+        if (active) setIsLoading(false);
+        return;
+      }
+
+      // Token próximo de expirar, validar com backend
       try {
         const meRes = await fetch('/api/v1/me', {
           headers: { Authorization: `Bearer ${storedToken}` },
@@ -163,24 +174,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [clearSession]);
 
-  // Listener para ignorar mudanças em chaves não-OAuth (ex: dev_admin_token)
+  // Listener para sincronizar sessão entre abas
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      // Ignorar mudanças em chaves que não sejam do OAuth
+      // Ignorar mudanças em chaves que não sejam do OAuth (ex: dev_admin_token)
       if (e.key && e.key !== TOKEN_STORAGE_KEY && e.key !== USER_STORAGE_KEY) {
         return;
       }
       
-      // Revalidar sessão apenas se token OAuth mudou
-      if (e.key === TOKEN_STORAGE_KEY && e.newValue !== token) {
-        // Token OAuth foi alterado externamente, revalidar
-        window.location.reload();
+      // Sincronizar token entre abas
+      if (e.key === TOKEN_STORAGE_KEY) {
+        if (e.newValue && e.newValue !== token) {
+          // Token foi atualizado em outra aba
+          const decoded = parseJwt(e.newValue);
+          if (decoded?.userId && isValidRole(decoded.role)) {
+            setToken(e.newValue);
+            setUser({
+              id: decoded.userId,
+              role: decoded.role,
+              name: decoded.name,
+              avatar_url: decoded.avatar_url,
+            });
+          }
+        } else if (!e.newValue && token) {
+          // Token foi removido em outra aba (logout)
+          clearSession();
+        }
+      }
+      
+      // Sincronizar dados do usuário entre abas
+      if (e.key === USER_STORAGE_KEY && e.newValue) {
+        const updatedUser = parseStoredUser(e.newValue);
+        if (updatedUser) {
+          setUser(updatedUser);
+        }
       }
     };
 
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, [token]);
+  }, [token, clearSession]);
 
   const login = useCallback((newToken: string, userPayload: User) => {
     setToken(newToken);

@@ -9,6 +9,18 @@
 
 ---
 
+## Documentos de Gestão
+
+| Documento | Propósito | Quando Consultar |
+|---|---|---|
+| `TODO_OPERACIONAL.md` | Backlog de requisitos (REQ-01, REQ-02...) com score GUT | Planejamento de features, priorização, roadmap |
+| `FILA_IMPLEMENTACAO.md` | Fila técnica de execução (001, 002...) por lote/fase | Durante execução de lote, antes de deploy |
+| `/sessoes/` | Registro histórico de sessões anteriores | Quando houver dúvida sobre decisões passadas, contexto de implementações anteriores |
+
+**Relação:** TODO = visão estratégica (produto) | FILA = visão tática (técnico) | SESSOES = histórico rastreável
+
+---
+
 ## Regras de operação (não repetir em outros arquivos)
 
 | Regra | Valor |
@@ -32,15 +44,20 @@
 | migration_04 | Publisher role + contatos (REQ-11/REQ-12) | ✅ aplicada no beta | — |
 | migration_05 | Aggregator Discord — fontes, fila bruta, candidatos | ✅ aplicada no beta (04/04/2026) | — |
 | 017A | systemsTreeImport | ✅ executado no beta (132 nós, 280 aliases) | manter rotina `docker cp` + `docker exec` após rebuild até fix no Dockerfile |
-| 021A | Selos DDAL/Covil — backend+frontend | ⏳ em validação beta | QA E2E com dados reais no beta |
+| 021A | Selos DDAL/Covil — backend+frontend | ✅ concluído | Deployado e funcional no beta |
 | 021B | AppShell global | ✅ concluído | validar smoke visual no beta pós último deploy |
-| 022 | Endpoints GM autenticados | ⏳ em validação beta | validar CRUD com dados reais no beta |
+| 022 | Endpoints GM autenticados | ✅ concluído | Deployado e funcional no beta |
 | 023 | `npm run build` backend | ✅ concluído | exit code 0, sem erros de tipo |
 | 024 | `npm run build` frontend | ✅ concluído | 1746 módulos, dist/ ok |
 | 025 | `walkthrough.md` | ✅ concluído | escrito em `walkthrough.md` |
 | 026 | REQ-11 + REQ-12 (fullstack) | ✅ deployado em `dev`/beta | executar QA E2E de anunciante + contatos obrigatórios |
 | Fase 7 | Aggregator Discord — pipeline completo | ✅ backend implementado + migration aplicada no beta | 1) criar source via API, 2) importar export_exemple.json, 3) revisar candidatos via `/aggregator/candidates`, 4) validar rota `/admin/devtools` com JWT admin no beta |
 | Fase 7B | Fechamento Aggregator — `TableOrigin` + expiração + AdminDevToolsPage completo | ✅ implementado local — **aguardando push autorizado para `dev`** | 1) autorizar push → 2) QA manual no beta (`/admin/devtools`) → 3) validar semáforo de testes, criação de source, dry-run e split automático de JSON |
+| Fase 8 | CRUD de sistemas colaborativo + notificações in-app | ✅ deployado em `dev`/beta (04/04/2026) | QA manual: 1) mestres testarem sugestão de sistemas via `/painel-mestre`, 2) admin revisar em `/gestao`, 3) validar notificações no sino do header |
+| migration_06 | system_suggestions | ✅ aplicada no beta (04/04/2026) | — |
+| migration_07 | notifications | ✅ aplicada no beta (04/04/2026) | — |
+| migration_09 | Frequência, regras, banner em tables | ✅ aplicada no beta (04/04/2026) | Campos: frequency, frequency_custom, rules_notes, banner_url |
+| REQ-16 | Correção de logout inesperado | ✅ concluído (04/04/2026) | JWT_EXPIRES_IN=7d, validação inteligente AuthContext, sincronização suave entre abas. E103 documentado. |
 
 **Legenda:** ✅ concluído · ⏳ pronto local, aguardando validação beta · ⏸ bloqueado por dependência
 
@@ -69,46 +86,59 @@ COPY --from=builder /app/arvores_de_sistemas.md ./
 
 ## Último commit validado
 - Branch: `dev`
-- Hash: `df3fa8b`
-- Mensagem: `feat(aggregator): pipeline Discord completo - Fase 7`
-- Deploy beta: ✅ success — `Deploy Beta` concluído em 04/04/2026T06:33Z
-- Migration_05: ✅ aplicada manualmente antes do deploy; tabelas `aggregator_sources`, `aggregator_imported_raw_messages`, `aggregator_import_candidates`, `aggregator_settings` confirmadas no banco
-- Healthcheck: ✅ `{"status":"ok","environment":"beta","db":"connected"}`
-- Dry-run Aggregator: ✅ 153 mensagens processadas, 5 aceitas, 148 aguardando revisão, 0 falhas
-- Nota: `export_exemple.json` tinha JSON truncado (E088). O importador passou a aplicar `repairTruncatedJson()` automaticamente antes do parse, com fallback manual documentado em `ERRORS_SOLUTIONS.md`
+- Hash: `98c8e2b`
+- Mensagem: `docs: registra solução E102 para erro getsockname SSH (#3)`
+- Deploy beta: ✅ success — `Deploy Beta` concluído em 04/04/2026T16:32Z (run ID: 23982948825)
+- Migrations 06 e 07: ✅ aplicadas no banco beta; tabelas `system_suggestions` (14 colunas) e `notifications` (8 colunas) confirmadas
+- Healthcheck: ✅ `{"status":"ok","environment":"beta","db":"connected","usersSampled":true}`
+- Rotas validadas: ✅ `/api/v1/system-suggestions` e `/api/v1/notifications/unread-count` retornam 401 (autenticação requerida)
+- Nota: PR #3 mergeada via GitHub para evitar E101 (deleção de diretório no Windows); erro E102 (getsockname failed) registrado em `ERRORS_SOLUTIONS.md`
 
-## Alterações locais pendentes de push (sessão 04/04/2026 — Fase 7B)
+## Alterações locais pendentes de push (sessão 04/04/2026)
+
+| Arquivo | Mudança |
+|---|---|
+| `frontend/src/contexts/AuthContext.tsx` | Validação inteligente (< 5min) e sincronização suave sem reload |
+| `frontend/src/pages/PainelMestrePage.tsx` | 4 novos campos: frequency, rules_notes, banner_url, checkbox em andamento |
+| `AGENTS.md` | Seção TODO vs FILA + referências a /sessoes/ (3 locais) |
+| `ERRORS_SOLUTIONS.md` | E102 (SSH) e E103 (Logout) adicionados |
+| `FILA_IMPLEMENTACAO.md` | 13 itens atualizados para status correto |
+| `OPERACAO_PRODUCAO.md` | 4 correções aplicadas |
+| `RESUMO_EXECUCAO.md` | Seção Documentos de Gestão adicionada |
+| `TODO_OPERACIONAL.md` | REQ-03 revertido, REQ-16 adicionado, 4 status corrigidos |
+
+**Builds validados localmente:** backend ✅ (tsc exit 0) · frontend ✅ (vite dist/ ok)
+
+**Próxima ação:** Aguardar autorização para commit e push para `dev`
 
 ## Estado atual (04/04/2026)
 
 **Ambiente beta:** Estável e operacional em `mesasbeta.artificiorpg.com`
 
-**Última sessão:** Correções QA AdminDevToolsPage + Migração nickname + Plano CRUD Sistemas
+**Última sessão:** Estabilização de Auth + Formulário de Nova Mesa + Auditoria Completa de Documentação
 
-**Deployado recentemente:**
-- Guia de token Discord com links diretos e explicações de permissões
-- Texto duplicado removido (seletor de sistemas)
-- Árvore de sistemas reimportada (125 sistemas no banco beta)
-- Bug de logout por 401 transitório corrigido
-- Auto-run de testes desabilitado no DevTools
-- Botão perigoso "Aplicar na sessão" removido
-- Migração `migration_03_gm_profile_nickname.sql` aplicada no banco beta
+**Deployado nesta sessão (04/04/2026):**
+- Migration 09 aplicada: campos frequency, frequency_custom, rules_notes, banner_url em tables
+- Correção de logout inesperado: JWT_EXPIRES_IN=7d, validação inteligente, sincronização suave
+- Formulário de nova mesa expandido: checkbox "mesa em andamento", select frequência, textarea regras, input banner
+- Bug de busca de sistema corrigido (reset indevido)
 
-**Próxima ação:** Aguardando aprovação do plano de CRUD de sistemas para admin
+**Documentação atualizada nesta sessão:**
+- TODO_OPERACIONAL.md: REQ-03 revertido, REQ-16 adicionado, 4 status corrigidos
+- FILA_IMPLEMENTACAO.md: 13 itens atualizados para status correto (009, 014, 016-024)
+- OPERACAO_PRODUCAO.md: 4 correções críticas aplicadas
+- ERRORS_SOLUTIONS.md: E102 (SSH) e E103 (Logout) adicionados
+- AGENTS.md: Seção explicativa TODO vs FILA adicionada + referências a /sessoes/
+- RESUMO_EXECUCAO.md: Seção Documentos de Gestão adicionada
+
+**Estrutura de sessões criada:**
+- Pasta /sessoes/ criada para registro histórico
+- 4 resumos de sessões anteriores movidos para /sessoes/
+- Protocolo de Continuidade de Sessão atualizado no AGENTS.md
+
+**Próxima ação:** Monitorar estabilidade do beta por 1 semana antes de promover para produção
 
 **Bloqueios:** Nenhum
-| Arquivo | Mudança |
-|---|---|
-| `backend/src/db/types.ts` | Adicionado `TableOrigin`, campo `origin` e `source_id` em `TablesTable` |
-| `backend/src/routes/tables.ts` | Filtro SQL de expiração em `GET /tables`; validação em memória em `GET /tables/:slug` |
-| `backend/src/services/aggregator/candidateService.ts` | `accept()` agora cria mesa em `tables` com `origin='imported'`, `gm_id=null`, `source_id`; atualiza `published_table_id` no candidato |
-| `backend/Dockerfile` | Adicionado `COPY --from=builder /app/arvores_de_sistemas.md` no estágio production — elimina `docker cp` manual |
-| `frontend/src/pages/AdminDevToolsPage.tsx` | Split automático >1000 msgs; `parseDiscordChannelLink` com suporte `discord://`; `aggregateImportSummaries`; aviso de chunk; resumo com lotes |
-| `ERRORS_SOLUTIONS.md` | E100 — `grep_search` com escape regex inválido |
-| `ARQUITETURA_PROJETO.md` | Documentado fluxo de criação de mesa ao aceitar candidato; `gm_id=null` válido no schema |
-
-**Builds validados localmente:** backend ✅ (tsc exit 0) · frontend ✅ (vite dist/ ok)
-**Próxima ação:** autorizar push para `dev` → aguardar Deploy Beta → QA manual em `/admin/devtools`
 
 ---
 

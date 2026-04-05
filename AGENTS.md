@@ -52,11 +52,33 @@ Nunca pular este arquivo.
    - Operação em produção/beta: `OPERACAO_PRODUCAO.md`
    - Falha de ambiente/encoding/template: `PRE-FLIGHT_CHECKLIST.md`
    - Erro recorrente e contorno validado: `ERRORS_SOLUTIONS.md`
-   - Gestão de melhorias/prioridades operacionais: `TODO_OPERACIONAL.md`
-   - Gestão de lote e fechamento por ciclo: `FILA_IMPLEMENTACAO.md`
+   - Backlog de requisitos e prioridades (visão estratégica de produto): `TODO_OPERACIONAL.md`
+   - Execução de lote com itens técnicos granulares (visão tática de implementação): `FILA_IMPLEMENTACAO.md`
    - Banco de Dados / API Backend (Node): `ARQUITETURA_PROJETO.md` seção 4
    - Imagens, upload e integração Imgur: `ARQUITETURA_PROJETO.md` seção 16
    - Ingestão automática de fontes externas: `ARQUITETURA_PROJETO.md` seção 7.8
+   - Registro histórico de sessões anteriores: `/sessoes/` (resumos datados de cada sessão de trabalho)
+
+### Diferença entre TODO_OPERACIONAL e FILA_IMPLEMENTACAO
+
+**TODO_OPERACIONAL.md:**
+- **O que é:** Backlog de requisitos de produto (REQ-01, REQ-02, etc.)
+- **Granularidade:** Alta (features completas, ex: "Painel do mestre com autopublicação")
+- **Score:** GUT (Gravidade/Urgência/Tendência)
+- **Status:** Concluído, Em validação beta, Em aberto, Planejado
+- **Quando consultar:** Ao planejar novas features, priorizar trabalho, entender roadmap
+
+**FILA_IMPLEMENTACAO.md:**
+- **O que é:** Fila de execução técnica por lote/fase (001, 002, etc.)
+- **Granularidade:** Baixa (tarefas técnicas, ex: "Criar migration_05", "Endpoint GET /tables")
+- **Agrupamento:** Por lote e fase (Fase 0, Fase 1, etc.)
+- **Status:** pendente, em_execucao, concluido, descartado
+- **Quando consultar:** Durante execução de lote, antes de deploy, para rastrear itens técnicos
+
+**Relação:**
+- Um REQ do TODO pode gerar múltiplos itens na FILA
+- Exemplo: REQ-06 (Painel do mestre) → itens 022, 023, 024 na FILA
+- TODO = "O QUÊ fazer" (produto) | FILA = "COMO fazer" (técnico)
 
 ## Princípio central
 
@@ -105,8 +127,8 @@ Ao executar tarefas com escopo definido e plano aprovado:
 > Ao iniciar qualquer nova sessão de trabalho (nova conversa ou retomada após interrupção), o agente DEVE criar imediatamente um arquivo de resumo no formato:
 >
 > **Nome:** `resumo_[dia-mes]_[task-curta].md`
-> **Localização:** Raiz do repositório
-> **Exemplo:** `resumo_04-04_aggregator-accept-flow.md`
+> **Localização:** `/sessoes/` (pasta de registro histórico)
+> **Exemplo:** `sessoes/resumo_04-04_aggregator-accept-flow.md`
 >
 > **Conteúdo mínimo obrigatório:**
 > 1. **Objetivo da sessão** — o que será feito (1-2 frases)
@@ -118,7 +140,10 @@ Ao executar tarefas com escopo definido e plano aprovado:
 >
 > **Atualização contínua:** O agente deve atualizar o resumo conforme progride, marcando itens como `[x]` e registrando decisões importantes inline.
 >
-> **Finalidade:** Permitir que qualquer agente (ou o mesmo agente em sessão futura) retome o trabalho exatamente de onde parou, sem perda de contexto ou retrabalho.
+> **Ao final da sessão:** Garantir que o resumo esteja completo e atualizado em `/sessoes/` para servir como registro histórico rastreável.
+>
+> **Finalidade:** Permitir que qualquer agente (ou o mesmo agente em sessão futura) retome o trabalho exatamente de onde parou, sem perda de contexto ou retrabalho. A pasta `/sessoes/` serve como registro histórico completo e rastreável de todas as sessões de trabalho.
+
 
 
 ## Fonte de verdade (single source of truth)
@@ -130,9 +155,10 @@ Ao executar tarefas com escopo definido e plano aprovado:
 - Operação de produção/beta e validação pós-deploy: `OPERACAO_PRODUCAO.md`
 - Falhas recorrentes e soluções validadas: `ERRORS_SOLUTIONS.md`
 - Diagnóstico prévio de ambiente: `PRE-FLIGHT_CHECKLIST.md`
-- Backlog operacional vivo de melhorias e prioridades: `TODO_OPERACIONAL.md`
-- Fila operacional de implementação por lote/ciclo: `FILA_IMPLEMENTACAO.md`
+- Backlog de requisitos de produto com score GUT: `TODO_OPERACIONAL.md`
+- Fila técnica de execução por lote/fase: `FILA_IMPLEMENTACAO.md`
 - Guia de índice rápido e checklists de fechamento (apoio, não canônico): `GUIA_RAPIDO_OPERACIONAL.md`
+- Registro histórico de sessões anteriores: `/sessoes/` (resumos datados de cada sessão de trabalho)
 
 Se houver conflito entre orientação operacional e arquitetura, prevalece `ARQUITETURA_PROJETO.md`.
 

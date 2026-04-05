@@ -177,6 +177,12 @@ function CreateTableForm({ token, onSuccess }: CreateTableFormProps) {
   ]);
   const [contactsError, setContactsError] = useState<string | null>(null);
 
+  const [isOngoing, setIsOngoing] = useState(false);
+  const [frequency, setFrequency] = useState('');
+  const [frequencyCustom, setFrequencyCustom] = useState('');
+  const [rulesNotes, setRulesNotes] = useState('');
+  const [bannerUrl, setBannerUrl] = useState('');
+
   const fetchSystemsTree = async () => {
     setSystemsLoading(true);
     setSystemsError(null);
@@ -266,10 +272,14 @@ function CreateTableForm({ token, onSuccess }: CreateTableFormProps) {
         system_id: selectedSystemId || null,
         price_value: form.price_value ? parseFloat(form.price_value) : null,
         slots_total: parseInt(form.slots_total, 10),
-        starts_at: form.starts_at || null,
+        starts_at: isOngoing ? null : (form.starts_at || null),
         publisher_role: publisherRole,
         actual_gm_name: publisherRole === 'announcer' ? safeActualGmName : null,
         contacts: sanitizedContacts,
+        frequency: frequency || null,
+        frequency_custom: frequency === 'outros' ? frequencyCustom : null,
+        rules_notes: rulesNotes.trim() || null,
+        banner_url: bannerUrl.trim() || null,
         is_ddal: isDdalEligibleSelection ? ddal.is_ddal : false,
         ddal_code: ddal.is_ddal ? ddal.ddal_code || null : null,
         ddal_name: ddal.is_ddal ? ddal.ddal_name || null : null,
@@ -342,7 +352,10 @@ function CreateTableForm({ token, onSuccess }: CreateTableFormProps) {
             <SystemTreeSelector
               tree={systemsTree}
               selectedIds={selectedSystemId ? [selectedSystemId] : []}
-              onToggle={(systemId) => setSelectedSystemId((prev) => (prev === systemId ? '' : systemId))}
+              onToggle={(systemId) => {
+                setSelectedSystemId((prev) => (prev === systemId ? '' : systemId));
+                setSystemSearch(''); // Limpar busca ao selecionar
+              }}
               search={systemSearch}
               onSearchChange={setSystemSearch}
               idPrefix="painel-mestre-systems"
@@ -459,14 +472,59 @@ function CreateTableForm({ token, onSuccess }: CreateTableFormProps) {
           onChange={handleChange}
         />
 
-        <InputField
-          label="Data de Início (opcional)"
-          id="starts_at"
-          name="starts_at"
-          type="datetime-local"
-          value={form.starts_at}
-          onChange={handleChange}
-        />
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2 mb-1">
+            <input
+              type="checkbox"
+              id="is_ongoing"
+              checked={isOngoing}
+              onChange={(e) => {
+                setIsOngoing(e.target.checked);
+                if (e.target.checked) setForm(prev => ({ ...prev, starts_at: '' }));
+              }}
+              className="h-4 w-4 rounded border-white/20 bg-white/10 text-[var(--color-artificio-orange)] focus:ring-[var(--color-artificio-orange)]"
+            />
+            <label htmlFor="is_ongoing" className="text-sm text-white/70 cursor-pointer">
+              Mesa já em andamento
+            </label>
+          </div>
+          
+          <InputField
+            label={isOngoing ? "Mesa em Andamento" : "Data de Início (opcional)"}
+            id="starts_at"
+            name="starts_at"
+            type="datetime-local"
+            value={form.starts_at}
+            onChange={handleChange}
+            disabled={isOngoing}
+          />
+        </div>
+
+        <SelectField
+          label="Frequência das Sessões"
+          id="frequency"
+          name="frequency"
+          value={frequency}
+          onChange={(e) => setFrequency(e.target.value)}
+        >
+          <option value="">Não especificada</option>
+          <option value="semanal">Semanal</option>
+          <option value="quinzenal">Quinzenal</option>
+          <option value="mensal">Mensal</option>
+          <option value="outros">Outros</option>
+        </SelectField>
+
+        {frequency === 'outros' && (
+          <InputField
+            label="Descreva a frequência *"
+            id="frequency_custom"
+            name="frequency_custom"
+            value={frequencyCustom}
+            onChange={(e) => setFrequencyCustom(e.target.value)}
+            placeholder="Ex: A cada 15 dias, sempre aos sábados"
+            required
+          />
+        )}
 
         <InputField
           label="Idioma"
@@ -490,6 +548,28 @@ function CreateTableForm({ token, onSuccess }: CreateTableFormProps) {
           className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all resize-none"
         />
       </div>
+
+      <div className="flex flex-col gap-1">
+        <label htmlFor="rules_notes" className="text-sm font-medium text-white/70">Regras/Observações da Mesa (opcional)</label>
+        <textarea
+          id="rules_notes"
+          name="rules_notes"
+          value={rulesNotes}
+          onChange={(e) => setRulesNotes(e.target.value)}
+          rows={3}
+          placeholder="Ex: Usamos regras homebrew para combate, proibido PvP, etc."
+          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all resize-none"
+        />
+      </div>
+
+      <InputField
+        label="URL do Banner da Mesa (opcional)"
+        id="banner_url"
+        name="banner_url"
+        value={bannerUrl}
+        onChange={(e) => setBannerUrl(e.target.value)}
+        placeholder="https://exemplo.com/banner.jpg"
+      />
 
       <ContactsFormBlock
         contacts={contacts}

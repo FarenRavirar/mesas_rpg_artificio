@@ -49,6 +49,8 @@ Use para localizar o erro sem varrer a tabela inteira:
 | Backend / API Node.js | E078, E087, E089, E092, E093, E098 |
 | Imgur / Upload de Imagens | E079, E080, E081 |
 | AggregatorBot / CleanupWorker | E082, E083, E084 |
+| SSH / Conexão Remota | E102 |
+| Autenticação / Sessão | E103 |
 
 ---
 
@@ -71,7 +73,7 @@ Use para localizar o erro sem varrer a tabela inteira:
 | E038 | Erro 502 Bad Gateway no Cloudflare Tunnel | `cloudflared` tenta acessar `localhost:30302` (ele mesmo) | Log do `cloudflared` mostrando "connection refused" ou timeout | Usar o nome do container na mesma rede Docker (`http://mesas-beta-app:80`) | Configurar túnel para apontar para nome do container + porta interna |
 | E039 | `Host not found` / `Connection Refused` entre containers de projetos diferentes | Container do túnel não "enxerga" o app por isolamento de rede | `ping <container-name>` falhando de dentro do container do túnel | Adicionar a rede do túnel (ex: `gerenciador_telegram_default`) como `external` no `docker-compose.beta.yml` do projeto | Planejar rede compartilhada para serviços de infraestrutura comuns (túnel, banco, proxy) |
 | E057 | `No such container` ao tentar `docker exec` no Postgres na VM | `container_name` não definido explicitamente; Docker Compose gera nome baseado na pasta | Comando SSH falha instantaneamente com "No such container" | Executar na VM `docker ps \| grep mesas` para identificar o nome correto gerado em runtime | Documentar sempre os nomes canônicos: `mesas-beta-db` e `mesas-db` |
-| E102 | `getsockname failed: Not a socket` seguido de `Read from remote host ... Unknown error` ao executar comando SSH | ControlMaster do SSH expirado ou em estado inconsistente; socket de controle travado | Qualquer comando `ssh -F C:\\projetos\\config faren` falha imediatamente com erro de socket | 1) Tentar encerrar ControlMaster: `ssh -F C:\\projetos\\config -O exit faren`; 2) Se persistir, matar processos SSH: `Get-Process \| Where-Object {$_.ProcessName -eq "ssh"} \| Stop-Process -Force`; 3) Usar `-o ControlMaster=no -o ControlPath=none` no próximo comando | Após longos períodos de inatividade ou múltiplas sessões SSH simultâneas, validar conexão com comando simples (`echo test`) antes de executar comandos complexos |
+| E102 | `getsockname failed: Not a socket` seguido de `Read from remote host ... Unknown error` ao executar comando SSH via `ssh -F C:\projetos\config` | **Causa raiz confirmada:** `ControlPath ~/.ssh/ssh-%r@%h:%p` no arquivo de config SSH é incompatível com Windows — o caminho `~/.ssh/` não existe ou tem permissões inadequadas, causando falha no socket de multiplexação | Qualquer comando `ssh -F C:\projetos\config faren` falha imediatamente com erro de socket; `scp` também falha | **Solução permanente:** Editar `C:\projetos\config` e alterar `ControlPath` para caminho Windows válido: `ControlPath C:/Users/%USERNAME%/.ssh/sockets/ssh-%r@%h:%p` (criar diretório `mkdir $env:USERPROFILE\.ssh\sockets` antes) **OU** desabilitar multiplexação: `ControlMaster no` (remover linha `ControlPath`) | Validar config SSH em Windows usando caminhos absolutos compatíveis ou desabilitar `ControlMaster` se multiplexação não for crítica |
 
 ---
 
@@ -183,3 +185,21 @@ Use para localizar o erro sem varrer a tabela inteira:
 | ID | Sintoma | Causa provável | Diagnóstico rápido | Solução validada | Prevenção |
 |---|---|---|---|---|---|
 | E101 | `git merge` trava com "Deletion of directory 'X' failed. Should I try again? (y/n)" e não completa mesmo respondendo 'y' ou 'n' | Windows mantém lock em diretórios que foram deletados em uma branch mas ainda existem em outra; processo em background (IDE, antivírus, indexador) pode estar acessando o diretório | Comando `git merge` ou `git merge --squash` trava aguardando input infinitamente; diretórios como `backend/scripts`, `frontend/src/styles` aparecem na mensagem | **NUNCA tentar merge local com squash quando há deleção de diretórios.** Usar GitHub PR: `gh pr create --base dev --head feature/X --title "..." --body "..."` seguido de `gh pr merge <número> --squash --delete-branch`. O merge remoto no GitHub não sofre de locks do Windows | Sempre usar workflow via PR para merges que envolvem deleção de diretórios; evitar `git merge --squash` localmente no Windows; se necessário merge local, usar `git merge` sem squash e depois fazer squash no GitHub |
+
+---
+
+## Categoria: SSH / Conexão Remota
+
+| ID | Sintoma | Causa provável | Diagnóstico rápido | Solução validada | Prevenção |
+|---|---|---|---|---|---|
+| E102 | `getsockname failed: Not a socket` seguido de `Read from remote host ... Unknown error` ao executar comando SSH via `ssh -F C:\projetos\config` | `ControlPath ~/.ssh/ssh-%r@%h:%p` no arquivo de config SSH é incompatível com Windows — o caminho `~/.ssh/` não existe ou tem permissões inadequadas, causando falha no socket de multiplexação | Qualquer comando `ssh -F C:\projetos\config faren` falha imediatamente com erro de socket; `scp` também falha | Editar `C:\projetos\config` e desabilitar multiplexação: `ControlMaster no` (remover linha `ControlPath`). Alternativa: usar caminho Windows válido `ControlPath C:/Users/%USERNAME%/.ssh/sockets/ssh-%r@%h:%p` | Validar config SSH em Windows usando caminhos absolutos compatíveis ou desabilitar `ControlMaster` se multiplexação não for crítica |
+
+---
+
+## Categoria: Autenticação / Sessão
+
+| ID | Sintoma | Causa provável | Diagnóstico rápido | Solução validada | Prevenção |
+|---|---|---|---|---|---|
+| E103 | Usuários sendo deslogados inesperadamente durante o uso da aplicação | JWT expirando muito rápido (15 minutos padrão); validação agressiva com backend a cada navegação; reload forçado ao detectar mudança de token entre abas | Usuário relata logout após ~15 minutos de uso; logs do frontend mostram chamadas frequentes para `/api/v1/me`; `window.location.reload()` sendo chamado no storage listener | Aumentar `JWT_EXPIRES_IN` de `15m` para `7d` no `.env`; modificar `AuthContext.tsx` para validar com backend apenas se token expirar em < 5 minutos; remover `window.location.reload()` do storage listener e substituir por atualização de estado React. Ver `walkthrough.md` (04/04/2026) para detalhes completos | Usar `JWT_EXPIRES_IN=7d` como padrão para web apps; implementar validação inteligente que só chama backend quando necessário; sincronizar sessão entre abas via estado React em vez de reload |
+
+---
