@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { db } from '../db';
+import { authMiddleware, requireRole } from '../middleware/auth';
 
 const router = Router();
 
@@ -11,6 +12,18 @@ interface ScenarioRecord {
 }
 
 const normalizeText = (value: string): string => value.trim().toLowerCase();
+
+// Função auxiliar para gerar slug
+const slugify = (value: string): string => {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, ' ')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+};
 
 // GET /api/v1/scenarios — Listar todos os cenários
 router.get('/', async (req: Request, res: Response) => {
@@ -69,6 +82,152 @@ router.get('/:id', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('[GET /scenarios/:id]', error);
     return res.status(500).json({ error: 'Erro ao buscar cenário.' });
+  }
+});
+
+// =============================================================================
+// ROTAS ADMINISTRATIVAS (CRUD)
+// =============================================================================
+
+// POST /api/v1/admin/scenarios — Criar novo cenário
+router.post('/admin/scenarios', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
+  const { name, subgenres } = req.body;
+
+  if (!name) {
+    return res.status(400).json({ error: 'Nome é obrigatório.' });
+  }
+
+  try {
+    const slug = slugify(name);
+
+    // Verificar se slug já existe
+    const existing = await db
+      .selectFrom('scenarios')
+      .select('id')
+      .where('slug', '=', slug)
+      .executeTakeFirst();
+
+    if (existing) {
+      return res.status(409).json({ error: 'Já existe um cenário com este slug.' });
+    }
+
+    // Validar subgenres como array
+    const subgenresArray = Array.isArray(subgenres) ? subgenres : [];
+
+    // Inserir cenário
+    const newScenario = await db
+      .insertInto('scenarios')
+      .values({
+        name,
+        slug,
+        subgenres: subgenresArray,
+      })
+      .returning(['id', 'name', 'slug', 'subgenres'])
+      .executeTakeFirst();
+
+    return res.status(201).json({ data: newScenario });
+  } catch (error: any) {
+    console.error('[POST /admin/scenarios]', error);
+    return res.status(500).json({ error: 'Erro ao criar cenário.' });
+  }
+});
+
+// PUT /api/v1/admin/scenarios/:id — Editar cenário
+router.put('/admin/scenarios/:id', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { name, subgenres } = req.body;
+
+  if (!name) {
+    return res.status(400).json({ error: 'Nome é obrigatório.' });
+  }
+
+  try {
+    // Verificar se cenário existe
+    const existing = await db
+      .selectFrom('scenarios')
+      .select('id')
+      .where('id', '=', id)
+      .executeTakeFirst();
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Cenário não encontrado.' });
+    }
+
+    const slug = slugify(name);
+
+    // Verificar se slug já existe em outro cenário
+    const duplicateSlug = await db
+      .selectFrom('scenarios')
+      .select('id')
+      .where('slug', '=', slug)
+      .where('id', '!=', id)
+      .executeTakeFirst();
+
+    if (duplicateSlug) {
+      return res.status(409).json({ error: 'Já existe outro cenário com este slug.' });
+    }
+
+    // Validar subgenres como array
+    const subgenresArray = Array.isArray(subgenres) ? subgenres : [];
+
+    // Atualizar cenário
+    const updated = await db
+      .updateTable('scenarios')
+      .set({
+        name,
+        slug,
+        subgenres: subgenresArray,
+      })
+      .where('id', '=', id)
+      .returning(['id', 'name', 'slug', 'subgenres'])
+      .executeTakeFirst();
+
+    return res.json({ data: updated });
+  } catch (error: any) {
+    console.error('[PUT /admin/scenarios/:id]', error);
+    return res.status(500).json({ error: 'Erro ao atualizar cenário.' });
+  }
+});
+
+// DELETE /api/v1/admin/scenarios/:id — Deletar cenário
+router.delete('/admin/scenarios/:id', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    // Verificar se cenário existe
+    const existing = await db
+      .selectFrom('scenarios')
+      .select('name')
+      .where('id', '=', id)
+      .executeTakeFirst();
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Cenário não encontrado.' });
+    }
+
+    // Verificar se há mesas vinculadas
+    const tablesCount = await db
+      .selectFrom('tables')
+      .select(db.fn.count('id').as('count'))
+      .where('scenario_id', '=', id)
+      .executeTakeFirst();
+
+    if (tablesCount && Number(tablesCount.count) > 0) {
+      return res.status(409).json({
+        error: `Não é possível deletar este cenário. Existem ${tablesCount.count} mesa(s) vinculada(s).`,
+      });
+    }
+
+    // Deletar cenário
+    await db
+      .deleteFrom('scenarios')
+      .where('id', '=', id)
+      .execute();
+
+    return res.json({ data: { message: 'Cenário deletado com sucesso.' } });
+  } catch (error: any) {
+    console.error('[DELETE /admin/scenarios/:id]', error);
+    return res.status(500).json({ error: 'Erro ao deletar cenário.' });
   }
 });
 

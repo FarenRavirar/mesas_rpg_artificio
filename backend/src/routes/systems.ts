@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { db } from '../db';
 import type { SystemNodeType } from '../db/types';
+import { authMiddleware, requireRole } from '../middleware/auth';
 
 const router = Router();
 
@@ -144,6 +145,249 @@ router.get('/', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('[GET /systems]', error);
     return res.status(500).json({ error: 'Erro ao buscar sistemas.' });
+  }
+});
+
+// =============================================================================
+// ROTAS ADMINISTRATIVAS (CRUD)
+// =============================================================================
+
+// Função auxiliar para gerar slug
+const slugify = (value: string): string => {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, ' ')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+};
+
+// POST /api/v1/admin/systems — Criar novo sistema
+router.post('/admin/systems', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
+  const { name, node_type, parent_id, aliases } = req.body;
+
+  if (!name || !node_type) {
+    return res.status(400).json({ error: 'Nome e tipo são obrigatórios.' });
+  }
+
+  if (!['system', 'edition', 'variant'].includes(node_type)) {
+    return res.status(400).json({ error: 'Tipo inválido. Use: system, edition ou variant.' });
+  }
+
+  if ((node_type === 'edition' || node_type === 'variant') && !parent_id) {
+    return res.status(400).json({ error: 'Edições e variantes precisam de um sistema pai.' });
+  }
+
+  try {
+    const slug = slugify(name);
+
+    // Verificar se slug já existe
+    const existing = await db
+      .selectFrom('systems')
+      .select('id')
+      .where('slug', '=', slug)
+      .executeTakeFirst();
+
+    if (existing) {
+      return res.status(409).json({ error: 'Já existe um sistema com este slug.' });
+    }
+
+    // Calcular depth e path_slug
+    let depth = 0;
+    let path_slug = slug;
+
+    if (parent_id) {
+      const parent = await db
+        .selectFrom('systems')
+        .select(['depth', 'path_slug'])
+        .where('id', '=', parent_id)
+        .executeTakeFirst();
+
+      if (!parent) {
+        return res.status(404).json({ error: 'Sistema pai não encontrado.' });
+      }
+
+      depth = parent.depth + 1;
+      path_slug = `${parent.path_slug}/${slug}`;
+    }
+
+    // Inserir sistema
+    const newSystem = await db
+      .insertInto('systems')
+      .values({
+        name,
+        slug,
+        node_type: node_type as SystemNodeType,
+        parent_id: parent_id || null,
+        depth,
+        path_slug,
+      })
+      .returning(['id', 'name', 'slug', 'node_type', 'parent_id', 'depth', 'path_slug'])
+      .executeTakeFirst();
+
+    // Inserir aliases se fornecidos
+    if (aliases && Array.isArray(aliases) && aliases.length > 0) {
+      for (const alias of aliases) {
+        if (alias && alias.trim()) {
+          await db
+            .insertInto('system_aliases')
+            .values({
+              system_id: newSystem!.id,
+              alias: alias.trim(),
+              alias_slug: slugify(alias),
+              is_official: false,
+            })
+            .onConflict((oc) => oc.columns(['system_id', 'alias_slug']).doNothing())
+            .execute();
+        }
+      }
+    }
+
+    return res.status(201).json({ data: newSystem });
+  } catch (error: any) {
+    console.error('[POST /admin/systems]', error);
+    return res.status(500).json({ error: 'Erro ao criar sistema.' });
+  }
+});
+
+// PUT /api/v1/admin/systems/:id — Editar sistema
+router.put('/admin/systems/:id', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { name, node_type, parent_id } = req.body;
+
+  if (!name || !node_type) {
+    return res.status(400).json({ error: 'Nome e tipo são obrigatórios.' });
+  }
+
+  try {
+    // Verificar se sistema existe
+    const existing = await db
+      .selectFrom('systems')
+      .selectAll()
+      .where('id', '=', id)
+      .executeTakeFirst();
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Sistema não encontrado.' });
+    }
+
+    const slug = slugify(name);
+
+    // Verificar se slug já existe em outro sistema
+    const duplicateSlug = await db
+      .selectFrom('systems')
+      .select('id')
+      .where('slug', '=', slug)
+      .where('id', '!=', id)
+      .executeTakeFirst();
+
+    if (duplicateSlug) {
+      return res.status(409).json({ error: 'Já existe outro sistema com este slug.' });
+    }
+
+    // Calcular depth e path_slug
+    let depth = 0;
+    let path_slug = slug;
+
+    if (parent_id) {
+      const parent = await db
+        .selectFrom('systems')
+        .select(['depth', 'path_slug'])
+        .where('id', '=', parent_id)
+        .executeTakeFirst();
+
+      if (!parent) {
+        return res.status(404).json({ error: 'Sistema pai não encontrado.' });
+      }
+
+      depth = parent.depth + 1;
+      path_slug = `${parent.path_slug}/${slug}`;
+    }
+
+    // Atualizar sistema
+    const updated = await db
+      .updateTable('systems')
+      .set({
+        name,
+        slug,
+        node_type: node_type as SystemNodeType,
+        parent_id: parent_id || null,
+        depth,
+        path_slug,
+      })
+      .where('id', '=', id)
+      .returning(['id', 'name', 'slug', 'node_type', 'parent_id', 'depth', 'path_slug'])
+      .executeTakeFirst();
+
+    // TODO: Recalcular hierarquia de filhos se parent_id mudou
+
+    return res.json({ data: updated });
+  } catch (error: any) {
+    console.error('[PUT /admin/systems/:id]', error);
+    return res.status(500).json({ error: 'Erro ao atualizar sistema.' });
+  }
+});
+
+// DELETE /api/v1/admin/systems/:id — Deletar sistema
+router.delete('/admin/systems/:id', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    // Verificar se sistema existe
+    const existing = await db
+      .selectFrom('systems')
+      .select('name')
+      .where('id', '=', id)
+      .executeTakeFirst();
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Sistema não encontrado.' });
+    }
+
+    // Verificar se há mesas vinculadas
+    const tablesCount = await db
+      .selectFrom('tables')
+      .select(db.fn.count('id').as('count'))
+      .where('system_id', '=', id)
+      .executeTakeFirst();
+
+    if (tablesCount && Number(tablesCount.count) > 0) {
+      return res.status(409).json({
+        error: `Não é possível deletar este sistema. Existem ${tablesCount.count} mesa(s) vinculada(s).`,
+      });
+    }
+
+    // Verificar se há sistemas filhos
+    const childrenCount = await db
+      .selectFrom('systems')
+      .select(db.fn.count('id').as('count'))
+      .where('parent_id', '=', id)
+      .executeTakeFirst();
+
+    if (childrenCount && Number(childrenCount.count) > 0) {
+      return res.status(409).json({
+        error: `Não é possível deletar este sistema. Existem ${childrenCount.count} sistema(s) filho(s).`,
+      });
+    }
+
+    // Deletar aliases primeiro
+    await db
+      .deleteFrom('system_aliases')
+      .where('system_id', '=', id)
+      .execute();
+
+    // Deletar sistema
+    await db
+      .deleteFrom('systems')
+      .where('id', '=', id)
+      .execute();
+
+    return res.json({ data: { message: 'Sistema deletado com sucesso.' } });
+  } catch (error: any) {
+    console.error('[DELETE /admin/systems/:id]', error);
+    return res.status(500).json({ error: 'Erro ao deletar sistema.' });
   }
 });
 
