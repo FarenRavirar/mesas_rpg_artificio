@@ -849,4 +849,179 @@ router.patch('/tables/:id/status', authMiddleware, async (req: Request, res: Res
   }
 });
 
+// =============================================================================
+// ROTAS ADMINISTRATIVAS (CRUD)
+// =============================================================================
+
+// PUT /api/v1/admin/tables/:id — Editar qualquer mesa (admin)
+router.put('/admin/tables/:id', authMiddleware, async (req: Request, res: Response) => {
+  const userRole = (req as any).user.role;
+  
+  if (userRole !== 'admin') {
+    return res.status(403).json({ error: 'Acesso negado. Apenas administradores.' });
+  }
+
+  const { id } = req.params;
+  const {
+    title,
+    description,
+    system_id,
+    scenario_id,
+    type,
+    audience,
+    modality,
+    price_type,
+    price_value,
+    price_frequency,
+    slots_total,
+    slots_filled,
+    language,
+    experience_level,
+    starts_at,
+    city,
+    state,
+    content_warnings,
+    safety_tools,
+    status,
+    frequency,
+    frequency_custom,
+    rules_notes,
+    banner_url,
+  } = req.body;
+
+  try {
+    // Verificar se mesa existe
+    const existing = await db
+      .selectFrom('tables')
+      .select('id')
+      .where('id', '=', id)
+      .executeTakeFirst();
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Mesa não encontrada.' });
+    }
+
+    // Verificar se system_id existe (se fornecido)
+    if (system_id) {
+      const systemExists = await db
+        .selectFrom('systems')
+        .select('id')
+        .where('id', '=', system_id)
+        .executeTakeFirst();
+
+      if (!systemExists) {
+        return res.status(404).json({ error: 'Sistema não encontrado.' });
+      }
+    }
+
+    // Verificar se scenario_id existe (se fornecido)
+    if (scenario_id) {
+      const scenarioExists = await db
+        .selectFrom('scenarios')
+        .select('id')
+        .where('id', '=', scenario_id)
+        .executeTakeFirst();
+
+      if (!scenarioExists) {
+        return res.status(404).json({ error: 'Cenário não encontrado.' });
+      }
+    }
+
+    const safeWarnings = Array.isArray(content_warnings) ? content_warnings.filter((v) => typeof v === 'string') : undefined;
+    const safeSafetyTools = Array.isArray(safety_tools) ? safety_tools.filter((v) => typeof v === 'string') : undefined;
+
+    const hasOwn = (key: string) => Object.prototype.hasOwnProperty.call(req.body, key);
+
+    const updated = await db
+      .updateTable('tables')
+      .set({
+        title: title ?? undefined,
+        description: hasOwn('description') ? (description ?? null) : undefined,
+        system_id: hasOwn('system_id') ? (system_id ?? null) : undefined,
+        scenario_id: hasOwn('scenario_id') ? (scenario_id ?? null) : undefined,
+        type: type ?? undefined,
+        audience: audience ?? undefined,
+        modality: modality ?? undefined,
+        price_type: price_type ?? undefined,
+        price_value: hasOwn('price_value') ? (price_value ?? null) : undefined,
+        price_frequency: hasOwn('price_frequency') ? (price_frequency ?? null) : undefined,
+        slots_total: slots_total ?? undefined,
+        slots_filled: slots_filled ?? undefined,
+        language: language ?? undefined,
+        experience_level: experience_level ?? undefined,
+        starts_at: hasOwn('starts_at') ? (starts_at ? new Date(starts_at) : null) : undefined,
+        city: hasOwn('city') ? (city ?? null) : undefined,
+        state: hasOwn('state') ? (state ?? null) : undefined,
+        content_warnings: safeWarnings,
+        safety_tools: safeSafetyTools,
+        status: status ?? undefined,
+        frequency: hasOwn('frequency') ? (frequency ?? null) : undefined,
+        frequency_custom: hasOwn('frequency_custom') ? (frequency_custom ?? null) : undefined,
+        rules_notes: hasOwn('rules_notes') ? (rules_notes ?? null) : undefined,
+        banner_url: hasOwn('banner_url') ? (banner_url ?? null) : undefined,
+      })
+      .where('id', '=', id)
+      .returning([
+        'id',
+        'slug',
+        'title',
+        'description',
+        'system_id',
+        'scenario_id',
+        'status',
+        'updated_at',
+      ])
+      .executeTakeFirst();
+
+    return res.json({ data: updated });
+  } catch (error: any) {
+    console.error('[PUT /admin/tables/:id]', error);
+    return res.status(500).json({ error: 'Erro ao atualizar mesa.' });
+  }
+});
+
+// DELETE /api/v1/admin/tables/:id — Deletar qualquer mesa (admin)
+router.delete('/admin/tables/:id', authMiddleware, async (req: Request, res: Response) => {
+  const userRole = (req as any).user.role;
+  
+  if (userRole !== 'admin') {
+    return res.status(403).json({ error: 'Acesso negado. Apenas administradores.' });
+  }
+
+  const { id } = req.params;
+
+  try {
+    // Verificar se mesa existe
+    const existing = await db
+      .selectFrom('tables')
+      .select(['id', 'title'])
+      .where('id', '=', id)
+      .executeTakeFirst();
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Mesa não encontrada.' });
+    }
+
+    // Deletar em transação (contacts primeiro, depois table)
+    await db.transaction().execute(async (trx) => {
+      // Deletar contatos
+      await trx
+        .deleteFrom('table_contacts')
+        .where('table_id', '=', id)
+        .execute();
+
+      // Deletar mesa
+      await trx
+        .deleteFrom('tables')
+        .where('id', '=', id)
+        .execute();
+    });
+
+    return res.json({ data: { message: `Mesa "${existing.title}" deletada com sucesso.` } });
+  } catch (error: any) {
+    console.error('[DELETE /admin/tables/:id]', error);
+    return res.status(500).json({ error: 'Erro ao deletar mesa.' });
+  }
+});
+
 export default router;
