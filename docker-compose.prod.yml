@@ -48,7 +48,7 @@ services:
       - GOOGLE_CALLBACK_URL=https://mesas.artificiorpg.com/api/v1/auth/google/callback
       - JWT_SECRET=${JWT_SECRET}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
-      - JWT_EXPIRES_IN=15m
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
       - JWT_REFRESH_EXPIRES_IN=7d
       # App
       - FRONTEND_URL=https://mesas.artificiorpg.com

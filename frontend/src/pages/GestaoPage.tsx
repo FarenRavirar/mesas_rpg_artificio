@@ -424,15 +424,29 @@ export const GestaoPage = () => {
         const data = await response.json();
         const deleted = data.data.deleted;
         const requested = data.data.requested;
+        // CORREÇÃO: Tratar campo invalid (IDs malformados filtrados pelo backend)
+        const invalid = data.data.invalid || 0;
         
         if (deleted === requested) {
           toast.success(`${deleted} candidato(s) deletado(s) permanentemente`);
         } else if (deleted > 0) {
-          toast(`${deleted} de ${requested} candidato(s) deletado(s). Alguns já haviam sido removidos.`, {
-            icon: '⚠️',
-          });
+          // CORREÇÃO: Diferenciar entre IDs inválidos e candidatos já removidos
+          if (invalid > 0) {
+            toast(`${deleted} candidato(s) deletado(s). ${invalid} ID(s) inválido(s) foram ignorados.`, {
+              icon: '⚠️',
+            });
+          } else {
+            toast(`${deleted} de ${requested} candidato(s) deletado(s). Alguns já haviam sido removidos.`, {
+              icon: '⚠️',
+            });
+          }
         } else {
-          toast.error('Nenhum candidato foi deletado. Eles podem já ter sido removidos.');
+          // CORREÇÃO: Mensagem específica se todos os IDs eram inválidos
+          if (invalid === requested) {
+            toast.error('Nenhum candidato foi deletado. Todos os IDs eram inválidos.');
+          } else {
+            toast.error('Nenhum candidato foi deletado. Eles podem já ter sido removidos.');
+          }
         }
         
         // Limpar seleção e fechar modal

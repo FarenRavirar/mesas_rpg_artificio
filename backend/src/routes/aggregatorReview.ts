@@ -190,12 +190,20 @@ router.delete('/candidates/bulk', async (req: Request, res: Response) => {
   }
 
   try {
-    const deleted = await candidateService.deleteBulk(ids);
+    // CORREÇÃO: deleteBulk agora retorna objeto com deleted e invalid
+    const result = await candidateService.deleteBulk(ids);
+
+    // CORREÇÃO: Construir mensagem apropriada baseada no resultado
+    let message = `${result.deleted} candidato(s) deletado(s) permanentemente com sucesso.`;
+    if (result.invalid > 0) {
+      message += ` ${result.invalid} ID(s) inválido(s) foram ignorados.`;
+    }
 
     return res.json({ 
       data: { 
-        message: `${deleted} candidato(s) deletado(s) permanentemente com sucesso.`,
-        deleted,
+        message,
+        deleted: result.deleted,
+        invalid: result.invalid,
         requested: ids.length
       } 
     });

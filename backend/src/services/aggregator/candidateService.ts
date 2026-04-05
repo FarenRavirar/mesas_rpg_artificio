@@ -258,13 +258,32 @@ export const candidateService = {
   },
 
   async deleteBulk(candidateIds: string[]) {
+    // CORREÇÃO: Validar que array não está vazio (proteção adicional além da rota)
+    if (candidateIds.length === 0) {
+      return { deleted: 0, invalid: 0 };
+    }
+
+    // CORREÇÃO: Filtrar IDs inválidos (não-UUID) antes de executar query
+    // Regex UUID v4: 8-4-4-4-12 caracteres hexadecimais
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const validIds = candidateIds.filter(id => uuidRegex.test(id));
+    const invalidCount = candidateIds.length - validIds.length;
+
+    // Se nenhum ID válido, retornar 0 sem executar query
+    if (validIds.length === 0) {
+      return { deleted: 0, invalid: invalidCount };
+    }
+
     // Deletar múltiplos candidatos permanentemente do banco
     const result = await db
       .deleteFrom('aggregator_import_candidates')
-      .where('id', 'in', candidateIds)
-      .execute();
+      .where('id', 'in', validIds)
+      .executeTakeFirst();
 
-    // Retornar número de linhas deletadas (result é array, pegar primeiro elemento)
-    return Number(result[0]?.numDeletedRows || 0);
+    // CORREÇÃO: Retornar objeto com contadores separados
+    return {
+      deleted: Number(result?.numDeletedRows || 0n),
+      invalid: invalidCount
+    };
   },
 };
