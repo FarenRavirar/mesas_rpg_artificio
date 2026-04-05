@@ -30,7 +30,7 @@ RUN apk add --no-cache vips-dev fftw-dev build-base python3 py3-pip
 # Copiar e instalar dependências Python
 COPY backend/requirements.txt ./
 RUN pip3 install --no-cache-dir --break-system-packages -r requirements.txt && \
-    python3 -m spacy download pt_core_news_lg
+    pip3 install --no-cache-dir --break-system-packages https://github.com/explosion/spacy-models/releases/download/pt_core_news_lg-3.8.0/pt_core_news_lg-3.8.0-py3-none-any.whl
 
 COPY backend/package*.json ./
 RUN npm ci --omit=dev
