@@ -353,7 +353,7 @@ function CreateTableForm({ token, onSuccess }: CreateTableFormProps) {
               tree={systemsTree}
               selectedIds={selectedSystemId ? [selectedSystemId] : []}
               onToggle={(systemId) => {
-                setSelectedSystemId((prev) => (prev === systemId ? '' : systemId));
+                setSelectedSystemId(systemId);
                 setSystemSearch(''); // Limpar busca ao selecionar
               }}
               search={systemSearch}
