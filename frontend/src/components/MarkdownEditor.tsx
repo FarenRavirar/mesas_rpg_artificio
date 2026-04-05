@@ -45,13 +45,13 @@ export const MarkdownEditor = ({
         renderHTML={(text) => mdParser.render(text)}
         onChange={handleEditorChange}
         placeholder={placeholder}
-        view={{ menu: true, md: true, html: true }}
+        view={{ menu: true, md: true, html: false }}
         canView={{ menu: true, md: true, html: true, both: true, fullScreen: true, hideMenu: true }}
         config={{
           view: {
             menu: true,
             md: true,
-            html: true,
+            html: false,
           },
           table: {
             maxRow: 10,
@@ -163,8 +163,19 @@ export const MarkdownEditor = ({
           line-height: 1.6;
         }
         
+        .rc-md-editor textarea::placeholder {
+          color: rgba(255, 255, 255, 0.4) !important;
+          opacity: 1 !important;
+        }
+        
         .rc-md-editor .sec-md .input {
           color: white;
+        }
+        
+        .rc-md-editor .section-container input::placeholder,
+        .rc-md-editor .section-container textarea::placeholder {
+          color: rgba(255, 255, 255, 0.4) !important;
+          opacity: 1 !important;
         }
       `}</style>
     </div>

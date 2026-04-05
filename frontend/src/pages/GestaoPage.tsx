@@ -593,8 +593,9 @@ export const GestaoPage = () => {
         console.log('[GestaoPage] Enviando overrides editados:', editedCandidate);
       }
 
-      const response = await fetch(`${API_BASE}/api/v1/aggregator/candidates/${id}/approve`, {
-        method: 'POST',
+      // CORREÇÃO A13: Rota backend é PATCH, não POST
+      const response = await fetch(`${API_BASE}/api/v1/aggregator/candidates/${id}/accept`, {
+        method: 'PATCH',
         headers: { 
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}` 
@@ -606,11 +607,11 @@ export const GestaoPage = () => {
         const data = await response.json();
         toast.success('Candidato aprovado com sucesso!');
         
-        // CORREÇÃO DT-10: Redirecionar para mesa criada
-        if (data.data?.slug) {
+        // CORREÇÃO A15: Ler created_table_slug do candidato retornado
+        if (data.data?.created_table_slug) {
           toast.success(`Redirecionando para mesa criada...`, { duration: 2000 });
           setTimeout(() => {
-            window.location.href = `/mesa/${data.data.slug}`;
+            window.location.href = `/mesa/${data.data.created_table_slug}`;
           }, 2000);
         } else {
           fetchCandidates();
@@ -1369,7 +1370,11 @@ export const GestaoPage = () => {
                         {candidate.editorial_status === 'awaiting_review' && (
                           <div className="flex gap-2">
                             <button
-                              onClick={() => setSelectedCandidate(candidate)}
+                              onClick={() => {
+                                setSelectedCandidate(candidate);
+                                // CORREÇÃO B02: Inicializar editedCandidate com enrichedFields do candidato
+                                setEditedCandidate(candidate.parsed_json.enrichedFields || {});
+                              }}
                               className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-colors"
                             >
                               Revisar
@@ -1596,6 +1601,102 @@ export const GestaoPage = () => {
                       <option value="gratuita">Gratuita</option>
                       <option value="paga">Paga</option>
                     </select>
+                  </div>
+
+                  {/* Campos Avançados (REQ-26 e REQ-28) */}
+                  <div className="col-span-2 space-y-4 pt-4 border-t border-white/10">
+                    <h4 className="text-sm font-bold text-white/90">Campos Avançados (Opcional)</h4>
+                    
+                    {/* Cenário e Estilos */}
+                    <div>
+                      <label className="block text-sm font-semibold text-white mb-2">
+                        Cenário
+                      </label>
+                      <input
+                        type="text"
+                        value={editedCandidate?.setting_name ?? selectedCandidate.parsed_json.enrichedFields?.setting_name ?? ''}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditedCandidate((prev: any) => ({ ...prev, setting_name: e.target.value }))}
+                        className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        placeholder="Ex: Forgotten Realms, Eberron"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-white mb-2">
+                        Estilos (separados por vírgula)
+                      </label>
+                      <input
+                        type="text"
+                        value={editedCandidate?.setting_styles ? (Array.isArray(editedCandidate.setting_styles) ? editedCandidate.setting_styles.join(', ') : editedCandidate.setting_styles) : (Array.isArray(selectedCandidate.parsed_json.enrichedFields?.setting_styles) ? selectedCandidate.parsed_json.enrichedFields.setting_styles.join(', ') : '')}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditedCandidate((prev: any) => ({ ...prev, setting_styles: e.target.value.split(',').map((s: string) => s.trim()).filter((s: string) => s) }))}
+                        className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        placeholder="Ex: Fantasia Medieval, Combate Tático"
+                      />
+                    </div>
+
+                    {/* Duração e Nível */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-white mb-2">
+                          Duração da Campanha
+                        </label>
+                        <input
+                          type="text"
+                          value={editedCandidate?.campaign_length ?? selectedCandidate.parsed_json.enrichedFields?.campaign_length ?? ''}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditedCandidate((prev: any) => ({ ...prev, campaign_length: e.target.value }))}
+                          className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                          placeholder="Ex: 6 meses, 12 sessões"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-white mb-2">
+                          Faixa de Nível
+                        </label>
+                        <input
+                          type="text"
+                          value={editedCandidate?.level_range ?? selectedCandidate.parsed_json.enrichedFields?.level_range ?? ''}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditedCandidate((prev: any) => ({ ...prev, level_range: e.target.value }))}
+                          className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                          placeholder="Ex: 1-5, 10-15"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Requisitos Técnicos */}
+                    <div>
+                      <label className="block text-sm font-semibold text-white mb-2">
+                        Requisitos Técnicos
+                      </label>
+                      <div className="flex gap-4">
+                        <label className="flex items-center gap-2 text-sm text-white/70 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={editedCandidate?.requires_pc ?? selectedCandidate.parsed_json.enrichedFields?.requires_pc ?? false}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditedCandidate((prev: any) => ({ ...prev, requires_pc: e.target.checked }))}
+                            className="h-4 w-4 rounded border-white/20 bg-white/10"
+                          />
+                          PC
+                        </label>
+                        <label className="flex items-center gap-2 text-sm text-white/70 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={editedCandidate?.requires_camera ?? selectedCandidate.parsed_json.enrichedFields?.requires_camera ?? false}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditedCandidate((prev: any) => ({ ...prev, requires_camera: e.target.checked }))}
+                            className="h-4 w-4 rounded border-white/20 bg-white/10"
+                          />
+                          Câmera
+                        </label>
+                        <label className="flex items-center gap-2 text-sm text-white/70 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={editedCandidate?.requires_microphone ?? selectedCandidate.parsed_json.enrichedFields?.requires_microphone ?? false}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditedCandidate((prev: any) => ({ ...prev, requires_microphone: e.target.checked }))}
+                            className="h-4 w-4 rounded border-white/20 bg-white/10"
+                          />
+                          Microfone
+                        </label>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Preview de Banner */}

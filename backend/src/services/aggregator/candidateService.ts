@@ -70,29 +70,36 @@ export const candidateService = {
       throw new Error('Candidato sem parsed_json válido');
     }
 
-    // REQ-28: Merge de overrides (dados revisados pelo admin têm prioridade)
-    const mergedJson = overrides ? { ...parsedJson, ...overrides } : parsedJson;
     
+    // CORREÇÃO A02 + A14: Aplicar overrides em enrichedFields (deep merge)
     console.log('[candidateService.accept] Overrides recebidos:', overrides ? 'sim' : 'não');
     if (overrides) {
       console.log('[candidateService.accept] Campos com override:', Object.keys(overrides));
+      
+      // Merge deep: overrides vão para enrichedFields
+      if (!parsedJson.enrichedFields) {
+        parsedJson.enrichedFields = {};
+      }
+      
+      // Aplicar overrides em enrichedFields (casting para evitar erro de tipo)
+      Object.assign(parsedJson.enrichedFields as Record<string, unknown>, overrides);
     }
 
-    // Extrair campos do parsed_json (agora com merge)
-    const enrichedFields = (mergedJson.enrichedFields ?? {}) as Record<string, unknown>;
-    const rawTitle = typeof mergedJson.title === 'string' ? mergedJson.title.trim() : '';
+    // Extrair campos do parsed_json (agora com overrides aplicados)
+    const enrichedFields = (parsedJson.enrichedFields ?? {}) as Record<string, unknown>;
+    const rawTitle = typeof parsedJson.title === 'string' ? parsedJson.title.trim() : '';
     const title = rawTitle || 'Anúncio importado';
-    const description = typeof mergedJson.synopsis === 'string' ? mergedJson.synopsis.trim() : null;
-    const masterText = typeof mergedJson.masterText === 'string' ? mergedJson.masterText.trim() : null;
-    const recruiterName = typeof mergedJson.recruiterName === 'string' ? mergedJson.recruiterName.trim() : null;
-    const signupText = typeof mergedJson.signupText === 'string' ? mergedJson.signupText.trim() : null;
+    const description = typeof parsedJson.synopsis === 'string' ? parsedJson.synopsis.trim() : null;
+    const masterText = typeof parsedJson.masterText === 'string' ? parsedJson.masterText.trim() : null;
+    const recruiterName = typeof parsedJson.recruiterName === 'string' ? parsedJson.recruiterName.trim() : null;
+    const signupText = typeof parsedJson.signupText === 'string' ? parsedJson.signupText.trim() : null;
     
     // banner_url: prioridade enrichedFields.banner_url > parsedJson.imageUrl/banner/thumbnail
     const bannerUrl = (
       typeof enrichedFields.banner_url === 'string' ? enrichedFields.banner_url :
-      typeof mergedJson.imageUrl === 'string' ? mergedJson.imageUrl :
-      typeof mergedJson.banner === 'string' ? mergedJson.banner :
-      typeof mergedJson.thumbnail === 'string' ? mergedJson.thumbnail :
+      typeof parsedJson.imageUrl === 'string' ? parsedJson.imageUrl :
+      typeof parsedJson.banner === 'string' ? parsedJson.banner :
+      typeof parsedJson.thumbnail === 'string' ? parsedJson.thumbnail :
       null
     ) || null;
 
@@ -105,7 +112,7 @@ export const candidateService = {
       ? enrichedFields.setting_styles.filter((s): s is string => typeof s === 'string')
       : null;
 
-    // CORREÇÃO A02: Extrair campos técnicos do mergedJson (REQ-28)
+    // CORREÇÃO A02: Extrair campos técnicos do enrichedFields (REQ-28)
     const requiresCamera = typeof enrichedFields.requires_camera === 'boolean' 
       ? enrichedFields.requires_camera 
       : false;
@@ -192,9 +199,9 @@ export const candidateService = {
           status: 'active',
           type: 'campanha',
           modality: 'online',
-          price_type: mergedJson.isPaid === true ? 'paga' : 'gratuita',
+          price_type: parsedJson.isPaid === true ? 'paga' : 'gratuita',
           banner_url: bannerUrl,
-          is_covil: detectIsCovil(mergedJson),
+          is_covil: detectIsCovil(parsedJson),
           imported_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
           setting_name: settingName,
           setting_styles: settingStyles,
@@ -257,13 +264,19 @@ export const candidateService = {
       return newTable;
     });
 
-
-    return updateAggregatorCandidateEditorialStatus(candidateId, {
+    // CORREÇÃO A07: Atualizar candidato e retornar com slug da mesa criada
+    const updatedCandidate = await updateAggregatorCandidateEditorialStatus(candidateId, {
       editorialStatus: 'accepted',
       rejectionReason: null,
       publishAt: new Date(),
       publishedTableId: result.id,
     });
+
+    // CORREÇÃO A07: Adicionar slug da mesa ao retorno para redirect no frontend
+    return {
+      ...updatedCandidate,
+      created_table_slug: result.slug,
+    };
   },
 
   async reject(candidateId: string, rejectionReason: string) {
