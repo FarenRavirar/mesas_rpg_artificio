@@ -148,29 +148,8 @@ router.put('/candidates/:id', async (req: Request, res: Response) => {
   }
 });
 
-// DELETE /api/v1/aggregator/candidates/:id — Deletar candidato permanentemente
-router.delete('/candidates/:id', async (req: Request, res: Response) => {
-  const { id } = req.params;
-
-  try {
-    const deleted = await candidateService.deleteById(id);
-    if (!deleted) {
-      return res.status(404).json({ error: 'Candidato não encontrado.' });
-    }
-
-    return res.json({ 
-      data: { 
-        message: 'Candidato deletado permanentemente com sucesso.',
-        id 
-      } 
-    });
-  } catch (error: any) {
-    console.error('[DELETE /aggregator/candidates/:id]', error);
-    return res.status(500).json({ error: 'Erro ao deletar candidato.' });
-  }
-});
-
 // DELETE /api/v1/aggregator/candidates/bulk — Deletar múltiplos candidatos permanentemente
+// CORREÇÃO: Rota bulk DEVE vir ANTES de /:id para evitar conflito de roteamento no Express
 router.delete('/candidates/bulk', async (req: Request, res: Response) => {
   const { ids } = req.body;
 
@@ -210,6 +189,28 @@ router.delete('/candidates/bulk', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('[DELETE /aggregator/candidates/bulk]', error);
     return res.status(500).json({ error: 'Erro ao deletar candidatos em lote.' });
+  }
+});
+
+// DELETE /api/v1/aggregator/candidates/:id — Deletar candidato permanentemente
+router.delete('/candidates/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    const deleted = await candidateService.deleteById(id);
+    if (!deleted) {
+      return res.status(404).json({ error: 'Candidato não encontrado.' });
+    }
+
+    return res.json({ 
+      data: { 
+        message: 'Candidato deletado permanentemente com sucesso.',
+        id 
+      } 
+    });
+  } catch (error: any) {
+    console.error('[DELETE /aggregator/candidates/:id]', error);
+    return res.status(500).json({ error: 'Erro ao deletar candidato.' });
   }
 });
 
