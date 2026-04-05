@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Check, ChevronRight, Search } from 'lucide-react';
+import { useEffect, useMemo, useState, useRef } from 'react';
+import { Check, ChevronRight, Search, Info } from 'lucide-react';
 import type { SystemTreeNode } from '../types/systems';
 
 interface FlattenedSystemNode {
@@ -57,6 +57,8 @@ export const SystemTreeSelector = ({
 }: SystemTreeSelectorProps) => {
   const [activeRootId, setActiveRootId] = useState<string | null>(null);
   const [activeMidId, setActiveMidId] = useState<string | null>(null);
+  const [recentlySelected, setRecentlySelected] = useState<string | null>(null);
+  const searchResultsRef = useRef<HTMLDivElement>(null);
 
   const flatNodes = useMemo(() => flattenTree(tree), [tree]);
 
@@ -101,6 +103,32 @@ export const SystemTreeSelector = ({
     });
   }, [flatNodes, normalizedSearch]);
 
+  // Ordenar resultados: selecionados no topo
+  const sortedSearchResults = useMemo(() => {
+    if (!normalizedSearch) return [];
+    
+    const selected = searchResults.filter(node => selectedIds.includes(node.id));
+    const unselected = searchResults.filter(node => !selectedIds.includes(node.id));
+    
+    return [...selected, ...unselected];
+  }, [searchResults, selectedIds, normalizedSearch]);
+
+  const handleToggleWithFeedback = (systemId: string) => {
+    onToggle(systemId);
+    setRecentlySelected(systemId);
+    
+    // Scroll para o item se estiver em modo de busca
+    if (normalizedSearch) {
+      setTimeout(() => {
+        const element = document.getElementById(`${idPrefix}-search-result-${systemId}`);
+        element?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 100);
+    }
+    
+    // Limpar feedback após 1.5s
+    setTimeout(() => setRecentlySelected(null), 1500);
+  };
+
   const renderNodeButton = (node: SystemTreeNode, layer: 'root' | 'mid' | 'leaf') => {
     const selected = selectedIds.includes(node.id);
     const isActive = layer === 'root'
@@ -124,7 +152,7 @@ export const SystemTreeSelector = ({
             setActiveMidId(node.id);
           }
 
-          onToggle(node.id);
+          handleToggleWithFeedback(node.id);
         }}
         className={`w-full rounded-xl border px-3 py-2 text-left transition-colors ${isActive ? 'border-[var(--color-artificio-orange)] bg-[var(--color-artificio-orange)]/10' : 'border-white/10 bg-white/5 hover:border-white/20'} ${selected ? 'text-white' : 'text-white/80'}`}
       >
@@ -159,18 +187,33 @@ export const SystemTreeSelector = ({
         />
       </div>
 
+      {singleSelect && (
+        <div className="flex items-start gap-2 rounded-lg bg-blue-500/10 border border-blue-400/20 px-3 py-2">
+          <Info className="h-4 w-4 text-blue-400 mt-0.5 shrink-0" />
+          <div className="text-xs text-blue-100/90">
+            <p className="font-medium">Seleção única</p>
+            <p className="text-blue-100/70 mt-0.5">
+              {selectedIds.length > 0 
+                ? '1 sistema selecionado. Clique em outro para substituir.'
+                : 'Selecione apenas um sistema para vincular à mesa.'}
+            </p>
+          </div>
+        </div>
+      )}
+
       {normalizedSearch ? (
-        <div className="max-h-80 space-y-2 overflow-auto pr-1">
-          {searchResults.length > 0 ? (
-            searchResults.map((node) => {
+        <div ref={searchResultsRef} className="max-h-80 space-y-2 overflow-auto pr-1">
+          {sortedSearchResults.length > 0 ? (
+            sortedSearchResults.map((node) => {
               const selected = selectedIds.includes(node.id);
+              const isRecentlySelected = recentlySelected === node.id;
               return (
                 <button
                   type="button"
                   key={node.id}
                   id={`${idPrefix}-search-result-${node.slug}`}
-                  onClick={() => onToggle(node.id)}
-                  className={`w-full rounded-xl border px-3 py-2 text-left text-sm transition-colors ${selected ? 'border-[var(--color-artificio-orange)] bg-[var(--color-artificio-orange)]/10 text-white' : 'border-white/10 bg-white/5 text-white/80 hover:border-white/20'}`}
+                  onClick={() => handleToggleWithFeedback(node.id)}
+                  className={`w-full rounded-xl border px-3 py-2 text-left text-sm transition-all ${selected ? 'border-[var(--color-artificio-orange)] bg-[var(--color-artificio-orange)]/10 text-white' : 'border-white/10 bg-white/5 text-white/80 hover:border-white/20'} ${isRecentlySelected ? 'ring-2 ring-[var(--color-artificio-orange)]/50 animate-pulse' : ''}`}
                 >
                   <p className="font-semibold">{node.name}</p>
                   <p className="text-xs text-white/55">{node.pathLabel}</p>
