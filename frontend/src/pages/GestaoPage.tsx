@@ -201,10 +201,19 @@ export const GestaoPage = () => {
 
     if (activeTab === 'systems') {
       fetchSuggestions();
+    } else if (activeTab === 'crud') {
+      // Carregar dados da sub-aba CRUD selecionada
+      if (crudSubTab === 'systems') {
+        fetchAllSystems();
+      } else if (crudSubTab === 'scenarios') {
+        fetchAllScenarios();
+      } else if (crudSubTab === 'tables') {
+        fetchAllTables();
+      }
     } else {
       fetchCandidates();
     }
-  }, [user, navigate, filter, activeTab]);
+  }, [user, navigate, filter, activeTab, crudSubTab]);
 
   const fetchSuggestions = async () => {
     if (!token) return;
@@ -364,6 +373,36 @@ export const GestaoPage = () => {
     } catch (error) {
       console.error('[GestaoPage] Erro ao deletar mesa:', error);
       toast.error('Erro ao deletar mesa');
+    }
+  };
+
+  const handleToggleTableStatus = async (id: string, currentStatus: string, title: string) => {
+    if (!token) return;
+    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+    const action = newStatus === 'active' ? 'ativar' : 'desativar';
+    
+    if (!confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} mesa "${title}"?`)) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/gm/admin/tables/${id}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (response.ok) {
+        toast.success(`Mesa ${action === 'ativar' ? 'ativada' : 'desativada'}!`);
+        fetchAllTables();
+      } else {
+        const data = await response.json();
+        toast.error(data.error || `Erro ao ${action} mesa`);
+      }
+    } catch (error) {
+      console.error('[GestaoPage] Erro ao alterar status da mesa:', error);
+      toast.error(`Erro ao ${action} mesa`);
     }
   };
 
@@ -988,6 +1027,32 @@ export const GestaoPage = () => {
                             </p>
                           </div>
                           <div className="flex gap-2">
+                            <a
+                              href={`/mesa/${tbl.slug}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+                              title="Ver mesa"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                            </a>
+                            <a
+                              href={`/painel-mestre?edit=${tbl.id}`}
+                              className="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                              title="Editar"
+                            >
+                              <Edit className="w-5 h-5" />
+                            </a>
+                            <button
+                              onClick={() => handleToggleTableStatus(tbl.id, tbl.status, tbl.title)}
+                              className={`p-2 ${tbl.status === 'active' ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-green-500 hover:bg-green-600'} text-white rounded-lg transition-colors`}
+                              title={tbl.status === 'active' ? 'Desativar' : 'Ativar'}
+                            >
+                              {tbl.status === 'active' ? '⏸' : '▶'}
+                            </button>
                             <button
                               onClick={() => handleDeleteTable(tbl.id, tbl.title)}
                               className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
