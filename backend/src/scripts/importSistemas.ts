@@ -68,6 +68,7 @@ const importSystems = async () => {
           path_slug: pathSlug,
           parent_id: null,
         })
+        .onConflict((oc) => oc.column('slug').doNothing())
         .returning(['id'])
         .executeTakeFirst();
 
@@ -119,6 +120,7 @@ const importSystems = async () => {
               path_slug: edPathSlug,
               parent_id: base.id,
             })
+            .onConflict((oc) => oc.column('slug').doNothing())
             .returning(['id'])
             .executeTakeFirst();
 
@@ -147,6 +149,7 @@ const importSystems = async () => {
                 path_slug: varPathSlug,
                 parent_id: ed.id,
               })
+              .onConflict((oc) => oc.column('slug').doNothing())
               .execute();
 
             variantsInserted++;
@@ -171,6 +174,7 @@ const importSystems = async () => {
               path_slug: varPathSlug,
               parent_id: base.id,
             })
+            .onConflict((oc) => oc.column('slug').doNothing())
             .execute();
 
           editionsInserted++;
