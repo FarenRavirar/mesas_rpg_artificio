@@ -201,21 +201,129 @@ export const SystemTreeSelector = ({
         </div>
       )}
 
-      {singleSelect && selectedIds.length > 0 && (
-        <div className="rounded-xl border border-[var(--color-artificio-orange)]/30 bg-[var(--color-artificio-orange)]/10 p-3">
-          <div className="flex items-start gap-2">
-            <Check className="h-5 w-5 text-[var(--color-artificio-orange)] mt-0.5 shrink-0" />
-            <div className="flex-1">
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--color-artificio-orange)]">
-                Sistema Selecionado
-              </p>
-              <p className="mt-1 text-sm font-semibold text-white">
-                {flatNodes.find(n => n.id === selectedIds[0])?.pathLabel || 'Sistema selecionado'}
-              </p>
+      {singleSelect && selectedIds.length > 0 && (() => {
+        const selectedNode = flatNodes.find(n => n.id === selectedIds[0]);
+        if (!selectedNode) return null;
+
+        // Encontrar o nó completo na árvore para acessar children
+        const findNodeInTree = (nodes: SystemTreeNode[], id: string): SystemTreeNode | null => {
+          for (const node of nodes) {
+            if (node.id === id) return node;
+            const found = findNodeInTree(node.children, id);
+            if (found) return found;
+          }
+          return null;
+        };
+
+        const fullNode = findNodeInTree(tree, selectedIds[0]);
+        const pathParts = selectedNode.pathLabel.split(' > ');
+        
+        // Determinar nível do nó selecionado (0=base, 1=edição, 2=variante)
+        const nodeDepth = selectedNode.depth;
+        
+        // Encontrar sistema base
+        let baseNode: SystemTreeNode | null = null;
+        let editionNode: SystemTreeNode | null = null;
+        let variantNode: SystemTreeNode | null = null;
+
+        if (nodeDepth === 0) {
+          baseNode = fullNode;
+        } else if (nodeDepth === 1) {
+          // Encontrar pai (base)
+          for (const root of tree) {
+            if (root.children.some(c => c.id === selectedIds[0])) {
+              baseNode = root;
+              editionNode = fullNode;
+              break;
+            }
+          }
+        } else if (nodeDepth === 2) {
+          // Encontrar avô (base) e pai (edição)
+          for (const root of tree) {
+            for (const mid of root.children) {
+              if (mid.children.some(c => c.id === selectedIds[0])) {
+                baseNode = root;
+                editionNode = mid;
+                variantNode = fullNode;
+                break;
+              }
+            }
+            if (baseNode) break;
+          }
+        }
+
+        const editions = baseNode?.children ?? [];
+        const variants = editionNode?.children ?? [];
+
+        return (
+          <div className="rounded-xl border border-[var(--color-artificio-orange)]/30 bg-[var(--color-artificio-orange)]/10 p-4 space-y-3">
+            {/* Sistema Base */}
+            <div className="flex items-start gap-2">
+              <Check className="h-5 w-5 text-[var(--color-artificio-orange)] mt-0.5 shrink-0" />
+              <div className="flex-1">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--color-artificio-orange)]">
+                  Sistema Base
+                </p>
+                <p className="mt-1 text-sm font-semibold text-white">
+                  {baseNode?.name || pathParts[0]}
+                </p>
+              </div>
+            </div>
+
+            {/* Dropdown de Edições */}
+            {editions.length > 0 && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-white/70">
+                  Edição / Subsistema {editionNode && '✓'}
+                </label>
+                <select
+                  value={editionNode?.id || ''}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      handleToggleWithFeedback(e.target.value);
+                    }
+                  }}
+                  className="w-full rounded-lg border border-white/20 bg-[#13213f] px-3 py-2 text-sm text-white outline-none focus:border-[var(--color-artificio-orange)]"
+                >
+                  <option value="">Selecione uma edição...</option>
+                  {editions.map(ed => (
+                    <option key={ed.id} value={ed.id}>{ed.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Dropdown de Variantes */}
+            {editionNode && variants.length > 0 && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-white/70">
+                  Variante {variantNode && '✓'}
+                </label>
+                <select
+                  value={variantNode?.id || ''}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      handleToggleWithFeedback(e.target.value);
+                    }
+                  }}
+                  className="w-full rounded-lg border border-white/20 bg-[#13213f] px-3 py-2 text-sm text-white outline-none focus:border-[var(--color-artificio-orange)]"
+                >
+                  <option value="">Selecione uma variante...</option>
+                  {variants.map(v => (
+                    <option key={v.id} value={v.id}>{v.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Caminho completo */}
+            <div className="pt-2 border-t border-white/10">
+              <p className="text-xs text-white/50">Seleção atual:</p>
+              <p className="text-sm text-white/90 font-medium mt-0.5">{selectedNode.pathLabel}</p>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {normalizedSearch ? (
         <div ref={searchResultsRef} className="max-h-80 space-y-2 overflow-auto pr-1">

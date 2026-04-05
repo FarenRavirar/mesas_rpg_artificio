@@ -159,6 +159,51 @@ Ao executar tarefas com escopo definido e plano aprovado:
 - Correção de bug com solução conhecida
 - Atualização de documentação por delta
 
+## Protocolo de Confirmação de Interpretação
+
+> [!CAUTION]
+> **REGRA OBRIGATÓRIA — Confirmar Interpretação Antes de Executar:**
+> Antes de iniciar qualquer implementação de requisito complexo ou ambíguo, o agente DEVE:
+>
+> 1. **PARAR e reformular** o requisito do usuário em suas próprias palavras
+> 2. **APRESENTAR a interpretação** de forma clara e estruturada
+> 3. **AGUARDAR confirmação explícita** do usuário antes de prosseguir
+> 4. **NUNCA assumir** que entendeu corretamente sem validação
+>
+> **Quando aplicar este protocolo:**
+> - Requisitos com múltiplas interpretações possíveis
+> - Mudanças de UX que afetam fluxo do usuário
+> - Alterações em lógica de negócio crítica
+> - Implementações que envolvem múltiplos arquivos/componentes
+> - Qualquer situação onde o usuário tenha que interromper a execução por interpretação errada
+>
+> **Formato de confirmação:**
+> ```
+> ## 📋 Entendi o requisito como:
+> 
+> [Descrição clara do que será feito]
+> 
+> **Comportamento esperado:**
+> 1. [Passo 1]
+> 2. [Passo 2]
+> 3. [Passo 3]
+> 
+> **Arquivos que serão modificados:**
+> - arquivo1.tsx
+> - arquivo2.ts
+> 
+> **Isso está correto? Posso prosseguir?**
+> ```
+>
+> **Benefícios:**
+> - Evita retrabalho por interpretação errada
+> - Economiza tempo e tokens
+> - Mantém alinhamento constante com o usuário
+> - Reduz frustração e interrupções
+>
+> **Violação desta regra resulta em perda de confiança e desperdício de recursos.**
+
+
 ## Protocolo de Continuidade de Sessão
 
 > [!IMPORTANT]
