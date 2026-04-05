@@ -13,7 +13,7 @@ RUN npm ci
 
 COPY backend/tsconfig.json ./
 COPY backend/src/ ./src/
-COPY arvores_de_sistemas.md ./
+COPY docs/taxonomia/arvores_de_sistemas.md ./arvores_de_sistemas.md
 
 RUN npm run build
 
