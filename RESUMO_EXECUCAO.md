@@ -57,6 +57,7 @@
 | Fase 8 | CRUD de sistemas colaborativo + notificações in-app | ✅ deployado em `dev`/beta (04/04/2026) | QA manual: 1) mestres testarem sugestão de sistemas via `/painel-mestre`, 2) admin revisar em `/gestao`, 3) validar notificações no sino do header |
 | migration_06 | system_suggestions | ✅ aplicada no beta (04/04/2026) | — |
 | migration_07 | notifications | ✅ aplicada no beta (04/04/2026) | — |
+| migration_07 (advanced_parser) | Parser Fase B - 15 colunas avançadas | ✅ aplicada no beta (05/04/2026) | 15 colunas + 9 índices em aggregator_import_candidates. Todas as colunas validadas. |
 | migration_09 | Frequência, regras, banner em tables | ✅ aplicada no beta (04/04/2026) | Campos: frequency, frequency_custom, rules_notes, banner_url |
 | REQ-16 | Correção de logout inesperado | ✅ **CORRIGIDO E VALIDADO (05/04/2026)** | **Causa raiz:** JWT_EXPIRES_IN=15m hardcoded no docker-compose.beta.yml sobrescrevia .env. **Solução:** Corrigido hardcode para 7d + recreação completa dos containers (down && up). **Validado em runtime:** docker exec confirma JWT_EXPIRES_IN=7d. E116 documentado em docs/E116_JWT_HARDCODED_DOCKER_COMPOSE.md. Próximo: teste manual de sessão de 30 minutos. |
 
