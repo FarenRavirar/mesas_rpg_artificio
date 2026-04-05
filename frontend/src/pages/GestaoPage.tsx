@@ -4,10 +4,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle, XCircle, Clock, Edit, Trash2, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { CreateTableForm } from './PainelMestrePage';
 import { mapCandidateToFormData } from '../utils/candidateToFormData';
 import { SystemEditModal } from '../components/SystemEditModal';
 import { ScenarioEditModal } from '../components/ScenarioEditModal';
+import { MarkdownEditor } from '../components/MarkdownEditor';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
@@ -1495,7 +1495,7 @@ export const GestaoPage = () => {
                     <input
                       type="text"
                       defaultValue={selectedCandidate.parsed_json.title || ''}
-                      onChange={(e) => setEditedCandidate(prev => ({ ...prev, title: e.target.value }))}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditedCandidate((prev: any) => ({ ...prev, title: e.target.value }))}
                       className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                       placeholder="Digite o título da mesa"
                     />
@@ -1507,7 +1507,7 @@ export const GestaoPage = () => {
                     </label>
                     <MarkdownEditor
                       value={editedCandidate?.description || selectedCandidate.parsed_json.description || selectedCandidate.parsed_json.synopsis || ''}
-                      onChange={(text) => setEditedCandidate(prev => ({ ...prev, description: text }))}
+                      onChange={(text: string) => setEditedCandidate((prev: any) => ({ ...prev, description: text }))}
                       placeholder="Descreva a mesa, campanha ou oneshot..."
                       height={400}
                     />
@@ -1521,7 +1521,7 @@ export const GestaoPage = () => {
                       <input
                         type="text"
                         defaultValue={selectedCandidate.parsed_json.system || ''}
-                        onChange={(e) => setEditedCandidate(prev => ({ ...prev, system: e.target.value }))}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditedCandidate((prev: any) => ({ ...prev, system: e.target.value }))}
                         className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                         placeholder="Ex: D&D 5e"
                       />
@@ -1534,7 +1534,7 @@ export const GestaoPage = () => {
                       <input
                         type="number"
                         defaultValue={selectedCandidate.parsed_json.slots_total || selectedCandidate.parsed_json.slots || 4}
-                        onChange={(e) => setEditedCandidate(prev => ({ ...prev, slots_total: parseInt(e.target.value) }))}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditedCandidate((prev: any) => ({ ...prev, slots_total: parseInt(e.target.value) }))}
                         className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                         min="1"
                       />
@@ -1548,7 +1548,7 @@ export const GestaoPage = () => {
                       </label>
                       <select
                         defaultValue={selectedCandidate.parsed_json.type || 'oneshot'}
-                        onChange={(e) => setEditedCandidate(prev => ({ ...prev, type: e.target.value }))}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setEditedCandidate((prev: any) => ({ ...prev, type: e.target.value }))}
                         className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                       >
                         <option value="oneshot">One-shot</option>
@@ -1564,7 +1564,7 @@ export const GestaoPage = () => {
                       </label>
                       <select
                         defaultValue={selectedCandidate.parsed_json.modality || 'online'}
-                        onChange={(e) => setEditedCandidate(prev => ({ ...prev, modality: e.target.value }))}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setEditedCandidate((prev: any) => ({ ...prev, modality: e.target.value }))}
                         className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                       >
                         <option value="online">Online</option>
@@ -1580,7 +1580,7 @@ export const GestaoPage = () => {
                     </label>
                     <select
                       defaultValue={selectedCandidate.parsed_json.price_type || 'gratuita'}
-                      onChange={(e) => setEditedCandidate(prev => ({ ...prev, price_type: e.target.value }))}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setEditedCandidate((prev: any) => ({ ...prev, price_type: e.target.value }))}
                       className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                     >
                       <option value="gratuita">Gratuita</option>
