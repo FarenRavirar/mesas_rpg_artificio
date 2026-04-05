@@ -216,6 +216,26 @@ export const parseExporterMessage = (input: ParseExporterMessageInput): ParsedMe
   const externalLinks = extractExternalLinks(message);
   const signupText = enriched.signupText ?? extractSignupText(message.content);
   const synopsis = enriched.synopsis ?? extractSynopsis(message.content);
+  
+  // Novos campos opcionais do parser Python
+  const levelRange = enriched.level_range ?? null;
+  const sessionDuration = enriched.session_duration ?? null;
+  const campaignLength = enriched.campaign_length ?? null;
+  const experienceRequired = enriched.experience_required ?? null;
+  const tags = Array.isArray(enriched.tags) ? enriched.tags : [];
+  const requiresPc = enriched.requires_pc ?? false;
+  const externalLinksFromParser = Array.isArray(enriched.external_links) ? enriched.external_links : [];
+  
+  // Merge external links do parser com os extraídos pelo TS
+  const allExternalLinks = Array.from(new Set([
+    ...externalLinksFromParser,
+    ...externalLinks
+  ]));
+  
+  // Metadados do parser Python
+  const parserMissingFields = Array.isArray(enriched.missingFields) ? enriched.missingFields : [];
+  const parserReviewFlags = Array.isArray(enriched.reviewFlags) ? enriched.reviewFlags : [];
+  const parserConfidenceByField = enriched.confidence_by_field ?? {};
 
   const requiredSignals = [title, systemText ?? systemClassification.systemName, scheduleText, slotsText, location ?? platforms];
   const availableSignals = requiredSignals.filter((item) => Boolean(item)).length;
@@ -260,10 +280,23 @@ export const parseExporterMessage = (input: ParseExporterMessageInput): ParsedMe
     priceText: payment.priceText,
     isCustomSystem: systemClassification.isCustomSystem,
     mediaLinks,
-    externalLinks,
+    externalLinks: allExternalLinks,
     rawMentions,
     needsReview,
     confidenceScore,
     editorialReason: null,
+    
+    // Novos campos do parser Python
+    levelRange,
+    sessionDuration,
+    campaignLength,
+    experienceRequired,
+    tags,
+    requiresPc,
+    
+    // Metadados do parser
+    parserMissingFields,
+    parserReviewFlags,
+    parserConfidenceByField,
   };
 };

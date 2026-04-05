@@ -90,8 +90,59 @@ def parse_message(content: str, metadata: Optional[Dict[str, Any]] = None) -> Di
     # 16. Avatar URL (avatar do autor)
     extracted['avatar_url'] = extract_avatar_url(metadata)
     
-    # 17. Confiança (score baseado em quantos campos foram extraídos)
-    extracted['confidence'] = calculate_confidence(extracted)
+    # 17. Platforms (plataformas de jogo)
+    extracted['platforms'] = extract_platforms(content)
+    
+    # 18. Age Rating (classificação indicativa)
+    extracted['ageRating'] = extract_age_rating(content)
+    
+    # 19. Synopsis (sinopse/descrição)
+    extracted['synopsis'] = extract_synopsis(content)
+    
+    # 20. Style (estilo/temática)
+    extracted['style'] = extract_style(content)
+    
+    # 21. Signup Text (texto de inscrição)
+    extracted['signupText'] = extract_signup_text(content)
+    
+    # 22. Location (localização para mesas presenciais)
+    extracted['location'] = extract_location(content)
+    
+    # 23. Level range (faixa de nível)
+    extracted['level_range'] = extract_level_range(content)
+    
+    # 18. Session duration (duração da sessão)
+    extracted['session_duration'] = extract_session_duration(content)
+    
+    # 19. Campaign length (duração da campanha)
+    extracted['campaign_length'] = extract_campaign_length(content)
+    
+    # 20. Experience required (experiência necessária)
+    extracted['experience_required'] = extract_experience_required(content)
+    
+    # 21. Tags
+    extracted['tags'] = extract_tags(content)
+    
+    # 22. Requires PC
+    extracted['requires_pc'] = extract_requires_pc(content)
+    
+    # 23. External links
+    extracted['external_links'] = extract_external_links(content, metadata)
+    
+    # 24. Confiança (score baseado em quantos campos foram extraídos)
+    confidence_data = calculate_confidence(extracted)
+    extracted['confidence'] = confidence_data['overall']
+    extracted['confidence_by_field'] = confidence_data['by_field']
+    extracted['missingFields'] = confidence_data['missing_fields']
+    extracted['reviewFlags'] = confidence_data['review_flags']
+    
+    # Debug info
+    extracted['debug'] = {
+        'required_filled': confidence_data['required_filled'],
+        'required_total': confidence_data['required_total'],
+        'optional_filled': confidence_data['optional_filled'],
+        'optional_total': confidence_data['optional_total'],
+    }
     
     # Validar com Pydantic
     try:
@@ -401,12 +452,367 @@ def extract_avatar_url(metadata: Optional[Dict[str, Any]] = None) -> Optional[st
     return metadata.get('author_avatar_url') or metadata.get('avatarUrl')
 
 
-def calculate_confidence(extracted: Dict[str, Any]) -> float:
-    """Calcula score de confiança baseado em campos extraídos."""
-    total_fields = 14  # Número de campos principais
-    filled_fields = sum(1 for v in extracted.values() if v is not None and v != [] and v != {})
+def extract_platforms(content: str) -> Optional[str]:
+    """Extrai plataformas de jogo (Discord, Roll20, Foundry, etc.)."""
+    patterns = [
+        r'(?:plataformas?|ferramentas?):\s*(.+?)(?:\n|$)',
+    ]
     
-    return round(filled_fields / total_fields, 2)
+    for pattern in patterns:
+        match = re.search(pattern, content, re.IGNORECASE)
+        if match:
+            platforms = match.group(1).strip()
+            platforms = re.sub(r'\*\*|\*|__', '', platforms)
+            return platforms if platforms else None
+    
+    # Detectar plataformas comuns no texto
+    detected = []
+    content_lower = content.lower()
+    
+    platform_keywords = {
+        'Discord': ['discord'],
+        'Roll20': ['roll20', 'roll 20'],
+        'Foundry VTT': ['foundry', 'foundry vtt'],
+        'Owlbear': ['owlbear'],
+        'Alchemy': ['alchemy'],
+        'Astral': ['astral'],
+        'Fantasy Grounds': ['fantasy grounds'],
+        'Tabletop Simulator': ['tabletop simulator', 'tts'],
+    }
+    
+    for platform, keywords in platform_keywords.items():
+        if any(keyword in content_lower for keyword in keywords):
+            detected.append(platform)
+    
+    return ', '.join(detected) if detected else None
+
+
+def extract_age_rating(content: str) -> Optional[str]:
+    """Extrai classificação indicativa (+18, +16, etc.)."""
+    patterns = [
+        r'(?:classificação|idade|faixa etária):\s*(.+?)(?:\n|$)',
+        r'(\+\d{2})',
+        r'(\d{2}\+)',
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, content, re.IGNORECASE)
+        if match:
+            rating = match.group(1).strip()
+            rating = re.sub(r'\*\*|\*|__', '', rating)
+            return rating if rating else None
+    
+    return None
+
+
+def extract_synopsis(content: str) -> Optional[str]:
+    """Extrai sinopse/descrição da mesa."""
+    patterns = [
+        r'(?:sinopse|sobre|história|resumo|descrição):\s*(.+?)(?:\n\n|$)',
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, content, re.IGNORECASE | re.DOTALL)
+        if match:
+            synopsis = match.group(1).strip()
+            synopsis = re.sub(r'\*\*|\*|__', '', synopsis)
+            # Limitar a 500 caracteres
+            return synopsis[:500] if synopsis else None
+    
+    # Fallback: pegar parágrafos longos (> 100 chars)
+    lines = content.split('\n')
+    for line in lines:
+        line = line.strip()
+        if len(line) > 100 and not line.startswith('▬') and not line.startswith('-'):
+            return line[:500]
+    
+    return None
+
+
+def extract_style(content: str) -> Optional[str]:
+    """Extrai estilo/temática da mesa."""
+    patterns = [
+        r'(?:estilo|temática|tema):\s*(.+?)(?:\n|$)',
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, content, re.IGNORECASE)
+        if match:
+            style = match.group(1).strip()
+            style = re.sub(r'\*\*|\*|__', '', style)
+            return style if style else None
+    
+    return None
+
+
+def extract_signup_text(content: str) -> Optional[str]:
+    """Extrai texto de inscrição (como se inscrever)."""
+    patterns = [
+        r'(?:inscrição|inscrever|interessados?|contato|como participar):\s*(.+?)(?:\n\n|$)',
+        r'(?:mande|envie)\s+(?:dm|mensagem|mp)',
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, content, re.IGNORECASE | re.DOTALL)
+        if match:
+            signup = match.group(0).strip()
+            signup = re.sub(r'\*\*|\*|__', '', signup)
+            return signup[:200] if signup else None
+    
+    return None
+
+
+def extract_location(content: str) -> Optional[str]:
+    """Extrai localização para mesas presenciais."""
+    patterns = [
+        r'(?:local|localização|endereço|cidade):\s*(.+?)(?:\n|$)',
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, content, re.IGNORECASE)
+        if match:
+            location = match.group(1).strip()
+            location = re.sub(r'\*\*|\*|__', '', location)
+            return location if location else None
+    
+    # Detectar cidades brasileiras comuns
+    cities = [
+        'São Paulo', 'Rio de Janeiro', 'Belo Horizonte', 'Brasília',
+        'Curitiba', 'Porto Alegre', 'Salvador', 'Fortaleza', 'Recife',
+        'Manaus', 'Belém', 'Goiânia', 'Campinas', 'Florianópolis'
+    ]
+    
+    for city in cities:
+        if city.lower() in content.lower():
+            return city
+    
+    return None
+
+
+
+def extract_level_range(content: str) -> Optional[str]:
+    """Extrai faixa de nível (ex: 1-5, 10-20)."""
+    patterns = [
+        r'(?:nível|level|lvl)s?\s*(?:de\s*)?(\d+)\s*(?:ao|a|até|-)\s*(\d+)',
+        r'(?:faixa\s+de\s+)?(?:nível|level):\s*(\d+)\s*-\s*(\d+)',
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, content, re.IGNORECASE)
+        if match:
+            return f"{match.group(1)}-{match.group(2)}"
+    
+    return None
+
+
+def extract_session_duration(content: str) -> Optional[str]:
+    """Extrai duração da sessão (ex: 3h, 4 horas)."""
+    patterns = [
+        r'(?:duração|sessão\s+de):\s*(\d+)\s*(?:h|horas?)',
+        r'(\d+)\s*(?:h|horas?)\s+de\s+(?:jogo|sessão)',
+        r'das?\s+\d{1,2}h?\s+(?:às|ate)\s+(\d{1,2})h',
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, content, re.IGNORECASE)
+        if match:
+            hours = match.group(1)
+            return f"{hours}h"
+    
+    return None
+
+
+def extract_campaign_length(content: str) -> Optional[str]:
+    """Extrai duração da campanha (ex: 6 meses, 1 ano)."""
+    patterns = [
+        r'(?:duração|campanha\s+de):\s*(\d+)\s+(meses?|anos?|sessões?)',
+        r'(?:campanha\s+)?(curta|média|longa)',
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, content, re.IGNORECASE)
+        if match:
+            return match.group(0).strip()
+    
+    return None
+
+
+def extract_experience_required(content: str) -> Optional[str]:
+    """Extrai experiência necessária (iniciante/intermediário/avançado)."""
+    content_lower = content.lower()
+    
+    if any(word in content_lower for word in ['iniciante', 'novato', 'novo', 'sem experiência', 'novatos']):
+        return 'iniciante'
+    
+    if any(word in content_lower for word in ['intermediário', 'alguma experiência']):
+        return 'intermediario'
+    
+    if any(word in content_lower for word in ['avançado', 'experiente', 'veterano']):
+        return 'avancado'
+    
+    return None
+
+
+def extract_tags(content: str) -> list:
+    """Extrai tags/estilos da mesa."""
+    tags = []
+    content_lower = content.lower()
+    
+    # Tags comuns
+    tag_keywords = {
+        'terror': ['terror', 'horror', 'medo'],
+        'investigacao': ['investigação', 'mistério', 'detetive'],
+        'combate': ['combate', 'batalha', 'luta'],
+        'roleplay': ['roleplay', 'interpretação', 'rp'],
+        'exploracao': ['exploração', 'aventura', 'descoberta'],
+        'politica': ['política', 'intriga', 'diplomacia'],
+        'romance': ['romance', 'romântico', 'amor', 'romantasia'],
+        'comedia': ['comédia', 'humor', 'engraçado'],
+        'drama': ['drama', 'dramático'],
+        'acao': ['ação', 'shounen'],
+    }
+    
+    for tag, keywords in tag_keywords.items():
+        if any(keyword in content_lower for keyword in keywords):
+            tags.append(tag)
+    
+    return tags
+
+
+def extract_requires_pc(content: str) -> bool:
+    """Detecta se requer PC."""
+    content_lower = content.lower()
+    return any(phrase in content_lower for phrase in [
+        'necessário ter pc',
+        'requer pc',
+        'obrigatório pc',
+        'precisa de pc',
+        'foundry vtt',
+        'roll20',
+        'necessário pc',
+    ])
+
+
+def extract_external_links(content: str, metadata: Optional[Dict[str, Any]] = None) -> list:
+    """Extrai links externos (formulários, sites, etc.)."""
+    links = []
+    
+    # Regex para URLs
+    url_pattern = r'https?://[^\s<>"{}|\\^`\[\]]+'
+    matches = re.findall(url_pattern, content)
+    
+    for url in matches:
+        # Filtrar apenas links relevantes (formulários, sites, etc.)
+        if any(domain in url.lower() for domain in ['forms.gle', 'docs.google.com', 'typeform', 'jotform']):
+            links.append(url)
+    
+    # Extrair de embeds (se metadata fornecido)
+    if metadata and 'embeds' in metadata:
+        embeds = metadata.get('embeds', [])
+        if isinstance(embeds, list):
+            for embed in embeds:
+                if isinstance(embed, dict) and 'url' in embed:
+                    url = embed.get('url')
+                    if url and isinstance(url, str):
+                        links.append(url)
+    
+    return list(set(links))  # Remover duplicatas
+
+
+
+
+
+def calculate_confidence(extracted: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Calcula score de confiança baseado em campos extraídos.
+    Retorna dict com confidence geral, por campo, e flags de revisão.
+    """
+    # Campos obrigatórios
+    required_fields = [
+        'title', 'system', 'schedule', 'slots', 
+        'language', 'price_type', 'contacts',
+        'modality'
+    ]
+    
+    # Campos opcionais
+    optional_fields = [
+        'level_range', 'session_duration', 'campaign_length',
+        'experience_required', 'tags', 'requires_pc', 'external_links',
+        'banner_url', 'avatar_url', 'description', 'rules_notes',
+        'actual_gm_name', 'type', 'frequency', 'starts_at'
+    ]
+    
+    # Calcular confidence por campo
+    field_confidence = {}
+    for field in required_fields + optional_fields:
+        value = extracted.get(field)
+        
+        if value is None or value == [] or value == {}:
+            field_confidence[field] = 0.0
+        elif field in ['title', 'system'] and value:
+            # Campos críticos: confidence alta se preenchidos
+            field_confidence[field] = 1.0
+        elif isinstance(value, str) and len(value) > 5:
+            # Strings longas: confidence alta
+            field_confidence[field] = 0.9
+        elif isinstance(value, (int, float)) and value > 0:
+            # Valores numéricos positivos: confidence alta
+            field_confidence[field] = 0.95
+        elif isinstance(value, bool):
+            # Booleanos: confidence média
+            field_confidence[field] = 0.8
+        elif isinstance(value, list) and len(value) > 0:
+            # Listas não vazias: confidence média
+            field_confidence[field] = 0.8
+        else:
+            # Outros casos: confidence baixa
+            field_confidence[field] = 0.5
+    
+    # Confidence geral (média ponderada)
+    required_filled = sum(1 for f in required_fields if extracted.get(f) not in [None, [], {}])
+    optional_filled = sum(1 for f in optional_fields if extracted.get(f) not in [None, [], {}])
+    
+    required_weight = 0.7
+    optional_weight = 0.3
+    
+    required_score = required_filled / len(required_fields) if required_fields else 0
+    optional_score = optional_filled / len(optional_fields) if optional_fields else 0
+    
+    overall_confidence = round(
+        required_score * required_weight + optional_score * optional_weight,
+        2
+    )
+    
+    # Identificar campos faltantes (apenas obrigatórios)
+    missing_fields = [
+        field for field in required_fields
+        if extracted.get(field) in [None, [], {}]
+    ]
+    
+    # Flags de revisão
+    review_flags = []
+    if overall_confidence < 0.7:
+        review_flags.append('low_confidence')
+    if not extracted.get('system'):
+        review_flags.append('missing_system')
+    if not extracted.get('title'):
+        review_flags.append('missing_title')
+    if not extracted.get('schedule'):
+        review_flags.append('missing_schedule')
+    if len(missing_fields) > 3:
+        review_flags.append('many_missing_fields')
+    
+    return {
+        'overall': overall_confidence,
+        'by_field': field_confidence,
+        'required_filled': required_filled,
+        'required_total': len(required_fields),
+        'optional_filled': optional_filled,
+        'optional_total': len(optional_fields),
+        'missing_fields': missing_fields,
+        'review_flags': review_flags,
+    }
+
 
 
 def main():

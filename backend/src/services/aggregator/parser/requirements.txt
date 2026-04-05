@@ -1,0 +1,4 @@
+beautifulsoup4==4.12.3
+python-dateutil==2.9.0
+parsedatetime==2.6
+pydantic==2.6.1

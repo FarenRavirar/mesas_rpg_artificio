@@ -51,8 +51,29 @@ class ParsedMessage(BaseModel):
     banner_url: Optional[str] = None  # URL da primeira imagem dos attachments
     avatar_url: Optional[str] = None  # URL do avatar do autor
     
+    # Campos obrigatórios adicionais
+    platforms: Optional[str] = None  # Plataformas de jogo (Discord, Roll20, Foundry, etc.)
+    ageRating: Optional[str] = None  # Classificação indicativa (+18, +16, etc.)
+    synopsis: Optional[str] = None  # Sinopse/descrição da mesa
+    style: Optional[str] = None  # Estilo/temática da mesa
+    signupText: Optional[str] = None  # Texto de inscrição (como se inscrever)
+    location: Optional[str] = None  # Localização para mesas presenciais
+    
+    # Campos opcionais adicionais
+    level_range: Optional[str] = None  # Ex: "1-5", "10-20"
+    session_duration: Optional[str] = None  # Ex: "3h", "4h"
+    campaign_length: Optional[str] = None  # Ex: "6 meses", "1 ano", "curta"
+    experience_required: Optional[str] = None  # iniciante, intermediario, avancado
+    tags: List[str] = Field(default_factory=list)  # terror, investigacao, combate, etc.
+    requires_pc: Optional[bool] = None  # Se requer PC para jogar
+    external_links: List[str] = Field(default_factory=list)  # Links de formulários, sites, etc.
+    
     # Metadados de confiança
     confidence: Optional[float] = Field(default=0.0, ge=0.0, le=1.0)
+    confidence_by_field: Optional[dict] = None  # Confidence individual por campo
+    missingFields: List[str] = Field(default_factory=list)  # Campos obrigatórios faltantes
+    reviewFlags: List[str] = Field(default_factory=list)  # Flags de revisão
+    debug: Optional[dict] = None  # Informações de debug
     
     @field_validator('price_type')
     @classmethod

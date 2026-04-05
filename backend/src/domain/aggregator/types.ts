@@ -105,6 +105,19 @@ export interface ParsedMessageDraft {
   needsReview: boolean;
   confidenceScore: number;
   editorialReason: string | null;
+  
+  // Novos campos opcionais do parser Python
+  levelRange?: string | null;
+  sessionDuration?: string | null;
+  campaignLength?: string | null;
+  experienceRequired?: string | null;
+  tags?: string[];
+  requiresPc?: boolean;
+  
+  // Metadados do parser Python
+  parserMissingFields?: string[];
+  parserReviewFlags?: string[];
+  parserConfidenceByField?: Record<string, number>;
 }
 
 export interface ClassifiedSystemResult {

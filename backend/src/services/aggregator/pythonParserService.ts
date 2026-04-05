@@ -72,7 +72,11 @@ export async function parseMessage(
     }
 
     // Usar python3 ou python conforme ambiente
-    const pythonCmd = process.env.PYTHON_CMD || 'python3';
+    // No Linux/container: python3
+    // No Windows: python
+    const pythonCmd = process.env.PYTHON_CMD || (process.platform === 'win32' ? 'python' : 'python3');
+    
+    console.log(`[Python Parser] Executando: ${pythonCmd} ${scriptPath}`);
 
     // Spawn processo Python
     const pythonProcess = spawn(pythonCmd, args, {
@@ -85,12 +89,19 @@ export async function parseMessage(
 
     // Capturar stdout
     pythonProcess.stdout.on('data', (data) => {
-      stdout += data.toString();
+      const chunk = data.toString();
+      stdout += chunk;
+      // Log apenas primeiros 200 chars para não poluir
+      if (chunk.length > 0) {
+        console.log(`[Python Parser] Output chunk (${chunk.length} bytes):`, chunk.substring(0, 200));
+      }
     });
 
     // Capturar stderr
     pythonProcess.stderr.on('data', (data) => {
-      stderr += data.toString();
+      const chunk = data.toString();
+      stderr += chunk;
+      console.error(`[Python Parser] Error output:`, chunk);
     });
 
     // Timeout de 10 segundos
@@ -111,6 +122,7 @@ export async function parseMessage(
 
       try {
         const result = JSON.parse(stdout);
+        console.log(`[Python Parser] Sucesso - Confidence: ${result.confidence || 'N/A'}`);
         resolve(result);
       } catch (error) {
         console.error('[Python Parser] Erro ao parsear JSON:', stdout);
