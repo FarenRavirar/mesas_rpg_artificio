@@ -163,8 +163,43 @@ export const candidateService = {
         })
         .execute();
 
+      // REQ-27: Criar schedules a partir de enrichedFields.sessions[]
+      const sessions = enrichedFields.sessions;
+      if (Array.isArray(sessions) && sessions.length > 0) {
+        const scheduleValues = sessions
+          .filter((session: any) => {
+            // Validar campos obrigatórios
+            return (
+              session &&
+              typeof session === 'object' &&
+              typeof session.day_of_week === 'string' &&
+              typeof session.start_time === 'string' &&
+              typeof session.frequency === 'string'
+            );
+          })
+          .map((session: any, index: number) => ({
+            table_id: newTable.id,
+            day_of_week: session.day_of_week,
+            start_time: session.start_time,
+            end_time: session.end_time ?? null,
+            frequency: session.frequency,
+            slots_per_session: typeof session.slots_per_session === 'number' ? session.slots_per_session : null,
+            is_ongoing: session.is_ongoing === true,
+            notes: typeof session.notes === 'string' ? session.notes : null,
+            sort_order: index, // Preservar ordem do array
+          }));
+
+        if (scheduleValues.length > 0) {
+          await trx
+            .insertInto('table_schedules')
+            .values(scheduleValues)
+            .execute();
+        }
+      }
+
       return newTable;
     });
+
 
     return updateAggregatorCandidateEditorialStatus(candidateId, {
       editorialStatus: 'accepted',

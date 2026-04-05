@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import tablesRoutes from './routes/tables';
+import tableSchedulesRoutes from './routes/tableSchedules';
 import gmRoutes from './routes/gm';
 import gmPanelRoutes from './routes/gmPanel';
 import systemsRoutes from './routes/systems';
@@ -48,6 +49,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/auth', authRoutes);
 app.use('/api/v1/me', meRoutes);
 app.use('/api/v1/tables', tablesRoutes);
+app.use('/api/v1/tables', tableSchedulesRoutes);  // REQ-27: Agenda Estruturada
 app.use('/api/v1/systems', systemsRoutes);
 app.use('/api/v1/scenarios', scenariosRoutes);
 app.use('/api/v1/system-suggestions', systemSuggestionsRoutes);
@@ -57,6 +59,7 @@ app.use('/api/v1/gm', gmPanelRoutes);  // Painel autenticado do mestre
 app.use('/api/v1/gm', gmRoutes);       // Perfil público do mestre
 app.use('/api/v1/aggregator', aggregatorRoutes);
 app.use('/api/v1/aggregator', aggregatorReviewRoutes);
+
 
 // Custom Error Handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

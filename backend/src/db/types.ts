@@ -195,6 +195,28 @@ export interface TableContactsTable {
   created_at: Generated<Date>;
 }
 
+export type DayOfWeek = 'segunda' | 'terça' | 'quarta' | 'quinta' | 'sexta' | 'sábado' | 'domingo';
+export type ScheduleFrequency = 'semanal' | 'quinzenal' | 'mensal' | 'avulsa';
+
+export interface TableSchedulesTable {
+  id: Generated<string>;
+  table_id: string;
+  day_of_week: DayOfWeek;
+  start_time: string; // TIME stored as string "HH:MM:SS"
+  end_time: string | null;
+  frequency: ScheduleFrequency;
+  slots_per_session: number | null;
+  is_ongoing: Generated<boolean>;
+  notes: string | null;
+  sort_order: Generated<number>;
+  created_at: Generated<Date>;
+}
+
+export type TableSchedule = Selectable<TableSchedulesTable>;
+export type NewTableSchedule = Insertable<TableSchedulesTable>;
+export type TableScheduleUpdate = Updateable<TableSchedulesTable>;
+
+
 export interface AggregatorSourcesTable {
   id: Generated<string>;
   name: string;
@@ -303,9 +325,11 @@ export interface Database {
   scenarios: ScenariosTable;
   tables: TablesTable;
   table_contacts: TableContactsTable;
+  table_schedules: TableSchedulesTable;
   aggregator_sources: AggregatorSourcesTable;
   aggregator_imported_raw_messages: AggregatorImportedRawMessagesTable;
   aggregator_import_candidates: AggregatorImportCandidatesTable;
   aggregator_settings: AggregatorSettingsTable;
 }
+
 

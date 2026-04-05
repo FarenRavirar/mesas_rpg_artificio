@@ -1,65 +1,80 @@
 # Plano Mestre — Anúncios de Mesas RPG (Portal Colaborativo)
 
-> Documento vivo de arquitetura. Versão 1.1 — atualizado em Abril/2026.
->
-> **Leitura seletiva por seção — não ler na íntegra.** Consultar apenas a seção indicada por `GUIA_RAPIDO_OPERACIONAL.md` para o cenário da tarefa.
-> Seções de referência rápida: §4 banco · §5 roles · §6 auth · §9 visual · §10 compromissos · §12 rotas · §16 imagens.
+> Documento vivo de arquitetura. Versão 2.0 — revisado em Abril/2026.
 >
 > **Fonte canônica de arquitetura.** Em conflito com qualquer outro arquivo, este prevalece.
+>
+> **Leitura seletiva por seção — não ler na íntegra.** Consultar apenas a seção indicada pela tarefa.
+> Índice de referência rápida: §3 infra/banco · §4 modelo de dados · §5 roles · §6 auth · §9 design system · §10 compromissos · §12 rotas · §16 imagens.
 
 ---
 
 ## Objetivo
 
-Definir a arquitetura oficial, os contratos estruturais e o plano de execução do **Anúncios de Mesas RPG** — uma plataforma colaborativa full-stack para descoberta, publicação e filtragem de mesas de RPG de mesa, com autopublicação, landing pages de mestre, filtros estruturados, exportação para WhatsApp/Discord e ingestão automática de anúncios externos.
+Definir a arquitetura oficial, os contratos estruturais e o estado atual de implementação do **Anúncios de Mesas RPG** — plataforma fullstack para descoberta, publicação e filtragem de mesas de RPG de mesa no Brasil, com autopublicação por mestres, ingestão automática de anúncios externos via IA e painel administrativo de curadoria.
 
-**NATUREZA DESTE PROJETO E ESTRATÉGIA DE LANÇAMENTO:**
-1. **Projeto nativo:** Não é um fork de plugin WordPress. É um webapp próprio, construído do zero com a mesma stack e os mesmos princípios do Grande Glossário de RPG.
-2. **Ecossistema Artifício:** Compartilha identidade visual, infraestrutura on-premise e filosofia comunitária com o Glossário. Os dois projetos são independentes mas coirmãos.
-3. **Ambientes previstos:** O beta roda em `mesasbeta.artificiorpg.com` e a produção permanece prevista para `mesas.artificiorpg.com`, ainda não publicada operacionalmente nesta rodada.
-4. **Missão declarada:** Facilitar que qualquer membro da comunidade brasileira de RPG encontre ou divulgue mesas com autonomia, consistência e sem barreiras de acesso.
+**Contexto de Ecossistema:**
+- Projeto nativo (não fork), construído do zero com stack própria.
+- Parte do ecossistema **Artifício RPG**: compartilha identidade visual e infraestrutura on-premise com o Grande Glossário de RPG. Os dois projetos são independentes mas coirmãos.
+- Beta operacional em `mesasbeta.artificiorpg.com`. Produção prevista em `mesas.artificiorpg.com`, ainda não publicada operacionalmente.
+- Missão: facilitar que qualquer membro da comunidade brasileira de RPG encontre ou divulgue mesas com autonomia, consistência e sem barreiras de acesso.
 
 ---
 
-## 1. Descrição Técnica do Projeto
+## 1. Funcionalidades por Módulo — Estado Atual
 
-O **Anúncios de Mesas RPG** é uma plataforma colaborativa e dinâmica construída com React (Front-end) e Node.js + PostgreSQL (Back-end próprio). Atua como ferramenta centralizada de descoberta e publicação de mesas de RPG, combinando autopublicação por mestres com ingestão automática de fontes externas.
+### O que está implementado e operacional (Beta — Abril/2026)
 
-Os recursos principais arquitetados incluem:
+- **Auth System:** Google OAuth completo com JWT de 7 dias e proteção de rotas por role.
+- **Gestão de Taxonomia:** Árvore hierárquica de sistemas (Sistema > Edição > Variante), cenários com subgêneros, importados via `sistemas.json` e `cenarios.json`.
+- **Dashboard do Mestre:** Criação de mesas com frequência customizada, regras e suporte a selos.
+- **Aggregator Pipeline:** Ingestão de JSON exportado do Discord, normalização de mensagens e fila de candidatos com revisão editorial.
+- **Parser Python Inteligente (Fase B):** Extração avançada de múltiplos horários, vagas detalhadas, classificação automática de pagamento e separação mestre vs anunciante.
+- **UX:** Toasts via `react-hot-toast`, spinners de carregamento, confirmações de segurança.
+- **Admin CRUD:** Interface completa para gerenciar sistemas, cenários e mesas sem acesso direto ao banco.
+- **Notificações In-App:** Sino no header com contador de não lidas.
+- **Filtros e Ações em Lote:** Revisão de candidatos com filtros avançados, seleção múltipla e deleção em lote (limite 150 IDs).
 
-- **Autopublicação:** Mestres criam e gerenciam landing pages próprias e publicam mesas diretamente na plataforma.
-- **Catálogo Público:** Listagem filtrada de mesas com busca por sistema, dia, modalidade, plataforma, tema e mais.
-- **Landing Page do Mestre:** Perfil público rico com bio, especialidades, avaliações e lista de mesas ativas.
-- **Onboarding de Preferências:** Coleta estruturada de gostos para recomendar mesas e permitir filtros salvos.
-- **Módulo de Perguntas e Avaliações:** Comunicação pública entre jogadores interessados e mestres.
-- **Painel Administrativo:** Moderação de anúncios, curadoria de fontes externas, gestão de taxonomias.
-- **Exportação Formatada:** Geração de texto pronto para colar no WhatsApp ou Discord, com formatação otimizada para cada canal. (será uma feature só depois que as partes de cima tiverem rodando.)
-- **Ingestão Automática (AggregatorBot):** Coleta diária de anúncios de fontes externas (Facebook, Reddit, grupos Discord, WhatsApp público), com deduplicação e vínculo opcional a perfis locais. (será uma feature só depois que as partes de cima tiverem rodando.)
+### O que ainda é placeholder / pendente
 
+- ❌ **CleanupWorker:** Migration 10 (retenção de mesas importadas) precisa de worker Node para deletar fisicamente mesas expiradas e limpar imagens no Imgur.
+- ❌ **Imagens via Formulário:** Pipeline Imgur + Sharp para upload em formulários (REQ-03) é parcial — fluxo completo pendente.
+- ❌ **Soft Delete:** Deleção de mesas é hard delete. Implementar `deleted_at` para auditoria futura.
+- ❌ **Módulo Social:** Perguntas, respostas e avaliações de mesas (REQ-27 a REQ-30) são placeholders no catálogo.
+- ❌ **Exportação WhatsApp/Discord:** Prevista para versão posterior, após base principal estável.
+- ❌ **AggregatorBot de fontes externas (Facebook, Reddit):** Previsto para Fase 4. O que existe hoje é ingestão manual de JSON exportado do Discord.
+- ❌ **Busca tsvector:** Busca Fuse.js no frontend é suficiente abaixo de 10k registros. Migrar para `tsvector` PostgreSQL se ultrapassar esse volume.
+- ❌ **Integração de vínculo Discord no perfil:** Prevista para fase posterior — vínculo opcional, não substitui login Google.
 
 ---
 
 ## 2. Stack Tecnológica
 
-| Componente | Escolha |
+| Camada | Tecnologia |
 |---|---|
-| **Framework UI** | React 18 + TypeScript + Vite |
-| **Estilização** | Tailwind CSS (Fidelidade ao design system Artifício) |
+| **Frontend** | React 19, TypeScript, Vite, Tailwind CSS, Lucide React |
 | **Motor de Busca Client-side** | Fuse.js |
-| **Backend (API)** | Node.js + Express |
-| **Banco de Dados** | PostgreSQL (Container isolado via Docker on-premise) |
-| **Autenticação** | Google OAuth 2.0 (primário) + JWT customizado para sessão |
-| **Servidor Web** | Nginx (Docker) servindo build Vite |
-| **Agendamento (AggregatorBot)** | Node-cron ou worker dedicado rodando no mesmo compose |
+| **Backend (API)** | Node.js, Express, TypeScript |
+| **Banco de Dados** | PostgreSQL 16+, Kysely (Query Builder type-safe) |
+| **Processamento IA** | Python 3, spaCy (`pt_core_news_lg`), Pydantic, Dateparser |
+| **Servidor Web** | Nginx (Docker, proxy reverso e serving de build Vite) |
+| **Infraestrutura** | Docker & Docker Compose, GitHub Actions (CI/CD) |
+| **Autenticação** | Google OAuth 2.0 + JWT customizado para sessão |
+| **Imagens** | Imgur API (upload via Client-ID), Sharp (conversão WebP) |
+| **Agendamento** | node-cron (AggregatorBot e CleanupWorker, mesmo compose) |
+
+> **Nota React:** O arquivo `documentacao_tecnica.md` menciona React 19; o `ARQUITETURA_PROJETO.md` original mencionava React 18. A versão em uso no build atual é React 19. React 18 era a versão planejada inicial.
 
 ---
 
 ## 3. Infraestrutura e Ambientes
 
-| Ambiente | URL | Branch | Container | Exposição atual |
-|---|---|---|---|---|
-| **Beta (Deploy Contínuo)** | `mesasbeta.artificiorpg.com` | `dev` | `mesas-beta-app` | Cloudflare Tunnel via `mesas-beta-app:80`, sem porta pública dedicada no host |
-| **Produção** | `mesas.artificiorpg.com` | `main` | `mesas-app` | Ainda não publicada operacionalmente nesta rodada |
+| Ambiente | URL | Branch Git | Container App |
+|---|---|---|---|
+| **Beta** | `mesasbeta.artificiorpg.com` | `dev` | `mesas-beta-app` |
+| **Produção** | `mesas.artificiorpg.com` | `main` | `mesas-app` |
+
+O ambiente beta é exposto via Cloudflare Tunnel (`mesas-beta-app:80`), sem porta pública dedicada no host.
 
 ### 3.1 Credenciais e Nomes Canônicos do PostgreSQL
 
@@ -77,47 +92,87 @@ Comando padrão de acesso no beta:
 docker exec mesas-beta-db psql -U admin -d mesas_rpg
 ```
 
-Para confirmar credenciais em runtime (nunca assume o compose como única fonte):
+Para confirmar credenciais em runtime:
 ```bash
 docker exec mesas-beta-db env | grep POSTGRES
 ```
 
 > [!CAUTION]
-> O banco **não se chama `mesas`** — o nome correto é `mesas_rpg`. Usar `-d mesas` resulta em `FATAL: database "mesas" does not exist`. Ver também `ERRORS_SOLUTIONS.md` E059.
+> O banco **não se chama `mesas`** — o nome correto é `mesas_rpg`. Usar `-d mesas` resulta em `FATAL: database "mesas" does not exist`. Ver `ERRORS_SOLUTIONS.md` E059.
+
+### 3.2 Variáveis de Ambiente Principais
+
+| Variável | Finalidade |
+|---|---|
+| `DATABASE_URL` | String de conexão com o PostgreSQL |
+| `JWT_SECRET` | Chave privada para assinatura dos tokens de sessão |
+| `JWT_EXPIRES_IN` | Duração do token (configurado como `7d`) |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Credenciais do Google Cloud Console para OAuth |
+| `GOOGLE_CALLBACK_URL` | Rota de retorno OAuth (ex: `/api/v1/auth/google/callback`) |
+| `IMGUR_CLIENT_ID` | Client-ID para upload anônimo de imagens no Imgur — **nunca exposta ao frontend** |
+| `PYTHON_CMD` | Comando do interpretador Python (`python3` no Linux, `python` no Windows) |
+| `VITE_API_URL` | (Frontend) URL base da API para requisições do cliente |
+
+### 3.3 Scripts de Inicialização
+
+```bash
+# Backend
+npm run dev          # Desenvolvimento
+npm run build        # Compilação TypeScript
+npm run start        # Produção
+
+# Frontend
+npm run dev          # Vite dev server
+npm run build        # Geração de assets estáticos
+
+# Importadores de dados
+npm run systems:import-tree    # Popula taxonomia de sistemas via sistemas.json
+npm run aggregator:import      # Processa JSON exportado do Discord
+```
+
+### 3.4 Política de Migrations
+
+- Toda migration de banco é versionada via arquivo sequencial em `db/migrations/`.
+- Migrations destrutivas (DROP, ALTER que remove coluna) requerem aprovação explícita e backup prévio.
+- O Backend **não executa migrations automaticamente em produção** — deploy de migration é etapa manual e documentada.
+- Migrations aplicadas no beta até Abril/2026: migration_01 a migration_09. Migration_10 (expiração/retenção) está **pendente**.
 
 ---
 
-## 4. Modelo de Dados (Entidades Principais)
+## 4. Modelo de Dados
 
-### 4.1 Tabelas e Identidades
+### 4.1 Tabelas Existentes
 
-- `users` — Credenciais, OAuth tokens, role (`visitor`, `player`, `gm`, `admin`), preferências de privacidade.
-- `profiles` — Dados públicos do jogador: nome de exibição, bio curta, idiomas, tags.
-- `gm_profiles` — Extensão pública do perfil para mestres: banner, bio longa, especialidades, estatísticas acumuladas.
-- `systems` — Catálogo de sistemas de RPG (D&D, Pathfinder, Tormenta etc.) com slug.
-- `tags` — Taxonomia livre de temas/estilos (Fantasia, Horror, Mistério etc.).
-- `platforms` — Plataformas de jogo (Discord, Foundry VTT, Roll20, presencial etc.).
-- `tables` — Entidade central do anúncio de mesa (ver 4.2).
-- `table_schedules` — Horários recorrentes ou pontuais vinculados a uma mesa.
-- `table_platforms` — Relação N:N entre mesas e plataformas.
-- `table_tags` — Relação N:N entre mesas e tags.
-- `questions` — Perguntas públicas de jogadores sobre uma mesa.
-- `answers` — Respostas do mestre a perguntas.
-- `reviews` — Avaliações de jogadores após participação.
-- `bookmarks` — Mesas salvas por usuários.
-- `sources` — Registro de fontes externas para o AggregatorBot.
-- `imported_tables` — Anúncios coletados automaticamente antes de deduplicação.
-- `aggregator_import_candidates` — Candidatos de importação aguardando revisão editorial. Contém campos enriquecidos pelo parser Python (migration_07): múltiplos horários estruturados (`sessions[]`), vagas detalhadas, classificação de sistema/pagamento/tipo, separação mestre vs anunciante. Status: `awaiting_review`, `accepted`, `rejected`. Suporta filtros avançados (data, mestre) e operações em lote (rejeição, deleção permanente com limite de 150 IDs).
-- `system_suggestions` — Sugestões colaborativas de novos sistemas enviadas por usuários (migration_06).
-- `notifications` — Notificações in-app para usuários (migration_07).
-- `imgur_cleanup_log` — Registro de tentativas de limpeza de imagens hospedadas externamente.
-- `user_preferences` — Preferências estruturadas (sistemas, temas, idiomas, plataformas, dias).
+| Tabela | Descrição |
+|---|---|
+| `users` | Credenciais, OAuth tokens, role (`visitor`, `player`, `gm`, `admin`), preferências de privacidade |
+| `profiles` | Dados públicos do jogador: nome de exibição, bio curta, idiomas, tags |
+| `gm_profiles` | Extensão pública do mestre: banner, bio longa, especialidades, estatísticas acumuladas |
+| `systems` | Catálogo hierárquico de sistemas (Sistema > Edição > Variante) com slug, aliases, depth, path_slug |
+| `tags` | Taxonomia livre de temas/estilos (Fantasia, Horror, Mistério etc.) |
+| `platforms` | Plataformas de jogo (Discord, Foundry VTT, Roll20, presencial etc.) |
+| `tables` | Entidade central do anúncio de mesa (ver 4.2) |
+| `table_schedules` | Horários recorrentes ou pontuais vinculados a uma mesa |
+| `table_platforms` | Relação N:N entre mesas e plataformas |
+| `table_tags` | Relação N:N entre mesas e tags |
+| `table_history` | Auditoria de alterações de status e campos críticos em mesas |
+| `questions` | Perguntas públicas de jogadores sobre uma mesa |
+| `answers` | Respostas do mestre a perguntas |
+| `reviews` | Avaliações de jogadores após participação |
+| `bookmarks` | Mesas salvas por usuários |
+| `sources` | Fontes externas cadastradas para o AggregatorBot |
+| `imported_tables` | Anúncios coletados antes de deduplicação |
+| `aggregator_import_candidates` | Candidatos aguardando revisão editorial (ver 4.3) |
+| `system_suggestions` | Sugestões colaborativas de novos sistemas por usuários (migration_06) |
+| `notifications` | Notificações in-app para usuários (migration_07) |
+| `imgur_cleanup_log` | Registro de tentativas de limpeza de imagens no Imgur (ver §16) |
+| `user_preferences` | Preferências estruturadas (sistemas, temas, idiomas, plataformas, dias) |
 
 ### 4.2 Campos Chave em `tables`
 
 | Campo | Descrição |
 |---|---|
-| `origin` | `manual` (autopublicado) ou `imported` (coletado pelo bot) |
+| `origin` | `manual` (autopublicado pelo mestre) ou `imported` (coletado pelo bot) |
 | `status` | `draft` / `active` / `full` / `cancelled` / `ended` / `pending_review` |
 | `type` | `campanha`, `one-shot`, `oneshot-serie`, `aberta` |
 | `audience` | `livre`, `adultos` |
@@ -127,684 +182,530 @@ docker exec mesas-beta-db env | grep POSTGRES
 | `slots_total` e `slots_filled` | Vagas totais e preenchidas |
 | `language` | Idioma da mesa |
 | `modality` | `online`, `presencial`, `hibrida` |
+| `frequency` | `semanal`, `quinzenal`, `mensal`, `avulsa` (migration_09) |
+| `frequency_custom` | Descrição livre quando `frequency = 'avulsa'` (migration_09) |
+| `rules_notes` | Regras, avisos ou notas especiais da mesa (migration_09) |
+| `experience_level` | `todos`, `iniciante`, `intermediario`, `veterano` |
+| `publisher_role` | `gm` (o próprio mestre publica) ou `announcer` (apenas divulgador) |
+| `actual_gm_name` | Nome do mestre real quando `publisher_role = 'announcer'` |
 | `source_url` | URL de origem (para anúncios importados) |
 | `source_id` | FK para `sources` |
 | `gm_id` | FK para `gm_profiles` (null se importado sem vínculo) |
 | `system_id` | FK para `systems` |
-| `title`, `description`, `cover_url`, `cover_source_type`, `cover_origin_url`, `cover_deletehash`, `cover_imgur_id` | Conteúdo editorial da mesa e metadados de imagem hospedada ou reaproveitada externamente |
-| `banner_url` | URL externa de banner/capa (migration_09) — aceita URLs diretas do Discord sem reupload para Imgur |
-| `frequency` | Frequência das sessões: `semanal`, `quinzenal`, `mensal`, `avulsa` (migration_09) |
-| `frequency_custom` | Descrição livre de frequência quando `frequency = 'avulsa'` (migration_09) |
-| `rules_notes` | Regras, avisos ou notas especiais da mesa (migration_09) |
-| `is_ddal` | Mesa vinculada ao programa D&D Adventurers League (DDAL) |
-| `ddal_code`, `ddal_name`, `ddal_tier` | Metadados DDAL — obrigatórios quando `is_ddal = true` |
-| `publisher_role` | Quem está publicando: `gm` (o próprio mestre) ou `announcer` (apenas divulgador) |
-| `actual_gm_name` | Nome do mestre real quando `publisher_role = 'announcer'` |
+| `slug` | Gerado automaticamente via `slugify.ts` no backend |
 | `starts_at` | Data/hora de início |
-| `experience_level` | `todos`, `iniciante`, `intermediario`, `veterano` |
-| `slug` | Gerado automaticamente via `slugify.ts` |
-| `is_covil` *(migration_10 — pendente)* | BOOLEAN — indica que a mesa pertence ao programa Covil do Lich; detectado automaticamente via parser Python, editável pelo admin |
-| `imported_expires_at` *(migration_10 — pendente)* | TIMESTAMPTZ — data de expiração configurável para mesas importadas via JSON do Discord; política gerenciável pelo AdminDevTools |
+| `is_ddal` | Mesa vinculada ao programa D&D Adventurers League |
+| `ddal_code`, `ddal_name`, `ddal_tier` | Metadados DDAL — obrigatórios quando `is_ddal = true` |
+| `is_covil` *(migration_10 — pendente)* | BOOLEAN — pertence ao programa Covil do Lich; detectado pelo parser, editável pelo admin |
+| `imported_expires_at` *(migration_10 — pendente)* | TIMESTAMPTZ — data de expiração para mesas importadas |
+| `cover_url` | URL pública da imagem de capa |
+| `cover_source_type` | Origem da imagem: `imgur_upload` ou `discord_reused` |
+| `cover_origin_url` | URL original quando reaproveitada de fonte externa |
+| `cover_deletehash` | Hash de exclusão no Imgur — **nunca retornado por rotas públicas** |
+| `cover_imgur_id` | ID da imagem no Imgur |
+| `banner_url` | URL externa de banner (migration_09) — aceita URLs diretas do Discord sem reupload |
+| `billing_text` *(migration_11 — pendente)* | TEXT — Detalhamento de cobrança (ex: "R$ 30 por sessão", "R$ 75 por mês") |
+| `session_zero_free` *(migration_11 — pendente)* | BOOLEAN — Sessão zero gratuita |
+| `synopsis` *(migration_11 — pendente)* | TEXT — Sinopse curta separada de description (max 300 chars) |
+| `style_text` *(migration_11 — pendente)* | TEXT — Estilo/temática da mesa como campo próprio (ex: "Alta Fantasia, Investigação") |
+| `technical_requirements` *(migration_11 — pendente)* | TEXT — Requisitos técnicos gerais |
+| `requires_pc` *(migration_11 — pendente)* | BOOLEAN — Requer PC |
+| `requires_camera` *(migration_11 — pendente)* | BOOLEAN — Requer câmera |
+| `requires_microphone` *(migration_11 — pendente)* | BOOLEAN — Requer microfone |
+| `level_range` *(migration_11 — pendente)* | TEXT — Faixa de nível (ex: "1-5", "10-15") |
+| `campaign_length` *(migration_11 — pendente)* | TEXT — Duração estimada da campanha (ex: "6 meses", "20 sessões") |
+| `listing_excerpt` *(migration_11 — pendente)* | TEXT — Resumo curto para listagem (max 200 chars, substitui "placeholder") |
+| `external_links` *(migration_11 — pendente)* | JSONB — Array de links externos |
+| `setting_name` *(migration_13 — pendente)* | TEXT — Nome do cenário (ex: "Forgotten Realms") |
+| `setting_styles` *(migration_13 — pendente)* | TEXT[] — Array de estilos (ex: ["Alta Fantasia", "Aventura Épica"]) |
 
-> **Nota sobre `gm_avatar_url` (Decisão Arquitetural — 05/04/2026):** O campo de avatar do mestre importado via Discord **NÃO é persistido** no banco de dados. A URL extraída pelo parser Python (`enrichedFields.avatar_url`) é usada apenas para pré-preencher visualmente o formulário de revisão. O mestre real será vinculado à mesa via `gm_id` quando reivindicar o anúncio importado.
+> **Decisão arquitetural (05/04/2026):** O campo `gm_avatar_url` extraído pelo parser Python **não é persistido** no banco. É usado apenas para pré-preencher visualmente o formulário de revisão de candidatos. O mestre real é vinculado à mesa via `gm_id` apenas quando reivindicar o anúncio importado.
 
+> **Regra do selo DDAL:** O campo `is_ddal` só é permitido se o `system_id` apontar para o caminho hierárquico `dungeons-dragons/5e/2024`.
 
-### 4.3 Automação de Integridade (Slugs)
+### 4.3 Tabela `aggregator_import_candidates`
 
-Todas as entidades estruturais (`systems`, `gm_profiles`, `tables`) possuem geração automática de slugs no Backend via utilitário `slugify.ts`, garantindo URLs amigáveis e unicidade.
+Candidatos importados do Discord aguardando revisão editorial. Status possíveis: `awaiting_review`, `accepted`, `rejected`.
 
-### 4.4 Histórico e Rastreabilidade
+Campos enriquecidos pelo parser Python (migration_07):
+- `sessions[]` — Array de `SessionSchedule` com dia da semana, horário inicial/final, frequência e vagas por sessão
+- `slots_total`, `slots_available`, `slots_filled` — Vagas detalhadas
+- `system_raw`, `system_normalized`, `system_classification` — Sistema detectado, normalizado e classificado (válido/inválido/revisável)
+- `is_homebrew`, `is_custom` — Flags de sistema homebrew ou próprio
+- `payment_classification` — `gratuita`, `paga` ou `ambígua`
+- `candidate_kind` — `individual`, `grupo_servidor`, `multiplo`, `invalido`
+- `master_display_name`, `publisher_role`, `is_same_person` — Separação entre autor do post e mestre real
+- 9 índices no banco (GIN para JSONB, B-tree para classificações)
 
-Alterações de status e campos críticos em `tables` são registradas em `table_history` com `changed_by`, `field`, `old_value`, `new_value` e `changed_at`, permitindo auditoria completa de moderação e importações.
+Suporta filtros avançados (data, mestre, status) e deleção em lote (limite 150 IDs por request).
 
-### 4.5 Deduplicação no AggregatorBot
+### 4.4 Campos de Imagem em `gm_profiles`
 
-A resolução de anúncios duplicados usa prioridade determinística:
-1. Correspondência exata por `source_url`
-2. Correspondência por `title` + `gm_name` + `starts_at`
-3. Anúncio manual local prevalece sobre importado
-4. Entre duplicados importados: mais recente (`updated_at`) vence
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `avatar_url` | TEXT | URL pública do Imgur |
+| `avatar_deletehash` | TEXT | Hash de exclusão — **nunca retornado por rotas públicas** |
+| `avatar_imgur_id` | TEXT | ID da imagem no Imgur |
+| `banner_url` | TEXT | URL pública do Imgur |
+| `banner_deletehash` | TEXT | Hash de exclusão — **nunca retornado por rotas públicas** |
+| `banner_imgur_id` | TEXT | ID da imagem no Imgur |
+
+### 4.5 Integridade e Rastreabilidade
+
+- **Slugs automáticos:** `systems`, `gm_profiles` e `tables` geram slugs via `slugify.ts` no backend. Nunca gerado no frontend.
+- **Auditoria:** `table_history` registra `changed_by`, `field`, `old_value`, `new_value`, `changed_at` para todas as alterações de status e campos críticos em `tables`.
+- **Atomicidade:** Operações complexas (ex: aceitar candidato → criar mesa + contatos) são executadas em `db.transaction().execute()` via Kysely.
+- **Deduplicação no AggregatorBot** — prioridade determinística:
+  1. Correspondência exata por `source_url`
+  2. Correspondência por `title` + `gm_name` + `starts_at`
+  3. Anúncio manual local sempre prevalece sobre importado
+  4. Entre duplicados importados: mais recente (`updated_at`) vence
+
+### 4.6 Agenda Estruturada (table_schedules)
+
+A tabela `table_schedules` armazena múltiplos horários de sessão para uma mesa, suportando campanhas com:
+- Múltiplos dias da semana
+- Múltiplas faixas horárias no mesmo dia
+- Frequências diferentes por sessão (semanal/quinzenal/mensal)
+- Vagas específicas por sessão
+- Sessões em andamento vs abertas
+
+**Campos:**
+- `id` UUID PK
+- `table_id` UUID FK tables(id) ON DELETE CASCADE
+- `day_of_week` TEXT (segunda/terça/quarta/quinta/sexta/sábado/domingo)
+- `start_time` TIME
+- `end_time` TIME
+- `frequency` TEXT (semanal/quinzenal/mensal/avulsa)
+- `slots_per_session` INT (null = herda de table.slots_total)
+- `is_ongoing` BOOLEAN (sessão já em andamento)
+- `notes` TEXT (observações opcionais)
+- `sort_order` SMALLINT (ordem de exibição)
+- `created_at` TIMESTAMPTZ
+
+**Integração com Parser Python:**
+O parser extrai `sessions[]` com interface `SessionSchedule` (REQ-24, migration_07). Ao aceitar candidato, o backend mapeia automaticamente cada objeto do array para um registro em `table_schedules` vinculado à mesa criada.
+
+**Exemplo de uso:**
+Uma mesa pode ter:
+- Segunda 19h-22h (semanal, 4 vagas)
+- Quarta 20h-23h (quinzenal, 4 vagas)
+- Sábado 14h-18h (mensal, 6 vagas, em andamento)
+
+**Status de implementação (05/04/2026):**
+- ✅ Migration 12 aplicada no beta
+- ✅ Tipos TypeScript completos
+- ✅ Rotas CRUD implementadas (GET, POST, PUT, DELETE)
+- ✅ Integração com candidateService.accept() concluída
+- ⚠️ Frontend pendente (componente SessionRepeater)
 
 ---
 
-## 5. Papéis e Permissões (Rotas Privadas API / Middleware JWT)
+## 5. Papéis e Permissões
 
-**Segurança orientada ao Backend é OBRIGATÓRIA.** O Frontend jamais enviará dados diretamente ao banco. Toda mutação e leitura sensível passa por Middlewares de Autenticação na API Node.js.
+Toda mutação e leitura sensível passa por middleware de autenticação na API Node.js. O frontend **nunca acessa o banco diretamente**.
 
 | Role | Permissões |
 |---|---|
 | **Visitante Anônimo** | Busca pública, visualização de mesas ativas, perfil público de mestres |
-| **Jogador (player)** | Salvar mesas, enviar perguntas, avaliar mesas participadas, gerenciar preferências |
-| **Mestre (gm)** | Tudo do jogador + publicar/editar/encerrar mesas próprias, responder perguntas, gerenciar gm_profile |
-| **Administrador** | Acesso total ao Painel Administrativo, moderação, gestão de fontes externas, curadoria de taxonomias |
+| **Jogador (`player`)** | Salvar mesas, enviar perguntas, avaliar mesas participadas, gerenciar preferências |
+| **Mestre (`gm`)** | Tudo do jogador + publicar/editar/encerrar mesas próprias, responder perguntas, gerenciar `gm_profile`, upload de imagens |
+| **Administrador (`admin`)** | Acesso total: moderação, gestão de fontes externas, curadoria de taxonomias, deleção administrativa, painel de candidatos |
+
+**Elevação de role:** Um `player` se torna `gm` ao criar seu primeiro `gm_profile`. A elevação é irreversível via interface (requer admin para reverter).
+
+**Admin master:** O e-mail `paulohenriquercc@gmail.com` deve ser sempre promovido/garantido como role `admin` no backend durante o login OAuth.
 
 ---
 
-## 6. Autenticação e Conta
+## 6. Autenticação e Sessão
 
-- **Login principal:** Google OAuth 2.0. É a porta de entrada principal, sem senha local.
-- **Sessão:** JWT gerado pelo Backend após handshake OAuth, com duração padrão de 7 dias (`JWT_EXPIRES_IN=7d`). Refresh token rotativo como arquitetura prevista.
-- **Validação inteligente:** O `AuthContext.tsx` implementa validação de sessão com debounce e verificação apenas em navegações críticas, evitando logout inesperado (correção E103/E105 - Abril/2026).
-- **Criação de conta:** Automática no primeiro login Google, com onboarding previsto de preferências em 3 etapas.
+- **Login:** Google OAuth 2.0 exclusivamente. Sem senha local.
+- **Sessão:** JWT assinado pelo backend com `JWT_EXPIRES_IN=7d`. Refresh token rotativo é arquitetura prevista, não implementado.
+- **Handshake:** No callback OAuth, o backend extrai `id`, `email` e `picture` do Google e realiza upsert na tabela `users`.
+- **AuthContext:** Validação de sessão com debounce e verificação apenas em navegações críticas, evitando logout inesperado (correção E103/E105 — Abril/2026).
+- **Criação de conta:** Automática no primeiro login Google. Onboarding de 3 etapas previsto (sistemas favoritos, temas, plataformas, dias disponíveis).
 - **Separação de identidade:** A conta Google alimenta apenas o login. O perfil público (`profiles`, `gm_profiles`) é entidade própria controlada pelo usuário.
-- **Integração opcional futura com Discord:** O sistema poderá permitir, em fase posterior, o vínculo opcional de uma conta Discord ao perfil público do usuário. Esse vínculo não substitui o login Google e não será requisito para uso da plataforma.
-- **Uso previsto do vínculo Discord:** Quando implementado, o vínculo poderá servir para validar identidade comunitária, consultar cargos públicos em servidores autorizados e habilitar selos contextuais, como `Mestre do Covil`, sem transformar o Discord em provedor principal de autenticação.
-- **Elevação de role:** Um `player` se torna `gm` ao criar seu primeiro `gm_profile`. A elevação é irreversível via interface (requer admin para reverter).
-- **Admin master por e-mail:** O e-mail `paulohenriquercc@gmail.com` deve ser sempre promovido/garantido como role `admin` no Backend durante o login OAuth.
----
-
-## 7. Funcionalidades por Módulo
-
-### 7.1 Home e Descoberta
-
-- Hero com busca ampla por título, sistema ou nome do mestre.
-- CTAs diretos para "Buscar Mesas" e "Buscar Mestres".
-- Seção de mesas em destaque (curadas pelo admin ou mais bem avaliadas recentemente).
-- Navegação pública funciona completamente sem login.
-
-### 7.2 Catálogo de Mesas
-
-Listagem em grid com card denso por mesa, exibindo (nessa ordem):
-
-1. Badge de tipo (`Campanha`, `One-shot`) e audiência (`Livre`, `Adultos`)
-2. Cover/banner da mesa
-3. Status contextual (`Começa em X dias`, `Falta 1 jogador`, `Mesa confirmada`)
-4. Título e sistema
-5. Plataformas e tags temáticas
-6. Mestre (avatar + nome + avaliação geral)
-7. Vagas preenchidas / total
-8. Modalidade, preço, periodicidade, data e horário
-9. Botão "Ver Detalhes"
-
-**Filtros estruturados disponíveis:** Sistema, Agenda (dia da semana), Modo/Estilo, Tags, Idioma, Plataforma, Tipo (campanha/one-shot), Audiência, Nível de experiência, Preço (gratuita/paga), Modalidade (online/presencial).
-
-### 7.3 Página Individual da Mesa
-
-- Banner/cover no topo
-- Breadcrumb de navegação
-- Bloco lateral direito: detalhes operacionais (vagas, modalidade, início, periodicidade, dias, idioma, preço) + botão de reserva/interesse + compartilhamento
-- Corpo principal com seções: Sobre esta Mesa, Sobre os Jogadores, Sobre a Aventura, Sobre o Sistema, Requisitos para Participar, Tags
-- Seção de Perguntas e Respostas (login obrigatório para perguntar)
-- Seção de Avaliações
-- Botão de exportação para WhatsApp e Discord, previsto para versão posterior, após a base principal estar estável.
-
-### 7.4 Landing Page do Mestre
-
-- Banner/capa customizável
-- Avatar, nome, badge de role, data de entrada
-- Bio longa
-- Idiomas e tags de perfil (streamer, veterano, criador de conteúdo etc.)
-- Estatísticas: mesas narradas, avaliação geral, feedbacks recebidos
-- Especialidades por sistema (com contagem de mesas)
-- Lista de mesas ativas do mestre (usando o mesmo card do catálogo)
-- Aba de avaliações recebidas
-- Área de vínculos comunitários, prevista para fase posterior, com exibição opcional de integrações externas autorizadas
-- Quando a integração com Discord for implementada, a landing page poderá exibir selos públicos derivados de vínculo validado com comunidades parceiras, como o Covil do Lich
-
-### 7.5 Onboarding de Preferências (3 Etapas)
-
-**Etapa 1:** Dados básicos do perfil (nome de exibição, bio curta)
-
-**Etapa 2 — Preferências:**
-- Sistemas de RPG favoritos (multiselect com busca, obrigatório)
-- Temas e estilos preferidos
-- Idiomas
-- Plataformas preferidas
-- Dias da semana disponíveis
-
-**Etapa 3:** Confirmação e redirecionamento.
-
-Preferências alimentam: recomendações na home, filtros pré-salvos, notificações futuras.
-
-### 7.6 Painel do Mestre
-
-- Formulário de criação/edição de mesa com todos os campos de `tables`
-- Upload de cover/banner
-- Gerenciamento de vagas em tempo real
-- Histórico de perguntas recebidas com resposta inline
-- Lista de avaliações recebidas
-- Edição do `gm_profile`
-- Gestão futura de vínculos externos do perfil, incluindo conexão opcional com Discord para validação comunitária e eventual resgate de cargos públicos em servidores autorizados
-- Configuração futura de visibilidade desses vínculos e selos no perfil público do mestre
-- Gerador de texto de divulgação (exportação WhatsApp/Discord), previsto para versão posterior, após a base principal estar estável.
-
-### 7.7 Painel Administrativo
-
-- **Moderação de Mesas Pendentes:** Aprovação/rejeição de anúncios com registro em `table_history`.
-- **Gestão de Fontes Externas:** Cadastro e monitoramento de fontes para o AggregatorBot (URL, tipo, frequência, status), previstos para fase posterior.
-- **Preview de Importação (Dry Run):** Antes de persistir lote importado, exibe preview com detecção de duplicatas, previsto para fase posterior.
-- **CRUD Completo de Taxonomias (REQ-23 - Implementado Abril/2026):**
-  - **Sistemas:** Criação, edição e deleção com suporte a hierarquia (sistema > edição > variante). Cálculo automático de `depth` e `path_slug`. Gerenciamento de aliases (array de strings). Busca em tempo real por nome/alias.
-  - **Cenários:** Criação, edição e deleção com suporte a subgêneros (array de tags). Slug gerado automaticamente.
-  - **Mesas:** Funcionalidade de deleção administrativa (hard delete com cascade de contatos e relacionamentos).
-  - **UX Administrativa:** Modais de edição (`SystemEditModal`, `ScenarioEditModal`), confirmação de deleção, feedback via `react-hot-toast`, estados de carregamento (spinners).
-- **Notificações In-App (REQ-15 - Implementado Abril/2026):** Sino no header com contador de não lidas. Notificações de sugestões de sistemas aprovadas/rejeitadas.
-- **Revisão de Candidatos (Aggregator - REQ-25 - Implementado 05/04/2026):** 
-  - **Fluxo de Revisão:** Aceitação/rejeição de anúncios importados com validação de campos obrigatórios, botão "Desfazer Rejeição" e rejeição em lote.
-  - **Filtros Avançados Combinados:** Filtro por data (range início/fim), busca por nome do mestre e filtro de status (pending/approved/rejected). Filtros aplicáveis simultaneamente (AND lógico). Persistência automática no localStorage com badge visual "X filtros ativos".
-  - **Seleção Múltipla e Ações em Lote:** Checkbox "Selecionar Todos" (respeita limite configurável: 50/100/150), checkboxes individuais por candidato, contador "X de Y selecionados". Sincronização automática: IDs invisíveis após aplicar filtros são removidos da seleção. Limpeza automática ao trocar de aba de status.
-  - **Deleção em Lote:** Botão "Deletar Selecionados" (vermelho, só aparece quando há seleção). Modal de confirmação dupla com lista de candidatos, checkbox "Confirmo que quero deletar permanentemente" e feedback diferenciado (sucesso total/parcial/falha). Rota backend `DELETE /api/v1/aggregator/candidates/bulk` com validação de array, limite de 150 IDs e retorno de contagem.
-  - **Heurísticas de Nielsen:** Implementação completa das 10 heurísticas de usabilidade (visibilidade de status, prevenção de erros, controle e liberdade, feedback constante).
-- **Destaques da Home:** Curadoria manual das mesas exibidas no hero.
-- **Workflow de Continuidade:** Modal de moderação suporta estado `stayOpen` para processar múltiplos itens em sequência.
-
-### 7.8 AggregatorBot (Ingestão Automática)
-
-**Status Atual (Abril/2026):** Implementado e operacional no ambiente beta. Migration_05 e Migration_07 aplicadas.
-
-- Serviço Node.js rodando via node-cron no mesmo compose do Backend.
-- Coleta diária configurável por fonte.
-- **Parser Python Inteligente (REQ-18 + REQ-24 - Fase B Implementada em 05/04/2026):** Utiliza `spaCy` (modelo `pt_core_news_lg`) para extração automática de campos estruturados de mensagens do Discord:
-  
-  **Fase A (Campos Básicos):**
-  - Sistema de RPG (com fallback para parser TypeScript no frontend)
-  - Data/horário de início
-  - Vagas (total e preenchidas)
-  - Modalidade (online/presencial)
-  - Banner/avatar (extração de URLs de imagens dos attachments)
-  - Detecção automática de badge "Covil do Lich" via análise de conteúdo
-  
-  **Fase B (Campos Avançados - 05/04/2026):**
-  - **Múltiplos horários estruturados:** Array `sessions[]` com objetos `SessionSchedule` contendo dia da semana, horário inicial/final, frequência (semanal/quinzenal/mensal) e vagas por sessão
-  - **Vagas detalhadas:** `slots_total`, `slots_available`, `slots_filled` extraídos de padrões como "2/4 vagas", "Restam 3 vagas"
-  - **Classificação de sistema:** Detecta homebrew, sistemas próprios e experimentais. Normaliza sistema base (ex: "D&D 5e Homebrew" → "D&D 5e"). Retorna `system_raw`, `system_normalized`, `system_classification` (válido/inválido/revisável), `is_homebrew`, `is_custom`
-  - **Classificação de pagamento:** Analisa contexto completo para classificar como gratuita/paga/ambígua (`payment_classification`)
-  - **Classificação de tipo:** Diferencia mesa individual, grupo/servidor, anúncio múltiplo ou inválido (`candidate_kind`)
-  - **Separação mestre vs anunciante:** Extrai "Mestre: Nome" do conteúdo e compara com autor do post. Retorna `master_display_name`, `publisher_role` (mestre/anunciante), `is_same_person`
-  
-  **Armazenamento (Migration_07):** 15 novos campos na tabela `import_candidates` com 9 índices para performance (GIN para JSONB, B-tree para classificações). Interface `SessionSchedule` compartilhada entre Python (Pydantic) e TypeScript.
-
-- **Reparo Automático de JSON:** O sistema detecta e repara automaticamente arquivos JSON truncados do DiscordChatExporter via `repairTruncatedJson()` (6 estratégias de correção).
-- Parseia anúncios para o schema de `imported_tables`.
-- Executa deduplicação automática (ver 4.5).
-- Quando a origem monitorada for Discord e a postagem já trouxer imagem de campanha com URL pública reutilizável, o bot deverá reaproveitar essa imagem como `cover_url` da mesa importada, sem reupload obrigatório para Imgur.
-- Anúncios não vinculados a perfis locais ficam como `origin=imported`, sem `gm_id`.
-- Mestres podem "reivindicar" um anúncio importado, vinculando ao próprio perfil.
-- Todos os logs de ingestão registrados com timestamp, fonte e resultado (novo/duplicado/erro).
+- **Discord como vínculo futuro:** O Discord poderá ser vinculado opcionalmente ao perfil para validação comunitária e selos públicos. Não será login principal nem requisito de uso.
 
 ---
 
-## 8. Exportação WhatsApp e Discord
+## 7. Pipeline de Ingestão e Parser Python
 
-Esta funcionalidade é prevista para versão posterior, após a base principal pública e administrativa do projeto estar estável.
+### 7.1 Fluxo Geral
 
-Quando implementada, ao clicar em "Exportar para WhatsApp" ou "Exportar para Discord", o sistema deverá gerar texto formatado automaticamente.
-
-**WhatsApp (sem markdown):**
 ```
-🎲 [TÍTULO DA MESA]
-Sistema: [Sistema]
-Tipo: [Campanha / One-shot]
-Vagas: [X de Y]
-Quando: [Dia], [Horário]
-Preço: [Gratuita / R$X por mês]
-Plataforma: [Plataforma]
-
-[Link da landing page da mesa]
+[JSON exportado do Discord]
+    → POST /api/v1/aggregator/import/file (admin)
+    → repairTruncatedJson() — corrige exports incompletos (6 estratégias)
+    → pythonParserService.ts — spawn child_process Python
+    → discord_message_parser.py — spaCy pt_core_news_lg + Pydantic
+    → JSON enriquecido retornado via stdout (PYTHONUNBUFFERED=1)
+    → Backend prioriza enrichedFields do Python
+    → Fallback: parseDiscordContent.ts (regex, frontend)
+    → Inserção em aggregator_import_candidates
+    → Deduplicação automática
+    → Fila de revisão editorial para o admin
 ```
 
-**Discord (com markdown):**
-```
-## 🎲 [TÍTULO DA MESA]
-**Sistema:** [Sistema] | **Tipo:** [Campanha / One-shot]
-**Vagas:** [X/Y] | **Quando:** [Dia], [Horário]
-**Preço:** [Gratuita / R$X] | **Plataforma:** [Plataforma]
+### 7.2 Campos Extraídos pelo Parser Python
 
-🔗 [Link da landing page]
-```
+**Fase A (Campos Básicos):**
+- Sistema de RPG (nome do sistema detectado via `sistemas.json`)
+- Data e horário de início
+- Vagas (total e preenchidas)
+- Modalidade (online/presencial)
+- URLs de imagem dos attachments (banner/avatar)
+- Detecção de badge "Covil do Lich" via análise de conteúdo
+
+**Fase B (Campos Avançados — implementada em 05/04/2026):**
+- Múltiplos horários estruturados em `sessions[]` (interface `SessionSchedule` compartilhada entre Python/Pydantic e TypeScript)
+- Vagas detalhadas: `slots_total`, `slots_available`, `slots_filled` (padrões: "2/4 vagas", "Restam 3 vagas")
+- Classificação de sistema: `system_raw`, `system_normalized`, `system_classification`, `is_homebrew`, `is_custom`
+- Classificação de pagamento: `payment_classification` (gratuita/paga/ambígua)
+- Classificação de tipo de candidato: `candidate_kind`
+- Separação mestre vs anunciante: `master_display_name`, `publisher_role`, `is_same_person`
+
+### 7.3 Regras Editoriais Automáticas
+
+- **Selo DDAL:** Só permitido se `system_id` apontar para o caminho `dungeons-dragons/5e/2024`.
+- **Selo Covil do Lich:** Detectado automaticamente pelo parser se termos como "Covil" ou "Lich" aparecerem no título ou sinopse. Editável pelo admin.
+- **Imagem de anúncios Discord:** Quando a postagem importada já tiver imagem pública e reutilizável, o bot a aproveita como `cover_url` com `cover_source_type = discord_reused`, sem reupload para Imgur.
+
+### 7.4 Taxonomia de Sistemas (`sistemas.json` e `cenarios.json`)
+
+Migração concluída em Abril/2026: substituiu `arvores_de_sistemas.md` por arquivos JSON estruturados.
+
+- `sistemas.json`: taxonomia com `name`, `aliases`, `editions`, `variants`, `depth`, `path_slug`
+- `cenarios.json`: cenários com campo `subgenero` como array de tags
+- Dockerfile atualizado para copiar ambos no build
+- Script de importação: `systemsTreeImport.ts`
+- Parser Python usa `sistemas.json` para detecção automática de sistemas nas mensagens
 
 ---
 
-## 9. Princípios Visuais Inegociáveis (Design System)
+## 8. Persistência — Kysely
 
-Este projeto herda e adapta a identidade visual do Grande Glossário de RPG para o contexto de um catálogo dinâmico.
+O projeto usa Kysely como query builder type-safe em vez de ORM pesado.
 
-- **Identidade "Premium RPG Comunitário":** Paleta baseada em `azul-escuro` (#1B2A4A) com `laranja` (#E8521A) como cor de ação primária. Cards e catálogo podem usar fundo escuro (#0F1C36) para ambiente de descoberta imersivo.
-- **Cards de Mesa:** Alta densidade informacional com leitura rápida via badges coloridos. Hierarquia visual clara entre título, mestre, vagas e ação.
-- **Padrão de Formulário Canônico:**
-  - **Cabeçalho de Modal/Seção:** Fundo Azul Escuro, Borda Inferior Laranja (4px), Tipografia *Black Italic Upper*.
-  - **Inputs:** Bordas `rounded-xl`, Fundo Branco (light) ou cinza escuro (dark mode), Foco `ring-laranja`.
-  - **Labels:** Tipografia `text-[10px] font-black uppercase tracking-widest`.
-- **Badges:** Semântica de cor consistente — Verde para status positivo (confirmada, gratuita), Laranja para alerta (falta jogador, começa em breve), Cinza para neutro.
-- **Perfil do Mestre:** Tratado como ativo de confiança e vitrine pública. Banner customizável, avatar proeminente, estatísticas visíveis.
-- **Filosofia de UX:** Navegação pública funciona sem login. Cadastro só é solicitado no momento de ação (perguntar, salvar, publicar). Sem dark patterns.
+- **Tipagem:** Interface `Database` em `backend/src/db/types.ts` mapeia todas as colunas, incluindo enums (`user_role`, `table_status`).
+- **Atomicidade:** Operações críticas executadas em `db.transaction().execute()`.
+- **Migrations:** Arquivos sequenciais em `db/migrations/`, aplicação manual em produção.
+
+---
+
+## 9. Princípios Visuais (Design System)
+
+O projeto herda e adapta a identidade visual do Grande Glossário de RPG.
+
+- **Paleta:** Azul-escuro `#1B2A4A` como base, laranja `#E8521A` como cor de ação primária. Catálogo pode usar fundo `#0F1C36` para ambiente imersivo.
+- **Botões primários:** Sempre laranja Artifício.
+- **Badges semânticos:** Verde = positivo (confirmada, gratuita) · Laranja = alerta (falta jogador, começa em breve) · Cinza = neutro.
+- **Cards de Mesa:** Alta densidade informacional com leitura rápida via badges. Hierarquia visual clara entre título, mestre, vagas e ação.
+- **Formulários:**
+  - Cabeçalho de modal/seção: fundo azul-escuro, borda inferior laranja 4px, tipografia *Black Italic Upper*
+  - Inputs: `rounded-xl`, foco `ring-laranja`
+  - Labels: `text-[10px] font-black uppercase tracking-widest`
+- **Filosofia de UX:** Navegação pública funciona sem login. Cadastro solicitado apenas no momento da ação (perguntar, salvar, publicar). Sem dark patterns.
+- **Heurísticas de Nielsen:** As 10 heurísticas são aplicadas sistematicamente. Ver checklist completo na seção 14.5 do histórico de decisões.
 
 ---
 
 ## 10. Compromissos Públicos (Inegociáveis de Produto)
 
-Estes compromissos foram declarados publicamente no anúncio do projeto e **não podem ser revertidos por nenhuma decisão técnica ou de produto:**
+Declarados publicamente no anúncio do projeto. **Não podem ser revertidos por nenhuma decisão técnica ou de produto:**
 
-- **100% gratuito** — Nenhuma funcionalidade central será colocada atrás de paywall.
+- **100% gratuito** — Nenhuma funcionalidade central atrás de paywall.
 - **Sem anúncios** — Nenhum espaço de publicidade paga na interface, agora ou no futuro.
-- **Sem coleta de dados pessoais desnecessária** — Apenas dados estritamente necessários para a função declarada são coletados. Sem tracking de terceiros.
-- **Mesas gratuitas e pagas coexistem** — O modelo não discrimina por preço. A plataforma é neutra em relação ao modelo de negócio do mestre.
+- **Sem coleta de dados desnecessária** — Apenas dados estritamente necessários para a função declarada. Sem tracking de terceiros.
+- **Mesas gratuitas e pagas coexistem** — A plataforma é neutra em relação ao modelo de negócio do mestre.
 
 ---
 
-## 11. Tratativa de Rollback ou Falhas
+## 11. Tratamento de Rollback e Falhas
 
-Toda nova implantação deve ser gerada localmente no branch correspondente ao ambiente, `dev` para beta e `main` para produção.
-Qualquer falha de build ou erro em runtime deve primeiramente ser catalogada em `ERRORS_SOLUTIONS.md` antes de qualquer looping de reescrita de código pela IA.
+- Toda nova implantação parte do branch correspondente ao ambiente (`dev` para beta, `main` para produção).
+- Falhas de build ou erros em runtime devem ser catalogados em `ERRORS_SOLUTIONS.md` antes de qualquer reescrita de código.
+- O container de API Node.js só inicializa se conseguir conectar ao PostgreSQL (`mesas-beta-db`).
 
-### Resgate de Banco e Ambiente Beta
+**Procedimento em caso de tela preta ou crash da API:**
+1. Verificar `docker compose logs`
+2. Consultar `ERRORS_SOLUTIONS.md`
+3. SSH assistido apenas se GitHub Actions falhar primeiro
 
-O contêiner de API Node.js só inicializa se conseguir bater porta e sincronizar no PostgreSQL (`mesas-beta-db`). Se o ambiente der tela preta por corrupção de variáveis de ambiente ou o contêiner da API explodir em runtime:
-
-1. Verifique o `docker compose logs` e consulte `ERRORS_SOLUTIONS.md` urgentemente.
-2. Use SSH assistido se e somente se métricas do repositório GitHub e os Actions falharem primeiro.
-3. Quando o AggregatorBot for implementado, deverá possuir circuit breaker próprio: em caso de falha de conexão com o banco, deverá abortar o ciclo de ingestão e registrar o erro em log, sem tentar novamente até o próximo ciclo agendado.
-
-### Política de Migrations
-
-- Toda migration de banco deve ser versionada via arquivo sequencial em `db/migrations/`.
-- Migrations destrutivas (DROP, ALTER que remove coluna) requerem aprovação explícita e backup prévio.
-- O Backend não executa migrations automaticamente em produção — deploy de migration é etapa manual e documentada.
+**AggregatorBot:** Deve implementar circuit breaker próprio — em falha de conexão com o banco, aborta o ciclo de ingestão e registra o erro sem tentar novamente até o próximo ciclo.
 
 ---
 
-## 12. Contratos de API (Rotas Principais)
+## 12. Contratos de API (Rotas Completas)
 
-Referência rápida das rotas estruturais da API. Todas as rotas mutáveis exigem JWT válido no header `Authorization: Bearer <token>`.
+Todas as rotas mutáveis exigem JWT válido no header `Authorization: Bearer <token>`. Prefixo global: `/api/v1`.
 
 ### Autenticação
+
 | Método | Rota | Descrição |
 |---|---|---|
-| `GET` | `/api/v1/auth/google` | Inicia handshake OAuth Google |
-| `GET` | `/api/v1/auth/google/callback` | Callback OAuth, retorna JWT |
-| `POST` | `/api/v1/auth/logout` | Invalida refresh token |
-| `GET` | `/api/v1/me` | Retorna perfil do usuário autenticado |
+| `GET` | `/auth/google` | Inicia handshake OAuth Google |
+| `GET` | `/auth/google/callback` | Callback OAuth, retorna JWT |
+| `POST` | `/auth/logout` | Invalida refresh token |
+| `GET` | `/me` | Retorna perfil do usuário autenticado |
 
 ### Mesas
+
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
-| `GET` | `/api/v1/tables` | — | Listagem pública com filtros via query params |
-| `GET` | `/api/v1/tables/:slug` | — | Página individual da mesa |
-| `POST` | `/api/v1/tables` | `gm` | Criar nova mesa |
-| `PUT` | `/api/v1/tables/:id` | `gm` (própria) | Editar mesa |
-| `PATCH` | `/api/v1/tables/:id/status` | `gm` / `admin` | Alterar status |
-| `POST` | `/api/v1/tables/:id/bookmark` | `player` | Salvar mesa |
-| `POST` | `/api/v1/tables/:id/export` | — | Gerar texto de exportação, previsto para fase posterior |
+| `GET` | `/tables` | — | Listagem pública com filtros via query params |
+| `GET` | `/tables/:slug` | — | Página individual da mesa |
+| `POST` | `/tables` | `gm` | Criar nova mesa |
+| `PUT` | `/tables/:id` | `gm` (própria) | Editar mesa |
+| `PATCH` | `/tables/:id/status` | `gm` / `admin` | Alterar status |
+| `POST` | `/tables/:id/bookmark` | `player` | Salvar mesa |
+| `POST` | `/tables/:id/export` | — | Gerar texto de exportação *(previsto para fase posterior)* |
+
+### Horários de Mesas (table_schedules)
+
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| `GET` | `/tables/:tableId/schedules` | — | Listar todos os horários de uma mesa (público) |
+| `POST` | `/tables/:tableId/schedules` | `gm` (owner) / `admin` | Criar novo horário para uma mesa |
+| `PUT` | `/tables/:tableId/schedules/:id` | `gm` (owner) / `admin` | Atualizar horário existente |
+| `DELETE` | `/tables/:tableId/schedules/:id` | `gm` (owner) / `admin` | Deletar horário |
 
 ### Mestres
+
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
-| `GET` | `/api/v1/gm/:slug` | — | Perfil público do mestre |
-| `POST` | `/api/v1/gm/profile` | `player` | Criar gm_profile (eleva role) |
-| `PUT` | `/api/v1/gm/profile` | `gm` | Editar gm_profile |
+| `GET` | `/gm/:slug` | — | Perfil público do mestre |
+| `POST` | `/gm/profile` | `player` | Criar gm_profile (eleva role para `gm`) |
+| `PUT` | `/gm/profile` | `gm` | Editar gm_profile |
 
-### Perguntas e Avaliações
+### Perguntas e Avaliações *(placeholders — pendentes)*
+
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
-| `GET` | `/api/v1/tables/:id/questions` | — | Listar perguntas públicas |
-| `POST` | `/api/v1/tables/:id/questions` | `player` | Enviar pergunta |
-| `POST` | `/api/v1/questions/:id/answer` | `gm` (própria mesa) | Responder pergunta |
-| `POST` | `/api/v1/tables/:id/reviews` | `player` | Avaliar mesa |
+| `GET` | `/tables/:id/questions` | — | Listar perguntas públicas |
+| `POST` | `/tables/:id/questions` | `player` | Enviar pergunta |
+| `POST` | `/questions/:id/answer` | `gm` (própria mesa) | Responder pergunta |
+| `POST` | `/tables/:id/reviews` | `player` | Avaliar mesa |
 
-### Admin
+### Admin — Moderação e Taxonomias
+
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
-| `GET` | `/api/v1/admin/tables/pending` | `admin` | Mesas aguardando moderação |
-| `PATCH` | `/api/v1/admin/tables/:id/moderate` | `admin` | Aprovar ou rejeitar mesa |
-| `DELETE` | `/api/v1/admin/tables/:id` | `admin` | Deletar mesa (hard delete com cascade) |
-| `POST` | `/api/v1/admin/systems` | `admin` | Criar sistema |
-| `PUT` | `/api/v1/admin/systems/:id` | `admin` | Editar sistema |
-| `DELETE` | `/api/v1/admin/systems/:id` | `admin` | Deletar sistema |
-| `POST` | `/api/v1/admin/scenarios` | `admin` | Criar cenário |
-| `PUT` | `/api/v1/admin/scenarios/:id` | `admin` | Editar cenário |
-| `DELETE` | `/api/v1/admin/scenarios/:id` | `admin` | Deletar cenário |
+| `GET` | `/admin/tables/pending` | `admin` | Mesas aguardando moderação |
+| `PATCH` | `/admin/tables/:id/moderate` | `admin` | Aprovar ou rejeitar mesa |
+| `DELETE` | `/admin/tables/:id` | `admin` | Deletar mesa (hard delete com cascade) |
+| `POST` | `/admin/systems` | `admin` | Criar sistema |
+| `PUT` | `/admin/systems/:id` | `admin` | Editar sistema |
+| `DELETE` | `/admin/systems/:id` | `admin` | Deletar sistema |
+| `POST` | `/admin/scenarios` | `admin` | Criar cenário |
+| `PUT` | `/admin/scenarios/:id` | `admin` | Editar cenário |
+| `DELETE` | `/admin/scenarios/:id` | `admin` | Deletar cenário |
 
-### Notificações (REQ-15 - Implementado Abril/2026)
+### Notificações
+
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
-| `GET` | `/api/v1/notifications` | `player` | Listar notificações do usuário |
-| `PATCH` | `/api/v1/notifications/:id/read` | `player` | Marcar notificação como lida |
+| `GET` | `/notifications` | `player` | Listar notificações do usuário |
+| `PATCH` | `/notifications/:id/read` | `player` | Marcar notificação como lida |
 
-### Aggregator Discord (Fase 7 — implementado, migration_05 aplicada no beta)
+### Aggregator — Fontes e Importação
+
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
-| `GET` | `/api/v1/aggregator/sources` | `admin` | Listar fontes cadastradas |
-| `POST` | `/api/v1/aggregator/sources` | `admin` | Cadastrar nova fonte Discord |
-| `PUT` | `/api/v1/aggregator/sources/:id` | `admin` | Editar fonte |
-| `PATCH` | `/api/v1/aggregator/sources/:id/toggle` | `admin` | Habilitar/desabilitar fonte |
-| `POST` | `/api/v1/aggregator/import/file` | `admin` | Importar JSON de export Discord (body JSON, suporta `dry_run`) |
-| `POST` | `/api/v1/aggregator/import/source/:id/run` | `admin` | Re-processar mensagens brutas de uma source |
-| `GET` | `/api/v1/aggregator/exports/day` | `admin` | Exportação diária JSON de candidatos aceitos |
-| `GET` | `/api/v1/aggregator/exports/day.txt` | `admin` | Exportação diária TXT de candidatos aceitos |
+| `GET` | `/aggregator/sources` | `admin` | Listar fontes cadastradas |
+| `POST` | `/aggregator/sources` | `admin` | Cadastrar nova fonte Discord |
+| `PUT` | `/aggregator/sources/:id` | `admin` | Editar fonte |
+| `PATCH` | `/aggregator/sources/:id/toggle` | `admin` | Habilitar/desabilitar fonte |
+| `POST` | `/aggregator/import/file` | `admin` | Importar JSON de export Discord (suporta `dry_run`) |
+| `POST` | `/aggregator/import/source/:id/run` | `admin` | Re-processar mensagens brutas de uma source |
+| `GET` | `/aggregator/exports/day` | `admin` | Exportação diária JSON de candidatos aceitos |
+| `GET` | `/aggregator/exports/day.txt` | `admin` | Exportação diária TXT de candidatos aceitos |
 
-### Revisão Editorial (Aggregator)
+### Aggregator — Revisão Editorial de Candidatos
+
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
-| `GET` | `/api/v1/aggregator/candidates` | `admin` | Listar candidatos (filtros: `status`, `source_id`, paginação) |
-| `GET` | `/api/v1/aggregator/candidates/:id` | `admin` | Detalhe de um candidato |
-| `PATCH` | `/api/v1/aggregator/candidates/:id/accept` | `admin` | Aceitar candidato para publicação |
-| `PATCH` | `/api/v1/aggregator/candidates/:id/reject` | `admin` | Rejeitar candidato |
-| `PATCH` | `/api/v1/aggregator/candidates/:id/review` | `admin` | Marcar candidato para revisão manual |
-| `PATCH` | `/api/v1/aggregator/candidates/reject-all` | `admin` | Rejeição em lote de candidatos (REQ-19 - Abril/2026) |
-| `PATCH` | `/api/v1/aggregator/candidates/:id/undo-rejection` | `admin` | Desfazer rejeição (REQ-19 - Abril/2026) |
-| `DELETE` | `/api/v1/aggregator/candidates/bulk` | `admin` | Deletar múltiplos candidatos permanentemente. Body: `{ ids: string[] }`. Validações: array não-vazio, todos IDs strings, limite 150 por request. Retorna: `{ data: { deleted: number, requested: number } }` (REQ-25 - 05/04/2026) |
-
+| `GET` | `/aggregator/candidates` | `admin` | Listar candidatos (filtros: `status`, `source_id`, data, mestre; paginação) |
+| `GET` | `/aggregator/candidates/:id` | `admin` | Detalhe de um candidato |
+| `PATCH` | `/aggregator/candidates/:id/accept` | `admin` | Aceitar candidato e publicar como mesa ativa |
+| `PATCH` | `/aggregator/candidates/:id/reject` | `admin` | Rejeitar candidato |
+| `PATCH` | `/aggregator/candidates/:id/review` | `admin` | Marcar para revisão manual |
+| `PATCH` | `/aggregator/candidates/reject-all` | `admin` | Rejeição em lote |
+| `PATCH` | `/aggregator/candidates/:id/undo-rejection` | `admin` | Desfazer rejeição |
+| `DELETE` | `/aggregator/candidates/bulk` | `admin` | Deletar múltiplos candidatos permanentemente. Body: `{ ids: string[] }`. Validações: array não-vazio, todos strings, **limite 150 por request**. Retorna: `{ data: { deleted: number, requested: number } }` |
 
 ---
 
 ## 13. Plano de Fases de Desenvolvimento
 
-O projeto é desenvolvido em fases incrementais, priorizando o núcleo funcional público antes dos módulos sociais e de automação.
+### Fase 1 — Fundação (MVP Público) ✅ Concluída
+Setup de infraestrutura, migrations iniciais, auth Google OAuth, catálogo público, página de mesa, landing page de mestre, painel do mestre, deploy em beta.
 
-### Fase 1 — Fundação (MVP Público)
-- Setup de infraestrutura (Docker compose, Nginx, PostgreSQL, Node.js, React/Vite)
-- Migrations iniciais: `users`, `profiles`, `gm_profiles`, `systems`, `tags`, `platforms`, `tables`, `table_schedules`, `table_platforms`, `table_tags`
-- Autenticação Google OAuth completa com onboarding de 3 etapas
-- Catálogo público de mesas com filtros estruturados
-- Página individual da mesa
-- Landing page do mestre
-- Painel do mestre: criar e editar mesas
-- Deploy em beta
+### Fase 2 — Moderação e Administração ✅ Concluída
+Painel administrativo, moderação com `table_history`, CRUD de taxonomias, notificações in-app, bookmarks.
 
-### Fase 2 — Moderação e Administração
-- Painel Administrativo completo
-- Fluxo de moderação com `table_history`
-- Gestão de taxonomias (sistemas, tags, plataformas)
-- Curadoria de destaques da home
-- Bookmarks de mesas
+### Fase 3 — Engajamento Social ⚠️ Parcialmente pendente
+Módulo de Perguntas e Respostas, sistema de avaliações, notificações de respostas, filtros salvos.
 
-### Fase 3 — Engajamento Social
-- Módulo de Perguntas e Respostas
-- Sistema de Avaliações (`reviews`)
-- Notificações básicas (novas respostas, status de mesa)
-- Filtros salvos por usuário
+### Fase 4 — AggregatorBot Completo ⚠️ Parcialmente implementado
+Ingestão manual de JSON do Discord está operacional. Coleta automática de fontes externas (Facebook, Reddit) e dry run completo são pendentes.
 
-### Fase 4 — AggregatorBot
-- Serviço de ingestão automática (node-cron)
-- Cadastro e monitoramento de fontes externas
-- Dry run + commit de importação em lote
-- Mecanismo de reivindicação de anúncios importados por mestres locais
-- Logs de ingestão no painel admin
+### Fase 5 — Crescimento e Estabilização 🔜 Pendente
+Recomendações por preferências, notificações por email, SEO estruturado, métricas internas, exportação WhatsApp/Discord.
 
-### Fase 5 — Crescimento e Estabilização
-- Recomendações baseadas em preferências do usuário
-- Integração com sistema de notificações por email (vazamentos de vaga, início próximo)
-- SEO estruturado (meta tags, sitemap, Open Graph para compartilhamento de mesas)
-- Métricas internas de uso no painel admin (sem tracking de terceiros)
-- Exportação WhatsApp e Discord
 ---
 
-## 14. Decisões de Arquitetura Registradas
-
-Este bloco documenta decisões tomadas com justificativa, para evitar que sejam revertidas sem consciência do raciocínio original.
+## 14. Decisões Arquiteturais Registradas
 
 | Decisão | Justificativa |
 |---|---|
-| **Google OAuth como único método de login** | Elimina gerenciamento de senha local, reduz superfície de ataque e simplifica onboarding. Alinha com a proposta de mínima coleta de dados. |
-| **Discord como vínculo opcional de perfil, não como login principal** | Preserva a simplicidade e o estado já validado da autenticação via Google, enquanto abre espaço para selos públicos, validação comunitária e leitura futura de cargos públicos em servidores autorizados, sem acoplar o acesso principal da plataforma ao Discord. |
-| **AggregatorBot no mesmo compose** | Simplifica deploy e compartilha variáveis de ambiente e rede interna com a API. Worker separado seria custo operacional desnecessário na escala atual. |
-| **Fuse.js client-side para busca** | Consistente com o Glossário, mantém zero latência de busca para o usuário. Para volume de mesas esperado na fase inicial, busca client-side é suficiente. Revisitar se ultrapassar 10k registros ativos. |
-| **Slug como identificador de URL** | URLs amigáveis e estáveis são essenciais para SEO e compartilhamento social. Slugs são gerados no backend, nunca no frontend. |
-| **Separação entre `profiles` e `gm_profiles`** | Nem todo usuário é mestre. Forçar campos de mestre em todos os perfis polui o modelo. A elevação de role é um evento explícito, não automático. |
-| **`table_history` desde a fase 1** | Moderação sem rastreabilidade é inauditável. O custo de implementar auditoria depois é sempre maior que implementar desde o início. |
-| **Deduplicação determinística no bot** | Evita seleção aleatória de "vencedor" entre duplicatas, garantindo que anúncios manuais do próprio Artifício sempre prevaleçam sobre importados. |
-| **Parser Python no backend (REQ-18 - Abril/2026)** | Extração de campos estruturados de mensagens Discord requer NLP avançado. spaCy em Python oferece precisão superior ao parser TypeScript. Execução no backend garante consistência e segurança. |
-| **Toast notifications modernas (REQ-19 - Abril/2026)** | Substituição de `alert()` por `react-hot-toast` melhora UX significativamente. Feedback visual não-bloqueante alinhado com heurísticas de Nielsen (H1, H9). |
-| **Validação antes de aprovar candidatos (REQ-19 - Abril/2026)** | Previne publicação de mesas com dados incompletos. Validação de campos obrigatórios (título, sistema, contatos) antes de aceitar candidato garante qualidade do catálogo. |
-| **Migração para sistemas.json e cenarios.json (Abril/2026)** | Substituição de `arvores_de_sistemas.md` por JSON estruturado facilita parsing, validação e manutenção. Suporte a aliases e subgêneros em formato programático. |
+| **Google OAuth como único método de login** | Elimina gerenciamento de senha local, reduz superfície de ataque, mínima coleta de dados. |
+| **Discord como vínculo opcional, não login** | Preserva simplicidade do auth Google. Abre espaço para selos públicos e validação comunitária sem acoplar o acesso principal ao Discord. |
+| **AggregatorBot no mesmo compose** | Simplifica deploy, compartilha variáveis de ambiente e rede interna. Worker separado seria custo desnecessário na escala atual. |
+| **Fuse.js client-side para busca** | Zero latência para o usuário. Suficiente abaixo de 10k registros ativos. Migrar para `tsvector` PostgreSQL se ultrapassar esse volume. |
+| **Slug como identificador de URL** | URLs amigáveis e estáveis para SEO e compartilhamento. Gerados no backend, nunca no frontend. |
+| **Separação entre `profiles` e `gm_profiles`** | Nem todo usuário é mestre. Elevação de role é evento explícito. |
+| **`table_history` desde a fase 1** | Moderação sem rastreabilidade é inauditável. Custo de implementar depois é sempre maior. |
+| **Deduplicação determinística no bot** | Anúncios manuais do Artifício sempre prevalecem sobre importados. Sem seleção aleatória de vencedor. |
+| **Parser Python com spaCy no backend (REQ-18)** | NLP avançado para extração de campos de mensagens Discord. Precisão superior ao parser TypeScript. Execução no backend garante consistência e segurança. |
+| **Toast notifications (REQ-19)** | Substituição de `alert()` por `react-hot-toast`. Feedback não-bloqueante alinhado com heurísticas de Nielsen. |
+| **Validação antes de aprovar candidatos (REQ-19)** | Previne publicação de mesas com dados incompletos. Campos obrigatórios validados antes de aceitar. |
+| **`sistemas.json` e `cenarios.json` (Abril/2026)** | Substituição de `arvores_de_sistemas.md` por JSON estruturado facilita parsing, validação e manutenção programática. |
+| **`gm_avatar_url` não persistido (05/04/2026)** | Avatar extraído do Discord é apenas visual no formulário de revisão. Vínculo real é feito via `gm_id` na reivindicação. |
+| **Kysely em vez de ORM** | TypeScript ao máximo. Controle total das queries, sem mágica de ORM, com tipagem completa da interface `Database`. |
 
 ---
 
-## 14.5. Princípios de UX/UI
+## 15. Glossário
 
-### 14.5.1. As 10 Heurísticas de Nielsen
-
-Este projeto segue as 10 heurísticas de usabilidade de Jakob Nielsen como princípios fundamentais de design de interface:
-
-1. **Visibilidade do Status do Sistema**
-   - A interface mantém o usuário informado sobre o que está acontecendo em tempo real
-   - Exemplos: feedback de seleção, loading states, mensagens de sucesso/erro
-
-2. **Correspondência entre Sistema e Mundo Real**
-   - Uso de linguagem familiar ao usuário, evitando termos técnicos desnecessários
-   - Exemplos: "Mesa" em vez de "Table", "Mestre" em vez de "GM"
-
-3. **Controle e Liberdade do Usuário**
-   - Saídas de emergência claras para ações realizadas por engano
-   - Exemplos: botões de cancelar, confirmações antes de ações destrutivas
-
-4. **Consistência e Padrões**
-   - Manutenção de padrões de design e convenções da plataforma
-   - Exemplos: botões primários sempre laranja Artifício, layout consistente
-
-5. **Prevenção de Erros**
-   - Interface projetada para evitar erros antes que aconteçam
-   - Exemplos: validação em tempo real, campos obrigatórios marcados, confirmações
-
-6. **Reconhecimento em vez de Memorização**
-   - Opções e informações visíveis, minimizando necessidade de memorização
-   - Exemplos: placeholders descritivos, textos de ajuda contextual, breadcrumbs
-
-7. **Flexibilidade e Eficiência de Uso**
-   - Atalhos para usuários experientes mantendo simplicidade para iniciantes
-   - Exemplos: busca rápida em seletores, atalhos de teclado (futuro)
-
-8. **Estética e Design Minimalista**
-   - Foco no essencial, evitando informações irrelevantes
-   - Exemplos: hierarquia visual clara, espaçamento adequado, cores intencionais
-
-9. **Recuperação de Erros**
-   - Mensagens de erro claras com soluções práticas
-   - Exemplos: "Informe pelo menos um canal de contato" em vez de "Validation failed"
-
-10. **Ajuda e Documentação**
-    - Sistema fácil de usar sem documentação, mas com ajuda disponível quando necessário
-    - Exemplos: tooltips, textos de ajuda inline, links para documentação
-
-### 14.5.2. Aplicação Prática
-
-**SystemTreeSelector:**
-- Heurística #1: Scroll automático para item selecionado, feedback visual de seleção, caixa destacada no topo mostrando sistema selecionado com refinamento hierárquico (E111 - Abril/2026)
-- Heurística #4: Comportamento consistente de seleção única
-- Heurística #6: Texto de ajuda contextual, contador de seleção visível, caminho completo da seleção atual
-- Heurística #8: Interface limpa com três colunas hierárquicas
-
-**Formulário de Nova Mesa:**
-- Heurística #5: Validação de contatos obrigatórios, confirmação de papel de anunciante
-- Heurística #6: Placeholders descritivos, labels claros
-- Heurística #9: Mensagens de erro específicas e acionáveis
-
-**Painel de Revisão de Candidatos (REQ-19 - Abril/2026):**
-- Heurística #1: Toast notifications com feedback instantâneo de ações (aceitar/rejeitar), spinners em botões durante processamento
-- Heurística #3: Botão "Desfazer Rejeição" permite recuperação de erro sem perda de dados
-- Heurística #5: Validação de campos obrigatórios antes de aceitar candidato, previne publicação incompleta
-- Heurística #9: Mensagens claras: "Informe pelo menos um canal de contato" em vez de "Validation failed"
-
-**CRUD Administrativo (REQ-23 - Abril/2026):**
-- Heurística #1: Estados de carregamento visíveis, feedback de sucesso/erro via toast
-- Heurística #3: Confirmação antes de deleção, botões de cancelar em modais
-- Heurística #7: Busca em tempo real em seletores, eficiência para administradores
-- Heurística #8: Modais focados, sem informações desnecessárias
-
-**Filtros Avançados e Seleção em Lote (REQ-25 - 05/04/2026):**
-- Heurística #1: Badge "X filtros ativos" visível, contador "X de Y selecionados" em tempo real, spinners durante deleção, estados visuais de botões (disabled com opacity-50)
-- Heurística #2: Labels em português claro ("Data Início", "Buscar por Mestre"), linguagem não-técnica ("Deletar Selecionados" não "DELETE bulk"), mensagens humanizadas ("Esta ação é irreversível!")
-- Heurística #3: Botão "Limpar Filtros" sempre acessível, botão "Cancelar" no modal, checkbox de confirmação pode ser desmarcado, seleção individual reversível
-- Heurística #4: Padrões visuais consistentes (bg-white/5, border-white/10), cores semânticas (vermelho para ações destrutivas), estrutura de modais consistente
-- Heurística #5: Confirmação dupla para deleção (modal + checkbox obrigatório), limite configurável (50/100/150) para evitar timeouts, validação backend (máximo 150 IDs), preview de candidatos antes de deletar
-- Heurística #6: Filtros sempre visíveis (não escondidos), badge mostra quantidade ativa, preview dos candidatos no modal, contador sempre visível, tooltip "Filtros salvos automaticamente"
-- Heurística #7: Filtros combinados (data + mestre + status) para usuários avançados, limite configurável (usuário escolhe velocidade vs quantidade), "Selecionar Todos" para operações rápidas, seleção individual para controle fino, persistência no localStorage
-- Heurística #8: Informações essenciais destacadas (badge, contador), informações secundárias em texto menor/cor suave, botões aparecem apenas quando relevantes, sem poluição visual
-- Heurística #9: Feedback diferenciado (sucesso total/parcial/falha), toast quando limite é atingido ("Selecionados 50 de 200 candidatos (limite atingido)"), mensagens de erro claras, validação de limite no backend retorna erro específico
-- Heurística #10: Tooltip explicativo no badge, texto de ajuda "💡 Os filtros são salvos automaticamente...", placeholders nos inputs ("Nome do mestre..."), labels descritivos, mensagem clara no modal explicando consequências
-
-### 14.5.3. Checklist de Revisão de UX
-
-Antes de implementar nova feature de interface:
-- [ ] Feedback visual imediato para ações do usuário?
-- [ ] Linguagem clara e familiar ao público-alvo?
-- [ ] Usuário pode desfazer/cancelar ações importantes?
-- [ ] Padrões visuais consistentes com resto da aplicação?
-- [ ] Validações previnem erros comuns?
-- [ ] Informações necessárias estão visíveis (não requerem memorização)?
-- [ ] Interface funciona bem para iniciantes e experientes?
-- [ ] Design limpo, sem elementos desnecessários?
-- [ ] Mensagens de erro são claras e sugerem solução?
-- [ ] Ajuda contextual disponível quando necessário?
-
----
-
-## 15. Glossário do Projeto
-
-| Termo | Definição no contexto deste projeto |
+| Termo | Definição |
 |---|---|
 | **Mesa** | Anúncio de uma sessão ou campanha de RPG, publicada por um mestre ou importada de fonte externa. Entidade central do produto. |
 | **Mestre (GM)** | Usuário com role `gm`, responsável por narrar a mesa. Possui `gm_profile` público. |
 | **Jogador** | Usuário com role `player`. Pode buscar, salvar e avaliar mesas, mas não publicar. |
-| **AggregatorBot** | Serviço interno de coleta automática de anúncios de fontes externas. |
-| **Fonte** | URL ou canal externo monitorado pelo AggregatorBot (ex: grupo do Facebook, subreddit). |
+| **AggregatorBot** | Serviço interno de coleta e processamento de anúncios de fontes externas. |
+| **Fonte** | URL ou canal externo monitorado pelo AggregatorBot (ex: servidor Discord). |
+| **Candidato** | Anúncio importado que aguarda revisão editorial na fila de curadoria. |
 | **Reivindicação** | Ação de um mestre local que vincula um anúncio importado ao próprio `gm_profile`. |
 | **Dry Run** | Simulação de importação em lote sem persistir dados, usada para preview e detecção de duplicatas. |
-| **Slug** | Identificador textual único gerado a partir do nome da entidade, usado em URLs. |
-| **Onboarding** | Fluxo obrigatório de 3 etapas executado no primeiro login para configurar perfil e preferências. |
-| **Exportação** | Geração de texto formatado para WhatsApp ou Discord a partir dos dados estruturados de uma mesa. |
-| **Vínculo comunitário** | Conexão opcional entre o perfil do usuário e comunidades autorizadas, usada para validação contextual e exibição pública controlada. |
-| **Selo público** | Marcador visual exibido no perfil do mestre quando houver vínculo validado com comunidade parceira ou critério editorial definido pela plataforma. |
-| **Cargo público do Discord** | Informação pública de cargo obtida futuramente por integração autorizada com servidores Discord elegíveis, usada apenas para fins de contexto comunitário e selos. |
+| **Slug** | Identificador textual único gerado a partir do nome da entidade, usado em URLs amigáveis. |
+| **Onboarding** | Fluxo de 3 etapas executado no primeiro login para configurar perfil e preferências. |
+| **Selo** | Marcador visual no perfil do mestre derivado de critério editorial ou vínculo comunitário validado (ex: DDAL, Covil do Lich). |
+| **Covil do Lich** | Comunidade parceira. Mesas associadas recebem o selo automaticamente via parser se termos correspondentes forem detectados. |
+| **DDAL** | D&D Adventurers League. Programa oficial de jogo organizado da Wizards of the Coast. Exige `system_id` apontando para `dungeons-dragons/5e/2024`. |
+| **SessionSchedule** | Interface compartilhada (Python/Pydantic + TypeScript) representando um horário de sessão com dia, hora, frequência e vagas. |
+
+---
 
 ## 16. Gestão de Imagens e Integração Imgur
 
-### 16.1 Princípio Geral
+### 16.1 Categorias de Imagem
 
-Imagens do ecossistema do projeto são divididas em três categorias com tratamentos distintos:
+**Imagens estáticas do site** (logos, ícones, ilustrações de UI) — servidas pelo Nginx a partir do build Vite. Nunca vão para o Imgur.
 
-**Imagens estáticas do site** (logos, ícones, ilustrações de UI) — servidas diretamente pelo Nginx a partir do build do Vite. Nunca vão para o Imgur.
+**Imagens enviadas por usuários** — processadas no backend, convertidas para WebP via Sharp, hospedadas no Imgur:
+- Banners de mesas criadas localmente (`tables.cover_url` com `cover_source_type = imgur_upload`)
+- Avatar e banner do mestre (`gm_profiles.avatar_url`, `gm_profiles.banner_url`)
 
-**Imagens enviadas por usuários** — processadas na Oracle, convertidas para WebP e hospedadas no Imgur via API. São elas:
-- Banners de mesas criadas localmente (`tables.cover_url` quando `cover_source_type=imgur_upload`)
-- Avatar e banner do perfil do mestre (`gm_profiles.avatar_url`, `gm_profiles.banner_url`)
+**Imagens reaproveitadas de fontes externas** — quando anúncio importado do Discord já traz imagem pública reutilizável, ela é usada diretamente como `cover_url` com `cover_source_type = discord_reused`, sem reupload.
 
-**Imagens reaproveitadas de fontes externas monitoradas pelo bot** — especialmente campanhas importadas dos canais do Covil do Lich no Discord. Quando a postagem já trouxer uma imagem de campanha com URL pública reutilizável, essa imagem poderá ser usada diretamente como `cover_url` da mesa importada, sem reupload obrigatório para Imgur.
+### 16.2 Fluxos de Imagem
 
-### 16.2 Fluxos de imagem (Upload e Reaproveitamento Externo)
-
-**Fluxo A — Upload local para Imgur**
-
+**Fluxo A — Upload local para Imgur:**
 ```
-[Cliente envia imagem]
-    → API Node.js recebe o arquivo via multipart/form-data
-    → Sharp converte para WebP (qualidade 85, resize proporcional com limite de 1280px de largura)
-    → Buffer WebP é enviado para a API do Imgur via POST /image (base64)
+[Cliente envia imagem via multipart/form-data]
+    → API Node.js recebe o arquivo
+    → Sharp converte para WebP (qualidade 85, largura máx 1280px, proporcional)
+    → Buffer WebP enviado ao Imgur via POST /image (base64)
     → Imgur retorna { link, deletehash, id }
-    → Backend salva no banco: link (URL pública), deletehash (para exclusão futura), imgur_id
-    → cover_source_type = imgur_upload
-    → URL pública do Imgur é retornada ao Frontend e gravada no campo correspondente
+    → Backend salva: link, deletehash, imgur_id no banco
+    → cover_source_type = 'imgur_upload'
+    → URL pública retornada ao frontend
 ```
 
-**Fluxo B — Reaproveitamento de imagem externa vinda do Discord**
-
+**Fluxo B — Reaproveitamento de imagem do Discord:**
 ```
-[AggregatorBot encontra anúncio no Discord]
-    → Extrai a imagem de campanha já publicada na postagem
-    → Valida se a URL é pública e reutilizável externamente
-    → Grava a URL em cover_url
-    → Grava a mesma origem em cover_origin_url
-    → cover_source_type = discord_reused
-    → Não cria deletehash nem imgur_id
+[AggregatorBot encontra anúncio com imagem pública]
+    → Valida se a URL é pública e reutilizável
+    → Grava cover_url com a URL original
+    → Grava cover_origin_url com a mesma URL
+    → cover_source_type = 'discord_reused'
+    → Não gera deletehash nem imgur_id
 ```
 
-**Regra arquitetural:** para anúncios importados dos canais monitorados do Covil do Lich, a imagem da campanha deve ser reaproveitada sempre que a postagem já fornecer uma URL pública utilizável.
+**Regra arquitetural:** Para anúncios importados de canais monitorados, a imagem da campanha deve ser reaproveitada sempre que a postagem já fornecer URL pública utilizável.
 
-**Dependências no Backend:**
-- `sharp` — conversão e resize para WebP
-- `axios` ou `node-fetch` — chamadas à API do Imgur e consumo de origens externas quando necessário
-- Variável de ambiente `IMGUR_CLIENT_ID` — obrigatória para uploads próprios, nunca exposta ao Frontend
+### 16.3 Limites e Regras de Upload
 
-### 16.3 Campos de Banco Adicionais
-
-Para suportar o ciclo de vida das imagens, os seguintes campos devem estar presentes:
-
-**Em `tables`:**
-| Campo | Tipo | Descrição |
-|---|---|---|
-| `cover_url` | `TEXT` | URL pública da imagem exibida na mesa |
-| `cover_source_type` | `TEXT` | Origem da imagem, como `imgur_upload` ou `discord_reused` |
-| `cover_origin_url` | `TEXT` | URL original da imagem quando vier de fonte externa reaproveitada |
-| `cover_deletehash` | `TEXT` | Hash de exclusão no Imgur, quando aplicável |
-| `cover_imgur_id` | `TEXT` | ID da imagem no Imgur, quando aplicável |
-
-**Em `gm_profiles`:**
-| Campo | Tipo | Descrição |
-|---|---|---|
-| `avatar_url` | `TEXT` | URL pública do Imgur |
-| `avatar_deletehash` | `TEXT` | Hash de exclusão |
-| `avatar_imgur_id` | `TEXT` | ID da imagem |
-| `banner_url` | `TEXT` | URL pública do Imgur |
-| `banner_deletehash` | `TEXT` | Hash de exclusão |
-| `banner_imgur_id` | `TEXT` | ID da imagem |
+- Tamanho máximo aceito pelo backend: **10MB por arquivo** (antes da conversão WebP)
+- Formatos aceitos na entrada: JPEG, PNG, WebP, AVIF, GIF estático (GIF animado é rejeitado)
+- Saída sempre em **WebP**, qualidade 85, largura máxima 1280px, altura proporcional
+- Uma imagem por campo por vez — ao substituir, a anterior é deletada do Imgur antes do novo upload
+- Rate limit do Imgur: 1250 uploads/dia por Client-ID. Em `429`, retornar erro claro ao usuário sem retry na mesma requisição
+- Uploads aceitos apenas de usuários autenticados com role `gm` (imagens de mesa e perfil) ou `admin`
 
 ### 16.4 Política de Expiração e Exclusão
 
-**Banners enviados localmente e hospedados no Imgur** possuem ciclo de vida vinculado ao status da mesa:
+**Mesas com imagens do Imgur (`imgur_upload`):** Quando status transitar para `ended` ou `cancelled`, o CleanupWorker executa exclusão da imagem via `DELETE /image/{deletehash}`. Após confirmação, todos os campos de imagem são zerados no banco.
 
-Quando o status de uma mesa transitar para `ended` ou `cancelled`, um job de limpeza executa automaticamente a exclusão da imagem no Imgur via `DELETE /image/{deletehash}`. Após confirmação de exclusão bem-sucedida, os campos `cover_url`, `cover_source_type`, `cover_origin_url`, `cover_deletehash` e `cover_imgur_id` são zerados no banco.
+**Mesas com imagens reaproveitadas do Discord (`discord_reused`):** O sistema apenas limpa a referência local. Nenhum `DELETE` é enviado à origem externa.
 
-**Banners reaproveitados de importação do Discord** não devem gerar tentativa de exclusão na origem externa. Quando a mesa importada for encerrada, cancelada ou removida, o sistema apenas poderá limpar a referência local conforme a política de retenção do anúncio, sem enviar `DELETE` ao provedor externo.
+**Imagens de mestres (avatar/banner):** Não têm expiração automática. São excluídas do Imgur apenas ao substituir (a anterior é deletada antes do novo upload) ou ao encerrar a conta do mestre via admin.
 
-**Imagens de mestres** (avatar e banner do `gm_profile`) **não possuem expiração automática**. Só são excluídas do Imgur quando o mestre faz upload de uma nova imagem (substituição) — neste caso, a imagem anterior é deletada do Imgur antes de persistir a nova — ou quando a conta do mestre é encerrada por um administrador.
+### 16.5 CleanupWorker *(pendente — migration_10)*
 
-### 16.5 Job de Limpeza (CleanupWorker)
-
-Rodando via node-cron junto ao AggregatorBot, o `CleanupWorker` executa diariamente:
+Roda via node-cron junto ao AggregatorBot, diariamente:
 
 ```
-1. Busca no banco todas as mesas com status = 'ended' OR 'cancelled'
-   onde cover_source_type = 'imgur_upload'
-   e cover_deletehash IS NOT NULL
-2. Para cada mesa: chama DELETE /image/{deletehash} na API do Imgur
-3. Se resposta 200: zera cover_url, cover_source_type, cover_origin_url, cover_deletehash e cover_imgur_id no banco
-4. Se resposta 404 (já deletada): zera os campos no banco sem erro
-5. Se falha de rede: registra em log e tenta novamente no próximo ciclo
-6. Imagens com cover_source_type = `discord_reused` são ignoradas pelo job de exclusão externa
-7. Registra resultado de cada operação em tabela imgur_cleanup_log
+1. Busca mesas com status = 'ended' OR 'cancelled'
+   WHERE cover_source_type = 'imgur_upload'
+   AND cover_deletehash IS NOT NULL
+2. Para cada mesa: DELETE /image/{deletehash} na API do Imgur
+3. Se 200: zera todos os campos de imagem no banco
+4. Se 404 (já deletada): zera os campos sem erro
+5. Se falha de rede: registra em log, tenta novamente no próximo ciclo
+6. Imagens com cover_source_type = 'discord_reused' são ignoradas
+7. Registra cada operação em imgur_cleanup_log
 ```
 
-**Tabela `imgur_cleanup_log`:**
+**Estrutura da tabela `imgur_cleanup_log`:**
+
 | Campo | Tipo | Descrição |
 |---|---|---|
-| `id` | `UUID` | PK |
-| `entity_type` | `TEXT` | `table` ou `gm_profile` |
-| `entity_id` | `UUID` | FK da entidade |
-| `imgur_id` | `TEXT` | ID da imagem deletada |
-| `status` | `TEXT` | `success`, `not_found`, `error` |
-| `attempted_at` | `TIMESTAMPTZ` | Timestamp da tentativa |
-| `error_detail` | `TEXT` | Mensagem de erro se houver |
+| `id` | UUID | PK |
+| `entity_type` | TEXT | `table` ou `gm_profile` |
+| `entity_id` | UUID | FK da entidade |
+| `imgur_id` | TEXT | ID da imagem deletada |
+| `status` | TEXT | `success`, `not_found`, `error` |
+| `attempted_at` | TIMESTAMPTZ | Timestamp da tentativa |
+| `error_detail` | TEXT | Mensagem de erro, se houver |
 
-### 16.6 Limites e Regras de Upload
+### 16.6 Segurança de Imagens
 
-- **Tamanho máximo aceito pelo Backend:** 10MB por arquivo (antes da conversão WebP)
-- **Formatos aceitos na entrada:** JPEG, PNG, WebP, AVIF, GIF (estático — GIF animado é rejeitado)
-- **Saída sempre em WebP**, qualidade 85, largura máxima 1280px, altura proporcional
-- **Uma imagem por campo por vez:** ao substituir, a anterior é deletada do Imgur antes do novo upload
-- **Imgur Client ID** deve ser de aplicação registrada como anônima (anonymous upload) para não exigir OAuth do usuário final
-- **Rate limit do Imgur:** respeitar o limite de 1250 uploads por dia por Client ID. Em caso de `429`, o Backend deve retornar erro claro ao usuário e não tentar novamente na mesma requisição
+- `cover_deletehash`, `avatar_deletehash`, `banner_deletehash` são campos **nunca retornados por nenhuma rota pública da API**.
+- `IMGUR_CLIENT_ID` é variável de ambiente obrigatória, listada no `.env.example` sem valor real, nunca exposta ao frontend.
+- URLs externas reaproveitadas do Discord só podem ser usadas quando já forem públicas na postagem importada. O sistema não modifica nem exclui arquivos em origens externas.
 
-### 16.7 Segurança
+---
 
-- `cover_deletehash`, `avatar_deletehash` e `banner_deletehash` são campos **nunca retornados por nenhuma rota pública da API**. Ficam restritos ao Backend e ao painel admin.
-- O `IMGUR_CLIENT_ID` é variável de ambiente obrigatória, listada no `.env.example` sem valor real.
-- URLs externas reaproveitadas do Discord só podem ser usadas quando já forem públicas e reutilizáveis na própria postagem importada. O sistema não tenta apagar nem modificar o arquivo na origem externa.
-- Uploads são processados apenas por usuários autenticados com role `gm` (para imagens de mesa e perfil de mestre) ou `admin`.
-
-
-## 17. Referências e Documentos Relacionados
+## 17. Documentos Relacionados
 
 | Documento | Finalidade |
 |---|---|
 | `AGENTS.md` | Instruções de comportamento para agentes de IA no projeto |
-| `ERRORS_SOLUTIONS.md` | Registro de erros conhecidos e suas soluções (E001-E111 catalogados até Abril/2026) |
+| `ERRORS_SOLUTIONS.md` | Registro de erros conhecidos e soluções (E001–E111 catalogados até Abril/2026) |
 | `CHANGELOG.md` | Histórico de versões e mudanças relevantes |
+| `GUIA_RAPIDO_OPERACIONAL.md` | Referência rápida de tarefas operacionais para agentes |
 | `docker-compose.yml` | Definição dos serviços: API, PostgreSQL, Nginx, AggregatorBot |
-| `sistemas.json` e `cenarios.json` | **Migração concluída (Abril/2026):** Substituição de `arvores_de_sistemas.md` por `sistemas.json` (taxonomia de sistemas com `name`, `aliases`, `editions`, `variants`, `depth`, `path_slug`) e `cenarios.json` (cenários com campo `subgenero` como array de tags). Dockerfile atualizado para copiar ambos automaticamente no build. Scripts de importação (`systemsTreeImport.ts`) processam JSON. Parser Python (`discord_message_parser.py`) utiliza `sistemas.json` para detecção automática de sistemas em mensagens do Discord. |
+| `sistemas.json` | Taxonomia de sistemas (name, aliases, editions, variants, depth, path_slug) |
+| `cenarios.json` | Cenários com campo `subgenero` como array de tags |
+| `backend/src/db/types.ts` | Interface `Database` com tipagem completa de todas as tabelas |
+| `slugify.ts` | Utilitário de geração de slugs únicos |
+| `pythonParserService.ts` | Orquestrador Node.js do parser Python via child_process |
+| `discord_message_parser.py` | Script Python com spaCy para extração de campos estruturados |
+
 ---
 
-> **Lembre-se:** Este é um presente do Artifício RPG para a comunidade brasileira de RPG.
+> **Este é um presente do Artifício RPG para a comunidade brasileira de RPG.**
 > Gratuito · Sem anúncios · Sem coleta de dados · Feito com ♥ pela comunidade.
-
-
-
