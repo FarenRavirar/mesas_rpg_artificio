@@ -425,16 +425,17 @@ export function mapCandidateToFormData(
     mapped.technical_requirements = sanitizeText(enrichedJson.technical_requirements || enrichedJson.technicalRequirements || enrichedJson.requirements);
   }
 
-  if (enrichedJson.requires_pc !== undefined || enrichedJson.requiresPc !== undefined) {
-    mapped.requires_pc = enrichedJson.requires_pc || enrichedJson.requiresPc || false;
+  // CORREÇÃO A10: Padronizar para snake_case (parser Python retorna snake_case)
+  if (enrichedJson.requires_pc !== undefined) {
+    mapped.requires_pc = enrichedJson.requires_pc || false;
   }
 
-  if (enrichedJson.requires_camera !== undefined || enrichedJson.requiresCamera !== undefined) {
-    mapped.requires_camera = enrichedJson.requires_camera || enrichedJson.requiresCamera || false;
+  if (enrichedJson.requires_camera !== undefined) {
+    mapped.requires_camera = enrichedJson.requires_camera || false;
   }
 
-  if (enrichedJson.requires_microphone !== undefined || enrichedJson.requiresMicrophone !== undefined) {
-    mapped.requires_microphone = enrichedJson.requires_microphone || enrichedJson.requiresMicrophone || false;
+  if (enrichedJson.requires_microphone !== undefined) {
+    mapped.requires_microphone = enrichedJson.requires_microphone || false;
   }
 
   // REQ-28: Cenário e estilos
@@ -451,7 +452,9 @@ export function mapCandidateToFormData(
     console.log('[candidateToFormData] setting_styles mapeado:', mapped.setting_styles);
   }
   
-  // REQ-28: Billing text (priceText do parser)
+  
+  // CORREÇÃO A08: Priorizar billing_text (priceText do parser)
+  // O formulário usa billing_text para texto descritivo de preço
   if (enrichedJson.priceText) {
     mapped.billing_text = sanitizeText(enrichedJson.priceText);
     console.log('[candidateToFormData] billing_text mapeado de priceText:', mapped.billing_text);

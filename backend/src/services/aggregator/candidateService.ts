@@ -105,6 +105,35 @@ export const candidateService = {
       ? enrichedFields.setting_styles.filter((s): s is string => typeof s === 'string')
       : null;
 
+    // CORREÇÃO A02: Extrair campos técnicos do mergedJson (REQ-28)
+    const requiresCamera = typeof enrichedFields.requires_camera === 'boolean' 
+      ? enrichedFields.requires_camera 
+      : false;
+    
+    const requiresMicrophone = typeof enrichedFields.requires_microphone === 'boolean' 
+      ? enrichedFields.requires_microphone 
+      : false;
+    
+    const requiresPc = typeof enrichedFields.requires_pc === 'boolean' 
+      ? enrichedFields.requires_pc 
+      : false;
+    
+    // CORREÇÃO A03: Extrair billing_text (priceText do parser)
+    const billingText = typeof enrichedFields.priceText === 'string' 
+      ? enrichedFields.priceText.trim() 
+      : null;
+    
+    
+    // CORREÇÃO A02: Extrair master_display_name
+    const masterDisplayName = typeof enrichedFields.master_display_name === 'string' 
+      ? enrichedFields.master_display_name.trim() 
+      : null;
+
+    // CORREÇÃO A14: Extrair avatarUrl do parser Python
+    const avatarUrl = typeof enrichedFields.avatar_url === 'string' 
+      ? enrichedFields.avatar_url.trim() 
+      : null;
+
     // Validar contatos obrigatórios
     if (!signupText) {
       throw new Error('Candidato sem informação de contato. Edite o candidato e adicione ao menos um canal de contato antes de aprovar.');
@@ -132,6 +161,8 @@ export const candidateService = {
         slug: gmSlug,
         nickname: gmNickname,
         bio_long: `Perfil temporário para mesa importada. Mestre: ${gmNickname}`,
+        // CORREÇÃO A14: Persistir avatar extraído do Discord
+        avatar_url: avatarUrl,
       })
       .returning(['id', 'slug'])
       .execute();
@@ -167,6 +198,12 @@ export const candidateService = {
           imported_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
           setting_name: settingName,
           setting_styles: settingStyles,
+          // CORREÇÃO A01: Persistir campos técnicos extraídos (REQ-28)
+          requires_camera: requiresCamera,
+          requires_microphone: requiresMicrophone,
+          requires_pc: requiresPc,
+          billing_text: billingText,
+          master_display_name: masterDisplayName,
         })
         .returning(['id', 'slug', 'title', 'origin', 'source_id', 'is_covil', 'imported_expires_at', 'created_at'])
         .execute();

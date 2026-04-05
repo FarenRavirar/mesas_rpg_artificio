@@ -765,7 +765,8 @@ export function CreateTableForm({ token, onSuccess, initialData, mode = 'create'
         </div>
 
         {/* Bloco D: Cobrança detalhada */}
-        {form.price_type === 'paga' && (
+        {/* CORREÇÃO A09: Abrir bloco também quando billing_text existe (dados importados) */}
+        {(form.price_type === 'paga' || billingText) && (
           <div className="space-y-3">
             <p className="text-sm font-semibold text-white/80">Detalhes de Cobrança</p>
             <div className="flex flex-col gap-1">
