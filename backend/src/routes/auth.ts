@@ -151,7 +151,7 @@ router.get('/google/callback', async (req: Request, res: Response) => {
     };
 
     const accessToken = jwt.sign(jwtPayload, process.env.JWT_SECRET as string, {
-      expiresIn: (process.env.JWT_EXPIRES_IN || '15m') as any
+      expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as any
     });
 
     // Como o backend é API, nós redirecionamos de volta para o frontend (que abriu o popup de login) 
