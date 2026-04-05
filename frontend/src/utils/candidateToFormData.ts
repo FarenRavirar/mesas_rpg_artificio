@@ -44,6 +44,11 @@ export interface CandidateFormData {
   // REQ-28: Cenário e estilos
   setting_name?: string;
   setting_styles?: string[];
+  
+  // REQ-28 Fase 4: Campos editoriais separados
+  synopsis_narrative?: string;
+  benefits_text?: string;
+  gm_bio?: string;
 }
 
 /**
@@ -465,6 +470,22 @@ export function mapCandidateToFormData(
       .map((s: string) => s.trim())
       .slice(0, 10); // Limitar a 10 estilos
     console.log('[candidateToFormData] setting_styles mapeado:', mapped.setting_styles);
+  }
+  
+  // REQ-28 Fase 4: Mapear campos editoriais como propriedades próprias
+  if (enrichedJson.synopsis_narrative) {
+    mapped.synopsis_narrative = sanitizeText(enrichedJson.synopsis_narrative);
+    console.log('[candidateToFormData] synopsis_narrative mapeado:', mapped.synopsis_narrative?.substring(0, 50));
+  }
+  
+  if (enrichedJson.benefits_text) {
+    mapped.benefits_text = sanitizeText(enrichedJson.benefits_text);
+    console.log('[candidateToFormData] benefits_text mapeado:', mapped.benefits_text?.substring(0, 50));
+  }
+  
+  if (enrichedJson.gm_bio) {
+    mapped.gm_bio = sanitizeText(enrichedJson.gm_bio);
+    console.log('[candidateToFormData] gm_bio mapeado:', mapped.gm_bio?.substring(0, 50));
   }
   
   
