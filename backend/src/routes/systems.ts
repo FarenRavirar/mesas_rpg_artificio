@@ -165,7 +165,7 @@ const slugify = (value: string): string => {
 };
 
 // POST /api/v1/admin/systems — Criar novo sistema
-router.post('/admin/systems', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
+router.post('/admin', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
   const { name, node_type, parent_id, aliases } = req.body;
 
   if (!name || !node_type) {
@@ -253,7 +253,7 @@ router.post('/admin/systems', authMiddleware, requireRole('admin'), async (req: 
 });
 
 // PUT /api/v1/admin/systems/:id — Editar sistema
-router.put('/admin/systems/:id', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
+router.put('/admin/:id', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
   const { id } = req.params;
   const { name, node_type, parent_id } = req.body;
 
@@ -357,7 +357,7 @@ router.put('/admin/systems/:id', authMiddleware, requireRole('admin'), async (re
 });
 
 // DELETE /api/v1/admin/systems/:id — Deletar sistema
-router.delete('/admin/systems/:id', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
+router.delete('/admin/:id', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
   const { id } = req.params;
 
   try {

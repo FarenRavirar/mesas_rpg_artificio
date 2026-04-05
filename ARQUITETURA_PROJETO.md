@@ -107,6 +107,7 @@ docker exec mesas-beta-db env | grep POSTGRES
 - `bookmarks` — Mesas salvas por usuários.
 - `sources` — Registro de fontes externas para o AggregatorBot.
 - `imported_tables` — Anúncios coletados automaticamente antes de deduplicação.
+- `aggregator_import_candidates` — Candidatos de importação aguardando revisão editorial. Contém campos enriquecidos pelo parser Python (migration_07): múltiplos horários estruturados (`sessions[]`), vagas detalhadas, classificação de sistema/pagamento/tipo, separação mestre vs anunciante. Status: `awaiting_review`, `accepted`, `rejected`. Suporta filtros avançados (data, mestre) e operações em lote (rejeição, deleção permanente com limite de 150 IDs).
 - `system_suggestions` — Sugestões colaborativas de novos sistemas enviadas por usuários (migration_06).
 - `notifications` — Notificações in-app para usuários (migration_07).
 - `imgur_cleanup_log` — Registro de tentativas de limpeza de imagens hospedadas externamente.
@@ -278,7 +279,12 @@ Preferências alimentam: recomendações na home, filtros pré-salvos, notifica�
   - **Mesas:** Funcionalidade de deleção administrativa (hard delete com cascade de contatos e relacionamentos).
   - **UX Administrativa:** Modais de edição (`SystemEditModal`, `ScenarioEditModal`), confirmação de deleção, feedback via `react-hot-toast`, estados de carregamento (spinners).
 - **Notificações In-App (REQ-15 - Implementado Abril/2026):** Sino no header com contador de não lidas. Notificações de sugestões de sistemas aprovadas/rejeitadas.
-- **Revisão de Candidatos (Aggregator):** Fluxo completo de aceitação/rejeição de anúncios importados com validação de campos obrigatórios, botão "Desfazer Rejeição" e rejeição em lote.
+- **Revisão de Candidatos (Aggregator - REQ-25 - Implementado 05/04/2026):** 
+  - **Fluxo de Revisão:** Aceitação/rejeição de anúncios importados com validação de campos obrigatórios, botão "Desfazer Rejeição" e rejeição em lote.
+  - **Filtros Avançados Combinados:** Filtro por data (range início/fim), busca por nome do mestre e filtro de status (pending/approved/rejected). Filtros aplicáveis simultaneamente (AND lógico). Persistência automática no localStorage com badge visual "X filtros ativos".
+  - **Seleção Múltipla e Ações em Lote:** Checkbox "Selecionar Todos" (respeita limite configurável: 50/100/150), checkboxes individuais por candidato, contador "X de Y selecionados". Sincronização automática: IDs invisíveis após aplicar filtros são removidos da seleção. Limpeza automática ao trocar de aba de status.
+  - **Deleção em Lote:** Botão "Deletar Selecionados" (vermelho, só aparece quando há seleção). Modal de confirmação dupla com lista de candidatos, checkbox "Confirmo que quero deletar permanentemente" e feedback diferenciado (sucesso total/parcial/falha). Rota backend `DELETE /api/v1/aggregator/candidates/bulk` com validação de array, limite de 150 IDs e retorno de contagem.
+  - **Heurísticas de Nielsen:** Implementação completa das 10 heurísticas de usabilidade (visibilidade de status, prevenção de erros, controle e liberdade, feedback constante).
 - **Destaques da Home:** Curadoria manual das mesas exibidas no hero.
 - **Workflow de Continuidade:** Modal de moderação suporta estado `stayOpen` para processar múltiplos itens em sequência.
 
@@ -476,6 +482,7 @@ Referência rápida das rotas estruturais da API. Todas as rotas mutáveis exige
 | `PATCH` | `/api/v1/aggregator/candidates/:id/review` | `admin` | Marcar candidato para revisão manual |
 | `PATCH` | `/api/v1/aggregator/candidates/reject-all` | `admin` | Rejeição em lote de candidatos (REQ-19 - Abril/2026) |
 | `PATCH` | `/api/v1/aggregator/candidates/:id/undo-rejection` | `admin` | Desfazer rejeição (REQ-19 - Abril/2026) |
+| `DELETE` | `/api/v1/aggregator/candidates/bulk` | `admin` | Deletar múltiplos candidatos permanentemente. Body: `{ ids: string[] }`. Validações: array não-vazio, todos IDs strings, limite 150 por request. Retorna: `{ data: { deleted: number, requested: number } }` (REQ-25 - 05/04/2026) |
 
 
 ---
@@ -613,6 +620,18 @@ Este projeto segue as 10 heurísticas de usabilidade de Jakob Nielsen como princ
 - Heurística #3: Confirmação antes de deleção, botões de cancelar em modais
 - Heurística #7: Busca em tempo real em seletores, eficiência para administradores
 - Heurística #8: Modais focados, sem informações desnecessárias
+
+**Filtros Avançados e Seleção em Lote (REQ-25 - 05/04/2026):**
+- Heurística #1: Badge "X filtros ativos" visível, contador "X de Y selecionados" em tempo real, spinners durante deleção, estados visuais de botões (disabled com opacity-50)
+- Heurística #2: Labels em português claro ("Data Início", "Buscar por Mestre"), linguagem não-técnica ("Deletar Selecionados" não "DELETE bulk"), mensagens humanizadas ("Esta ação é irreversível!")
+- Heurística #3: Botão "Limpar Filtros" sempre acessível, botão "Cancelar" no modal, checkbox de confirmação pode ser desmarcado, seleção individual reversível
+- Heurística #4: Padrões visuais consistentes (bg-white/5, border-white/10), cores semânticas (vermelho para ações destrutivas), estrutura de modais consistente
+- Heurística #5: Confirmação dupla para deleção (modal + checkbox obrigatório), limite configurável (50/100/150) para evitar timeouts, validação backend (máximo 150 IDs), preview de candidatos antes de deletar
+- Heurística #6: Filtros sempre visíveis (não escondidos), badge mostra quantidade ativa, preview dos candidatos no modal, contador sempre visível, tooltip "Filtros salvos automaticamente"
+- Heurística #7: Filtros combinados (data + mestre + status) para usuários avançados, limite configurável (usuário escolhe velocidade vs quantidade), "Selecionar Todos" para operações rápidas, seleção individual para controle fino, persistência no localStorage
+- Heurística #8: Informações essenciais destacadas (badge, contador), informações secundárias em texto menor/cor suave, botões aparecem apenas quando relevantes, sem poluição visual
+- Heurística #9: Feedback diferenciado (sucesso total/parcial/falha), toast quando limite é atingido ("Selecionados 50 de 200 candidatos (limite atingido)"), mensagens de erro claras, validação de limite no backend retorna erro específico
+- Heurística #10: Tooltip explicativo no badge, texto de ajuda "💡 Os filtros são salvos automaticamente...", placeholders nos inputs ("Nome do mestre..."), labels descritivos, mensagem clara no modal explicando consequências
 
 ### 14.5.3. Checklist de Revisão de UX
 

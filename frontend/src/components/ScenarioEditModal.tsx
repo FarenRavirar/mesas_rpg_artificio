@@ -74,8 +74,8 @@ export const ScenarioEditModal = ({ scenario, token, onClose, onSuccess }: Scena
 
     try {
       const url = scenario
-        ? `${API_BASE}/api/v1/admin/scenarios/${scenario.id}`
-        : `${API_BASE}/api/v1/admin/scenarios`;
+        ? `${API_BASE}/api/v1/scenarios/admin/${scenario.id}`
+        : `${API_BASE}/api/v1/scenarios/admin`;
 
       const method = scenario ? 'PUT' : 'POST';
 

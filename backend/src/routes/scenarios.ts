@@ -90,7 +90,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 // =============================================================================
 
 // POST /api/v1/admin/scenarios — Criar novo cenário
-router.post('/admin/scenarios', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
+router.post('/admin', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
   const { name, subgenres } = req.body;
 
   if (!name) {
@@ -133,7 +133,7 @@ router.post('/admin/scenarios', authMiddleware, requireRole('admin'), async (req
 });
 
 // PUT /api/v1/admin/scenarios/:id — Editar cenário
-router.put('/admin/scenarios/:id', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
+router.put('/admin/:id', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
   const { id } = req.params;
   const { name, subgenres } = req.body;
 
@@ -190,7 +190,7 @@ router.put('/admin/scenarios/:id', authMiddleware, requireRole('admin'), async (
 });
 
 // DELETE /api/v1/admin/scenarios/:id — Deletar cenário
-router.delete('/admin/scenarios/:id', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
+router.delete('/admin/:id', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
   const { id } = req.params;
 
   try {

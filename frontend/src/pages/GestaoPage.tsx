@@ -63,6 +63,21 @@ export const GestaoPage = () => {
   const [allTables, setAllTables] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Estados para filtros avançados
+  const [dateFilterStart, setDateFilterStart] = useState<string>('');
+  const [dateFilterEnd, setDateFilterEnd] = useState<string>('');
+  const [masterFilter, setMasterFilter] = useState<string>('');
+
+  // Estados para seleção múltipla
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectAll, setSelectAll] = useState(false);
+  const [selectionLimit, setSelectionLimit] = useState<number>(100);
+
+  // Estados para modal de confirmação de delete em lote
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [bulkDeleteConfirmed, setBulkDeleteConfirmed] = useState(false);
+  const [deletingBulk, setDeletingBulk] = useState(false);
+
   /** Mapeamento pré-computado: candidateId -> CandidateFormData */
   const candidateMappedData = useMemo(() => {
     const map = new Map<string, ReturnType<typeof mapCandidateToFormData>>();
@@ -72,6 +87,102 @@ export const GestaoPage = () => {
     return map;
   }, [candidates, systemsTree]);
 
+  // Carregar filtros salvos do localStorage ao montar
+  useEffect(() => {
+    const savedFilters = localStorage.getItem('gestao_filters');
+    if (savedFilters) {
+      try {
+        const filters = JSON.parse(savedFilters);
+        if (filters.dateStart) setDateFilterStart(filters.dateStart);
+        if (filters.dateEnd) setDateFilterEnd(filters.dateEnd);
+        if (filters.master) setMasterFilter(filters.master);
+        if (filters.selectionLimit) setSelectionLimit(filters.selectionLimit);
+      } catch (error) {
+        console.error('Erro ao carregar filtros salvos:', error);
+      }
+    }
+  }, []);
+
+  // Salvar filtros no localStorage quando mudarem
+  useEffect(() => {
+    const filters = {
+      dateStart: dateFilterStart,
+      dateEnd: dateFilterEnd,
+      master: masterFilter,
+      selectionLimit,
+    };
+    localStorage.setItem('gestao_filters', JSON.stringify(filters));
+  }, [dateFilterStart, dateFilterEnd, masterFilter, selectionLimit]);
+
+  // Filtrar candidatos com base nos filtros ativos
+  const filteredCandidates = useMemo(() => {
+    let result = candidates.filter(c => {
+      // Filtro de status (existente)
+      if (filter === 'pending') return c.editorial_status === 'awaiting_review';
+      if (filter === 'approved') return c.editorial_status === 'accepted';
+      if (filter === 'rejected') return c.editorial_status === 'rejected';
+      return true;
+    });
+
+    // Filtro de data
+    if (dateFilterStart || dateFilterEnd) {
+      result = result.filter(c => {
+        const createdAt = new Date(c.created_at);
+        if (dateFilterStart && createdAt < new Date(dateFilterStart)) return false;
+        if (dateFilterEnd) {
+          const endDate = new Date(dateFilterEnd);
+          endDate.setHours(23, 59, 59, 999); // Incluir o dia inteiro
+          if (createdAt > endDate) return false;
+        }
+        return true;
+      });
+    }
+
+    // Filtro de mestre
+    if (masterFilter.trim()) {
+      result = result.filter(c => {
+        const enriched = c.parsed_json?.enrichedFields as Record<string, any> | undefined;
+        const masterName = enriched?.master_display_name || 
+                          c.parsed_json?.author?.username || 
+                          c.parsed_json?.recruiterName || '';
+        return masterName.toLowerCase().includes(masterFilter.toLowerCase());
+      });
+    }
+
+    return result;
+  }, [candidates, filter, dateFilterStart, dateFilterEnd, masterFilter]);
+
+  // Contar filtros ativos
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (dateFilterStart || dateFilterEnd) count++;
+    if (masterFilter.trim()) count++;
+    return count;
+  }, [dateFilterStart, dateFilterEnd, masterFilter]);
+
+  // Limpar seleção quando o filtro de status mudar
+  useEffect(() => {
+    setSelectedIds(new Set());
+    setSelectAll(false);
+  }, [filter]);
+
+  // Remover IDs selecionados que não estão mais visíveis após aplicar filtros
+  useEffect(() => {
+    const visibleIds = new Set(filteredCandidates.map(c => c.id));
+    setSelectedIds(prev => {
+      const newSet = new Set<string>();
+      prev.forEach(id => {
+        if (visibleIds.has(id)) {
+          newSet.add(id);
+        }
+      });
+      // Se removeu algum ID, desmarcar "Selecionar Todos"
+      if (newSet.size !== prev.size && newSet.size < filteredCandidates.length) {
+        setSelectAll(false);
+      }
+      return newSet;
+    });
+  }, [filteredCandidates]);
 
   useEffect(() => {
     if (!user || user.role !== 'admin') {
@@ -185,7 +296,7 @@ export const GestaoPage = () => {
     if (!confirm(`Deletar sistema "${name}"? Esta ação não pode ser desfeita.`)) return;
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/admin/systems/${id}`, {
+      const response = await fetch(`${API_BASE}/api/v1/systems/admin/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -209,7 +320,7 @@ export const GestaoPage = () => {
     if (!confirm(`Deletar cenário "${name}"? Esta ação não pode ser desfeita.`)) return;
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/admin/scenarios/${id}`, {
+      const response = await fetch(`${API_BASE}/api/v1/scenarios/admin/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -232,7 +343,7 @@ export const GestaoPage = () => {
     if (!confirm(`Deletar mesa "${title}"? Esta ação não pode ser desfeita.`)) return;
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/admin/tables/${id}`, {
+      const response = await fetch(`${API_BASE}/api/v1/gm/admin/tables/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -247,6 +358,100 @@ export const GestaoPage = () => {
     } catch (error) {
       console.error('[GestaoPage] Erro ao deletar mesa:', error);
       toast.error('Erro ao deletar mesa');
+    }
+  };
+
+  // Funções auxiliares para filtros
+  const handleClearFilters = () => {
+    setDateFilterStart('');
+    setDateFilterEnd('');
+    setMasterFilter('');
+    toast.success('Filtros limpos');
+  };
+
+  // Funções auxiliares para seleção múltipla
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        // Verificar limite
+        if (newSet.size >= selectionLimit) {
+          toast.error(`Máximo de ${selectionLimit} candidatos por vez`);
+          return prev;
+        }
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const handleToggleSelectAll = () => {
+    if (selectAll) {
+      // Desmarcar todos
+      setSelectedIds(new Set());
+      setSelectAll(false);
+    } else {
+      // Marcar todos (respeitando limite)
+      const idsToSelect = filteredCandidates.slice(0, selectionLimit).map(c => c.id);
+      setSelectedIds(new Set(idsToSelect));
+      setSelectAll(true);
+      if (filteredCandidates.length > selectionLimit) {
+        toast(`Selecionados ${selectionLimit} de ${filteredCandidates.length} candidatos (limite atingido)`, {
+          icon: 'ℹ️',
+        });
+      }
+    }
+  };
+
+  // Função para deletar candidatos em lote
+  const handleBulkDelete = async () => {
+    if (!token || selectedIds.size === 0) return;
+
+    setDeletingBulk(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/aggregator/candidates/bulk`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ ids: Array.from(selectedIds) }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const deleted = data.data.deleted;
+        const requested = data.data.requested;
+        
+        if (deleted === requested) {
+          toast.success(`${deleted} candidato(s) deletado(s) permanentemente`);
+        } else if (deleted > 0) {
+          toast(`${deleted} de ${requested} candidato(s) deletado(s). Alguns já haviam sido removidos.`, {
+            icon: '⚠️',
+          });
+        } else {
+          toast.error('Nenhum candidato foi deletado. Eles podem já ter sido removidos.');
+        }
+        
+        // Limpar seleção e fechar modal
+        setSelectedIds(new Set());
+        setSelectAll(false);
+        setShowBulkDeleteModal(false);
+        setBulkDeleteConfirmed(false);
+        
+        // Recarregar candidatos
+        fetchCandidates();
+      } else {
+        const data = await response.json();
+        toast.error(data.error || 'Erro ao deletar candidatos');
+      }
+    } catch (error) {
+      console.error('[GestaoPage] Erro ao deletar candidatos em lote:', error);
+      toast.error('Erro ao deletar candidatos');
+    } finally {
+      setDeletingBulk(false);
     }
   };
 
@@ -519,15 +724,6 @@ export const GestaoPage = () => {
         return 'text-yellow-400';
     }
   };
-
-  // Filtrar candidatos por status editorial
-  const filteredCandidates = candidates.filter(candidate => {
-    if (filter === 'all') return true;
-    if (filter === 'pending') return candidate.editorial_status === 'awaiting_review';
-    if (filter === 'approved') return candidate.editorial_status === 'accepted';
-    if (filter === 'rejected') return candidate.editorial_status === 'rejected';
-    return true;
-  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0F1A2E] via-[#1B2A4A] to-[#0F1A2E] py-8">
@@ -939,15 +1135,129 @@ export const GestaoPage = () => {
               )}
             </div>
 
+            {/* Filtros Avançados */}
+            <div className="bg-white/5 border border-white/10 rounded-lg p-4 mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-white font-semibold">Filtros Avançados</h3>
+                  {activeFiltersCount > 0 && (
+                    <span className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs font-semibold rounded border border-blue-500/50" title="Filtros ativos salvos automaticamente">
+                      {activeFiltersCount} {activeFiltersCount === 1 ? 'filtro ativo' : 'filtros ativos'}
+                    </span>
+                  )}
+                </div>
+                {activeFiltersCount > 0 && (
+                  <button
+                    onClick={handleClearFilters}
+                    className="px-3 py-1 text-sm bg-white/5 hover:bg-white/10 text-white/60 hover:text-white rounded border border-white/10 transition-colors"
+                  >
+                    Limpar Filtros
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Filtro de Data Início */}
+                <div>
+                  <label className="block text-white/60 text-sm mb-2">Data Início</label>
+                  <input
+                    type="date"
+                    value={dateFilterStart}
+                    onChange={(e) => setDateFilterStart(e.target.value)}
+                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:border-blue-500/50"
+                  />
+                </div>
+
+                {/* Filtro de Data Fim */}
+                <div>
+                  <label className="block text-white/60 text-sm mb-2">Data Fim</label>
+                  <input
+                    type="date"
+                    value={dateFilterEnd}
+                    onChange={(e) => setDateFilterEnd(e.target.value)}
+                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:border-blue-500/50"
+                  />
+                </div>
+
+                {/* Filtro de Mestre */}
+                <div>
+                  <label className="block text-white/60 text-sm mb-2">Buscar por Mestre</label>
+                  <input
+                    type="text"
+                    value={masterFilter}
+                    onChange={(e) => setMasterFilter(e.target.value)}
+                    placeholder="Nome do mestre..."
+                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded text-white placeholder-white/30 focus:outline-none focus:border-blue-500/50"
+                  />
+                </div>
+              </div>
+
+              <p className="text-white/40 text-xs mt-3">
+                💡 Os filtros são salvos automaticamente e permanecerão ativos entre sessões
+              </p>
+            </div>
+
+            {/* Controles de Seleção Múltipla */}
+            {filteredCandidates.length > 0 && (
+              <div className="bg-white/5 border border-white/10 rounded-lg p-4 mb-6">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    {/* Checkbox Selecionar Todos */}
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectAll}
+                        onChange={handleToggleSelectAll}
+                        className="w-5 h-5 rounded border-white/20 bg-white/5 checked:bg-blue-500 focus:ring-2 focus:ring-blue-500/50"
+                      />
+                      <span className="text-white font-semibold">Selecionar Todos</span>
+                    </label>
+
+                    {/* Contador de Selecionados */}
+                    {selectedIds.size > 0 && (
+                      <span className="text-white/60">
+                        {selectedIds.size} de {filteredCandidates.length} selecionados
+                      </span>
+                    )}
+
+                    {/* Dropdown de Limite */}
+                    <div className="flex items-center gap-2">
+                      <label className="text-white/60 text-sm">Limite:</label>
+                      <select
+                        value={selectionLimit}
+                        onChange={(e) => setSelectionLimit(Number(e.target.value))}
+                        className="px-2 py-1 bg-white/5 border border-white/10 rounded text-white text-sm focus:outline-none focus:border-blue-500/50"
+                      >
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                        <option value={150}>150</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Botão Deletar Selecionados */}
+                  {selectedIds.size > 0 && (
+                    <button
+                      onClick={() => setShowBulkDeleteModal(true)}
+                      className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-semibold rounded-lg border border-red-500/50 transition-colors flex items-center gap-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Deletar Selecionados ({selectedIds.size})
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             {loading ? (
               <div className="text-center py-12 text-white/50">Carregando...</div>
-            ) : candidates.length === 0 ? (
+            ) : filteredCandidates.length === 0 ? (
               <div className="bg-[#1B2A4A]/50 border border-white/10 rounded-lg p-12 text-center">
                 <p className="text-white/50">Nenhum candidato encontrado</p>
               </div>
             ) : (
               <div className="space-y-4">
-                {candidates.map((candidate) => {
+                {filteredCandidates.map((candidate) => {
                   const parsed = candidate.parsed_json || {};
                   const title = parsed.title || 'Sem título';
                   const system = parsed.system || 'Sistema não identificado';
@@ -961,6 +1271,17 @@ export const GestaoPage = () => {
                       className="bg-[#1B2A4A]/50 border border-white/10 rounded-lg p-6 hover:border-white/20 transition-colors"
                     >
                       <div className="flex items-start justify-between gap-4">
+                        {/* Checkbox de Seleção */}
+                        <div className="flex-shrink-0 pt-1">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(candidate.id)}
+                            onChange={() => handleToggleSelect(candidate.id)}
+                            className="w-5 h-5 rounded border-white/20 bg-white/5 checked:bg-blue-500 focus:ring-2 focus:ring-blue-500/50 cursor-pointer"
+                            title="Selecionar para ação em lote"
+                          />
+                        </div>
+
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
                             <h3 className="text-xl font-bold text-white">{title}</h3>
@@ -1216,6 +1537,87 @@ export const GestaoPage = () => {
             fetchAllScenarios();
           }}
         />
+      )}
+
+      {/* Modal de Confirmação de Delete em Lote */}
+      {showBulkDeleteModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1B2A4A] border border-white/20 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="p-6">
+              <h2 className="text-2xl font-bold text-white mb-4">
+                ⚠️ Confirmar Deleção Permanente
+              </h2>
+
+              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-4">
+                <p className="text-red-300 font-semibold mb-2">
+                  Esta ação é irreversível!
+                </p>
+                <p className="text-white/70 text-sm">
+                  Você está prestes a deletar permanentemente {selectedIds.size} candidato(s). 
+                  Os dados não poderão ser recuperados.
+                </p>
+              </div>
+
+              {/* Lista de candidatos que serão deletados */}
+              <div className="mb-6">
+                <h3 className="text-white font-semibold mb-3">
+                  Candidatos que serão deletados:
+                </h3>
+                <div className="bg-white/5 border border-white/10 rounded-lg p-4 max-h-60 overflow-y-auto space-y-2">
+                  {Array.from(selectedIds).map(id => {
+                    const candidate = candidates.find(c => c.id === id);
+                    if (!candidate) return null;
+                    const title = candidate.parsed_json?.title || 'Sem título';
+                    const system = candidate.parsed_json?.system || 'Sistema não identificado';
+                    return (
+                      <div key={id} className="text-sm text-white/70 border-b border-white/5 pb-2 last:border-0">
+                        <span className="font-semibold text-white">{title}</span>
+                        <span className="text-white/50"> — {system}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Checkbox de Confirmação */}
+              <label className="flex items-start gap-3 mb-6 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={bulkDeleteConfirmed}
+                  onChange={(e) => setBulkDeleteConfirmed(e.target.checked)}
+                  className="w-5 h-5 mt-0.5 rounded border-white/20 bg-white/5 checked:bg-red-500 focus:ring-2 focus:ring-red-500/50 cursor-pointer"
+                />
+                <span className="text-white">
+                  Confirmo que quero deletar permanentemente estes {selectedIds.size} candidato(s) e entendo que esta ação não pode ser desfeita.
+                </span>
+              </label>
+
+              {/* Botões */}
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => {
+                    setShowBulkDeleteModal(false);
+                    setBulkDeleteConfirmed(false);
+                  }}
+                  disabled={deletingBulk}
+                  className="px-4 py-2 bg-white/5 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg border border-white/10 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleBulkDelete}
+                  disabled={!bulkDeleteConfirmed || deletingBulk}
+                  className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-red-400 font-semibold rounded-lg border border-red-500/50 transition-colors flex items-center gap-2"
+                >
+                  {deletingBulk && (
+                    <span className="inline-block w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin"></span>
+                  )}
+                  Deletar Permanentemente
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

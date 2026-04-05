@@ -170,5 +170,40 @@ router.delete('/candidates/:id', async (req: Request, res: Response) => {
   }
 });
 
+// DELETE /api/v1/aggregator/candidates/bulk — Deletar múltiplos candidatos permanentemente
+router.delete('/candidates/bulk', async (req: Request, res: Response) => {
+  const { ids } = req.body;
+
+  // Validação: ids deve ser array não-vazio
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ error: 'Campo ids é obrigatório e deve ser um array não-vazio.' });
+  }
+
+  // Validação: todos os elementos devem ser strings
+  if (!ids.every(id => typeof id === 'string')) {
+    return res.status(400).json({ error: 'Todos os IDs devem ser strings.' });
+  }
+
+  // Validação: limite de 150 IDs por request
+  if (ids.length > 150) {
+    return res.status(400).json({ error: 'Máximo de 150 candidatos por operação.' });
+  }
+
+  try {
+    const deleted = await candidateService.deleteBulk(ids);
+
+    return res.json({ 
+      data: { 
+        message: `${deleted} candidato(s) deletado(s) permanentemente com sucesso.`,
+        deleted,
+        requested: ids.length
+      } 
+    });
+  } catch (error: any) {
+    console.error('[DELETE /aggregator/candidates/bulk]', error);
+    return res.status(500).json({ error: 'Erro ao deletar candidatos em lote.' });
+  }
+});
+
 export default router;
 

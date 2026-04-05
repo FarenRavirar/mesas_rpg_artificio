@@ -86,8 +86,8 @@ export const SystemEditModal = ({ system, systemsTree, token, onClose, onSuccess
 
     try {
       const url = system
-        ? `${API_BASE}/api/v1/admin/systems/${system.id}`
-        : `${API_BASE}/api/v1/admin/systems`;
+        ? `${API_BASE}/api/v1/systems/admin/${system.id}`
+        : `${API_BASE}/api/v1/systems/admin`;
 
       const method = system ? 'PUT' : 'POST';
 

@@ -221,4 +221,15 @@ export const candidateService = {
 
     return true;
   },
+
+  async deleteBulk(candidateIds: string[]) {
+    // Deletar múltiplos candidatos permanentemente do banco
+    const result = await db
+      .deleteFrom('aggregator_import_candidates')
+      .where('id', 'in', candidateIds)
+      .execute();
+
+    // Retornar número de linhas deletadas (result é array, pegar primeiro elemento)
+    return Number(result[0]?.numDeletedRows || 0);
+  },
 };
