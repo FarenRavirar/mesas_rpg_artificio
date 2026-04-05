@@ -39,9 +39,8 @@ RUN npm ci --omit=dev
 COPY --from=builder /app/dist ./dist
 
 # Copiar arquivos de dados de sistemas e cenários (JSON)
-# COPY --from=builder /app/sistemas.json ./sistemas.json
-# COPY --from=builder /app/cenarios.json ./cenarios.json
-# TODO: Descomentar após recebimento dos arquivos sistemas.json e cenarios.json
+COPY --from=builder /app/sistemas.json ./sistemas.json
+COPY --from=builder /app/cenarios.json ./cenarios.json
 
 
 # Copiar scripts Python do parser (necessário para pythonParserService)
