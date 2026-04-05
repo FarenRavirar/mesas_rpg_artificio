@@ -150,10 +150,18 @@ export function mapCandidateToFormData(
   // Sistema (busca inteligente na árvore)
   if (enrichedJson.system && systemsTree) {
     const sanitizedSystem = sanitizeText(enrichedJson.system);
+    console.log('[candidateToFormData] Sistema detectado:', sanitizedSystem, '| systemsTree length:', systemsTree?.length);
     const systemId = findSystemId(sanitizedSystem, systemsTree);
+    console.log('[candidateToFormData] system_id encontrado:', systemId);
     if (systemId) {
       mapped.system_id = systemId;
     }
+  } else {
+    console.log('[candidateToFormData] Sistema não detectado ou systemsTree vazio:', {
+      system: enrichedJson.system,
+      hasSystemsTree: !!systemsTree,
+      systemsTreeLength: systemsTree?.length
+    });
   }
 
   // Tipo de mesa
@@ -319,6 +327,19 @@ export function mapCandidateToFormData(
       channel: 'telegram',
       value: enrichedJson.telegram || enrichedJson.telegramUsername,
     });
+  }
+
+  // Google Forms (detecção automática de forms.gle ou forms.google.com nos externalLinks)
+  if (enrichedJson.externalLinks && Array.isArray(enrichedJson.externalLinks)) {
+    const formsLink = enrichedJson.externalLinks.find((link: string) => 
+      link.includes('forms.gle') || link.includes('forms.google.com')
+    );
+    if (formsLink) {
+      contacts.push({
+        channel: 'formulario',
+        value: formsLink,
+      });
+    }
   }
 
   // Outros (genérico)
