@@ -201,6 +201,22 @@ export const SystemTreeSelector = ({
         </div>
       )}
 
+      {singleSelect && selectedIds.length > 0 && (
+        <div className="rounded-xl border border-[var(--color-artificio-orange)]/30 bg-[var(--color-artificio-orange)]/10 p-3">
+          <div className="flex items-start gap-2">
+            <Check className="h-5 w-5 text-[var(--color-artificio-orange)] mt-0.5 shrink-0" />
+            <div className="flex-1">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--color-artificio-orange)]">
+                Sistema Selecionado
+              </p>
+              <p className="mt-1 text-sm font-semibold text-white">
+                {flatNodes.find(n => n.id === selectedIds[0])?.pathLabel || 'Sistema selecionado'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {normalizedSearch ? (
         <div ref={searchResultsRef} className="max-h-80 space-y-2 overflow-auto pr-1">
           {sortedSearchResults.length > 0 ? (

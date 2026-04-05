@@ -132,6 +132,11 @@ export const MesaPage = () => {
                   <span className="px-2 py-1 rounded-md bg-black/35 border border-white/15 text-xs">{table.type}</span>
                   <span className="px-2 py-1 rounded-md bg-black/35 border border-white/15 text-xs">{table.audience}</span>
                   <span className="px-2 py-1 rounded-md bg-black/35 border border-white/15 text-xs">{table.system_name ?? 'Sistema livre'}</span>
+                  {table.scenario_name && (
+                    <span className="px-2 py-1 rounded-md bg-purple-500/20 border border-purple-300/40 text-purple-100 text-xs inline-flex items-center gap-1" id="mesa-badge-scenario">
+                      <MapPin className="w-3.5 h-3.5" /> {table.scenario_name}
+                    </span>
+                  )}
                   {table.is_ddal && (
                     <span className="px-2 py-1 rounded-md bg-amber-500/20 border border-amber-300/40 text-amber-100 text-xs inline-flex items-center gap-1" id="mesa-badge-ddal">
                       <Sparkles className="w-3.5 h-3.5" /> DDAL

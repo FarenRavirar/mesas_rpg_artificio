@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { PlusCircle, ChevronRight, Dice1, Globe, MapPin, Users, ShieldCheck, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { SystemTreeSelector } from '../components/SystemTreeSelector';
+import { ScenarioSelector } from '../components/ScenarioSelector';
 import { SystemSuggestionModal } from '../components/SystemSuggestionModal';
 import { ContactsFormBlock, type ContactFormEntry } from '../components/ContactsFormBlock';
 import toast from 'react-hot-toast';
@@ -71,6 +72,7 @@ interface CreateTableFormProps {
     gm_avatar_url?: string;   // Avatar Discord do mestre (apenas visual)
     is_covil?: boolean;       // Detectado pelo parser, editável
     system_id?: string;
+    scenario_id?: string;     // Novo campo
     starts_at?: string;
     frequency?: string;
     frequency_custom?: string;
@@ -157,6 +159,7 @@ export function CreateTableForm({ token, onSuccess, initialData, mode = 'create'
   const [systemsError, setSystemsError] = useState<string | null>(null);
   const [systemSearch, setSystemSearch] = useState('');
   const [selectedSystemId, setSelectedSystemId] = useState<string>('');
+  const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(initialData?.scenario_id || null);
   const [showSuggestionModal, setShowSuggestionModal] = useState(false);
 
   const [loading, setLoading] = useState(false);
@@ -321,6 +324,7 @@ export function CreateTableForm({ token, onSuccess, initialData, mode = 'create'
       const payload = {
         ...form,
         system_id: selectedSystemId || null,
+        scenario_id: selectedScenarioId || null,
         price_value: form.price_value ? parseFloat(form.price_value) : null,
         slots_total: parseInt(form.slots_total, 10),
         starts_at: isOngoing ? null : (form.starts_at || null),
@@ -437,6 +441,24 @@ export function CreateTableForm({ token, onSuccess, initialData, mode = 'create'
             />
           )}
         </div>
+
+        {/* Cenário (opcional) */}
+        {selectedSystemId && (
+          <div className="md:col-span-2 rounded-2xl border border-white/10 bg-[#13213f]/60 p-4 space-y-3">
+            <div>
+              <p className="text-sm font-semibold text-white">Cenário (opcional)</p>
+              <p className="text-xs text-white/60 mt-1">
+                Cenários são independentes de sistemas. Ex: Forgotten Realms pode ser jogado em D&D ou Pathfinder.
+              </p>
+            </div>
+
+            <ScenarioSelector
+              selectedScenarioId={selectedScenarioId}
+              onSelect={setSelectedScenarioId}
+              disabled={loading}
+            />
+          </div>
+        )}
 
         <div className="md:col-span-2 rounded-2xl border border-white/10 bg-[#13213f]/60 p-4 space-y-3" id="painel-mestre-publisher-role-block">
           <div>

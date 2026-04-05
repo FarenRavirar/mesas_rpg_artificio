@@ -105,6 +105,18 @@ export interface PlatformsTable {
   created_at: Generated<Date>;
 }
 
+export interface ScenariosTable {
+  id: Generated<string>;
+  name: string;
+  slug: string;
+  subgenres: Generated<string[]>;
+  created_at: Generated<Date>;
+}
+
+export type Scenario = Selectable<ScenariosTable>;
+export type NewScenario = Insertable<ScenariosTable>;
+export type ScenarioUpdate = Updateable<ScenariosTable>;
+
 export type TableStatus = 'draft' | 'active' | 'full' | 'cancelled' | 'ended' | 'pending_review';
 export type TableType = 'campanha' | 'one-shot' | 'oneshot-serie' | 'aberta';
 export type TableAudience = 'livre' | 'adultos';
@@ -124,6 +136,7 @@ export interface TablesTable {
   slug: string;
   gm_id: string | null;
   system_id: string | null;
+  scenario_id: string | null;
   title: string;
   description: string | null;
   cover_url: string | null;
@@ -287,6 +300,7 @@ export interface Database {
   notifications: NotificationsTable;
   tags: TagsTable;
   platforms: PlatformsTable;
+  scenarios: ScenariosTable;
   tables: TablesTable;
   table_contacts: TableContactsTable;
   aggregator_sources: AggregatorSourcesTable;

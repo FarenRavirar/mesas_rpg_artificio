@@ -54,6 +54,8 @@ export interface TableDetail extends TableCard {
   content_warnings: string[];
   safety_tools: string[];
   gm_bio: string | null;
+  scenario_name?: string | null;
+  scenario_subgenres?: string[];
   ddal_season?: string | null;
   ddal_duration?: string | null;
   ddal_format?: string | null;
