@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import bannerPlaceholder from '../assets/banner_placeholder.webp';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle, XCircle, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Edit, Trash2, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { CreateTableForm } from './PainelMestrePage';
 import { mapCandidateToFormData } from '../utils/candidateToFormData';
+import { SystemEditModal } from '../components/SystemEditModal';
+import { ScenarioEditModal } from '../components/ScenarioEditModal';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
@@ -41,7 +43,7 @@ export const GestaoPage = () => {
   const [systemsTree, setSystemsTree] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
-  const [activeTab, setActiveTab] = useState<'systems' | 'tables'>('systems');
+  const [activeTab, setActiveTab] = useState<'systems' | 'tables' | 'crud'>('crud');
   const [selectedCandidate, setSelectedCandidate] = useState<AggregatorCandidate | null>(null);
   const [showRawData, setShowRawData] = useState(false);
   
@@ -51,6 +53,15 @@ export const GestaoPage = () => {
   const [rejectingCandidateId, setRejectingCandidateId] = useState<string | null>(null);
   const [rejectingAll, setRejectingAll] = useState(false);
   const [undoingCandidateId, setUndoingCandidateId] = useState<string | null>(null);
+
+  // Estados para CRUD
+  const [crudSubTab, setCrudSubTab] = useState<'systems' | 'scenarios' | 'tables'>('systems');
+  const [systemEditModal, setSystemEditModal] = useState<any>(null);
+  const [scenarioEditModal, setScenarioEditModal] = useState<any>(null);
+  const [allSystems, setAllSystems] = useState<any[]>([]);
+  const [allScenarios, setAllScenarios] = useState<any[]>([]);
+  const [allTables, setAllTables] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   /** Mapeamento pré-computado: candidateId -> CandidateFormData */
   const candidateMappedData = useMemo(() => {
@@ -113,6 +124,145 @@ export const GestaoPage = () => {
       console.error('[GestaoPage] Erro ao buscar árvore de sistemas:', error);
     }
   };
+
+  // Funções CRUD
+  const fetchAllSystems = async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/systems?view=flat`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAllSystems(data.data || []);
+      }
+    } catch (error) {
+      console.error('[GestaoPage] Erro ao buscar sistemas:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchAllScenarios = async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/scenarios`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAllScenarios(data.data || []);
+      }
+    } catch (error) {
+      console.error('[GestaoPage] Erro ao buscar cenários:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchAllTables = async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/tables`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAllTables(data.data || []);
+      }
+    } catch (error) {
+      console.error('[GestaoPage] Erro ao buscar mesas:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteSystem = async (id: string, name: string) => {
+    if (!token) return;
+    if (!confirm(`Deletar sistema "${name}"? Esta ação não pode ser desfeita.`)) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/admin/systems/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        toast.success('Sistema deletado!');
+        fetchAllSystems();
+        fetchSystemsTree();
+      } else {
+        const data = await response.json();
+        toast.error(data.error || 'Erro ao deletar sistema');
+      }
+    } catch (error) {
+      console.error('[GestaoPage] Erro ao deletar sistema:', error);
+      toast.error('Erro ao deletar sistema');
+    }
+  };
+
+  const handleDeleteScenario = async (id: string, name: string) => {
+    if (!token) return;
+    if (!confirm(`Deletar cenário "${name}"? Esta ação não pode ser desfeita.`)) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/admin/scenarios/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        toast.success('Cenário deletado!');
+        fetchAllScenarios();
+      } else {
+        const data = await response.json();
+        toast.error(data.error || 'Erro ao deletar cenário');
+      }
+    } catch (error) {
+      console.error('[GestaoPage] Erro ao deletar cenário:', error);
+      toast.error('Erro ao deletar cenário');
+    }
+  };
+
+  const handleDeleteTable = async (id: string, title: string) => {
+    if (!token) return;
+    if (!confirm(`Deletar mesa "${title}"? Esta ação não pode ser desfeita.`)) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/admin/tables/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        toast.success('Mesa deletada!');
+        fetchAllTables();
+      } else {
+        const data = await response.json();
+        toast.error(data.error || 'Erro ao deletar mesa');
+      }
+    } catch (error) {
+      console.error('[GestaoPage] Erro ao deletar mesa:', error);
+      toast.error('Erro ao deletar mesa');
+    }
+  };
+
+  // Carregar dados CRUD quando aba CRUD estiver ativa
+  useEffect(() => {
+    if (activeTab === 'crud' && token) {
+      if (crudSubTab === 'systems') {
+        fetchAllSystems();
+      } else if (crudSubTab === 'scenarios') {
+        fetchAllScenarios();
+      } else if (crudSubTab === 'tables') {
+        fetchAllTables();
+      }
+    }
+  }, [activeTab, crudSubTab, token]);
+
 
   const handleApprove = async (id: string, editedData?: { name: string; description: string | null }) => {
     if (!token) return;
@@ -358,6 +508,16 @@ export const GestaoPage = () => {
         {/* Abas de navegação */}
         <div className="flex gap-3 mb-6 border-b border-white/10">
           <button
+            onClick={() => setActiveTab('crud')}
+            className={`px-6 py-3 font-semibold transition-all ${
+              activeTab === 'crud'
+                ? 'text-white border-b-2 border-blue-500'
+                : 'text-white/60 hover:text-white/80'
+            }`}
+          >
+            Gerenciar Conteúdo
+          </button>
+          <button
             onClick={() => setActiveTab('systems')}
             className={`px-6 py-3 font-semibold transition-all ${
               activeTab === 'systems'
@@ -378,6 +538,194 @@ export const GestaoPage = () => {
             Mesas Importadas
           </button>
         </div>
+
+        {/* Aba CRUD */}
+        {activeTab === 'crud' && (
+          <>
+            {/* Sub-abas */}
+            <div className="flex gap-3 mb-6 border-b border-white/10">
+              <button
+                onClick={() => setCrudSubTab('systems')}
+                className={`px-4 py-2 font-semibold transition-all ${
+                  crudSubTab === 'systems'
+                    ? 'text-white border-b-2 border-green-500'
+                    : 'text-white/60 hover:text-white/80'
+                }`}
+              >
+                Sistemas
+              </button>
+              <button
+                onClick={() => setCrudSubTab('scenarios')}
+                className={`px-4 py-2 font-semibold transition-all ${
+                  crudSubTab === 'scenarios'
+                    ? 'text-white border-b-2 border-green-500'
+                    : 'text-white/60 hover:text-white/80'
+                }`}
+              >
+                Cenários
+              </button>
+              <button
+                onClick={() => setCrudSubTab('tables')}
+                className={`px-4 py-2 font-semibold transition-all ${
+                  crudSubTab === 'tables'
+                    ? 'text-white border-b-2 border-green-500'
+                    : 'text-white/60 hover:text-white/80'
+                }`}
+              >
+                Mesas
+              </button>
+            </div>
+
+            {/* Busca e botão adicionar */}
+            <div className="flex gap-3 mb-6">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={`Buscar ${crudSubTab === 'systems' ? 'sistemas' : crudSubTab === 'scenarios' ? 'cenários' : 'mesas'}...`}
+                className="flex-1 px-4 py-2 bg-[#0F1A2E] border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-blue-500"
+              />
+              <button
+                onClick={() => {
+                  if (crudSubTab === 'systems') setSystemEditModal({});
+                  else if (crudSubTab === 'scenarios') setScenarioEditModal({});
+                }}
+                className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
+              >
+                <Plus className="w-5 h-5" />
+                Adicionar
+              </button>
+            </div>
+
+            {/* Conteúdo das sub-abas */}
+            {loading ? (
+              <div className="text-center py-12 text-white/50">Carregando...</div>
+            ) : (
+              <>
+                {/* Lista de Sistemas */}
+                {crudSubTab === 'systems' && (
+                  <div className="space-y-3">
+                    {allSystems
+                      .filter((sys) =>
+                        searchQuery
+                          ? sys.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            sys.slug.toLowerCase().includes(searchQuery.toLowerCase())
+                          : true
+                      )
+                      .map((sys) => (
+                        <div
+                          key={sys.id}
+                          className="bg-[#1B2A4A]/50 border border-white/10 rounded-lg p-4 hover:border-white/20 transition-colors flex items-center justify-between"
+                        >
+                          <div>
+                            <h3 className="text-lg font-bold text-white">{sys.name}</h3>
+                            <p className="text-sm text-white/60">
+                              Slug: {sys.slug} | Tipo: {sys.node_type}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setSystemEditModal(sys)}
+                              className="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                              title="Editar"
+                            >
+                              <Edit className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteSystem(sys.id, sys.name)}
+                              className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+                              title="Deletar"
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+
+                {/* Lista de Cenários */}
+                {crudSubTab === 'scenarios' && (
+                  <div className="space-y-3">
+                    {allScenarios
+                      .filter((scn) =>
+                        searchQuery
+                          ? scn.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            scn.slug.toLowerCase().includes(searchQuery.toLowerCase())
+                          : true
+                      )
+                      .map((scn) => (
+                        <div
+                          key={scn.id}
+                          className="bg-[#1B2A4A]/50 border border-white/10 rounded-lg p-4 hover:border-white/20 transition-colors flex items-center justify-between"
+                        >
+                          <div>
+                            <h3 className="text-lg font-bold text-white">{scn.name}</h3>
+                            <p className="text-sm text-white/60">
+                              Slug: {scn.slug}
+                              {scn.subgenres && scn.subgenres.length > 0 && (
+                                <span> | Subgêneros: {scn.subgenres.join(', ')}</span>
+                              )}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setScenarioEditModal(scn)}
+                              className="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                              title="Editar"
+                            >
+                              <Edit className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteScenario(scn.id, scn.name)}
+                              className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+                              title="Deletar"
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+
+                {/* Lista de Mesas */}
+                {crudSubTab === 'tables' && (
+                  <div className="space-y-3">
+                    {allTables
+                      .filter((tbl) =>
+                        searchQuery
+                          ? tbl.title.toLowerCase().includes(searchQuery.toLowerCase())
+                          : true
+                      )
+                      .map((tbl) => (
+                        <div
+                          key={tbl.id}
+                          className="bg-[#1B2A4A]/50 border border-white/10 rounded-lg p-4 hover:border-white/20 transition-colors flex items-center justify-between"
+                        >
+                          <div>
+                            <h3 className="text-lg font-bold text-white">{tbl.title}</h3>
+                            <p className="text-sm text-white/60">
+                              Sistema: {tbl.system_name || 'Não informado'} | Status: {tbl.status}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleDeleteTable(tbl.id, tbl.title)}
+                              className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+                              title="Deletar"
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        )}
 
         {activeTab === 'systems' && (
           <>
@@ -788,6 +1136,31 @@ export const GestaoPage = () => {
           </div>
         )}
       </div>
+
+      {/* Modais CRUD */}
+      {systemEditModal && (
+        <SystemEditModal
+          system={systemEditModal.id ? systemEditModal : null}
+          systemsTree={systemsTree}
+          token={token!}
+          onClose={() => setSystemEditModal(null)}
+          onSuccess={() => {
+            fetchAllSystems();
+            fetchSystemsTree();
+          }}
+        />
+      )}
+
+      {scenarioEditModal && (
+        <ScenarioEditModal
+          scenario={scenarioEditModal.id ? scenarioEditModal : null}
+          token={token!}
+          onClose={() => setScenarioEditModal(null)}
+          onSuccess={() => {
+            fetchAllScenarios();
+          }}
+        />
+      )}
     </div>
   );
 };
