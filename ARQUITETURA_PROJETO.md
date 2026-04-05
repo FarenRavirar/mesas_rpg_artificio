@@ -1,6 +1,6 @@
 # Plano Mestre — Anúncios de Mesas RPG (Portal Colaborativo)
 
-> Documento vivo de arquitetura. Versão 1.0 — consolidado em Março/2026.
+> Documento vivo de arquitetura. Versão 1.1 — atualizado em Abril/2026.
 >
 > **Leitura seletiva por seção — não ler na íntegra.** Consultar apenas a seção indicada por `AI_CONTEXT_INDEX.md` para o cenário da tarefa.
 > Seções de referência rápida: §4 banco · §5 roles · §6 auth · §9 visual · §10 compromissos · §12 rotas · §16 imagens.
@@ -107,6 +107,8 @@ docker exec mesas-beta-db env | grep POSTGRES
 - `bookmarks` — Mesas salvas por usuários.
 - `sources` — Registro de fontes externas para o AggregatorBot.
 - `imported_tables` — Anúncios coletados automaticamente antes de deduplicação.
+- `system_suggestions` — Sugestões colaborativas de novos sistemas enviadas por usuários (migration_06).
+- `notifications` — Notificações in-app para usuários (migration_07).
 - `imgur_cleanup_log` — Registro de tentativas de limpeza de imagens hospedadas externamente.
 - `user_preferences` — Preferências estruturadas (sistemas, temas, idiomas, plataformas, dias).
 
@@ -180,7 +182,8 @@ A resolução de anúncios duplicados usa prioridade determinística:
 ## 6. Autenticação e Conta
 
 - **Login principal:** Google OAuth 2.0. É a porta de entrada principal, sem senha local.
-- **Sessão:** JWT gerado pelo Backend após handshake OAuth, com refresh token rotativo como arquitetura prevista.
+- **Sessão:** JWT gerado pelo Backend após handshake OAuth, com duração padrão de 7 dias (`JWT_EXPIRES_IN=7d`). Refresh token rotativo como arquitetura prevista.
+- **Validação inteligente:** O `AuthContext.tsx` implementa validação de sessão com debounce e verificação apenas em navegações críticas, evitando logout inesperado (correção E103/E105 - Abril/2026).
 - **Criação de conta:** Automática no primeiro login Google, com onboarding previsto de preferências em 3 etapas.
 - **Separação de identidade:** A conta Google alimenta apenas o login. O perfil público (`profiles`, `gm_profiles`) é entidade própria controlada pelo usuário.
 - **Integração opcional futura com Discord:** O sistema poderá permitir, em fase posterior, o vínculo opcional de uma conta Discord ao perfil público do usuário. Esse vínculo não substitui o login Google e não será requisito para uso da plataforma.
@@ -269,15 +272,30 @@ Preferências alimentam: recomendações na home, filtros pré-salvos, notifica�
 - **Moderação de Mesas Pendentes:** Aprovação/rejeição de anúncios com registro em `table_history`.
 - **Gestão de Fontes Externas:** Cadastro e monitoramento de fontes para o AggregatorBot (URL, tipo, frequência, status), previstos para fase posterior.
 - **Preview de Importação (Dry Run):** Antes de persistir lote importado, exibe preview com detecção de duplicatas, previsto para fase posterior.
-- **Gestão de Taxonomias:** CRUD de sistemas, tags e plataformas com geração de slug automática.
+- **CRUD Completo de Taxonomias (REQ-23 - Implementado Abril/2026):**
+  - **Sistemas:** Criação, edição e deleção com suporte a hierarquia (sistema > edição > variante). Cálculo automático de `depth` e `path_slug`. Gerenciamento de aliases (array de strings). Busca em tempo real por nome/alias.
+  - **Cenários:** Criação, edição e deleção com suporte a subgêneros (array de tags). Slug gerado automaticamente.
+  - **Mesas:** Funcionalidade de deleção administrativa (hard delete com cascade de contatos e relacionamentos).
+  - **UX Administrativa:** Modais de edição (`SystemEditModal`, `ScenarioEditModal`), confirmação de deleção, feedback via `react-hot-toast`, estados de carregamento (spinners).
+- **Notificações In-App (REQ-15 - Implementado Abril/2026):** Sino no header com contador de não lidas. Notificações de sugestões de sistemas aprovadas/rejeitadas.
+- **Revisão de Candidatos (Aggregator):** Fluxo completo de aceitação/rejeição de anúncios importados com validação de campos obrigatórios, botão "Desfazer Rejeição" e rejeição em lote.
 - **Destaques da Home:** Curadoria manual das mesas exibidas no hero.
 - **Workflow de Continuidade:** Modal de moderação suporta estado `stayOpen` para processar múltiplos itens em sequência.
 
 ### 7.8 AggregatorBot (Ingestão Automática)
 
-Implementação prevista apenas para fase posterior, quando a base principal pública e administrativa estiver estável.
+**Status Atual (Abril/2026):** Implementado e operacional no ambiente beta. Migration_05 aplicada.
+
 - Serviço Node.js rodando via node-cron no mesmo compose do Backend.
 - Coleta diária configurável por fonte.
+- **Parser Python Inteligente (REQ-18 - Implementado):** Utiliza `spaCy` (modelo `pt_core_news_lg`) para extração automática de campos estruturados de mensagens do Discord:
+  - Sistema de RPG (com fallback para parser TypeScript no frontend)
+  - Data/horário de início
+  - Vagas (total e preenchidas)
+  - Modalidade (online/presencial)
+  - Banner/avatar (extração de URLs de imagens dos attachments)
+  - Detecção automática de badge "Covil do Lich" via análise de conteúdo
+- **Reparo Automático de JSON:** O sistema detecta e repara automaticamente arquivos JSON truncados do DiscordChatExporter via `repairTruncatedJson()` (6 estratégias de correção).
 - Parseia anúncios para o schema de `imported_tables`.
 - Executa deduplicação automática (ver 4.5).
 - Quando a origem monitorada for Discord e a postagem já trouxer imagem de campanha com URL pública reutilizável, o bot deverá reaproveitar essa imagem como `cover_url` da mesa importada, sem reupload obrigatório para Imgur.
@@ -409,6 +427,19 @@ Referência rápida das rotas estruturais da API. Todas as rotas mutáveis exige
 |---|---|---|---|
 | `GET` | `/api/v1/admin/tables/pending` | `admin` | Mesas aguardando moderação |
 | `PATCH` | `/api/v1/admin/tables/:id/moderate` | `admin` | Aprovar ou rejeitar mesa |
+| `DELETE` | `/api/v1/admin/tables/:id` | `admin` | Deletar mesa (hard delete com cascade) |
+| `POST` | `/api/v1/admin/systems` | `admin` | Criar sistema |
+| `PUT` | `/api/v1/admin/systems/:id` | `admin` | Editar sistema |
+| `DELETE` | `/api/v1/admin/systems/:id` | `admin` | Deletar sistema |
+| `POST` | `/api/v1/admin/scenarios` | `admin` | Criar cenário |
+| `PUT` | `/api/v1/admin/scenarios/:id` | `admin` | Editar cenário |
+| `DELETE` | `/api/v1/admin/scenarios/:id` | `admin` | Deletar cenário |
+
+### Notificações (REQ-15 - Implementado Abril/2026)
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| `GET` | `/api/v1/notifications` | `player` | Listar notificações do usuário |
+| `PATCH` | `/api/v1/notifications/:id/read` | `player` | Marcar notificação como lida |
 
 ### Aggregator Discord (Fase 7 — implementado, migration_05 aplicada no beta)
 | Método | Rota | Auth | Descrição |
@@ -430,6 +461,8 @@ Referência rápida das rotas estruturais da API. Todas as rotas mutáveis exige
 | `PATCH` | `/api/v1/aggregator/candidates/:id/accept` | `admin` | Aceitar candidato para publicação |
 | `PATCH` | `/api/v1/aggregator/candidates/:id/reject` | `admin` | Rejeitar candidato |
 | `PATCH` | `/api/v1/aggregator/candidates/:id/review` | `admin` | Marcar candidato para revisão manual |
+| `PATCH` | `/api/v1/aggregator/candidates/reject-all` | `admin` | Rejeição em lote de candidatos (REQ-19 - Abril/2026) |
+| `PATCH` | `/api/v1/aggregator/candidates/:id/undo-rejection` | `admin` | Desfazer rejeição (REQ-19 - Abril/2026) |
 
 
 ---
@@ -490,6 +523,10 @@ Este bloco documenta decisões tomadas com justificativa, para evitar que sejam 
 | **Separação entre `profiles` e `gm_profiles`** | Nem todo usuário é mestre. Forçar campos de mestre em todos os perfis polui o modelo. A elevação de role é um evento explícito, não automático. |
 | **`table_history` desde a fase 1** | Moderação sem rastreabilidade é inauditável. O custo de implementar auditoria depois é sempre maior que implementar desde o início. |
 | **Deduplicação determinística no bot** | Evita seleção aleatória de "vencedor" entre duplicatas, garantindo que anúncios manuais do próprio Artifício sempre prevaleçam sobre importados. |
+| **Parser Python no backend (REQ-18 - Abril/2026)** | Extração de campos estruturados de mensagens Discord requer NLP avançado. spaCy em Python oferece precisão superior ao parser TypeScript. Execução no backend garante consistência e segurança. |
+| **Toast notifications modernas (REQ-19 - Abril/2026)** | Substituição de `alert()` por `react-hot-toast` melhora UX significativamente. Feedback visual não-bloqueante alinhado com heurísticas de Nielsen (H1, H9). |
+| **Validação antes de aprovar candidatos (REQ-19 - Abril/2026)** | Previne publicação de mesas com dados incompletos. Validação de campos obrigatórios (título, sistema, contatos) antes de aceitar candidato garante qualidade do catálogo. |
+| **Migração para sistemas.json e cenarios.json (Abril/2026)** | Substituição de `arvores_de_sistemas.md` por JSON estruturado facilita parsing, validação e manutenção. Suporte a aliases e subgêneros em formato programático. |
 
 ---
 
@@ -542,15 +579,27 @@ Este projeto segue as 10 heurísticas de usabilidade de Jakob Nielsen como princ
 ### 14.5.2. Aplicação Prática
 
 **SystemTreeSelector:**
-- Heurística #1: Scroll automático para item selecionado, feedback visual de seleção
+- Heurística #1: Scroll automático para item selecionado, feedback visual de seleção, caixa destacada no topo mostrando sistema selecionado com refinamento hierárquico (E111 - Abril/2026)
 - Heurística #4: Comportamento consistente de seleção única
-- Heurística #6: Texto de ajuda contextual, contador de seleção visível
+- Heurística #6: Texto de ajuda contextual, contador de seleção visível, caminho completo da seleção atual
 - Heurística #8: Interface limpa com três colunas hierárquicas
 
 **Formulário de Nova Mesa:**
 - Heurística #5: Validação de contatos obrigatórios, confirmação de papel de anunciante
 - Heurística #6: Placeholders descritivos, labels claros
 - Heurística #9: Mensagens de erro específicas e acionáveis
+
+**Painel de Revisão de Candidatos (REQ-19 - Abril/2026):**
+- Heurística #1: Toast notifications com feedback instantâneo de ações (aceitar/rejeitar), spinners em botões durante processamento
+- Heurística #3: Botão "Desfazer Rejeição" permite recuperação de erro sem perda de dados
+- Heurística #5: Validação de campos obrigatórios antes de aceitar candidato, previne publicação incompleta
+- Heurística #9: Mensagens claras: "Informe pelo menos um canal de contato" em vez de "Validation failed"
+
+**CRUD Administrativo (REQ-23 - Abril/2026):**
+- Heurística #1: Estados de carregamento visíveis, feedback de sucesso/erro via toast
+- Heurística #3: Confirmação antes de deleção, botões de cancelar em modais
+- Heurística #7: Busca em tempo real em seletores, eficiência para administradores
+- Heurística #8: Modais focados, sem informações desnecessárias
 
 ### 14.5.3. Checklist de Revisão de UX
 
@@ -716,10 +765,10 @@ Rodando via node-cron junto ao AggregatorBot, o `CleanupWorker` executa diariame
 | Documento | Finalidade |
 |---|---|
 | `AGENTS.md` | Instruções de comportamento para agentes de IA no projeto |
-| `ERRORS_SOLUTIONS.md` | Registro de erros conhecidos e suas soluções |
+| `ERRORS_SOLUTIONS.md` | Registro de erros conhecidos e suas soluções (E001-E111 catalogados até Abril/2026) |
 | `CHANGELOG.md` | Histórico de versões e mudanças relevantes |
 | `docker-compose.yml` | Definição dos serviços: API, PostgreSQL, Nginx, AggregatorBot |
-| `sistemas.json` e `cenarios.json` | **Atualização 05/04/2026:** Migração de `arvores_de_sistemas.md` para `sistemas.json` (taxonomia de sistemas com `name`, `aliases`, `editions`, `variants`) e novo `cenarios.json` (cenários com campo `subgenero`). Dockerfile será atualizado para copiar ambos automaticamente no build. Scripts de importação serão reescritos para processar JSON. Aguardando recebimento do `cenarios.json` para implementação completa. |
+| `sistemas.json` e `cenarios.json` | **Migração concluída (Abril/2026):** Substituição de `arvores_de_sistemas.md` por `sistemas.json` (taxonomia de sistemas com `name`, `aliases`, `editions`, `variants`, `depth`, `path_slug`) e `cenarios.json` (cenários com campo `subgenero` como array de tags). Dockerfile atualizado para copiar ambos automaticamente no build. Scripts de importação (`systemsTreeImport.ts`) processam JSON. Parser Python (`discord_message_parser.py`) utiliza `sistemas.json` para detecção automática de sistemas em mensagens do Discord. |
 ---
 
 > **Lembre-se:** Este é um presente do Artifício RPG para a comunidade brasileira de RPG.

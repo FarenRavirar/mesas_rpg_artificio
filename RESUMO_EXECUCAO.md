@@ -58,7 +58,7 @@
 | migration_06 | system_suggestions | ✅ aplicada no beta (04/04/2026) | — |
 | migration_07 | notifications | ✅ aplicada no beta (04/04/2026) | — |
 | migration_09 | Frequência, regras, banner em tables | ✅ aplicada no beta (04/04/2026) | Campos: frequency, frequency_custom, rules_notes, banner_url |
-| REQ-16 | Correção de logout inesperado | ✅ concluído (04/04/2026) | JWT_EXPIRES_IN=7d, validação inteligente AuthContext, sincronização suave entre abas. E103 documentado. |
+| REQ-16 | Correção de logout inesperado | ✅ **CORRIGIDO E VALIDADO (05/04/2026)** | **Causa raiz:** JWT_EXPIRES_IN=15m hardcoded no docker-compose.beta.yml sobrescrevia .env. **Solução:** Corrigido hardcode para 7d + recreação completa dos containers (down && up). **Validado em runtime:** docker exec confirma JWT_EXPIRES_IN=7d. E116 documentado em docs/E116_JWT_HARDCODED_DOCKER_COMPOSE.md. Próximo: teste manual de sessão de 30 minutos. |
 
 **Legenda:** ✅ concluído · ⏳ pronto local, aguardando validação beta · ⏸ bloqueado por dependência
 
@@ -95,51 +95,59 @@ COPY --from=builder /app/cenarios.json ./
 
 ## Último commit validado
 - Branch: `dev`
-- Hash: `a4dc87f`
-- Mensagem: `fix(aggregator): corrige mapeamento de candidatos e adiciona parser TS`
+- Hash: `3071300`
+- Mensagem: `feat: Adicionar aba CRUD completa na página de gestão`
 - Deploy beta: ⏳ em andamento — GitHub Actions processando
 - Alterações principais:
-  - Correção de 4 bugs críticos de mapeamento (sanitização, busca fuzzy, contatos, imagem)
-  - Parser TypeScript (`parseDiscordContent.ts`) para extração automática de campos
-  - Integração completa no `candidateToFormData.ts`
-  - REQ-19 Fases 1-4 concluídas (itens 055-058)
-- Build validado: ✅ Frontend 411.80 kB (gzip: 119.53 kB) - exit 0
-- Documentação: ✅ `sessoes/resumo_05-04_2_correcao-bugs-criticos.md` + `sessoes/resumo_05-04_3_parsing_inteligente.md` (plano)
+  - **Backend:** Rotas CRUD completas para sistemas, cenários e mesas (POST, PUT, DELETE)
+  - **Frontend:** SystemEditModal, ScenarioEditModal e nova aba "Gerenciar Conteúdo" em /gestao
+  - **Validações:** Integridade referencial, hierarquia de sistemas, slug único
+  - **Segurança:** Todas as rotas protegidas por requireRole('admin')
+- Build validado: ✅ Backend e Frontend compilam sem erros
+- Documentação: ✅ `walkthrough.md` + `task.md` atualizados
+- Commits desta sessão:
+  1. `fe8dfbf` - Rotas CRUD sistemas
+  2. `be1ca16` - Rotas CRUD cenários  
+  3. `0b07d1e` - Modais de edição
+  4. `3071300` - Aba CRUD na GestaoPage
 
 ## Commit anterior
 - Branch: `dev`
-- Hash: `98c8e2b`
-- Mensagem: `docs: registra solução E102 para erro getsockname SSH (#3)`
-- Deploy beta: ✅ success — `Deploy Beta` concluído em 04/04/2026T16:32Z (run ID: 23982948825)
-**Próxima ação:** Aguardar autorização para commit e push para `dev`
+- Hash: `a4dc87f`
+- Mensagem: `fix(aggregator): corrige mapeamento de candidatos e adiciona parser TS`
+- Deploy beta: ✅ success
 
 ## Estado atual (05/04/2026)
 
 **Ambiente beta:** Estável e operacional em `mesasbeta.artificiorpg.com`
 
-**Sessão anterior concluída:** REQ-19 — Melhorias UX Nielsen (itens 055-058, commit a4dc87f)
+**Sessão atual concluída (REQ-18 — Painel Administrativo CRUD):**
+- Backend: Rotas POST/PUT/DELETE para sistemas, cenários e mesas ✅
+- Frontend: Modais de edição (SystemEditModal, ScenarioEditModal) ✅
+- Frontend: Aba "Gerenciar Conteúdo" com 3 sub-abas (Sistemas, Cenários, Mesas) ✅
+- Validações: Slug único, hierarquia, integridade referencial ✅
+- Segurança: requireRole('admin') em todas as rotas ✅
+- **Status:** Push realizado para `dev`, deploy automático em andamento
 
-**Sessão atual em andamento (REQ-20 — Integração de Mídia e Covil do Lich):**
-- Parser Python: extração de `banner_url` (attachments) e `avatar_url` (author) ✅ implementado
-- Schema Pydantic: campos `banner_url` e `avatar_url` adicionados ✅
-- `normalizeExporterPayload.ts`: passa `attachments` e `author` completo ao parser ✅
-- `candidateToFormData.ts`: `banner_url` e `gm_avatar_url` mapeados do `enrichedFields` ✅
-- **Em execução:** `is_covil` (migration_10), preview visual no formulário, checkbox Covil, retenção no AdminDevTools
+**Funcionalidades implementadas:**
+- Admin pode criar, editar e deletar sistemas (com hierarquia e aliases)
+- Admin pode criar, editar e deletar cenários (com subgêneros)
+- Admin pode deletar mesas (edição complexa deixada para fase futura)
+- Busca em tempo real por nome/slug
+- Auto-geração de slug a partir do nome
+- Confirmação antes de deletar
 
 **Decisões arquiteturais desta sessão:**
-- `gm_avatar_url` — Opção B: apenas pré-preenche o formulário visualmente, NÃO persiste no banco (URL externa do Discord não sobe para Imgur neste fluxo)
-- `is_covil` — persiste no banco como boolean (similar ao `is_ddal`)
-- Selo "Covil do Lich" — detectado automaticamente pelo parser, editável pelo admin
-- `imported_expires_at` — campo no banco para expiração configurável via AdminDevTools
+- Soft delete NÃO implementado (considerado opcional)
+- TableEditModal NÃO implementado (complexidade, pode reutilizar CreateTableForm futuramente)
+- Paginação NÃO implementada (listas pequenas por enquanto)
 
-**Próximas ações (REQ-20):**
-1. Criar `migration_10_covil_and_expiration.sql` com `is_covil` e `imported_expires_at`
-2. Adicionar preview de banner no `CreateTableForm` (PainelMestrePage.tsx)
-3. Adicionar campo avatar do mestre (visual only, mode=review) com preview
-4. Adicionar bloco "Covil do Lich" com checkbox e auto-detecção
-5. Atualizar `candidateToFormData.ts` para mapear `is_covil` automaticamente
-6. Expandir preview de revisão em `GestaoPage.tsx` (banner + avatar + badge Covil)
-7. Adicionar seção de Retenção no `AdminDevToolsPage.tsx`
+**Próximas ações sugeridas:**
+1. QA manual no beta após deploy: testar criação, edição e deleção de sistemas/cenários
+2. Validar que hierarquia de sistemas é recalculada corretamente
+3. Testar proteção de deleção (sistemas com mesas vinculadas)
+4. (Opcional) Implementar TableEditModal reutilizando CreateTableForm
+5. (Opcional) Adicionar paginação se listas crescerem (50+ itens)
 
 **Bloqueios:** Nenhum
 
