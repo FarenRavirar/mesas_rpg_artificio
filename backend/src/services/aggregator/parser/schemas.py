@@ -14,6 +14,19 @@ class Contact(BaseModel):
     extra_url: Optional[str] = None
 
 
+class SessionSchedule(BaseModel):
+    """Estrutura de uma sessão individual."""
+    day_of_week: Optional[str] = None
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    frequency: Optional[str] = None  # semanal, quinzenal, mensal
+    slots_total: Optional[int] = None
+    slots_available: Optional[int] = None
+    in_progress: Optional[bool] = False
+    notes: Optional[str] = None
+
+
+
 class ParsedMessage(BaseModel):
     """
     Schema de validação para mensagem parseada do Discord.
@@ -67,6 +80,27 @@ class ParsedMessage(BaseModel):
     tags: List[str] = Field(default_factory=list)  # terror, investigacao, combate, etc.
     requires_pc: Optional[bool] = None  # Se requer PC para jogar
     external_links: List[str] = Field(default_factory=list)  # Links de formulários, sites, etc.
+    
+    # Fase B: Múltiplos horários e vagas detalhadas
+    sessions: List[SessionSchedule] = Field(default_factory=list)  # Array de sessões estruturadas
+    slots_total: Optional[int] = None  # Total de vagas
+    slots_available: Optional[int] = None  # Vagas disponíveis
+    slots_filled: Optional[int] = None  # Vagas preenchidas
+    
+    # Fase B: Sistema de classificação
+    system_raw: Optional[str] = None  # Sistema original extraído
+    system_normalized: Optional[str] = None  # Sistema normalizado
+    system_classification: Optional[str] = None  # válido, inválido, revisável
+    is_homebrew: Optional[bool] = False  # Se é homebrew
+    is_custom: Optional[bool] = False  # Se é sistema próprio
+    payment_classification: Optional[str] = None  # gratuita, paga, ambígua
+    candidate_kind: Optional[str] = None  # mesa, grupo, anúncio múltiplo, inválido
+    
+    # Fase B: Separação mestre vs anunciante
+    master_display_name: Optional[str] = None  # Nome do mestre exibido
+    recruiter_name: Optional[str] = None  # Nome do anunciante
+    publisher_role: Optional[str] = None  # mestre, anunciante
+    is_same_person: Optional[bool] = True  # Se mestre = anunciante
     
     # Metadados de confiança
     confidence: Optional[float] = Field(default=0.0, ge=0.0, le=1.0)

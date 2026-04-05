@@ -66,7 +66,7 @@
 
 ## Bloqueio atual
 
-~~`systemsTreeImport.ts` não executa no beta porque `arvores_de_sistemas.md` não está no container após rebuild.~~ **Resolvido em 04/04/2026** — `docker cp` + `docker exec` executados com sucesso após o deploy (125 nós atualizados, idempotente).
+**Resolvido em 04/04/2026** — `docker cp` + `docker exec` executados com sucesso após o deploy (125 nós atualizados, idempotente).
 
 **Atualização 05/04/2026:** Migração para `sistemas.json` e `cenarios.json` (com campo `subgenero`). Scripts serão reescritos para processar JSON. Dockerfile será atualizado para copiar ambos os arquivos. Aguardando recebimento dos arquivos.
 
@@ -121,33 +121,39 @@ COPY --from=builder /app/cenarios.json ./
 
 **Ambiente beta:** Estável e operacional em `mesasbeta.artificiorpg.com`
 
-**Sessão atual concluída (REQ-18 — Painel Administrativo CRUD):**
-- Backend: Rotas POST/PUT/DELETE para sistemas, cenários e mesas ✅
-- Frontend: Modais de edição (SystemEditModal, ScenarioEditModal) ✅
-- Frontend: Aba "Gerenciar Conteúdo" com 3 sub-abas (Sistemas, Cenários, Mesas) ✅
-- Validações: Slug único, hierarquia, integridade referencial ✅
-- Segurança: requireRole('admin') em todas as rotas ✅
-- **Status:** Push realizado para `dev`, deploy automático em andamento
+**Sessão atual concluída (REQ-24 — Parser Python Fase B + Bug Fixes):**
+- Parser Python: 7 novas funções avançadas (312 linhas) ✅
+- Backend: Migration 07 com 15 colunas + 9 índices ✅
+- Backend: Integração TypeScript dos 15 campos ✅
+- Bug fix: GestaoPage filtro approved→accepted ✅
+- Bug fix: PUT systems/:id agora atualiza aliases ✅
+- Feature: DELETE permanente de candidatos (backend + frontend) ✅
+- Auditoria: 22 rotas frontend vs backend (100% cobertura) ✅
+- **Status:** Implementação local concluída, aguardando autorização para commit
 
 **Funcionalidades implementadas:**
-- Admin pode criar, editar e deletar sistemas (com hierarquia e aliases)
-- Admin pode criar, editar e deletar cenários (com subgêneros)
-- Admin pode deletar mesas (edição complexa deixada para fase futura)
-- Busca em tempo real por nome/slug
-- Auto-geração de slug a partir do nome
-- Confirmação antes de deletar
+- Parser extrai múltiplos horários estruturados (sessions[])
+- Parser extrai vagas detalhadas (slots_total, slots_available, slots_filled)
+- Parser classifica sistema (homebrew, custom, normalizado)
+- Parser classifica pagamento (gratuita/paga/ambígua)
+- Parser classifica tipo de candidato (mesa/grupo/múltiplo/inválido)
+- Parser separa mestre vs anunciante (master_display_name, publisher_role)
+- Admin pode deletar candidatos permanentemente em qualquer status
+- Admin pode editar sistemas e aliases são persistidos corretamente
+- Abas "aprovadas" e "rejeitadas" agora mostram dados corretos
 
 **Decisões arquiteturais desta sessão:**
-- Soft delete NÃO implementado (considerado opcional)
-- TableEditModal NÃO implementado (complexidade, pode reutilizar CreateTableForm futuramente)
-- Paginação NÃO implementada (listas pequenas por enquanto)
+- 15 novos campos no schema `import_candidates` (JSONB para sessions, índices para performance)
+- Interface `SessionSchedule` compartilhada entre Python e TypeScript
+- Botão de delete com modal de confirmação (ação irreversível)
+- Auditoria completa de rotas confirmou 100% de cobertura backend
 
 **Próximas ações sugeridas:**
-1. QA manual no beta após deploy: testar criação, edição e deleção de sistemas/cenários
-2. Validar que hierarquia de sistemas é recalculada corretamente
-3. Testar proteção de deleção (sistemas com mesas vinculadas)
-4. (Opcional) Implementar TableEditModal reutilizando CreateTableForm
-5. (Opcional) Adicionar paginação se listas crescerem (50+ itens)
+1. Autorizar commit das alterações locais
+2. Aplicar migration_07 no banco beta
+3. QA manual: testar parser com anúncios reais do Discord
+4. Validar que os 15 campos aparecem corretamente na UI de revisão
+5. Testar delete permanente de candidatos em todos os status
 
 **Bloqueios:** Nenhum
 

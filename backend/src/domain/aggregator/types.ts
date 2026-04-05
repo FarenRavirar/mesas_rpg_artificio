@@ -114,10 +114,42 @@ export interface ParsedMessageDraft {
   tags?: string[];
   requiresPc?: boolean;
   
+  // Fase B: Múltiplos horários e vagas detalhadas
+  sessions?: SessionSchedule[];
+  slotsTotal?: number | null;
+  slotsAvailable?: number | null;
+  slotsFilled?: number | null;
+  
+  // Fase B: Sistema de classificação
+  systemRaw?: string | null;
+  systemNormalized?: string | null;
+  systemClassification?: string | null;
+  isHomebrew?: boolean;
+  isCustom?: boolean;
+  paymentClassification?: string | null;
+  candidateKind?: string | null;
+  
+  // Fase B: Separação mestre vs anunciante
+  masterDisplayName?: string | null;
+  publisherRole?: string | null;
+  isSamePerson?: boolean;
+
+  
   // Metadados do parser Python
   parserMissingFields?: string[];
   parserReviewFlags?: string[];
   parserConfidenceByField?: Record<string, number>;
+}
+
+export interface SessionSchedule {
+  day_of_week?: string | null;
+  start_time?: string | null;
+  end_time?: string | null;
+  frequency?: string | null;
+  slots_total?: number | null;
+  slots_available?: number | null;
+  in_progress?: boolean;
+  notes?: string | null;
 }
 
 export interface ClassifiedSystemResult {

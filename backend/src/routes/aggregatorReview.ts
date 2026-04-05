@@ -148,4 +148,27 @@ router.put('/candidates/:id', async (req: Request, res: Response) => {
   }
 });
 
+// DELETE /api/v1/aggregator/candidates/:id — Deletar candidato permanentemente
+router.delete('/candidates/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    const deleted = await candidateService.deleteById(id);
+    if (!deleted) {
+      return res.status(404).json({ error: 'Candidato não encontrado.' });
+    }
+
+    return res.json({ 
+      data: { 
+        message: 'Candidato deletado permanentemente com sucesso.',
+        id 
+      } 
+    });
+  } catch (error: any) {
+    console.error('[DELETE /aggregator/candidates/:id]', error);
+    return res.status(500).json({ error: 'Erro ao deletar candidato.' });
+  }
+});
+
 export default router;
+

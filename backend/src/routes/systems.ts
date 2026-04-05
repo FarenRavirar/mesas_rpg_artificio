@@ -321,6 +321,32 @@ router.put('/admin/systems/:id', authMiddleware, requireRole('admin'), async (re
       .returning(['id', 'name', 'slug', 'node_type', 'parent_id', 'depth', 'path_slug'])
       .executeTakeFirst();
 
+    // Atualizar aliases se fornecidos
+    const { aliases } = req.body;
+    if (aliases && Array.isArray(aliases)) {
+      // Deletar aliases existentes
+      await db
+        .deleteFrom('system_aliases')
+        .where('system_id', '=', id)
+        .execute();
+
+      // Inserir novos aliases
+      for (const alias of aliases) {
+        if (alias && alias.trim()) {
+          await db
+            .insertInto('system_aliases')
+            .values({
+              system_id: id,
+              alias: alias.trim(),
+              alias_slug: slugify(alias),
+              is_official: false,
+            })
+            .onConflict((oc) => oc.columns(['system_id', 'alias_slug']).doNothing())
+            .execute();
+        }
+      }
+    }
+
     // TODO: Recalcular hierarquia de filhos se parent_id mudou
 
     return res.json({ data: updated });

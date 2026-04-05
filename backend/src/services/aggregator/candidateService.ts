@@ -208,4 +208,17 @@ export const candidateService = {
 
     return getAggregatorCandidateById(candidateId);
   },
+
+  async deleteById(candidateId: string) {
+    const candidate = await getAggregatorCandidateById(candidateId);
+    if (!candidate) return null;
+
+    // Deletar candidato permanentemente do banco
+    await db
+      .deleteFrom('aggregator_import_candidates')
+      .where('id', '=', candidateId)
+      .execute();
+
+    return true;
+  },
 };

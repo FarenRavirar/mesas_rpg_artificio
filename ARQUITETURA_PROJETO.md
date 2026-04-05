@@ -2,7 +2,7 @@
 
 > Documento vivo de arquitetura. Versão 1.1 — atualizado em Abril/2026.
 >
-> **Leitura seletiva por seção — não ler na íntegra.** Consultar apenas a seção indicada por `AI_CONTEXT_INDEX.md` para o cenário da tarefa.
+> **Leitura seletiva por seção — não ler na íntegra.** Consultar apenas a seção indicada por `GUIA_RAPIDO_OPERACIONAL.md` para o cenário da tarefa.
 > Seções de referência rápida: §4 banco · §5 roles · §6 auth · §9 visual · §10 compromissos · §12 rotas · §16 imagens.
 >
 > **Fonte canônica de arquitetura.** Em conflito com qualquer outro arquivo, este prevalece.
@@ -284,17 +284,30 @@ Preferências alimentam: recomendações na home, filtros pré-salvos, notifica�
 
 ### 7.8 AggregatorBot (Ingestão Automática)
 
-**Status Atual (Abril/2026):** Implementado e operacional no ambiente beta. Migration_05 aplicada.
+**Status Atual (Abril/2026):** Implementado e operacional no ambiente beta. Migration_05 e Migration_07 aplicadas.
 
 - Serviço Node.js rodando via node-cron no mesmo compose do Backend.
 - Coleta diária configurável por fonte.
-- **Parser Python Inteligente (REQ-18 - Implementado):** Utiliza `spaCy` (modelo `pt_core_news_lg`) para extração automática de campos estruturados de mensagens do Discord:
+- **Parser Python Inteligente (REQ-18 + REQ-24 - Fase B Implementada em 05/04/2026):** Utiliza `spaCy` (modelo `pt_core_news_lg`) para extração automática de campos estruturados de mensagens do Discord:
+  
+  **Fase A (Campos Básicos):**
   - Sistema de RPG (com fallback para parser TypeScript no frontend)
   - Data/horário de início
   - Vagas (total e preenchidas)
   - Modalidade (online/presencial)
   - Banner/avatar (extração de URLs de imagens dos attachments)
   - Detecção automática de badge "Covil do Lich" via análise de conteúdo
+  
+  **Fase B (Campos Avançados - 05/04/2026):**
+  - **Múltiplos horários estruturados:** Array `sessions[]` com objetos `SessionSchedule` contendo dia da semana, horário inicial/final, frequência (semanal/quinzenal/mensal) e vagas por sessão
+  - **Vagas detalhadas:** `slots_total`, `slots_available`, `slots_filled` extraídos de padrões como "2/4 vagas", "Restam 3 vagas"
+  - **Classificação de sistema:** Detecta homebrew, sistemas próprios e experimentais. Normaliza sistema base (ex: "D&D 5e Homebrew" → "D&D 5e"). Retorna `system_raw`, `system_normalized`, `system_classification` (válido/inválido/revisável), `is_homebrew`, `is_custom`
+  - **Classificação de pagamento:** Analisa contexto completo para classificar como gratuita/paga/ambígua (`payment_classification`)
+  - **Classificação de tipo:** Diferencia mesa individual, grupo/servidor, anúncio múltiplo ou inválido (`candidate_kind`)
+  - **Separação mestre vs anunciante:** Extrai "Mestre: Nome" do conteúdo e compara com autor do post. Retorna `master_display_name`, `publisher_role` (mestre/anunciante), `is_same_person`
+  
+  **Armazenamento (Migration_07):** 15 novos campos na tabela `import_candidates` com 9 índices para performance (GIN para JSONB, B-tree para classificações). Interface `SessionSchedule` compartilhada entre Python (Pydantic) e TypeScript.
+
 - **Reparo Automático de JSON:** O sistema detecta e repara automaticamente arquivos JSON truncados do DiscordChatExporter via `repairTruncatedJson()` (6 estratégias de correção).
 - Parseia anúncios para o schema de `imported_tables`.
 - Executa deduplicação automática (ver 4.5).

@@ -329,8 +329,13 @@ export const GestaoPage = () => {
 
     setLoading(true);
     try {
-      const status = filter === 'all' ? '' : `?editorial_status=${filter === 'pending' ? 'awaiting_review' : filter}`;
-      const response = await fetch(`${API_BASE}/api/v1/aggregator/candidates${status}`, {
+      // Mapear filtro do frontend para status do backend
+      let statusParam = '';
+      if (filter !== 'all') {
+        const backendStatus = filter === 'pending' ? 'awaiting_review' : filter === 'approved' ? 'accepted' : filter;
+        statusParam = `?editorial_status=${backendStatus}`;
+      }
+      const response = await fetch(`${API_BASE}/api/v1/aggregator/candidates${statusParam}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -399,6 +404,31 @@ export const GestaoPage = () => {
       setRejectingCandidateId(null);
     }
   };
+
+  const handleDeleteCandidate = async (id: string) => {
+    if (!token) return;
+    if (!confirm('⚠️ DELETAR PERMANENTEMENTE este candidato do banco de dados?\n\nEsta ação é IRREVERSÍVEL e não pode ser desfeita!')) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/aggregator/candidates/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        toast.success('Candidato deletado permanentemente!');
+        fetchCandidates();
+        setSelectedCandidate(null);
+      } else {
+        const data = await response.json();
+        toast.error(`Erro: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('[GestaoPage] Erro ao deletar candidato:', error);
+      toast.error('Erro ao deletar candidato');
+    }
+  };
+
 
   const handleRejectAll = async () => {
     if (!token) return;
@@ -988,6 +1018,13 @@ export const GestaoPage = () => {
                               )}
                               Rejeitar
                             </button>
+                            <button
+                              onClick={() => handleDeleteCandidate(candidate.id)}
+                              className="p-2 bg-gray-700 hover:bg-gray-800 text-white rounded-lg transition-colors"
+                              title="Deletar permanentemente"
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </button>
                           </div>
                         )}
 
@@ -1002,6 +1039,25 @@ export const GestaoPage = () => {
                                 <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
                               )}
                               Desfazer
+                            </button>
+                            <button
+                              onClick={() => handleDeleteCandidate(candidate.id)}
+                              className="p-2 bg-gray-700 hover:bg-gray-800 text-white rounded-lg transition-colors"
+                              title="Deletar permanentemente"
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                          </div>
+                        )}
+
+                        {candidate.editorial_status === 'accepted' && (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleDeleteCandidate(candidate.id)}
+                              className="p-2 bg-gray-700 hover:bg-gray-800 text-white rounded-lg transition-colors"
+                              title="Deletar permanentemente"
+                            >
+                              <Trash2 className="w-5 h-5" />
                             </button>
                           </div>
                         )}

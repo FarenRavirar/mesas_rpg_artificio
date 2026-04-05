@@ -232,10 +232,32 @@ export const parseExporterMessage = (input: ParseExporterMessageInput): ParsedMe
     ...externalLinks
   ]));
   
+  // Fase B: Múltiplos horários e vagas detalhadas
+  const sessions = Array.isArray(enriched.sessions) ? enriched.sessions : [];
+  const slotsTotal = enriched.slots_total ?? null;
+  const slotsAvailable = enriched.slots_available ?? null;
+  const slotsFilled = enriched.slots_filled ?? null;
+  
+  // Fase B: Sistema de classificação
+  const systemRaw = enriched.system_raw ?? null;
+  const systemNormalized = enriched.system_normalized ?? null;
+  const systemClassificationValue = enriched.system_classification ?? null;
+  const isHomebrew = enriched.is_homebrew ?? false;
+  const isCustom = enriched.is_custom ?? false;
+  const paymentClassification = enriched.payment_classification ?? null;
+  const candidateKind = enriched.candidate_kind ?? null;
+
+  
+  // Fase B: Separação mestre vs anunciante
+  const masterDisplayName = enriched.master_display_name ?? null;
+  const publisherRole = enriched.publisher_role ?? null;
+  const isSamePerson = enriched.is_same_person ?? true;
+  
   // Metadados do parser Python
   const parserMissingFields = Array.isArray(enriched.missingFields) ? enriched.missingFields : [];
   const parserReviewFlags = Array.isArray(enriched.reviewFlags) ? enriched.reviewFlags : [];
   const parserConfidenceByField = enriched.confidence_by_field ?? {};
+
 
   const requiredSignals = [title, systemText ?? systemClassification.systemName, scheduleText, slotsText, location ?? platforms];
   const availableSignals = requiredSignals.filter((item) => Boolean(item)).length;
@@ -293,6 +315,26 @@ export const parseExporterMessage = (input: ParseExporterMessageInput): ParsedMe
     experienceRequired,
     tags,
     requiresPc,
+    
+    // Fase B: Múltiplos horários e vagas detalhadas
+    sessions,
+    slotsTotal,
+    slotsAvailable,
+    slotsFilled,
+    
+    // Fase B: Sistema de classificação
+    systemRaw,
+    systemNormalized,
+    systemClassification: systemClassificationValue,
+    isHomebrew,
+    isCustom,
+    paymentClassification,
+    candidateKind,
+    
+    // Fase B: Separação mestre vs anunciante
+    masterDisplayName,
+    publisherRole,
+    isSamePerson,
     
     // Metadados do parser
     parserMissingFields,

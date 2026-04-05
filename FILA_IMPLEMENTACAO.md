@@ -261,6 +261,22 @@ Não é necessário em tarefas fora do modo lote.
 
 ---
 
+## Itens da fila — Lote: parser-fase-b (Fase 4 - REQ-24)
+
+> Parser Python Fase B — Funcionalidades Avançadas: Expandir capacidades do parser para extrair metadados avançados (múltiplos horários, vagas detalhadas, classificação de sistema/pagamento/tipo, separação mestre vs anunciante).
+
+| ID | Fase | Tipo | GUT | Titulo | Descrição objetiva | Arquivos esperados | Status | Observação |
+|---|---|---|---|---|---|---|---|---|
+| 107 | Fase 4 | backend | 5/5/5 | Parser Python - 7 funções avançadas | Implementar 7 novas funções no parser Python: `extract_multiple_schedules()`, `extract_slots_detailed()`, `classify_system()`, `classify_payment()`, `classify_candidate_kind()`, `resolve_master_vs_recruiter()`. Retornar 15 novos campos em `ParsedMessage`. | `backend/src/services/aggregator/parser/discord_message_parser.py`, `backend/src/services/aggregator/parser/schemas.py` | concluido | Implementado em 05/04/2026. 7 funções (312 linhas). Interface `SessionSchedule` criada. Teste validado com sucesso. |
+| 108 | Fase 4 | backend | 5/5/5 | Migration 07 - 15 colunas avançadas | Criar `migration_07_advanced_parser.sql` com 15 novas colunas na tabela `import_candidates`: `sessions JSONB`, `slots_total INT`, `slots_available INT`, `slots_filled INT`, `system_raw TEXT`, `system_normalized TEXT`, `system_classification TEXT`, `is_homebrew BOOLEAN`, `is_custom BOOLEAN`, `payment_classification TEXT`, `candidate_kind TEXT`, `master_display_name TEXT`, `publisher_role TEXT`, `is_same_person BOOLEAN`, `parser_version TEXT`. Adicionar 9 índices para performance. | `backend/src/migrations/migration_07_advanced_parser.sql` | concluido | Implementado em 05/04/2026. 15 colunas + 9 índices (GIN para JSONB, B-tree para classificações). |
+| 109 | Fase 4 | backend | 5/5/5 | Backend TypeScript - Integração 15 campos | Atualizar `types.ts` e `parseExporterMessage.ts` para extrair e mapear os 15 novos campos do parser Python. Adicionar interface `SessionSchedule` ao TypeScript. | `backend/src/domain/aggregator/types.ts`, `backend/src/domain/aggregator/parseExporterMessage.ts` | concluido | Implementado em 05/04/2026. Interface `SessionSchedule` criada. Mapeamento completo dos 15 campos. |
+| 110 | Fase 4 | frontend | 4/5/4 | Bug fix - GestaoPage filtro approved→accepted | Corrigir bug onde abas "aprovadas" e "rejeitadas" mostravam dados idênticos. Causa: mapeamento incorreto `approved` → `accepted` na query do backend. | `frontend/src/pages/GestaoPage.tsx` | concluido | Implementado em 05/04/2026. Linha 329 corrigida. |
+| 111 | Fase 4 | fullstack | 5/5/5 | Feature DELETE permanente de candidatos | Implementar deleção permanente de candidatos em qualquer status (awaiting_review, accepted, rejected). Backend: rota `DELETE /api/v1/aggregator/candidates/:id` + método `deleteById` no `candidateService`. Frontend: botão de lixeira com modal de confirmação em todos os status. | `backend/src/routes/aggregatorReview.ts`, `backend/src/services/aggregator/candidateService.ts`, `frontend/src/pages/GestaoPage.tsx` | concluido | Implementado em 05/04/2026. Botão Trash2 adicionado em 3 seções (pending, accepted, rejected). Modal com aviso de ação irreversível. |
+| 112 | Fase 4 | backend | 4/5/4 | Bug fix - PUT systems/:id não atualizava aliases | Corrigir bug onde edição de sistema não persistia aliases. Causa: rota PUT não processava campo `aliases` do body. Solução: adicionar lógica de delete + insert de aliases na rota PUT. | `backend/src/routes/systems.ts` | concluido | Implementado em 05/04/2026. Linhas 324-350 adicionadas. Delete de aliases existentes + insert de novos aliases. |
+
+
+---
+
 - Itens da fila com status consistente.
 - Fases 6 e 7 com status `pendente` até liberação explícita do responsável.
 - Sem push em `dev` antes de "Fechar lote".

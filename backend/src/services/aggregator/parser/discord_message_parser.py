@@ -15,7 +15,7 @@ Exemplo:
 import sys
 import json
 import re
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from schemas import ParsedMessage, ParserMetadata, Contact
 
 
@@ -128,6 +128,47 @@ def parse_message(content: str, metadata: Optional[Dict[str, Any]] = None) -> Di
     
     # 23. External links
     extracted['external_links'] = extract_external_links(content, metadata)
+    
+    # ========================================================================
+    # FASE B: FUNCIONALIDADES AVANÇADAS
+    # ========================================================================
+    
+    # 24. Múltiplos horários (sessões estruturadas)
+    extracted['sessions'] = extract_multiple_schedules(content)
+    
+    # 25. Vagas detalhadas (total, disponíveis, preenchidas)
+    slots_detailed = extract_slots_detailed(content)
+    extracted['slots_total'] = slots_detailed.get('slots_total')
+    extracted['slots_available'] = slots_detailed.get('slots_available')
+    extracted['slots_filled'] = slots_detailed.get('slots_filled')
+    
+    # 26. Classificação de sistema
+    system_classification = classify_system(extracted.get('system', ''), content)
+    extracted['system_raw'] = system_classification.get('system_raw')
+    extracted['system_normalized'] = system_classification.get('system_normalized')
+    extracted['system_classification'] = system_classification.get('system_classification')
+    extracted['is_homebrew'] = system_classification.get('is_homebrew')
+    extracted['is_custom'] = system_classification.get('is_custom')
+    
+    # 27. Classificação de pagamento
+    payment_classification = classify_payment(
+        content,
+        extracted.get('price_type', ''),
+        extracted.get('price_amount')
+    )
+    extracted['payment_classification'] = payment_classification.get('payment_classification')
+    
+    # 28. Classificação de tipo de candidato
+    candidate_classification = classify_candidate_kind(content, extracted.get('title', ''))
+    extracted['candidate_kind'] = candidate_classification.get('candidate_kind')
+    
+    # 29. Separação mestre vs anunciante
+    master_resolution = resolve_master_vs_recruiter(content, metadata)
+    extracted['master_display_name'] = master_resolution.get('master_display_name')
+    extracted['recruiter_name'] = master_resolution.get('recruiter_name')
+    extracted['publisher_role'] = master_resolution.get('publisher_role')
+    extracted['is_same_person'] = master_resolution.get('is_same_person')
+
     
     # 24. Confiança (score baseado em quantos campos foram extraídos)
     confidence_data = calculate_confidence(extracted)
@@ -587,6 +628,312 @@ def extract_location(content: str) -> Optional[str]:
             return city
     
     return None
+
+
+# ============================================================================
+# FASE B: FUNCIONALIDADES AVANÇADAS
+# ============================================================================
+
+def extract_multiple_schedules(content: str) -> List[Dict[str, Any]]:
+    """
+    Extrai múltiplas sessões estruturadas.
+    
+    Detecta padrões como:
+    - "Domingos às 13h"
+    - "Sábados 14h-18h (4 vagas)"
+    - "Domingos 13h e Quartas 20h"
+    """
+    sessions = []
+    
+    # Padrão: Dia + horário com possível faixa
+    # "Domingos 13h", "Sábados 14h-18h"
+    pattern = r'(segunda|terça|quarta|quinta|sexta|sábado|domingo)s?\s+(?:às\s+)?(\d{1,2})[h:](\d{2})?(?:\s*[-–]\s*(\d{1,2})[h:](\d{2})?)?'
+    
+    matches = re.finditer(pattern, content, re.IGNORECASE)
+    
+    for match in matches:
+        day = match.group(1).capitalize()
+        start_hour = match.group(2)
+        start_min = match.group(3) or "00"
+        end_hour = match.group(4)
+        end_min = match.group(5) or "00" if end_hour else None
+        
+        session = {
+            "day_of_week": day,
+            "start_time": f"{start_hour}:{start_min}",
+            "end_time": f"{end_hour}:{end_min}" if end_hour else None,
+            "frequency": "semanal",  # Padrão
+            "slots_total": None,
+            "slots_available": None,
+            "in_progress": False,
+            "notes": None
+        }
+        
+        # Detectar frequência
+        if re.search(r'quinzenal', content, re.IGNORECASE):
+            session["frequency"] = "quinzenal"
+        elif re.search(r'mensal', content, re.IGNORECASE):
+            session["frequency"] = "mensal"
+        
+        # Detectar se está em andamento
+        if re.search(r'em\s+andamento|fechada', content, re.IGNORECASE):
+            session["in_progress"] = True
+        
+        sessions.append(session)
+    
+    return sessions if sessions else []
+
+
+def extract_slots_detailed(content: str) -> Dict[str, Optional[int]]:
+    """
+    Extrai vagas totais, disponíveis e preenchidas.
+    
+    Detecta padrões como:
+    - "4 vagas" → total: 4, disponíveis: 4
+    - "2/4 vagas" → total: 4, disponíveis: 2
+    - "4 vagas (2 preenchidas)" → total: 4, disponíveis: 2
+    - "Restam 3 vagas" → disponíveis: 3
+    """
+    result = {
+        "slots_total": None,
+        "slots_available": None,
+        "slots_filled": None
+    }
+    
+    # Padrão 1: "X/Y vagas"
+    pattern1 = r'(\d+)\s*/\s*(\d+)\s+vagas?'
+    match = re.search(pattern1, content, re.IGNORECASE)
+    if match:
+        result["slots_available"] = int(match.group(1))
+        result["slots_total"] = int(match.group(2))
+        result["slots_filled"] = result["slots_total"] - result["slots_available"]
+        return result
+    
+    # Padrão 2: "X vagas (Y preenchidas)"
+    pattern2 = r'(\d+)\s+vagas?\s*\((\d+)\s+preenchidas?\)'
+    match = re.search(pattern2, content, re.IGNORECASE)
+    if match:
+        result["slots_total"] = int(match.group(1))
+        result["slots_filled"] = int(match.group(2))
+        result["slots_available"] = result["slots_total"] - result["slots_filled"]
+        return result
+    
+    # Padrão 3: "Restam X vagas"
+    pattern3 = r'restam?\s+(\d+)\s+vagas?'
+    match = re.search(pattern3, content, re.IGNORECASE)
+    if match:
+        result["slots_available"] = int(match.group(1))
+        return result
+    
+    # Padrão 4: "X vagas" (simples)
+    pattern4 = r'(\d+)\s+vagas?'
+    match = re.search(pattern4, content, re.IGNORECASE)
+    if match:
+        result["slots_total"] = int(match.group(1))
+        result["slots_available"] = int(match.group(1))
+        return result
+    
+    return result
+
+
+def classify_system(system_text: str, content: str) -> Dict[str, Any]:
+    """
+    Classifica o sistema extraído.
+    
+    Retorna classificação: válido, inválido, revisável
+    Detecta homebrew e sistema próprio
+    """
+    result = {
+        "system_raw": system_text,
+        "system_normalized": system_text,
+        "system_classification": "válido",
+        "is_homebrew": False,
+        "is_custom": False,
+        "confidence": 1.0
+    }
+    
+    if not system_text:
+        result["system_classification"] = "inválido"
+        result["confidence"] = 0.0
+        return result
+    
+    system_lower = system_text.lower()
+    content_lower = content.lower()
+    
+    # Detectar homebrew
+    homebrew_keywords = ['homebrew', 'caseiro', 'próprio', 'autoral', 'adaptado']
+    if any(keyword in system_lower or keyword in content_lower for keyword in homebrew_keywords):
+        result["is_homebrew"] = True
+        result["system_classification"] = "revisável"
+        result["confidence"] = 0.6
+        
+        # Tentar extrair sistema base
+        base_systems = {
+            'd&d': 'D&D',
+            'pathfinder': 'Pathfinder',
+            'fate': 'FATE',
+            'savage worlds': 'Savage Worlds',
+            'gurps': 'GURPS',
+            'call of cthulhu': 'Call of Cthulhu',
+            'tormenta': 'Tormenta'
+        }
+        
+        for key, value in base_systems.items():
+            if key in system_lower:
+                result["system_normalized"] = value
+                break
+    
+    # Detectar sistema próprio/experimental
+    custom_keywords = ['sistema próprio', 'experimental', 'em desenvolvimento', 'criação própria']
+    if any(keyword in system_lower or keyword in content_lower for keyword in custom_keywords):
+        result["is_custom"] = True
+        result["system_classification"] = "inválido"
+        result["confidence"] = 0.3
+    
+    return result
+
+
+def classify_payment(content: str, price_type: str, price_amount: Optional[float]) -> Dict[str, Any]:
+    """
+    Classifica o tipo de pagamento: gratuita, paga, ambígua
+    """
+    result = {
+        "payment_classification": "gratuita",
+        "confidence": 0.8
+    }
+    
+    # Se já detectou preço, é paga
+    if price_type == "paga" and price_amount and price_amount > 0:
+        result["payment_classification"] = "paga"
+        result["confidence"] = 0.95
+        return result
+    
+    # Detectar ambiguidade
+    content_lower = content.lower()
+    ambiguous_keywords = [
+        'contribuição voluntária',
+        'valor sugerido',
+        'pague quanto quiser',
+        'sessão zero gratuita',
+        'primeira sessão grátis'
+    ]
+    
+    if any(keyword in content_lower for keyword in ambiguous_keywords):
+        result["payment_classification"] = "ambígua"
+        result["confidence"] = 0.5
+    
+    return result
+
+
+def classify_candidate_kind(content: str, title: str) -> Dict[str, Any]:
+    """
+    Classifica o tipo de candidato: mesa, grupo, anúncio múltiplo, inválido
+    """
+    result = {
+        "candidate_kind": "mesa",
+        "confidence": 0.8
+    }
+    
+    content_lower = content.lower()
+    title_lower = title.lower() if title else ""
+    
+    # Detectar grupo/servidor
+    group_keywords = [
+        'servidor', 'comunidade', 'grupo de rpg',
+        'discord de rpg', 'várias mesas', 'múltiplas campanhas',
+        'servidor de', 'comunidade de'
+    ]
+    
+    if any(keyword in content_lower or keyword in title_lower for keyword in group_keywords):
+        result["candidate_kind"] = "grupo"
+        result["confidence"] = 0.85
+        return result
+    
+    # Detectar anúncio múltiplo
+    multiple_keywords = [
+        'várias vagas', 'múltiplas sessões',
+        'diferentes horários', 'escolha seu horário',
+        'vários horários'
+    ]
+    
+    if any(keyword in content_lower for keyword in multiple_keywords):
+        result["candidate_kind"] = "anúncio múltiplo"
+        result["confidence"] = 0.7
+        return result
+    
+    return result
+
+
+def resolve_master_vs_recruiter(
+    content: str,
+    metadata: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """
+    Resolve quem é o mestre e quem é o anunciante.
+    
+    Retorna:
+    - master_display_name: Nome do mestre extraído do conteúdo
+    - recruiter_name: Nome do autor (quem está publicando)
+    - publisher_role: "mestre" ou "anunciante"
+    - is_same_person: Se são a mesma pessoa
+    """
+    result = {
+        "master_display_name": None,
+        "recruiter_name": None,
+        "publisher_role": "mestre",
+        "is_same_person": True,
+        "confidence": 0.7
+    }
+    
+    # Extrair nome do autor (quem está publicando)
+    if metadata:
+        author = metadata.get('author', {})
+        result["recruiter_name"] = author.get('nickname') or author.get('name')
+    
+    # Extrair nome do mestre do conteúdo
+    master_patterns = [
+        r'mestre:\s*(.+?)(?:\n|$)',
+        r'mestrado\s+por:\s*(.+?)(?:\n|$)',
+        r'narrado\s+por:\s*(.+?)(?:\n|$)',
+        r'dm:\s*(.+?)(?:\n|$)',
+        r'narrador:\s*(.+?)(?:\n|$)',
+    ]
+    
+    for pattern in master_patterns:
+        match = re.search(pattern, content, re.IGNORECASE)
+        if match:
+            master_name = match.group(1).strip()
+            master_name = re.sub(r'\*\*|\*|__', '', master_name)
+            # Remover menções do Discord
+            master_name = re.sub(r'<@!?\d+>', '', master_name).strip()
+            if master_name:
+                result["master_display_name"] = master_name
+                result["confidence"] = 0.9
+                break
+    
+    # Se não encontrou mestre explícito, assume que o autor é o mestre
+    if not result["master_display_name"]:
+        result["master_display_name"] = result["recruiter_name"]
+        result["is_same_person"] = True
+        result["publisher_role"] = "mestre"
+        result["confidence"] = 0.6
+        return result
+    
+    # Comparar nomes para ver se são a mesma pessoa
+    if result["master_display_name"] and result["recruiter_name"]:
+        master_lower = result["master_display_name"].lower()
+        recruiter_lower = result["recruiter_name"].lower()
+        
+        # Comparação simples
+        if master_lower == recruiter_lower or master_lower in recruiter_lower or recruiter_lower in master_lower:
+            result["is_same_person"] = True
+            result["publisher_role"] = "mestre"
+        else:
+            result["is_same_person"] = False
+            result["publisher_role"] = "anunciante"
+            result["confidence"] = 0.95
+    
+    return result
 
 
 
