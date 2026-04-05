@@ -332,6 +332,10 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
     requires_microphone,
     // CORREÇÃO: Adicionar schedules (REQ-27)
     schedules,
+    // REQ-28 Fase 6: Campos editoriais separados (CORREÇÃO CRÍTICA)
+    synopsis_narrative,
+    benefits_text,
+    gm_bio,
   } = req.body;
 
   if (!title || !type || !modality) {
