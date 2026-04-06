@@ -1,22 +1,28 @@
 import { useEffect, useMemo, useState } from 'react';
-import bannerPlaceholder from '../assets/banner_placeholder.webp';
-import type { ChangeEvent, FormEvent, InputHTMLAttributes, SelectHTMLAttributes } from 'react';
+import type { FormEvent, InputHTMLAttributes } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { PlusCircle, ChevronRight, Dice1, Globe, MapPin, Users, ShieldCheck, Sparkles } from 'lucide-react';
+import { PlusCircle, ChevronRight, Dice1, Globe, MapPin, Users, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { SystemTreeSelector } from '../components/SystemTreeSelector';
-import { ScenarioSelector } from '../components/ScenarioSelector';
-import { SystemSuggestionModal } from '../components/SystemSuggestionModal';
-import { ContactsFormBlock, type ContactFormEntry } from '../components/ContactsFormBlock';
-import { SessionRepeater, type SessionSchedule } from '../components/SessionRepeater';
-import { SettingStylesField } from '../components/SettingStylesField';
+import { type ContactFormEntry } from '../components/ContactsFormBlock';
+import { type SessionSchedule } from '../components/SessionRepeater';
 import toast from 'react-hot-toast';
 import type { SystemTreeNode } from '../types/systems';
 import type { TableContact } from '../types/tables';
+// Step form components
+import { StepHeader } from '../components/form-steps/StepHeader';
+import { StepActions } from '../components/form-steps/StepActions';
+import { StepBasic } from '../components/form-steps/steps/StepBasic';
+import { StepSystem } from '../components/form-steps/steps/StepSystem';
+import { StepConfig } from '../components/form-steps/steps/StepConfig';
+import { StepSessions } from '../components/form-steps/steps/StepSessions';
+import { StepFinal } from '../components/form-steps/steps/StepFinal';
+import { StepReview } from '../components/form-steps/steps/StepReview';
 
 type TableStatus = 'draft' | 'active' | 'full' | 'cancelled' | 'ended' | 'pending_review';
 
 const DDAL_ELIGIBLE_PATH = 'dungeons-dragons/5e/2024';
+
+type FormStep = 1 | 2 | 3 | 4 | 5 | 6;
 
 interface GmProfile {
   id: string;
@@ -80,6 +86,7 @@ interface CreateTableFormProps {
     frequency_custom?: string;
     rules_notes?: string;
     contacts?: Array<{ channel: string; value: string; extra_url?: string }>;
+    sessions?: SessionSchedule[]; // Sessões importadas do parser
     // CORREÇÃO: Adicionar campos avançados (REQ-26)
     master_display_name?: string;
     campaign_length?: string;
@@ -96,6 +103,10 @@ interface CreateTableFormProps {
     // Campos de cenário e estilos (REQ-28)
     setting_name?: string;
     setting_styles?: string[];
+    // CORREÇÃO B03: Campos editoriais (REQ-28 Fase 6)
+    synopsis_narrative?: string;
+    benefits_text?: string;
+    gm_bio?: string;
   };
   mode?: 'create' | 'review';
   candidateId?: string;
@@ -143,42 +154,22 @@ const slugifyFromNickname = (value: string): string => {
     .replace(/-{2,}/g, '-');
 };
 
-function InputField({ label, id, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-sm font-medium text-white/70">{label}</label>
-      <input
-        id={id}
-        {...props}
-        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 focus:ring-1 focus:ring-[var(--color-artificio-orange)]/30 transition-all"
-      />
-    </div>
-  );
-}
 
-function SelectField({ label, id, children, ...props }: SelectHTMLAttributes<HTMLSelectElement> & { label: string }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-sm font-medium text-white/70">{label}</label>
-      <select
-        id={id}
-        {...props}
-        className="w-full bg-[#1B2A4A] border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all cursor-pointer"
-      >
-        {children}
-      </select>
-    </div>
-  );
-}
 
 export function CreateTableForm({ token, onSuccess, initialData, mode = 'create', candidateId }: CreateTableFormProps) {
+  // Estado de step (1-6)
+  const [step, setStep] = useState<FormStep>(1);
+  const [maxStepUnlocked, setMaxStepUnlocked] = useState<FormStep>(1);
+
+  const [draftStatus, setDraftStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [savedDraft, setSavedDraft] = useState<Record<string, unknown> | null>(null);
+
   const [systemsTree, setSystemsTree] = useState<SystemTreeNode[]>([]);
   const [systemsLoading, setSystemsLoading] = useState(true);
   const [systemsError, setSystemsError] = useState<string | null>(null);
-  const [systemSearch, setSystemSearch] = useState('');
   const [selectedSystemId, setSelectedSystemId] = useState<string>('');
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(initialData?.scenario_id || null);
-  const [showSuggestionModal, setShowSuggestionModal] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -188,10 +179,10 @@ export function CreateTableForm({ token, onSuccess, initialData, mode = 'create'
     description: initialData?.description || '',
     type: initialData?.type || 'campanha',
     audience: 'livre',
-    modality: initialData?.modality || 'online',
+    modality: initialData?.modality || (mode === 'create' ? 'online' : ''),
     price_type: initialData?.price_type || 'gratuita',
     price_value: '',
-    slots_total: initialData?.slots_total || '4',
+    slots_total: initialData?.slots_total || (mode === 'create' ? '4' : ''),
     experience_level: 'todos',
     starts_at: '',
     language: initialData?.language || 'Português',
@@ -223,18 +214,24 @@ export function CreateTableForm({ token, onSuccess, initialData, mode = 'create'
   const [contactsError, setContactsError] = useState<string | null>(null);
 
   // Estado de sessões (substitui frequency, isOngoing, starts_at)
-  const [sessions, setSessions] = useState<SessionSchedule[]>([
-    {
-      day_of_week: 'segunda',
-      start_time: '19:00',
-      end_time: '22:00',
-      frequency: 'semanal',
-      slots_per_session: null,
-      is_ongoing: false,
-      notes: '',
-      sort_order: 0,
-    },
-  ]);
+  const [sessions, setSessions] = useState<SessionSchedule[]>(
+    initialData?.sessions && initialData.sessions.length > 0
+      ? initialData.sessions
+      : mode === 'create'
+        ? [
+          {
+            day_of_week: 'segunda',
+            start_time: '19:00',
+            end_time: '22:00',
+            frequency: 'semanal',
+            slots_per_session: null,
+            is_ongoing: false,
+            notes: '',
+            sort_order: 0,
+          },
+        ]
+        : [] // Modo review sem sessions importadas = array vazio
+  );
 
   const [rulesNotes, setRulesNotes] = useState(initialData?.rules_notes || '');
   const [bannerUrl, setBannerUrl] = useState(initialData?.banner_url || '');
@@ -259,6 +256,10 @@ export function CreateTableForm({ token, onSuccess, initialData, mode = 'create'
   // Estados para cenário e estilos (REQ-28)
   const [settingName, setSettingName] = useState(initialData?.setting_name || '');
   const [settingStyles, setSettingStyles] = useState<string[]>(initialData?.setting_styles || []);
+  // CORREÇÃO B03: Estados para campos editoriais (REQ-28 Fase 6)
+  const [synopsisNarrative, _setSynopsisNarrative] = useState(initialData?.synopsis_narrative || '');
+  const [benefitsText, _setBenefitsText] = useState(initialData?.benefits_text || '');
+  const [gmBio, _setGmBio] = useState(initialData?.gm_bio || '');
 
   const fetchSystemsTree = async () => {
     setSystemsLoading(true);
@@ -304,14 +305,180 @@ export function CreateTableForm({ token, onSuccess, initialData, mode = 'create'
     }
   }, [isDdalEligibleSelection]);
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  // Validação por step (nova ordem: 1=Básico, 2=Sistema, 3=Sessões, 4=Config, 5=Final, 6=Revisão)
+  const canProceed = (currentStep: number): boolean => {
+    if (currentStep === 1) {
+      return form.title.trim().length > 3;
+    }
+    if (currentStep === 2) {
+      return !!selectedSystemId;
+    }
+    if (currentStep === 3) {
+      return sessions.length > 0;
+    }
+    if (currentStep === 4) {
+      if (form.slots_total === '' || parseInt(form.slots_total) < 1) return false;
+      if (publisherRole === 'announcer' && actualGmName.trim().length < 2) return false;
+      return true;
+    }
+    if (currentStep === 5) {
+      const validContacts = contacts.filter((c) => c.value.trim().length > 0);
+      return validContacts.length > 0;
+    }
+    return true;
   };
 
-  const handleDdalChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setDdal((prev) => ({ ...prev, [name]: value }));
+  const getStepError = (currentStep: number): string | undefined => {
+    if (currentStep === 1 && form.title.trim().length <= 3) {
+      return 'O título deve ter pelo menos 4 caracteres';
+    }
+    if (currentStep === 2 && !selectedSystemId) {
+      return 'Selecione um sistema na árvore';
+    }
+    if (currentStep === 3 && sessions.length === 0) {
+      return 'Configure pelo menos uma sessão';
+    }
+    if (currentStep === 4) {
+      if (form.slots_total === '' || parseInt(form.slots_total) < 1) {
+        return 'Informe o número de vagas (mínimo 1)';
+      }
+      if (publisherRole === 'announcer' && actualGmName.trim().length < 2) {
+        return 'Informe o nome do mestre real';
+      }
+    }
+    if (currentStep === 5) {
+      const validContacts = contacts.filter((c) => c.value.trim().length > 0);
+      if (validContacts.length === 0) {
+        return 'Informe pelo menos um canal de contato válido';
+      }
+    }
+    return undefined;
   };
+
+  // Autosave com feedback visual (debounce 1s)
+  useEffect(() => {
+    if (mode !== 'create') return;
+
+    setDraftStatus('saving');
+    const timeout = setTimeout(() => {
+      const draft = {
+        form,
+        sessions,
+        contacts,
+        selectedSystemId,
+        selectedScenarioId,
+        publisherRole,
+        actualGmName,
+        rulesNotes,
+        bannerUrl,
+        isCovilMesa,
+        ddal,
+        masterDisplayName,
+        campaignLength,
+        levelRange,
+        billingText,
+        sessionZeroFree,
+        synopsis,
+        styleText,
+        listingExcerpt,
+        technicalRequirements,
+        requiresPc,
+        requiresCamera,
+        requiresMicrophone,
+        settingName,
+        settingStyles,
+      };
+      localStorage.setItem('create-table-draft', JSON.stringify(draft));
+      setDraftStatus('saved');
+      setTimeout(() => setDraftStatus('idle'), 2000);
+    }, 1000);
+
+    return () => clearTimeout(timeout);
+  }, [
+    form,
+    sessions,
+    contacts,
+    selectedSystemId,
+    selectedScenarioId,
+    publisherRole,
+    actualGmName,
+    rulesNotes,
+    bannerUrl,
+    isCovilMesa,
+    ddal,
+    masterDisplayName,
+    campaignLength,
+    levelRange,
+    billingText,
+    sessionZeroFree,
+    synopsis,
+    styleText,
+    listingExcerpt,
+    technicalRequirements,
+    requiresPc,
+    requiresCamera,
+    requiresMicrophone,
+    settingName,
+    settingStyles,
+    mode,
+  ]);
+
+  // Restore com modal de confirmação (apenas no modo create)
+  useEffect(() => {
+    if (mode !== 'create') return;
+
+    const saved = localStorage.getItem('create-table-draft');
+    if (!saved) return;
+
+    try {
+      const parsed = JSON.parse(saved);
+      setSavedDraft(parsed);
+      setShowRestoreModal(true);
+    } catch (err) {
+      console.error('[CreateTableForm] Erro ao carregar draft:', err);
+    }
+  }, [mode]);
+
+  const handleRestoreDraft = () => {
+    if (!savedDraft) return;
+
+    if (savedDraft.form) setForm(savedDraft.form as typeof form);
+    if (savedDraft.sessions) setSessions(savedDraft.sessions as SessionSchedule[]);
+    if (savedDraft.contacts) setContacts(savedDraft.contacts as ContactFormEntry[]);
+    if (savedDraft.selectedSystemId) setSelectedSystemId(savedDraft.selectedSystemId as string);
+    if (savedDraft.selectedScenarioId) setSelectedScenarioId(savedDraft.selectedScenarioId as string | null);
+    if (savedDraft.publisherRole) setPublisherRole(savedDraft.publisherRole as 'gm' | 'announcer');
+    if (savedDraft.actualGmName) setActualGmName(savedDraft.actualGmName as string);
+    if (savedDraft.rulesNotes) setRulesNotes(savedDraft.rulesNotes as string);
+    if (savedDraft.bannerUrl) setBannerUrl(savedDraft.bannerUrl as string);
+    if (savedDraft.isCovilMesa !== undefined) setIsCovilMesa(savedDraft.isCovilMesa as boolean);
+    if (savedDraft.ddal) setDdal(savedDraft.ddal as DdalFormState);
+    if (savedDraft.masterDisplayName) setMasterDisplayName(savedDraft.masterDisplayName as string);
+    if (savedDraft.campaignLength) setCampaignLength(savedDraft.campaignLength as string);
+    if (savedDraft.levelRange) setLevelRange(savedDraft.levelRange as string);
+    if (savedDraft.billingText) setBillingText(savedDraft.billingText as string);
+    if (savedDraft.sessionZeroFree !== undefined) setSessionZeroFree(savedDraft.sessionZeroFree as boolean);
+    if (savedDraft.synopsis) setSynopsis(savedDraft.synopsis as string);
+    if (savedDraft.styleText) setStyleText(savedDraft.styleText as string);
+    if (savedDraft.listingExcerpt) setListingExcerpt(savedDraft.listingExcerpt as string);
+    if (savedDraft.technicalRequirements) setTechnicalRequirements(savedDraft.technicalRequirements as string);
+    if (savedDraft.requiresPc !== undefined) setRequiresPc(savedDraft.requiresPc as boolean);
+    if (savedDraft.requiresCamera !== undefined) setRequiresCamera(savedDraft.requiresCamera as boolean);
+    if (savedDraft.requiresMicrophone !== undefined) setRequiresMicrophone(savedDraft.requiresMicrophone as boolean);
+    if (savedDraft.settingName) setSettingName(savedDraft.settingName as string);
+    if (savedDraft.settingStyles) setSettingStyles(savedDraft.settingStyles as string[]);
+
+    setShowRestoreModal(false);
+    toast.success('Rascunho restaurado');
+  };
+
+  const handleDiscardDraft = () => {
+    localStorage.removeItem('create-table-draft');
+    setSavedDraft(null);
+    setShowRestoreModal(false);
+  };
+
+
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -407,6 +574,10 @@ export function CreateTableForm({ token, onSuccess, initialData, mode = 'create'
         // Campos de cenário e estilos (REQ-28)
         setting_name: settingName.trim() || null,
         setting_styles: settingStyles.length > 0 ? settingStyles : null,
+        // CORREÇÃO B03: Campos editoriais (REQ-28 Fase 6)
+        synopsis_narrative: synopsisNarrative.trim() || null,
+        benefits_text: benefitsText.trim() || null,
+        gm_bio: gmBio.trim() || null,
       };
 
       const res = await fetch('/api/v1/gm/tables', {
@@ -453,590 +624,216 @@ export function CreateTableForm({ token, onSuccess, initialData, mode = 'create'
     }
   };
 
+  // Nome do sistema selecionado (para StepReview)
+  const selectedSystemName = useMemo(() => {
+    return flattenedSystems.find((s) => s.id === selectedSystemId)?.name || null;
+  }, [flattenedSystems, selectedSystemId]);
+
+  // Nome do cenário selecionado (para StepReview)
+  const [selectedScenarioName, setSelectedScenarioName] = useState<string | null>(null);
+
+  // Buscar nome do cenário quando selectedScenarioId mudar
+  useEffect(() => {
+    if (!selectedScenarioId) {
+      setSelectedScenarioName(null);
+      return;
+    }
+
+    const fetchScenarioName = async () => {
+      try {
+        const res = await fetch(`/api/v1/scenarios/${selectedScenarioId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setSelectedScenarioName(data.data?.name || null);
+        }
+      } catch (err) {
+        console.error('[CreateTableForm] Erro ao buscar nome do cenário:', err);
+      }
+    };
+
+    fetchScenarioName();
+  }, [selectedScenarioId]);
+
+  // Limpar draft ao publicar com sucesso
+  const handleSubmitWithCleanup = async (e: FormEvent) => {
+    e.preventDefault();
+    await handleSubmit(e);
+    // Limpar draft após sucesso
+    localStorage.removeItem('create-table-draft');
+  };
+
+  // Handler de navegação entre steps
+  const handleNavigate = (targetStep: number) => {
+    const target = targetStep as FormStep;
+    if (target <= maxStepUnlocked) {
+      setStep(target);
+    }
+  };
+
+  // Atualizar maxStepUnlocked ao avançar
+  const handleNext = () => {
+    if (canProceed(step)) {
+      const nextStep = (step + 1) as FormStep;
+      setStep(nextStep);
+      setMaxStepUnlocked((prev) => Math.max(prev, nextStep) as FormStep);
+    }
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="md:col-span-2">
-          <InputField
-            label="Título da Mesa *"
-            id="title"
-            name="title"
-            value={form.title}
-            onChange={handleChange}
-            placeholder="Ex: A Queda do Império Sombrio"
-            required
-          />
-        </div>
-
-        <div className="md:col-span-2 rounded-2xl border border-white/10 bg-[#13213f]/60 p-4 space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-sm text-white/70">
-              <Dice1 className="w-4 h-4 text-[var(--color-artificio-orange)]" />
-              Sistema da Mesa *
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowSuggestionModal(true)}
-              className="text-xs px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
-            >
-              + Adicionar Sistema
-            </button>
-          </div>
-
-          {systemsLoading ? (
-            <p className="text-sm text-white/60">Carregando árvore de sistemas...</p>
-          ) : systemsError ? (
-            <p className="text-sm text-red-300">{systemsError}</p>
-          ) : (
-            <SystemTreeSelector
-              tree={systemsTree}
-              selectedIds={selectedSystemId ? [selectedSystemId] : []}
-              onToggle={(systemId) => {
-                setSelectedSystemId(systemId);
-                setSystemSearch(''); // Limpar busca ao selecionar
-              }}
-              search={systemSearch}
-              onSearchChange={setSystemSearch}
-              idPrefix="painel-mestre-systems"
-              singleSelect
-            />
-          )}
-        </div>
-
-        {/* Cenário (opcional) */}
-        <div className="md:col-span-2 rounded-2xl border border-white/10 bg-[#13213f]/60 p-4 space-y-3">
-          <div>
-            <p className="text-sm font-semibold text-white">Cenário (opcional)</p>
-            <p className="text-xs text-white/60 mt-1">
-              Cenários são independentes de sistemas. Ex: Forgotten Realms pode ser jogado em D&D ou Pathfinder.
+    <>
+      {/* Modal de restore de rascunho */}
+      {showRestoreModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#0B1628] border border-white/10 rounded-2xl p-6 max-w-md w-full space-y-4">
+            <h3 className="text-xl font-bold text-white">Rascunho encontrado</h3>
+            <p className="text-white/70 text-sm">
+              Encontramos um rascunho salvo. Deseja continuar de onde parou?
             </p>
-          </div>
-
-          <ScenarioSelector
-            selectedScenarioId={selectedScenarioId}
-            onSelect={setSelectedScenarioId}
-            disabled={loading}
-          />
-        </div>
-
-        <div className="md:col-span-2 rounded-2xl border border-white/10 bg-[#13213f]/60 p-4 space-y-3" id="painel-mestre-publisher-role-block">
-          <div>
-            <p className="text-sm font-semibold text-white">Quem está publicando esta mesa?</p>
-            <p className="text-xs text-white/60 mt-1">Você pode publicar como mestre narrador ou como apenas anunciante.</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <label htmlFor="publisher-role-gm" className={`rounded-xl border p-3 cursor-pointer transition-colors ${publisherRole === 'gm' ? 'border-[var(--color-artificio-orange)] bg-[var(--color-artificio-orange)]/10' : 'border-white/15 bg-white/5 hover:border-white/30'}`}>
-              <input
-                id="publisher-role-gm"
-                type="radio"
-                name="publisher_role"
-                className="sr-only"
-                checked={publisherRole === 'gm'}
-                onChange={() => setPublisherRole('gm')}
-              />
-              <p className="text-sm font-semibold">Sou o mestre desta mesa</p>
-              <p className="text-xs text-white/60 mt-1">Sem selo de anunciante.</p>
-            </label>
-
-            <label htmlFor="publisher-role-announcer" className={`rounded-xl border p-3 cursor-pointer transition-colors ${publisherRole === 'announcer' ? 'border-[var(--color-artificio-orange)] bg-[var(--color-artificio-orange)]/10' : 'border-white/15 bg-white/5 hover:border-white/30'}`}>
-              <input
-                id="publisher-role-announcer"
-                type="radio"
-                name="publisher_role"
-                className="sr-only"
-                checked={publisherRole === 'announcer'}
-                onChange={() => setPublisherRole('announcer')}
-              />
-              <p className="text-sm font-semibold">Sou apenas anunciante</p>
-              <p className="text-xs text-white/60 mt-1">A mesa exibirá o selo "Apenas anunciante".</p>
-            </label>
-          </div>
-
-          {publisherRole === 'announcer' && (
-            <InputField
-              label="Nome do mestre real *"
-              id="painel-mestre-actual-gm-name"
-              name="actual_gm_name"
-              value={actualGmName}
-              onChange={(event) => setActualGmName(event.target.value)}
-              placeholder="Ex: Mestre Arandur"
-              required
-            />
-          )}
-        </div>
-
-        <SelectField label="Tipo de Mesa *" id="type" name="type" value={form.type} onChange={handleChange}>
-          <option value="campanha">Campanha</option>
-          <option value="one-shot">One-Shot</option>
-          <option value="oneshot-serie">One-Shot em Série</option>
-          <option value="aberta">Mesa Aberta</option>
-        </SelectField>
-
-        <SelectField label="Modalidade *" id="modality" name="modality" value={form.modality} onChange={handleChange}>
-          <option value="online">Online</option>
-          <option value="presencial">Presencial</option>
-          <option value="hibrida">Híbrida</option>
-        </SelectField>
-
-        <SelectField label="Audiência" id="audience" name="audience" value={form.audience} onChange={handleChange}>
-          <option value="livre">Livre (Todos os públicos)</option>
-          <option value="adultos">Adultos (+18)</option>
-        </SelectField>
-
-        <SelectField label="Cobrança" id="price_type" name="price_type" value={form.price_type} onChange={handleChange}>
-          <option value="gratuita">Gratuita</option>
-          <option value="paga">Paga</option>
-        </SelectField>
-
-        {form.price_type === 'paga' && (
-          <InputField
-            label="Valor (R$)"
-            id="price_value"
-            name="price_value"
-            type="number"
-            min="0"
-            step="0.01"
-            value={form.price_value}
-            onChange={handleChange}
-            placeholder="Ex: 25.00"
-          />
-        )}
-
-        <SelectField
-          label="Nível de Experiência"
-          id="experience_level"
-          name="experience_level"
-          value={form.experience_level}
-          onChange={handleChange}
-        >
-          <option value="todos">Todos os Níveis</option>
-          <option value="iniciante">Iniciante</option>
-          <option value="intermediario">Intermediário</option>
-          <option value="veterano">Veterano</option>
-        </SelectField>
-
-        <InputField
-          label="Vagas Totais"
-          id="slots_total"
-          name="slots_total"
-          type="number"
-          min="1"
-          max="20"
-          value={form.slots_total}
-          onChange={handleChange}
-        />
-
-        <InputField
-          label="Idioma"
-          id="language"
-          name="language"
-          value={form.language}
-          onChange={handleChange}
-          placeholder="Português"
-        />
-      </div>
-
-      {/* Sessões estruturadas - substitui frequency, isOngoing, starts_at */}
-      <div className="rounded-2xl border border-white/10 bg-[#13213f]/60 p-4">
-        <SessionRepeater
-          sessions={sessions}
-          onChange={setSessions}
-          disabled={loading}
-        />
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <label htmlFor="description" className="text-sm font-medium text-white/70">Descrição da Mesa</label>
-        <textarea
-          id="description"
-          name="description"
-          value={form.description}
-          onChange={handleChange}
-          rows={4}
-          placeholder="Descreva sua campanha, o tom da história, o que esperar..."
-          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all resize-none"
-        />
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <label htmlFor="rules_notes" className="text-sm font-medium text-white/70">Regras/Observações da Mesa (opcional)</label>
-        <textarea
-          id="rules_notes"
-          name="rules_notes"
-          value={rulesNotes}
-          onChange={(e) => setRulesNotes(e.target.value)}
-          rows={3}
-          placeholder="Ex: Usamos regras homebrew para combate, proibido PvP, etc."
-          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all resize-none"
-        />
-      </div>
-
-      <InputField
-        label="URL do Banner da Mesa (opcional)"
-        id="banner_url"
-        name="banner_url"
-        value={bannerUrl}
-        onChange={(e) => { setBannerUrl(e.target.value); setBannerError(false); }}
-        placeholder="https://exemplo.com/banner.jpg"
-      />
-
-      {/* Preview do banner: mostra placeholder no modo review se não houver URL */}
-      {(bannerUrl && !bannerError) ? (
-        <div className="overflow-hidden rounded-xl border border-white/10">
-          <img
-            src={bannerUrl}
-            alt="Preview do banner"
-            onError={() => setBannerError(true)}
-            className="w-full max-h-48 object-cover"
-          />
-        </div>
-      ) : mode === 'review' && (
-        <div className="overflow-hidden rounded-xl border border-white/10 opacity-50">
-          <img
-            src={bannerPlaceholder}
-            alt="Placeholder — sem banner definido"
-            className="w-full max-h-48 object-cover"
-          />
-          <p className="text-center text-xs text-white/40 py-1 bg-black/40">Sem banner — placeholder padrão será exibido</p>
-        </div>
-      )}
-
-      {mode === 'review' && gmAvatarUrl && !avatarError && (
-        <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
-          <img
-            src={gmAvatarUrl}
-            alt="Avatar do mestre (Discord)"
-            onError={() => setAvatarError(true)}
-            className="w-12 h-12 rounded-full object-cover border-2 border-white/20 flex-shrink-0"
-          />
-          <div>
-            <p className="text-xs font-semibold text-white/80">Avatar do mestre (importado do Discord)</p>
-            <p className="text-xs text-white/40">Não é salvo no banco. Apenas referência visual.</p>
-          </div>
-        </div>
-      )}
-
-      <ContactsFormBlock
-        contacts={contacts}
-        onChange={(next) => {
-          setContacts(next);
-          if (contactsError) setContactsError(null);
-        }}
-        error={contactsError}
-      />
-
-      {/* Campos Avançados (REQ-26) */}
-      <section className="rounded-2xl border border-white/10 bg-[#13213f]/60 p-5 space-y-4">
-        <div>
-          <h3 className="text-lg font-bold text-white mb-1">Campos Avançados (Opcional)</h3>
-          <p className="text-xs text-white/60">Informações adicionais para enriquecer o anúncio da mesa</p>
-        </div>
-
-        {/* Bloco A: Identificação do mestre */}
-        <div className="space-y-3">
-          <p className="text-sm font-semibold text-white/80">Identificação do Mestre</p>
-          <InputField
-            label="Nome de Exibição do Mestre (opcional)"
-            id="master_display_name"
-            value={masterDisplayName}
-            onChange={(e) => setMasterDisplayName(e.target.value)}
-            placeholder="Ex: Mestre Arandur"
-          />
-          <p className="text-xs text-white/50">Útil se você usa um nome artístico diferente do seu perfil</p>
-        </div>
-
-        {/* Bloco B: Detalhes da campanha */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <InputField
-            label="Duração da Campanha (opcional)"
-            id="campaign_length"
-            value={campaignLength}
-            onChange={(e) => setCampaignLength(e.target.value)}
-            placeholder="Ex: 6 meses, 12 sessões, Indeterminada"
-          />
-          <InputField
-            label="Faixa de Nível (opcional)"
-            id="level_range"
-            value={levelRange}
-            onChange={(e) => setLevelRange(e.target.value)}
-            placeholder="Ex: 1-5, 10-15, Épico 20+"
-          />
-        </div>
-
-        {/* Bloco D: Cobrança detalhada */}
-        {/* CORREÇÃO A09: Abrir bloco também quando billing_text existe (dados importados) */}
-        {(form.price_type === 'paga' || billingText) && (
-          <div className="space-y-3">
-            <p className="text-sm font-semibold text-white/80">Detalhes de Cobrança</p>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="billing_text" className="text-sm font-medium text-white/70">Texto Descritivo sobre Cobrança</label>
-              <textarea
-                id="billing_text"
-                value={billingText}
-                onChange={(e) => setBillingText(e.target.value)}
-                rows={2}
-                placeholder="Ex: Pagamento via PIX após cada sessão, Mensalidade com desconto para trimestre"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all resize-none"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="session_zero_free"
-                checked={sessionZeroFree}
-                onChange={(e) => setSessionZeroFree(e.target.checked)}
-                className="h-4 w-4 rounded border-white/20 bg-white/10 text-[var(--color-artificio-orange)] focus:ring-[var(--color-artificio-orange)]"
-              />
-              <label htmlFor="session_zero_free" className="text-sm text-white/70 cursor-pointer">
-                Sessão zero é gratuita
-              </label>
-            </div>
-          </div>
-        )}
-
-        {/* Bloco E: Descrições expandidas */}
-        <div className="space-y-3">
-          <p className="text-sm font-semibold text-white/80">Descrições Expandidas</p>
-          <div className="flex flex-col gap-1">
-            <label htmlFor="synopsis" className="text-sm font-medium text-white/70">Sinopse Narrativa (opcional)</label>
-            <textarea
-              id="synopsis"
-              value={synopsis}
-              onChange={(e) => setSynopsis(e.target.value)}
-              rows={4}
-              placeholder="Uma sinopse mais longa e imersiva da campanha..."
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all resize-none"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label htmlFor="style_text" className="text-sm font-medium text-white/70">Estilo de Jogo (opcional)</label>
-            <textarea
-              id="style_text"
-              value={styleText}
-              onChange={(e) => setStyleText(e.target.value)}
-              rows={2}
-              placeholder="Ex: Roleplay pesado, Combate tático, Sandbox político"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all resize-none"
-            />
-          </div>
-          <InputField
-            label="Resumo Curto (opcional)"
-            id="listing_excerpt"
-            value={listingExcerpt}
-            onChange={(e) => setListingExcerpt(e.target.value)}
-            placeholder="Resumo alternativo para listagens"
-          />
-        </div>
-
-        {/* Bloco F: Requisitos técnicos */}
-        <div className="space-y-3">
-          <p className="text-sm font-semibold text-white/80">Requisitos Técnicos</p>
-          <div className="flex flex-col gap-1">
-            <label htmlFor="technical_requirements" className="text-sm font-medium text-white/70">Requisitos Detalhados (opcional)</label>
-            <textarea
-              id="technical_requirements"
-              value={technicalRequirements}
-              onChange={(e) => setTechnicalRequirements(e.target.value)}
-              rows={2}
-              placeholder="Ex: Roll20 + Discord, Foundry VTT com módulos X, Y"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all resize-none"
-            />
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="requires_pc"
-                checked={requiresPc}
-                onChange={(e) => setRequiresPc(e.target.checked)}
-                className="h-4 w-4 rounded border-white/20 bg-white/10 text-[var(--color-artificio-orange)] focus:ring-[var(--color-artificio-orange)]"
-              />
-              <label htmlFor="requires_pc" className="text-sm text-white/70 cursor-pointer">
-                Requer computador (não funciona em mobile)
-              </label>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="requires_camera"
-                checked={requiresCamera}
-                onChange={(e) => setRequiresCamera(e.target.checked)}
-                className="h-4 w-4 rounded border-white/20 bg-white/10 text-[var(--color-artificio-orange)] focus:ring-[var(--color-artificio-orange)]"
-              />
-              <label htmlFor="requires_camera" className="text-sm text-white/70 cursor-pointer">
-                Requer câmera ligada durante as sessões
-              </label>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="requires_microphone"
-                checked={requiresMicrophone}
-                onChange={(e) => setRequiresMicrophone(e.target.checked)}
-                className="h-4 w-4 rounded border-white/20 bg-white/10 text-[var(--color-artificio-orange)] focus:ring-[var(--color-artificio-orange)]"
-              />
-              <label htmlFor="requires_microphone" className="text-sm text-white/70 cursor-pointer">
-                Requer microfone funcional (obrigatório)
-              </label>
-            </div>
-          </div>
-        </div>
-
-        {/* Bloco G: Cenário e Estilos (REQ-28) */}
-        <div className="space-y-3">
-          <p className="text-sm font-semibold text-white/80">Cenário e Estilos</p>
-          <SettingStylesField
-            settingName={settingName}
-            settingStyles={settingStyles}
-            onSettingNameChange={setSettingName}
-            onSettingStylesChange={setSettingStyles}
-          />
-        </div>
-      </section>
-
-      {isDdalEligibleSelection && (
-        <section className="rounded-2xl border border-amber-300/30 bg-amber-500/10 p-5 space-y-4" id="painel-mestre-ddal-block">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-amber-100 inline-flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4" /> Caminho elegível para selo DDAL
-              </p>
-              <p className="text-xs text-amber-100/80 mt-1">Ative apenas para módulos Adventurers League.</p>
-            </div>
-
-            <label htmlFor="painel-mestre-ddal-toggle" className="inline-flex items-center gap-2 text-sm text-amber-100">
-              <input
-                id="painel-mestre-ddal-toggle"
-                type="checkbox"
-                checked={ddal.is_ddal}
-                onChange={(e) => setDdal((prev) => ({ ...prev, is_ddal: e.target.checked }))}
-                className="h-4 w-4 rounded border-white/20 bg-white/10"
-              />
-              É DDAL
-            </label>
-          </div>
-
-          {ddal.is_ddal && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <InputField
-                label="Código da Aventura *"
-                id="ddal_code"
-                name="ddal_code"
-                value={ddal.ddal_code}
-                onChange={handleDdalChange}
-                placeholder="Ex: DDAL05-01"
-                required
-              />
-
-              <InputField
-                label="Nome da Aventura *"
-                id="ddal_name"
-                name="ddal_name"
-                value={ddal.ddal_name}
-                onChange={handleDdalChange}
-                placeholder="Ex: Treasure of the Broken Hoard"
-                required
-              />
-
-              <SelectField
-                label="Tier *"
-                id="ddal_tier"
-                name="ddal_tier"
-                value={ddal.ddal_tier}
-                onChange={handleDdalChange}
-                required
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={handleRestoreDraft}
+                autoFocus
+                className="flex-1 px-4 py-3 rounded-xl bg-[var(--color-artificio-orange)] hover:bg-[var(--color-artificio-orange-hover)] text-white font-semibold transition-colors"
               >
-                <option value="">Selecione</option>
-                <option value="1">Tier 1</option>
-                <option value="2">Tier 2</option>
-                <option value="3">Tier 3</option>
-                <option value="4">Tier 4</option>
-              </SelectField>
-
-              <InputField
-                label="Season"
-                id="ddal_season"
-                name="ddal_season"
-                value={ddal.ddal_season}
-                onChange={handleDdalChange}
-                placeholder="Ex: Season 10"
-              />
-
-              <InputField
-                label="Duração esperada"
-                id="ddal_duration"
-                name="ddal_duration"
-                value={ddal.ddal_duration}
-                onChange={handleDdalChange}
-                placeholder="Ex: 4h"
-              />
-
-              <InputField
-                label="Formato"
-                id="ddal_format"
-                name="ddal_format"
-                value={ddal.ddal_format}
-                onChange={handleDdalChange}
-                placeholder="Ex: modulo, hardcover ou ccc"
-              />
-
-              <InputField
-                label="Código expandido / organização"
-                id="ddal_org_code"
-                name="ddal_org_code"
-                value={ddal.ddal_org_code}
-                onChange={handleDdalChange}
-                placeholder="Ex: CCC-BMG-01"
-              />
-
-              <InputField
-                label="Ambientação"
-                id="ddal_setting"
-                name="ddal_setting"
-                value={ddal.ddal_setting}
-                onChange={handleDdalChange}
-                placeholder="Ex: Forgotten Realms"
-              />
-
-              <div className="md:col-span-2 flex flex-col gap-1">
-                <label htmlFor="ddal_rules_notes" className="text-sm font-medium text-white/70">Notas de regras da temporada</label>
-                <textarea
-                  id="ddal_rules_notes"
-                  name="ddal_rules_notes"
-                  value={ddal.ddal_rules_notes}
-                  onChange={handleDdalChange}
-                  rows={3}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all resize-none"
-                  placeholder="Observações úteis para jogadores e organização"
-                />
-              </div>
+                Continuar
+              </button>
+              <button
+                type="button"
+                onClick={handleDiscardDraft}
+                className="flex-1 px-4 py-3 rounded-xl border border-white/20 hover:border-white/40 text-white/70 hover:text-white transition-colors"
+              >
+                Descartar
+              </button>
             </div>
-          )}
-        </section>
+          </div>
+        </div>
       )}
 
-      {mode === 'review' && (
-        <section className="rounded-2xl border border-orange-500/30 bg-orange-900/10 p-5 space-y-3" id="painel-mestre-covil-block">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-orange-200 flex items-center gap-2">
-                🏰 Mesa do Covil do Lich
-              </p>
-              <p className="text-xs text-orange-100/70 mt-1">Detectado automaticamente pelo parser. Pode ser editado antes de publicar.</p>
-            </div>
-            <label htmlFor="covil-toggle" className="inline-flex items-center gap-2 text-sm text-orange-100 cursor-pointer">
-              <input
-                id="covil-toggle"
-                type="checkbox"
-                checked={isCovilMesa}
-                onChange={(e) => setIsCovilMesa(e.target.checked)}
-                className="h-4 w-4 rounded border-orange-300/30 bg-orange-900/20 text-orange-400"
-              />
-              É Covil do Lich
-            </label>
+      <form onSubmit={handleSubmitWithCleanup} className="space-y-6">
+        {/* Feedback de autosave */}
+        {draftStatus !== 'idle' && mode === 'create' && (
+          <div className="flex items-center gap-2 text-xs text-white/50">
+            {draftStatus === 'saving' && (
+              <>
+                <div className="w-3 h-3 border-2 border-white/30 border-t-white/70 rounded-full animate-spin" />
+                <span>Salvando rascunho...</span>
+              </>
+            )}
+            {draftStatus === 'saved' && (
+              <>
+                <span className="text-green-400">✔</span>
+                <span className="text-green-400/70">Rascunho salvo</span>
+              </>
+            )}
           </div>
-        </section>
+        )}
+
+        <StepHeader step={step} maxStepUnlocked={maxStepUnlocked} onNavigate={handleNavigate} />
+
+      {step === 1 && (
+        <StepBasic
+          form={form}
+          setForm={setForm}
+        />
+      )}
+
+      {step === 2 && (
+        <StepSystem
+          systemsTree={systemsTree}
+          systemsLoading={systemsLoading}
+          systemsError={systemsError}
+          selectedSystemId={selectedSystemId}
+          setSelectedSystemId={setSelectedSystemId}
+          selectedScenarioId={selectedScenarioId}
+          setSelectedScenarioId={setSelectedScenarioId}
+          onRefreshSystems={fetchSystemsTree}
+        />
+      )}
+
+      {step === 3 && (
+        <StepSessions
+          sessions={sessions}
+          setSessions={setSessions}
+        />
+      )}
+
+      {step === 4 && (
+        <StepConfig
+          form={form}
+          setForm={setForm}
+          publisherRole={publisherRole}
+          setPublisherRole={setPublisherRole}
+          actualGmName={actualGmName}
+          setActualGmName={setActualGmName}
+        />
+      )}
+
+      {step === 5 && (
+        <StepFinal
+          contacts={contacts}
+          setContacts={setContacts}
+          contactsError={contactsError}
+          setContactsError={setContactsError}
+          rulesNotes={rulesNotes}
+          setRulesNotes={setRulesNotes}
+          bannerUrl={bannerUrl}
+          setBannerUrl={setBannerUrl}
+          bannerError={bannerError}
+          setBannerError={setBannerError}
+          gmAvatarUrl={gmAvatarUrl}
+          avatarError={avatarError}
+          setAvatarError={setAvatarError}
+          isCovilMesa={isCovilMesa}
+          setIsCovilMesa={setIsCovilMesa}
+          mode={mode}
+          isDdalEligibleSelection={isDdalEligibleSelection}
+          ddal={ddal}
+          setDdal={setDdal}
+          masterDisplayName={masterDisplayName}
+          setMasterDisplayName={setMasterDisplayName}
+          campaignLength={campaignLength}
+          setCampaignLength={setCampaignLength}
+          levelRange={levelRange}
+          setLevelRange={setLevelRange}
+          billingText={billingText}
+          setBillingText={setBillingText}
+          sessionZeroFree={sessionZeroFree}
+          setSessionZeroFree={setSessionZeroFree}
+          synopsis={synopsis}
+          setSynopsis={setSynopsis}
+          styleText={styleText}
+          setStyleText={setStyleText}
+          listingExcerpt={listingExcerpt}
+          setListingExcerpt={setListingExcerpt}
+          technicalRequirements={technicalRequirements}
+          setTechnicalRequirements={setTechnicalRequirements}
+          requiresPc={requiresPc}
+          setRequiresPc={setRequiresPc}
+          requiresCamera={requiresCamera}
+          setRequiresCamera={setRequiresCamera}
+          requiresMicrophone={requiresMicrophone}
+          setRequiresMicrophone={setRequiresMicrophone}
+          settingName={settingName}
+          setSettingName={setSettingName}
+          settingStyles={settingStyles}
+          setSettingStyles={setSettingStyles}
+          priceType={form.price_type}
+        />
+      )}
+
+      {step === 6 && (
+        <StepReview
+          form={form}
+          selectedSystemName={selectedSystemName}
+          selectedScenarioName={selectedScenarioName}
+          sessions={sessions}
+          contacts={contacts}
+          publisherRole={publisherRole}
+          actualGmName={actualGmName}
+          rulesNotes={rulesNotes}
+          bannerUrl={bannerUrl}
+        />
       )}
 
       {error && (
@@ -1045,30 +842,43 @@ export function CreateTableForm({ token, onSuccess, initialData, mode = 'create'
         </div>
       )}
 
-      <button
-        type="submit"
-        disabled={loading}
-        id="btn-criar-mesa"
-        className="w-full py-4 bg-[var(--color-artificio-orange)] hover:bg-[var(--color-artificio-orange-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-colors cursor-pointer"
-      >
-        {loading 
-          ? (mode === 'review' ? 'Aprovando...' : 'Publicando...') 
-          : (mode === 'review' ? 'Aprovar e Publicar' : 'Publicar Mesa')
-        }
-      </button>
-
-      <SystemSuggestionModal
-        isOpen={showSuggestionModal}
-        onClose={() => setShowSuggestionModal(false)}
-        onSuccess={() => {
-          setShowSuggestionModal(false);
-          // Recarregar árvore de sistemas
-          fetchSystemsTree();
+      <StepActions
+        step={step}
+        setStep={(n) => {
+          if (n < step) {
+            // Voltar: permitido sempre
+            setStep(n as FormStep);
+          } else {
+            // Avançar: usar handleNext
+            handleNext();
+          }
         }}
+        canNext={canProceed(step)}
+        errorMessage={getStepError(step)}
+        onSubmit={() => handleSubmitWithCleanup({ preventDefault: () => {} } as FormEvent)}
+        loading={loading}
       />
+
     </form>
+    </>
   );
 }
+
+
+function InputField({ label, id, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <label htmlFor={id} className="text-sm font-medium text-white/70">{label}</label>
+      <input
+        id={id}
+        {...props}
+        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 focus:ring-1 focus:ring-[var(--color-artificio-orange)]/30 transition-all"
+      />
+    </div>
+  );
+}
+
+
 
 function CreateGmProfileForm({ token, onSuccess }: { token: string; onSuccess: () => void }) {
   const [loading, setLoading] = useState(false);
@@ -1180,6 +990,9 @@ export const PainelMestrePage = () => {
   const [myTables, setMyTables] = useState<MyTable[]>([]);
   const [view, setView] = useState<'dashboard' | 'create-table' | 'create-profile'>('dashboard');
   const [loadingProfile, setLoadingProfile] = useState(true);
+  // CORREÇÃO DT-06: State para modo de edição
+  const [editingTableId, setEditingTableId] = useState<string | null>(null);
+  const [editingTableData, setEditingTableData] = useState<any>(null);
 
   useEffect(() => {
     if (!user || !token) {
@@ -1241,6 +1054,40 @@ export const PainelMestrePage = () => {
     loadPanelData();
   }, [navigate, token, user]);
 
+  // CORREÇÃO DT-06: Detectar query param ?edit= e carregar dados da mesa
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const editId = searchParams.get('edit');
+
+    if (editId && token) {
+      setEditingTableId(editId);
+
+      // Carregar dados da mesa
+      const loadTableData = async () => {
+        try {
+          const response = await fetch(`/api/v1/tables/${editId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            setEditingTableData(data.data);
+            setView('create-table');
+          } else {
+            toast.error('Mesa não encontrada');
+            setEditingTableId(null);
+          }
+        } catch (error) {
+          console.error('[PainelMestrePage] Erro ao carregar mesa para edição:', error);
+          toast.error('Erro ao carregar mesa');
+          setEditingTableId(null);
+        }
+      };
+
+      loadTableData();
+    }
+  }, [token]);
+
   const refreshData = () => {
     setView('dashboard');
     setLoadingProfile(true);
@@ -1260,7 +1107,7 @@ export const PainelMestrePage = () => {
           setMyTables(tablesJson?.data ?? []);
         }
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoadingProfile(false));
   };
 
@@ -1273,6 +1120,69 @@ export const PainelMestrePage = () => {
     () => myTables.reduce((acc, table) => acc + Math.max(table.slots_total - table.slots_filled, 0), 0),
     [myTables]
   );
+
+  const handleToggleTableStatus = async (tableId: string, currentStatus: string, title: string) => {
+    if (!token) return;
+    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+    const action = newStatus === 'active' ? 'ativar' : 'desativar';
+
+    if (!confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} mesa "${title}"?`)) return;
+
+    try {
+      // CORREÇÃO DT-04: Admin usa rota admin
+      const endpoint = user?.role === 'admin'
+        ? `/api/v1/gm/admin/tables/${tableId}`
+        : `/api/v1/gm/tables/${tableId}`;
+
+      const response = await fetch(endpoint, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (response.ok) {
+        toast.success(`Mesa ${action === 'ativar' ? 'ativada' : 'desativada'}!`);
+        refreshData();
+      } else {
+        const data = await response.json();
+        toast.error(data.error || `Erro ao ${action} mesa`);
+      }
+    } catch (error) {
+      console.error('[PainelMestrePage] Erro ao alterar status da mesa:', error);
+      toast.error(`Erro ao ${action} mesa`);
+    }
+  };
+
+  const handleDeleteTable = async (tableId: string, title: string) => {
+    if (!token) return;
+    if (!confirm(`Deletar mesa "${title}"? Esta ação não pode ser desfeita.`)) return;
+
+    try {
+      // CORREÇÃO DT-04b: Admin usa rota admin
+      const endpoint = user?.role === 'admin'
+        ? `/api/v1/gm/admin/tables/${tableId}`
+        : `/api/v1/gm/tables/${tableId}`;
+
+      const response = await fetch(endpoint, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        toast.success('Mesa deletada!');
+        refreshData();
+      } else {
+        const data = await response.json();
+        toast.error(data.error || 'Erro ao deletar mesa');
+      }
+    } catch (error) {
+      console.error('[PainelMestrePage] Erro ao deletar mesa:', error);
+      toast.error('Erro ao deletar mesa');
+    }
+  };
 
   if (!user) return null;
 
@@ -1294,10 +1204,14 @@ export const PainelMestrePage = () => {
             <div className="flex items-center gap-3">
               <button onClick={() => setView('dashboard')} className="text-white/40 hover:text-white transition-colors cursor-pointer text-sm">← Voltar</button>
               <ChevronRight className="w-4 h-4 text-white/20" />
-              <h1 className="text-2xl font-bold">Nova Mesa</h1>
+              <h1 className="text-2xl font-bold">{editingTableId ? 'Editar Mesa' : 'Nova Mesa'}</h1>
             </div>
             <div className="bg-white/3 border border-white/8 rounded-2xl p-8">
-              <CreateTableForm token={token!} onSuccess={refreshData} />
+              <CreateTableForm
+                token={token!}
+                onSuccess={refreshData}
+                initialData={editingTableData || undefined}
+              />
             </div>
           </div>
         ) : (
@@ -1392,6 +1306,24 @@ export const PainelMestrePage = () => {
                           >
                             Abrir página
                           </Link>
+                          <Link
+                            to={`/painel-mestre?edit=${table.id}`}
+                            className="px-3 py-2 rounded-lg text-xs bg-blue-500 hover:bg-blue-600 text-white transition-colors"
+                          >
+                            Editar
+                          </Link>
+                          <button
+                            onClick={() => handleToggleTableStatus(table.id, table.status, table.title)}
+                            className={`px-3 py-2 rounded-lg text-xs ${table.status === 'active' ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-green-500 hover:bg-green-600'} text-white transition-colors`}
+                          >
+                            {table.status === 'active' ? 'Desativar' : 'Ativar'}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTable(table.id, table.title)}
+                            className="px-3 py-2 rounded-lg text-xs bg-red-500 hover:bg-red-600 text-white transition-colors"
+                          >
+                            Deletar
+                          </button>
                         </div>
                       </article>
                     );

@@ -88,31 +88,52 @@
 
 ---
 
-## Estado Atual (05/04/2026)
+## Estado Atual (06/04/2026)
 
 **Ambiente beta:** Estável e operacional em `mesasbeta.artificiorpg.com`
 
-**Última sessão concluída (05/04/2026 - 18:24):**
-- REQ-28 expandido para cobrir fluxo completo de importação inteligente
-- Documentação canônica atualizada: `TODO_OPERACIONAL.md`, `ARQUITETURA_PROJETO.md`
-- Arquitetura consolidada: 5 camadas (Parser Python → Normalização → FormPatch → Revisão → Persistência)
-- Backend Fase 1 mantido: `setting_name` e `setting_styles` funcionais (5/5 testes passando)
+**Última sessão concluída (06/04/2026 - 01:40):**
+- **Refatoração completa do CreateTableForm:** Fluxo multi-step otimizado
+  - Nova ordem: 1=Básico, 2=Sistema, 3=Sessões, 4=Configuração, 5=Finalização, 6=Revisão
+  - Contatos migrados de StepSessions para StepFinal (separação de modelos mentais)
+  - StepHeader evoluído: navegação clicável com trava de progresso (`maxStepUnlocked`)
+  - Autosave com feedback visual não intrusivo (`Salvando...` / `✔ Rascunho salvo`)
+  - Modal de restore de rascunho com confirmação explícita
+  - Validações ajustadas para nova ordem de steps
+- **Build validado:** Frontend compila sem erros (exit code 0)
+- **Documentação atualizada:**
+  - `sessoes/resumo_05-04_refatoracao-steps-form.md` criado
+
+**Sessão anterior (06/04/2026 - 00:41):**
+- **Auditoria completa REQ-28:** 30 problemas identificados em 3 passagens
+- **21 correções aplicadas:** 10 críticos + 10 altos + 1 médio (70% de resolução)
+  - Overrides aplicados corretamente (deep copy + Object.assign)
+  - Fluxo de aprovação unificado (243 linhas removidas)
+  - Validação de day_of_week previne erros 500
+  - Whitelist de campos (segurança contra injeção)
+  - Type-safety restaurada
+  - Loading states adicionados
+  - **UX melhorada:** Indicadores visuais ✏️, banner de resumo, botão "Salvar Rascunho"
+  - **Tratamento de erro específico** por status HTTP
+  - **Validação de tipos** (slots_total, booleans, arrays)
+  - **Audit log completo** implementado (migration_11)
 
 **Próxima ação prioritária:**
-**[RESOLVIDO]** ~~Erro 500 em `POST /api/v1/gm/tables`~~ — Causa raiz confirmada (constraint `price_value_required`), validação adicionada no código, build validado. Ver E128 e item 137 da fila.
+1. **Testar fluxo completo do formulário refatorado** em ambiente local
+2. **Validar UX:** navegação entre steps, autosave, restore de rascunho
+3. **Aplicar migration_11** em beta (`aggregator_candidate_audit`) — pendente da sessão anterior
+4. **Deploy em beta** para validação manual completa
 
-**[RESOLVIDO]** ~~Banner não preenchido no fluxo de importação~~ — Causa raiz confirmada (bug de mapeamento em `candidateToFormData.ts`), correção aplicada, build validado. Ver E129 e item 138 da fila.
+**Após validação em beta:**
+1. Adicionar testes E2E (DT-REQ28-30) - opcional
+2. Criar endpoint GET /audit/:candidateId - opcional
+3. Preparar para produção
 
-**[PRÓXIMO BLOQUEADOR]** Corrigir descrição incompleta no fluxo de importação (E130, item 139). Definir regra editorial clara para composição de descrição longa: separar `synopsis`, `rules_notes`, `signupText` em campos apropriados. Validar cadeia completa: parser Python extrai blocos textuais → candidateToFormData mapeia corretamente → formulário exibe texto completo → POST /api/v1/gm/tables persiste sem truncamento → API pública retorna descrição completa → MesaPage renderiza. Ver `sessoes/plano_json 2.md` linhas 357-430 para backlog detalhado.
-
-**Após correção da descrição, próximas ações em ordem:**
-1. Expandir parser Python com todos os campos do plano de importação inteligente
-2. Implementar auto-preenchimento completo e comportamento inteligente da UI
-3. Implementar persistência com overrides
-
-**REQs identificados e pendentes (integrados ao TODO_OPERACIONAL.md):**
-- REQ-21: Melhorias críticas no formulário (14 lacunas — plataformas, faixa etária, editor rico)
-- REQ-28: Importação Inteligente — 2 de 3 bugs críticos resolvidos (E128 ✅, E129 ✅), pendente E130, depois Fases 2-6
+**Status REQ-28:**
+- ✅ Fase 1-6: Implementadas e funcionais
+- ✅ Fase 7: Débito técnico corrigido (21/30 problemas, 100% dos críticos e altos)
+- ✅ Audit log: Implementado e funcional
+- ⏳ Pendente: 9 problemas de baixa prioridade (não bloqueadores)
 
 ---
 
@@ -120,15 +141,15 @@
 
 | Campo | Valor |
 |---|---|
-| Branch | `dev` |
-| Hash | `ec238f2` |
+| Branch | `dev` (local, não commitado) |
+| Hash | `ec238f2` (último commit remoto) |
 | Mensagem | `fix(REQ-28): Garante que types.ts está sincronizado com schema do banco` |
 | Deploy beta | ✅ success |
 | Build | ✅ Backend e Frontend compilam sem erros |
 
-**Commits desta sessão:**
-1. `79ffde6` — `feat(REQ-28): Implementa extração de cenário e estilos no fluxo de importação`
-2. `ec238f2` — `fix(REQ-28): Garante que types.ts está sincronizado com schema do banco`
+**Commits pendentes desta sessão:**
+- Correções de débito técnico REQ-28 (14 problemas corrigidos)
+- Aguardando autorização para commit e push
 
 **Commit anterior:** `3071300` — `feat: Adicionar aba CRUD completa na página de gestão` — ✅ success
 
@@ -136,7 +157,14 @@
 
 ## Bloqueios Ativos
 
-Nenhum bloqueio no momento (05/04/2026).
+Nenhum bloqueio no momento (06/04/2026).
+
+**Bloqueadores resolvidos nesta sessão:**
+- ✅ Overrides não aplicados (DT-REQ28-02)
+- ✅ Dois fluxos de aprovação conflitantes (DT-REQ28-09, 10, 20, 21, 24)
+- ✅ editedCandidate não enviado (DT-REQ28-14)
+- ✅ Erro 500 por day_of_week inválido (DT-REQ28-05)
+- ✅ Vulnerabilidade de injeção de campos (DT-REQ28-25, 26)
 
 > Ao identificar novo bloqueio, registrar aqui com data e descrição da dependência.
 
@@ -146,6 +174,7 @@ Nenhum bloqueio no momento (05/04/2026).
 
 Antes de encerrar qualquer sessão, atualizar as três seções abaixo. **Sessão não está encerrada sem isso.**
 
-- [ ] **Estado de execução** — marcar o que foi concluído, atualizar próximas ações
-- [ ] **Bloqueios ativos** — remover resolvidos, adicionar novos
-- [ ] **Último commit validado** — atualizar hash, mensagem e status do deploy
+- [x] **Estado de execução** — marcar o que foi concluído, atualizar próximas ações
+- [x] **Bloqueios ativos** — remover resolvidos, adicionar novos
+- [x] **Último commit validado** — atualizar hash, mensagem e status do deploy
+
