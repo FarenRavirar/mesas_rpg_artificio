@@ -9,6 +9,37 @@ import type { System } from './types';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
+interface TreeNode extends System {
+  children?: TreeNode[];
+  depth?: number;
+  has_children?: boolean;
+}
+
+// Função para filtrar árvore recursivamente
+function filterTree(nodes: TreeNode[], query: string): TreeNode[] {
+  if (!query) return nodes;
+
+  const lowerQuery = query.toLowerCase();
+  
+  return nodes.reduce<TreeNode[]>((acc, node) => {
+    const matchesName = node.name.toLowerCase().includes(lowerQuery);
+    const matchesSlug = node.slug.toLowerCase().includes(lowerQuery);
+    
+    // Filtrar filhos recursivamente
+    const filteredChildren = node.children ? filterTree(node.children, query) : [];
+    
+    // Incluir nó se ele ou algum filho corresponder à busca
+    if (matchesName || matchesSlug || filteredChildren.length > 0) {
+      acc.push({
+        ...node,
+        children: filteredChildren.length > 0 ? filteredChildren : node.children,
+      });
+    }
+    
+    return acc;
+  }, []);
+}
+
 export function SystemsPage() {
   const { token } = useAuth();
   const {
@@ -21,7 +52,7 @@ export function SystemsPage() {
   } = useSystems(token);
 
   const [systemEditModal, setSystemEditModal] = useState<System | null>(null);
-  const [systemsTree, setSystemsTree] = useState<any[]>([]);
+  const [systemsTree, setSystemsTree] = useState<TreeNode[]>([]);
   const [viewMode, setViewMode] = useState<'list' | 'tree'>('tree'); // Padrão: árvore
 
   useEffect(() => {
@@ -45,6 +76,9 @@ export function SystemsPage() {
     fetchSystems();
     fetchSystemsTree();
   };
+
+  // Filtrar árvore com base na busca
+  const filteredTree = filterTree(systemsTree, searchQuery);
 
   return (
     <>
@@ -98,7 +132,7 @@ export function SystemsPage() {
         <div className="text-center py-12 text-white/50">Carregando...</div>
       ) : viewMode === 'tree' ? (
         <SystemsTree
-          systems={systemsTree}
+          systems={filteredTree}
           onEdit={setSystemEditModal}
           onDelete={deleteSystem}
         />
