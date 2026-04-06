@@ -44,7 +44,10 @@ export function TableCardDashboard({
   return (
     <div className="rounded-2xl border border-white/10 bg-[#13213f] p-4 flex flex-col gap-3 hover:scale-[1.01] transition-all">
       {/* IMAGE */}
-      <div className="h-32 rounded-lg overflow-hidden bg-white/10">
+      <a 
+        href={`/mesa/${table.slug}`}
+        className="block h-32 rounded-lg overflow-hidden bg-white/10 hover:opacity-90 transition-opacity cursor-pointer"
+      >
         {table.image_url ? (
           <img src={table.image_url} alt={table.title} className="w-full h-full object-cover" />
         ) : (
@@ -52,11 +55,16 @@ export function TableCardDashboard({
             ⚠️ Sem imagem
           </div>
         )}
-      </div>
+      </a>
 
       {/* TITLE */}
       <div>
-        <h3 className="font-semibold text-white line-clamp-2">{table.title}</h3>
+        <a 
+          href={`/mesa/${table.slug}`}
+          className="font-semibold text-white line-clamp-2 hover:text-[var(--color-artificio-orange)] transition-colors cursor-pointer"
+        >
+          {table.title}
+        </a>
         <p className="text-xs text-white/50 mt-1">
           {table.system_name ?? 'Sistema livre'} · {table.modality}
         </p>

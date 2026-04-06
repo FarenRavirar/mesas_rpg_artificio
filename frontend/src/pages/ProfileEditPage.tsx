@@ -567,15 +567,37 @@ function TabMestre() {
               <li>Exibir badge no perfil público</li>
               <li>Futuras integrações comunitárias</li>
             </ul>
-            <a
-              href="/auth/discord/connect"
-              className="btn-connect-discord"
-              onClick={() => {
+            <button
+              onClick={async () => {
                 setConnecting(true);
+                try {
+                  const token = localStorage.getItem('token');
+                  const apiUrl = import.meta.env.VITE_API_URL || '';
+                  const response = await fetch(`${apiUrl}/auth/discord/connect`, {
+                    headers: {
+                      'Authorization': `Bearer ${token}`
+                    }
+                  });
+                  
+                  if (response.redirected) {
+                    // Backend retornou redirect para Discord OAuth
+                    window.location.href = response.url;
+                  } else if (!response.ok) {
+                    const data = await response.json();
+                    alert(data.error || 'Erro ao conectar Discord');
+                    setConnecting(false);
+                  }
+                } catch (error) {
+                  console.error('Erro ao conectar Discord:', error);
+                  alert('Erro ao conectar Discord');
+                  setConnecting(false);
+                }
               }}
+              className="btn-connect-discord"
+              disabled={connecting}
             >
               {connecting ? '⏳ Conectando...' : '🟣 Conectar Discord'}
-            </a>
+            </button>
           </div>
         )}
       </section>
