@@ -55,6 +55,7 @@ export interface TableCard {
   gm_avatar_url: string | null;
   gm_display_name: string | null;
   is_ddal?: boolean;
+  is_covil_lich?: boolean;
   ddal_code?: string | null;
   ddal_name?: string | null;
   ddal_tier?: number | null;

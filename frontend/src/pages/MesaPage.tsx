@@ -5,6 +5,8 @@ import { TableContacts } from '../components/TableContacts';
 import type { TableDetail } from '../types/tables';
 import { applySeo } from '../utils/seo';
 import { useAuth } from '../contexts/AuthContext';
+import { getTableBadges, getBadgeClasses } from '../utils/tableBadges';
+import { CertificationsSection } from '../components/CertificationsSection';
 
 const modalityLabel: Record<string, string> = {
   online: 'Online',
@@ -129,8 +131,9 @@ export const MesaPage = () => {
                 <div className="absolute inset-0 bg-gradient-to-br from-[#2a3f6d] to-[#131f38]" />
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-[#091427] via-[#091427]/45 to-transparent" />
-              <div className="absolute bottom-0 left-0 p-6 w-full">
-                <div className="flex flex-wrap gap-2 mb-3">
+              <div className="absolute bottom-0 left-0 p-6 w-full space-y-3">
+                {/* BADGES */}
+                <div className="flex flex-wrap gap-2">
                   <span className="px-2 py-1 rounded-md bg-black/35 border border-white/15 text-xs">{table.type}</span>
                   <span className="px-2 py-1 rounded-md bg-black/35 border border-white/15 text-xs">{table.audience}</span>
                   <span className="px-2 py-1 rounded-md bg-black/35 border border-white/15 text-xs">{table.system_name ?? 'Sistema livre'}</span>
@@ -139,25 +142,323 @@ export const MesaPage = () => {
                       <MapPin className="w-3.5 h-3.5" /> {table.scenario_name}
                     </span>
                   )}
-                  {table.is_ddal && (
-                    <span className="px-2 py-1 rounded-md bg-amber-500/20 border border-amber-300/40 text-amber-100 text-xs inline-flex items-center gap-1" id="mesa-badge-ddal">
-                      <Sparkles className="w-3.5 h-3.5" /> DDAL
-                    </span>
-                  )}
+                  {/* Sistema de badges extensível */}
+                  {getTableBadges(table).map((badge) => {
+                    const BadgeIcon = badge.icon;
+                    return (
+                      <span
+                        key={badge.id}
+                        className={`px-2 py-1 rounded-md text-xs inline-flex items-center gap-1 ${getBadgeClasses(badge.color)}`}
+                        id={`mesa-badge-${badge.id}`}
+                      >
+                        <BadgeIcon className="w-3.5 h-3.5" /> {badge.label}
+                      </span>
+                    );
+                  })}
                 </div>
-                <h1 className="text-3xl md:text-4xl font-black tracking-tight">{table.title}</h1>
+
+                {/* TÍTULO */}
+                <h1 className="text-3xl font-black tracking-tight">{table.title}</h1>
+
+                {/* SUBTÍTULO */}
+                <p className="text-white/80 text-sm max-w-xl">
+                  {table.listing_excerpt || table.description?.slice(0, 120)}
+                </p>
+
+                {/* DECISÃO RÁPIDA */}
+                <div className="flex flex-wrap gap-3 text-sm mt-2">
+                  <span className="inline-flex items-center gap-1">
+                    🎲 {table.system_name || 'Sistema livre'}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    🧠 {experienceLabel[table.experience_level]}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    🌐 {modalityLabel[table.modality]}
+                  </span>
+                </div>
+
+                {/* CTA PRIMÁRIO */}
+                <button
+                  onClick={() => {
+                    const el = document.getElementById('mesa-contato');
+                    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el?.classList.add('ring-2', 'ring-orange-400', 'ring-offset-2', 'ring-offset-[#091427]');
+                    setTimeout(() => {
+                      el?.classList.remove('ring-2', 'ring-orange-400', 'ring-offset-2', 'ring-offset-[#091427]');
+                    }, 1500);
+                  }}
+                  className="mt-3 px-5 py-2 rounded-lg bg-[var(--color-artificio-orange)] hover:bg-[var(--color-artificio-orange-hover)] font-semibold transition-colors"
+                  id="mesa-cta-hero"
+                >
+                  🎲 Entrar na mesa
+                </button>
               </div>
             </div>
 
+            {/* 1. HORÁRIOS (decisão prática) */}
+            {table.schedules && table.schedules.length > 0 && (
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-5" id="mesa-schedules">
+                <h2 className="text-lg font-bold mb-3 inline-flex items-center gap-2">
+                  <CalendarClock className="w-5 h-5" /> Horários das Sessões
+                </h2>
+                <div className="space-y-3">
+                  {table.schedules.map((schedule) => {
+                    const dayLabels: Record<string, string> = {
+                      segunda: 'Segunda-feira',
+                      terça: 'Terça-feira',
+                      quarta: 'Quarta-feira',
+                      quinta: 'Quinta-feira',
+                      sexta: 'Sexta-feira',
+                      sábado: 'Sábado',
+                      domingo: 'Domingo',
+                    };
+
+                    const frequencyLabels: Record<string, string> = {
+                      semanal: 'Semanal',
+                      quinzenal: 'Quinzenal',
+                      mensal: 'Mensal',
+                      avulsa: 'Avulsa',
+                    };
+
+                    const startTime = schedule.start_time.substring(0, 5);
+                    const endTime = schedule.end_time ? schedule.end_time.substring(0, 5) : null;
+
+                    return (
+                      <div
+                        key={schedule.id}
+                        className="rounded-xl border border-white/10 bg-[#13213f]/70 p-4 space-y-2"
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="px-2 py-1 rounded-md bg-[var(--color-artificio-orange)]/20 border border-[var(--color-artificio-orange)]/40 text-[var(--color-artificio-orange)] text-xs font-semibold">
+                            {dayLabels[schedule.day_of_week] || schedule.day_of_week}
+                          </span>
+                          <span className="px-2 py-1 rounded-md bg-white/10 border border-white/15 text-white/90 text-xs font-semibold">
+                            {startTime}{endTime ? ` - ${endTime}` : ''}
+                          </span>
+                          <span className="px-2 py-1 rounded-md bg-blue-500/20 border border-blue-300/40 text-blue-100 text-xs">
+                            {frequencyLabels[schedule.frequency] || schedule.frequency}
+                          </span>
+                          {schedule.is_ongoing && (
+                            <span className="px-2 py-1 rounded-md bg-green-500/20 border border-green-300/40 text-green-100 text-xs">
+                              Em andamento
+                            </span>
+                          )}
+                        </div>
+
+                        {schedule.slots_per_session && (
+                          <p className="text-sm text-white/70">
+                            <Users className="w-3.5 h-3.5 inline mr-1" />
+                            {schedule.slots_per_session} vagas por sessão
+                          </p>
+                        )}
+
+                        {schedule.notes && (
+                          <p className="text-sm text-white/80 leading-relaxed">
+                            {schedule.notes}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
+            {/* 2. SOBRE A MESA */}
             <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
               <h2 className="text-lg font-bold mb-2">Sobre esta Mesa</h2>
               <p className="text-white/80 leading-relaxed">{table.description || 'Sem descrição detalhada.'}</p>
             </section>
 
+            {/* 3. HISTÓRIA (sinopse + narrativa agrupadas) */}
+            {(table.synopsis || table.synopsis_narrative) && (
+              <div className="space-y-5">
+                {table.synopsis && (
+                  <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                    <h2 className="text-lg font-bold mb-3">Sinopse</h2>
+                    <p className="text-white/80 leading-relaxed whitespace-pre-wrap">{table.synopsis}</p>
+                    {table.listing_excerpt && table.listing_excerpt !== table.synopsis && (
+                      <div className="mt-3 p-3 rounded-lg bg-white/5 border border-white/10">
+                        <p className="text-xs font-semibold text-white/60 mb-1">Resumo Curto</p>
+                        <p className="text-sm text-white/80">{table.listing_excerpt}</p>
+                      </div>
+                    )}
+                  </section>
+                )}
+                {table.synopsis_narrative && (
+                  <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                    <h2 className="text-lg font-bold mb-3">Sobre a História</h2>
+                    <p className="text-white/80 leading-relaxed whitespace-pre-wrap">{table.synopsis_narrative}</p>
+                  </section>
+                )}
+              </div>
+            )}
+
+            {/* 4. O QUE ESPERAR (benefícios + estilo agrupados) */}
+            {(table.benefits_text || table.style_text) && (
+              <div className="space-y-5">
+                {table.benefits_text && (
+                  <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                    <h2 className="text-lg font-bold mb-3 inline-flex items-center gap-2">
+                      <Sparkles className="w-5 h-5" /> O que você vai encontrar
+                    </h2>
+                    <p className="text-white/80 leading-relaxed whitespace-pre-wrap">{table.benefits_text}</p>
+                  </section>
+                )}
+                {table.style_text && (
+                  <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                    <h2 className="text-lg font-bold mb-3">Estilo de Jogo</h2>
+                    <p className="text-white/80 leading-relaxed whitespace-pre-wrap">{table.style_text}</p>
+                  </section>
+                )}
+              </div>
+            )}
+
+            {/* 5. MESTRE */}
+            {table.gm_bio && (
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <h2 className="text-lg font-bold mb-3 inline-flex items-center gap-2">
+                  <Crown className="w-5 h-5" /> Sobre o Mestre
+                </h2>
+                <p className="text-white/80 leading-relaxed whitespace-pre-wrap">{table.gm_bio}</p>
+              </section>
+            )}
+
+            {table.publisher_role === 'announcer' && (
+              <section className="rounded-2xl border border-slate-300/25 bg-slate-500/10 p-5" id="mesa-announcer-note">
+                <h2 className="text-lg font-bold mb-2 inline-flex items-center gap-2 text-slate-100">
+                  <Megaphone className="w-5 h-5" /> Publicado por anunciante
+                </h2>
+                <p className="text-sm text-slate-100/85 leading-relaxed">
+                  Esta mesa foi publicada por um anunciante.
+                  {table.actual_gm_name ? ` Mestre responsável: ${table.actual_gm_name}.` : ''}
+                </p>
+              </section>
+            )}
+
+            {/* 6. SEGURANÇA */}
+            <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+              <h2 className="text-lg font-bold mb-3">Segurança e Alertas</h2>
+              <div className="grid md:grid-cols-2 gap-3 text-sm">
+                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                  <p className="font-semibold mb-1">Content Warnings</p>
+                  <p className="text-white/70">{table.content_warnings?.length ? table.content_warnings.join(', ') : 'Não informado.'}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                  <p className="font-semibold mb-1">Safety Tools</p>
+                  <p className="text-white/70">{table.safety_tools?.length ? table.safety_tools.join(', ') : 'Não informado.'}</p>
+                </div>
+              </div>
+            </section>
+
+            {/* 7. DETALHES TÉCNICOS */}
+            {(table.campaign_length || table.level_range) && (
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <h2 className="text-lg font-bold mb-3">Detalhes da Campanha</h2>
+                <div className="space-y-2">
+                  {table.campaign_length && (
+                    <p className="text-sm text-white/80">
+                      <span className="font-semibold text-white/90">Duração:</span> {table.campaign_length}
+                    </p>
+                  )}
+                  {table.level_range && (
+                    <p className="text-sm text-white/80">
+                      <span className="font-semibold text-white/90">Faixa de Nível:</span> {table.level_range}
+                    </p>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {(table.billing_text || table.session_zero_free) && (
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <h2 className="text-lg font-bold mb-3">Informações de Cobrança</h2>
+                <div className="space-y-2">
+                  {table.billing_text && (
+                    <p className="text-white/80 leading-relaxed whitespace-pre-wrap">{table.billing_text}</p>
+                  )}
+                  {table.session_zero_free && (
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-500/20 border border-green-500/40 text-green-400 text-sm font-semibold">
+                      ✓ Sessão zero gratuita
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {(table.technical_requirements || table.requires_pc || table.requires_camera || table.requires_microphone) && (
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <h2 className="text-lg font-bold mb-3">Requisitos Técnicos</h2>
+                <div className="space-y-3">
+                  {table.technical_requirements && (
+                    <p className="text-white/80 leading-relaxed whitespace-pre-wrap">{table.technical_requirements}</p>
+                  )}
+                  {(table.requires_pc || table.requires_camera || table.requires_microphone) && (
+                    <div className="flex flex-wrap gap-2">
+                      {table.requires_pc && (
+                        <span className="px-3 py-1.5 rounded-lg bg-blue-500/20 border border-blue-500/40 text-blue-300 text-xs font-semibold">
+                          💻 Requer PC
+                        </span>
+                      )}
+                      {table.requires_camera && (
+                        <span className="px-3 py-1.5 rounded-lg bg-purple-500/20 border border-purple-500/40 text-purple-300 text-xs font-semibold">
+                          📹 Câmera obrigatória
+                        </span>
+                      )}
+                      {table.requires_microphone && (
+                        <span className="px-3 py-1.5 rounded-lg bg-pink-500/20 border border-pink-500/40 text-pink-300 text-xs font-semibold">
+                          🎤 Microfone obrigatório
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {(table.setting_name || (table.setting_styles && table.setting_styles.length > 0)) && (
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <h2 className="text-lg font-bold mb-3">Cenário e Estilos</h2>
+                <div className="space-y-3">
+                  {table.setting_name && (
+                    <p className="text-sm text-white/80">
+                      <span className="font-semibold text-white/90">Cenário:</span> {table.setting_name}
+                    </p>
+                  )}
+                  {table.setting_styles && Array.isArray(table.setting_styles) && table.setting_styles.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-white/60 mb-2">Estilos/Temáticas:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {table.setting_styles.map((style, index) => (
+                          <span
+                            key={`${index}-${style}`}
+                            className="px-3 py-1.5 rounded-lg bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 text-xs font-semibold"
+                          >
+                            {style}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {table.master_display_name && (
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <h2 className="text-lg font-bold mb-3">Mestre</h2>
+                <p className="text-white/80">
+                  <span className="font-semibold text-white/90">Nome de Exibição:</span> {table.master_display_name}
+                </p>
+              </section>
+            )}
+
+            {/* 8. DDAL (FINAL - detalhe técnico) */}
             {table.is_ddal && (
               <section className="rounded-2xl border border-amber-300/25 bg-amber-400/10 p-5" id="mesa-ddal-metadata">
                 <h2 className="text-lg font-bold mb-3 inline-flex items-center gap-2 text-amber-100">
-                  <Sparkles className="w-5 h-5" /> Selo DDAL verificado
+                  <Sparkles className="w-5 h-5" /> 📜 Detalhes da aventura (DDAL)
                 </h2>
                 <div className="grid md:grid-cols-2 gap-3 text-sm">
                   <div className="rounded-xl border border-amber-200/15 bg-[#13213f]/70 p-3">
@@ -456,10 +757,44 @@ export const MesaPage = () => {
           </div>
 
           <aside className="rounded-2xl border border-white/10 bg-white/5 p-5 space-y-4 lg:sticky lg:top-6">
-            <h2 className="text-lg font-bold">Resumo operacional</h2>
+            {/* 1. CTA PRIMÁRIO */}
+            <button
+              onClick={() => {
+                const el = document.getElementById('mesa-contato');
+                el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el?.classList.add('ring-2', 'ring-orange-400', 'ring-offset-2', 'ring-offset-[#091427]');
+                setTimeout(() => {
+                  el?.classList.remove('ring-2', 'ring-orange-400', 'ring-offset-2', 'ring-offset-[#091427]');
+                }, 1500);
+              }}
+              className="w-full py-3 bg-[var(--color-artificio-orange)] hover:bg-[var(--color-artificio-orange-hover)] rounded-xl font-semibold transition-colors"
+              id="mesa-cta-aside"
+            >
+              Entrar na Mesa
+            </button>
 
+            {/* 2. URGÊNCIA (sempre mostrar, com intensidade progressiva) */}
+            <p className="text-sm font-semibold text-[var(--color-artificio-orange)]">
+              {slotsLeft === 0 && '❌ Mesa lotada'}
+              {slotsLeft > 0 && slotsLeft <= 2 && `🔥 Últimas ${slotsLeft} ${slotsLeft === 1 ? 'vaga' : 'vagas'}`}
+              {slotsLeft > 2 && slotsLeft <= 5 && `⚠️ ${slotsLeft} vagas restantes`}
+              {slotsLeft > 5 && `${slotsLeft} vagas disponíveis`}
+            </p>
+
+            {/* 3. PREÇO */}
+            {table.price_value && (
+              <div className="bg-[#13213f] p-4 rounded-xl border border-orange-400/30">
+                <p className="text-xs text-white/60">Investimento</p>
+                <p className="text-lg font-bold text-orange-400">
+                  R$ {table.price_value}
+                </p>
+                {table.price_frequency && <p className="text-xs text-white/60 mt-1">por {table.price_frequency}</p>}
+              </div>
+            )}
+
+            {/* 4. INFO RÁPIDA */}
             <div className="space-y-2 text-sm text-white/80">
-              <p className="flex items-center gap-2"><Users className="w-4 h-4 text-[var(--color-artificio-orange)]" /> {table.slots_filled}/{table.slots_total} jogadores ({slotsLeft} vagas)</p>
+              <p className="flex items-center gap-2"><Users className="w-4 h-4 text-[var(--color-artificio-orange)]" /> {table.slots_filled}/{table.slots_total} jogadores</p>
               <p className="flex items-center gap-2"><Globe className="w-4 h-4 text-[var(--color-artificio-orange)]" /> {modalityLabel[table.modality] ?? table.modality}</p>
               <p className="flex items-center gap-2"><CalendarClock className="w-4 h-4 text-[var(--color-artificio-orange)]" /> {table.starts_at ? new Date(table.starts_at).toLocaleString('pt-BR') : 'Data a combinar'}</p>
               <p className="flex items-center gap-2"><Swords className="w-4 h-4 text-[var(--color-artificio-orange)]" /> {experienceLabel[table.experience_level] ?? table.experience_level}</p>
@@ -467,16 +802,12 @@ export const MesaPage = () => {
               <p className="flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-[var(--color-artificio-orange)]" /> Idioma: {table.language}</p>
             </div>
 
-            {table.price_value && (
-              <div className="rounded-xl border border-white/10 bg-[#13213f] p-4">
-                <p className="text-xs text-white/60 mb-1">Investimento</p>
-                <p className="font-bold text-lg text-[var(--color-artificio-orange)]">
-                  R$ {table.price_value}
-                </p>
-                {table.price_frequency && <p className="text-xs text-white/60 mt-1">Cobrança por {table.price_frequency}</p>}
-              </div>
-            )}
+            {/* 5. CONTATO */}
+            <div id="mesa-contato" className="transition-all duration-300">
+              <TableContacts contacts={table.contacts ?? []} />
+            </div>
 
+            {/* Links secundários */}
             {table.gm_slug && table.origin !== 'imported' && (
               <Link
                 to={`/mestre/${table.gm_slug}`}
@@ -496,8 +827,6 @@ export const MesaPage = () => {
                 <Edit className="w-4 h-4" /> Editar Mesa (ADM)
               </Link>
             )}
-
-            <TableContacts contacts={table.contacts ?? []} />
           </aside>
         </article>
       </section>
