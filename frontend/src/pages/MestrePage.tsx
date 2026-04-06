@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { CalendarDays, Crown, Star, Users, CheckCircle, Award, MessageCircle } from 'lucide-react';
+import { CalendarDays, Crown, Star, Users, CheckCircle, Award, MessageCircle, Globe } from 'lucide-react';
 import { TableCardComponent, TableCardSkeleton } from '../components/TableCard';
 import { LinksDisplay } from '../components/LinksDisplay';
 import type { TableCard } from '../types/tables';
@@ -103,16 +103,105 @@ export const MestrePage = () => {
     );
   }, [profile]);
 
+  // Sistema de score automático
+  function calculateTableScore(table: any): number {
+    const views = table.metrics_views ?? 0;
+    const contacts = table.metrics_contacts ?? 0;
+    const favorites = table.metrics_favorites ?? 0;
+
+    const conversionRate = views > 0 ? contacts / views : 0;
+
+    return (
+      views * 0.1 +
+      contacts * 5 +
+      favorites * 3 +
+      conversionRate * 100
+    );
+  }
+
   const mappedTables = useMemo(() => {
     if (!profile) return [] as TableCard[];
 
-    return profile.tables.map((table) => ({
-      ...table,
-      gm_slug: profile.slug,
-      gm_avatar_url: profile.avatar_url,
-      gm_display_name: profile.display_name,
-    }));
+    return profile.tables
+      .map((table: any) => ({
+        ...table,
+        gm_slug: profile.slug,
+        gm_avatar_url: profile.avatar_url,
+        gm_display_name: profile.display_name,
+        metrics: {
+          views: table.metrics_views ?? 0,
+          clicks: table.metrics_clicks ?? 0,
+          contacts: table.metrics_contacts ?? 0,
+          favorites: table.metrics_favorites ?? 0,
+        },
+        score: calculateTableScore(table)
+      }))
+      .sort((a: any, b: any) => b.score - a.score); // Ranking automático
   }, [profile]);
+
+  const totalOpenSlots = useMemo(() => {
+    return mappedTables.reduce(
+      (acc, t) => acc + (t.slots_total - t.slots_filled),
+      0
+    );
+  }, [mappedTables]);
+
+  // Insights automáticos
+  function generateInsights(tables: TableCard[]) {
+    const insights: string[] = [];
+
+    tables.forEach((table) => {
+      const views = table.metrics?.views ?? 0;
+      const contacts = table.metrics?.contacts ?? 0;
+
+      if (views > 50 && contacts === 0) {
+        insights.push(`⚠️ "${table.title}" tem muitas visualizações mas zero contatos.`);
+      }
+
+      if (contacts > 5) {
+        insights.push(`🔥 "${table.title}" está performando muito bem.`);
+      }
+
+      if (views < 10) {
+        insights.push(`👀 "${table.title}" tem pouca visibilidade.`);
+      }
+    });
+
+    return insights;
+  }
+
+  // Recomendações automáticas
+  function generateRecommendations(tables: TableCard[]) {
+    const recommendations: string[] = [];
+
+    tables.forEach((table) => {
+      const views = table.metrics?.views ?? 0;
+      const contacts = table.metrics?.contacts ?? 0;
+
+      if (views > 50 && contacts === 0) {
+        recommendations.push(
+          `Melhore a descrição ou imagem da mesa "${table.title}" para aumentar conversão.`
+        );
+      }
+
+      if (views < 10) {
+        recommendations.push(
+          `Divulgue a mesa "${table.title}" para aumentar visibilidade.`
+        );
+      }
+
+      if (contacts > 5) {
+        recommendations.push(
+          `Considere aumentar o preço ou criar nova mesa similar a "${table.title}".`
+        );
+      }
+    });
+
+    return recommendations;
+  }
+
+  const insights = useMemo(() => generateInsights(mappedTables), [mappedTables]);
+  const recommendations = useMemo(() => generateRecommendations(mappedTables), [mappedTables]);
 
   if (loading) {
     return (
@@ -178,23 +267,29 @@ export const MestrePage = () => {
               )}
             </div>
 
-            <h1 className="hero-title">{profile.display_name}</h1>
+            <h1 className="hero-title">Jogue RPG com {profile.display_name}</h1>
             
-            {profile.bio_long && (
+            {profile.specialties && profile.specialties.length > 0 ? (
+              <p className="hero-bio">{profile.specialties.slice(0, 2).join(' • ')}</p>
+            ) : profile.bio_long ? (
               <p className="hero-bio">{profile.bio_long}</p>
+            ) : (
+              <p className="hero-bio">Campanhas narrativas imersivas</p>
             )}
 
+            {/* Prova social */}
+            <p className="hero-proof" style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.7)', marginTop: '0.5rem' }}>
+              {profile.tables_count > 0 && `${profile.tables_count} ${profile.tables_count === 1 ? 'mesa criada' : 'mesas criadas'}`}
+              {profile.reviews_count > 0 && ` • ${profile.reviews_count} ${profile.reviews_count === 1 ? 'avaliação' : 'avaliações'}`}
+              {profile.average_price && ` • R$ ${profile.average_price.toFixed(0)} / sessão`}
+            </p>
+
             <div className="hero-stats">
-              <div className="stat">
-                <Users className="stat-icon" />
-                <span className="stat-value">{profile.tables_count}</span>
-                <span className="stat-label">Mesas</span>
-              </div>
-              {profile.experience_years && (
+              {profile.experience_years && profile.experience_years > 0 && (
                 <div className="stat">
                   <CalendarDays className="stat-icon" />
                   <span className="stat-value">{profile.experience_years}</span>
-                  <span className="stat-label">Anos</span>
+                  <span className="stat-label">Anos mestrando</span>
                 </div>
               )}
               {profile.avg_rating && (
@@ -202,6 +297,13 @@ export const MestrePage = () => {
                   <Star className="stat-icon" />
                   <span className="stat-value">{profile.avg_rating.toFixed(1)}</span>
                   <span className="stat-label">Avaliação</span>
+                </div>
+              )}
+              {mappedTables.length > 0 && (
+                <div className="stat">
+                  <Users className="stat-icon" />
+                  <span className="stat-value">{totalOpenSlots}</span>
+                  <span className="stat-label">Vagas abertas</span>
                 </div>
               )}
             </div>
@@ -216,64 +318,7 @@ export const MestrePage = () => {
         </div>
       </section>
 
-      {/* Por que jogar comigo? - Prova Social */}
-      <section className="why-section">
-        <div className="container">
-          <h2 className="section-title">Por que jogar comigo?</h2>
-          
-          <div className="benefits-grid">
-            {profile.experience_years && profile.experience_years > 0 && (
-              <div className="benefit-card">
-                <CheckCircle className="benefit-icon" />
-                <h3>Experiência Comprovada</h3>
-                <p>{profile.experience_years} {profile.experience_years === 1 ? 'ano' : 'anos'} mestrando RPG</p>
-              </div>
-            )}
-
-            {profile.tables_count > 0 && (
-              <div className="benefit-card">
-                <Users className="benefit-icon" />
-                <h3>Mesas Ativas</h3>
-                <p>{profile.tables_count} {profile.tables_count === 1 ? 'mesa ativa' : 'mesas ativas'} no momento</p>
-              </div>
-            )}
-
-            {profile.covil_verified && (
-              <div className="benefit-card">
-                <Award className="benefit-icon" />
-                <h3>Mestre Verificado</h3>
-                <p>Selo "Mestre do Covil" - Qualidade garantida pela comunidade</p>
-              </div>
-            )}
-
-            {profile.discord_connected && profile.discord_username && (
-              <div className="benefit-card">
-                <MessageCircle className="benefit-icon" />
-                <h3>Comunidade Ativa</h3>
-                <p>Conectado no Discord: {profile.discord_username}</p>
-              </div>
-            )}
-
-            {profile.specialties && profile.specialties.length > 0 && (
-              <div className="benefit-card">
-                <Star className="benefit-icon" />
-                <h3>Especialidades</h3>
-                <p>{profile.specialties.slice(0, 3).join(', ')}</p>
-              </div>
-            )}
-
-            {profile.average_price && (
-              <div className="benefit-card">
-                <CheckCircle className="benefit-icon" />
-                <h3>Preço Médio</h3>
-                <p>R$ {profile.average_price.toFixed(2)} por sessão</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Mesas Ativas - Otimizado para conversão */}
+      {/* Mesas Ativas - PRODUTO PRINCIPAL (movido para cima) */}
       <section id="mesas" className="tables-section">
         <div className="container">
           <h2 className="section-title">Mesas Disponíveis</h2>
@@ -298,6 +343,63 @@ export const MestrePage = () => {
         </div>
       </section>
 
+      {/* Por que jogar comigo? - Prova Social */}
+      <section className="why-section">
+        <div className="container">
+          <h2 className="section-title">Por que jogar comigo?</h2>
+          
+          <div className="benefits-grid">
+            {profile.experience_years && profile.experience_years > 0 && (
+              <div className="benefit-card">
+                <CheckCircle className="benefit-icon" />
+                <h3>Experiência Comprovada</h3>
+                <p>{profile.experience_years} {profile.experience_years === 1 ? 'ano' : 'anos'} mestrando RPG</p>
+              </div>
+            )}
+
+            {profile.specialties && profile.specialties.length > 0 && (
+              <div className="benefit-card">
+                <Star className="benefit-icon" />
+                <h3>Estilo de Jogo</h3>
+                <p>{profile.specialties.join(', ')}</p>
+              </div>
+            )}
+
+            {profile.languages && profile.languages.length > 0 && (
+              <div className="benefit-card">
+                <Globe className="benefit-icon" />
+                <h3>Idiomas</h3>
+                <p>{profile.languages.join(', ')}</p>
+              </div>
+            )}
+
+            {profile.covil_verified && (
+              <div className="benefit-card">
+                <Award className="benefit-icon" />
+                <h3>Mestre Verificado</h3>
+                <p>Selo "Mestre do Covil" - Qualidade garantida pela comunidade</p>
+              </div>
+            )}
+
+            {profile.discord_connected && profile.discord_username && (
+              <div className="benefit-card">
+                <MessageCircle className="benefit-icon" />
+                <h3>Comunidade Ativa</h3>
+                <p>Conectado no Discord: {profile.discord_username}</p>
+              </div>
+            )}
+
+            {profile.average_price && (
+              <div className="benefit-card">
+                <CheckCircle className="benefit-icon" />
+                <h3>Preço Médio</h3>
+                <p>R$ {profile.average_price.toFixed(2)} por sessão</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
       {/* Links e Conteúdo - Prova Social Externa */}
       {links.length > 0 && (
         <section className="links-section">
@@ -307,36 +409,37 @@ export const MestrePage = () => {
         </section>
       )}
 
-      {/* Como Funciona - Reduz fricção */}
-      <section className="how-it-works-section">
-        <div className="container">
-          <h2 className="section-title">Como Funciona</h2>
-          
-          <div className="steps-grid">
-            <div className="step-card">
-              <div className="step-number">1</div>
-              <h3>Escolha sua mesa</h3>
-              <p>Navegue pelas mesas disponíveis e escolha a que mais combina com você</p>
-            </div>
-
-            <div className="step-card">
-              <div className="step-number">2</div>
-              <h3>Entre em contato</h3>
-              <p>Use os canais de contato para tirar dúvidas e garantir sua vaga</p>
-            </div>
-
-            <div className="step-card">
-              <div className="step-number">3</div>
-              <h3>Comece a jogar</h3>
-              <p>Participe da sessão zero e embarque na aventura!</p>
-            </div>
+      {/* Insights Automáticos */}
+      {insights.length > 0 && (
+        <section className="insights-section" style={{ background: 'rgba(249, 115, 22, 0.05)', padding: '3rem 0', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+          <div className="container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1.5rem' }}>
+            <h2 className="section-title">📊 Insights das suas mesas</h2>
+            <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: '1rem' }}>
+              {insights.map((insight, i) => (
+                <li key={i} style={{ background: 'rgba(255,255,255,0.05)', padding: '1rem 1.5rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  {insight}
+                </li>
+              ))}
+            </ul>
           </div>
+        </section>
+      )}
 
-          <p className="how-it-works-note">
-            ✨ Sem experiência? Sem problema. Todas as mesas aceitam iniciantes.
-          </p>
-        </div>
-      </section>
+      {/* Recomendações Automáticas */}
+      {recommendations.length > 0 && (
+        <section className="recommendations-section" style={{ background: 'rgba(34, 197, 94, 0.05)', padding: '3rem 0', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+          <div className="container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1.5rem' }}>
+            <h2 className="section-title">🚀 Recomendações</h2>
+            <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: '1rem' }}>
+              {recommendations.map((rec, i) => (
+                <li key={i} style={{ background: 'rgba(255,255,255,0.05)', padding: '1rem 1.5rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  {rec}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
 
       {/* CTA Final - Urgência */}
       {mappedTables.length > 0 && (
@@ -345,7 +448,7 @@ export const MestrePage = () => {
             <div className="final-cta-card">
               <h2>🔥 Últimas vagas disponíveis</h2>
               <p className="final-cta-subtitle">
-                {mappedTables.reduce((acc, t) => acc + (t.slots_total - t.slots_filled), 0)} vagas restantes em {mappedTables.length} {mappedTables.length === 1 ? 'mesa' : 'mesas'}
+                {totalOpenSlots} vagas restantes em {mappedTables.length} {mappedTables.length === 1 ? 'mesa' : 'mesas'}
               </p>
               <a href="#mesas" className="cta-button cta-button-large">
                 Ver Mesas e Garantir Vaga

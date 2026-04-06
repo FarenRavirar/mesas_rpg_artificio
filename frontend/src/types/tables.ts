@@ -60,6 +60,14 @@ export interface TableCard {
   ddal_name?: string | null;
   ddal_tier?: number | null;
   created_at: string;
+  metrics?: {
+    views: number;
+    clicks: number;
+    contacts: number;
+    favorites: number;
+  };
+  synopsis_narrative?: string | null;
+  score?: number;
 }
 
 export interface TableDetail extends TableCard {

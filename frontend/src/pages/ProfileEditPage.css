@@ -104,6 +104,26 @@
   font-weight: 500;
 }
 
+.profile-public-link {
+  display: inline-block;
+  margin: 0.5rem 0 0 0;
+  padding: 0.5rem 1rem;
+  background: rgba(249, 115, 22, 0.1);
+  border: 1px solid rgba(249, 115, 22, 0.3);
+  border-radius: 8px;
+  color: var(--color-artificio-orange);
+  font-size: 0.75rem;
+  text-decoration: none;
+  transition: all 0.2s;
+  word-break: break-all;
+}
+
+.profile-public-link:hover {
+  background: rgba(249, 115, 22, 0.2);
+  border-color: var(--color-artificio-orange);
+}
+
+
 .autosave-indicator {
   display: flex;
   align-items: center;

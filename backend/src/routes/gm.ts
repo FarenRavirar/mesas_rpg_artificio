@@ -35,6 +35,12 @@ router.get('/:slug', async (req: Request, res: Response) => {
         'gm.avg_rating',
         'gm.reviews_count',
         'gm.created_at',
+        // Campos extras para prova social
+        'gm.discord_connected',
+        'gm.discord_username',
+        'gm.covil_verified',
+        'gm.experience_years',
+        'gm.average_price',
       ])
       // Nunca retornar deletehash — REGRA PÉTREA
       .where('gm.slug', '=', slug)
@@ -48,6 +54,7 @@ router.get('/:slug', async (req: Request, res: Response) => {
     const tables = await db
       .selectFrom('tables as t')
       .leftJoin('systems as s', 's.id', 't.system_id')
+      .leftJoin('table_metrics as tm', 'tm.table_id', 't.id')
       .select([
         't.id',
         't.slug',
@@ -72,8 +79,14 @@ router.get('/:slug', async (req: Request, res: Response) => {
         't.ddal_name',
         't.ddal_tier',
         't.created_at',
+        't.synopsis_narrative',
         's.name as system_name',
         's.slug as system_slug',
+        // Métricas de engajamento
+        sql<number>`COALESCE(tm.views_count, 0)`.as('metrics_views'),
+        sql<number>`COALESCE(tm.clicks_count, 0)`.as('metrics_clicks'),
+        sql<number>`COALESCE(tm.contacts_count, 0)`.as('metrics_contacts'),
+        sql<number>`COALESCE(tm.favorites_count, 0)`.as('metrics_favorites'),
       ])
       .where('t.gm_id', '=', gm.id)
       .where('t.status', '=', 'active')

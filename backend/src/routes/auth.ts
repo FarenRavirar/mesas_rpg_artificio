@@ -100,6 +100,7 @@ router.get('/google/callback', async (req: Request, res: Response) => {
             user_id: user.id as string,
             display_name: userInfo.name || userInfo.given_name || 'Jogador Aventureiro',
             bio: null,
+            avatar_url: userInfo.picture || null, // Salvar avatar do Google
           })
           .execute();
       });

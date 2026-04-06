@@ -9,7 +9,7 @@
 /* Hero Section */
 .hero-section {
   position: relative;
-  min-height: 500px;
+  min-height: 320px; /* Reduzido de 500px para priorizar produto */
   display: flex;
   align-items: center;
   justify-content: center;

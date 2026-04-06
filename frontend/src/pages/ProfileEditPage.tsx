@@ -88,6 +88,17 @@ export default function ProfileEditPage() {
           {profile.user.username && (
             <p className="profile-username">@{profile.user.username}</p>
           )}
+          {profile.gm?.slug && (
+            <a 
+              href={`/mestre/${profile.gm.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="profile-public-link"
+              title="Abrir perfil público"
+            >
+              🔗 {window.location.origin}/mestre/{profile.gm.slug}
+            </a>
+          )}
         </div>
         {saving && (
           <div className="autosave-indicator">
@@ -470,23 +481,6 @@ function TabMestre() {
             rows={6}
           />
         </div>
-      </section>
-
-      <section className="form-section">
-        <h2>Discord</h2>
-        {gmProfile.discord_connected ? (
-          <div className="discord-connected">
-            <p>✅ Conectado como {gmProfile.discord_username}</p>
-            {gmProfile.covil_verified && (
-              <div className="covil-badge">🏅 Mestre do Covil</div>
-            )}
-          </div>
-        ) : (
-          <div className="discord-disconnected">
-            <p>Discord não conectado</p>
-            <button className="btn-connect-discord">Conectar Discord</button>
-          </div>
-        )}
       </section>
 
       <section className="form-section">
