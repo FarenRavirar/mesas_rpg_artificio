@@ -69,6 +69,22 @@ export const MesaPage = () => {
     );
   }, [table]);
 
+  // Tracking: incrementar visualizações
+  useEffect(() => {
+    if (!table?.id) return;
+
+    const trackView = async () => {
+      try {
+        await fetch(`/api/v1/tables/${table.id}/view`, { method: 'POST' });
+      } catch {
+        // Silencioso - tracking não deve quebrar a UX
+      }
+    };
+
+    trackView();
+  }, [table?.id]);
+
+
   // Fase 1: ViewModel (isola lógica, UI ainda usa table)
   // IMPORTANTE: Hooks devem ser chamados incondicionalmente (regra do React)
   const vm = useTableViewModel(table);

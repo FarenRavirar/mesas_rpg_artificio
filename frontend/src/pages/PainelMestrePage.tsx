@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent, InputHTMLAttributes } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { PlusCircle, ChevronRight, MapPin, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import type { TableContact } from '../types/tables';
+import { TableCardDashboard } from '../components/TableCardDashboard';
 // Componente refatorado
 import { CreateTableForm } from '../features/create-table/components/CreateTableForm';
 
@@ -518,73 +519,20 @@ export const PainelMestrePage = () => {
                   Suas mesas publicadas
                 </h2>
 
-                <div className="space-y-3">
-                  {myTables.map((table) => {
-                    const openSlots = Math.max(table.slots_total - table.slots_filled, 0);
 
-                    return (
-                      <article
-                        key={table.id}
-                        className="rounded-xl border border-white/10 bg-[#13213f]/60 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3"
-                      >
-                        <div className="space-y-1">
-                          <p className="font-semibold text-white">{table.title}</p>
-                          <p className="text-xs text-white/60">{table.system_name ?? 'Sistema livre'} · {table.modality}</p>
-                          <div className="flex flex-wrap items-center gap-2 text-xs">
-                            <span className="px-2 py-1 rounded-md border border-white/15 bg-white/5 text-white/75">
-                              {table.slots_filled}/{table.slots_total} ({openSlots} vagas)
-                            </span>
-                            {table.publisher_role === 'announcer' && (
-                              <span className="px-2 py-1 rounded-md border border-slate-300/30 bg-slate-500/15 text-slate-100" id={`painel-mesa-announcer-${table.slug}`}>
-                                Apenas anunciante{table.actual_gm_name ? ` · Mestre: ${table.actual_gm_name}` : ''}
-                              </span>
-                            )}
-                            <span className="px-2 py-1 rounded-md border border-white/15 bg-white/5 text-white/70">
-                              {table.contacts?.length ?? 0} contato{(table.contacts?.length ?? 0) !== 1 ? 's' : ''}
-                            </span>
-                            {table.is_ddal && (
-                              <span className="px-2 py-1 rounded-md border border-amber-400/40 bg-amber-500/15 text-amber-100" id={`painel-mesa-ddal-${table.slug}`}>
-                                DDAL{table.ddal_code ? ` · ${table.ddal_code}` : ''}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <span className="px-2 py-1 rounded-md text-xs border border-white/15 bg-white/5 text-white/70 uppercase">
-                            {table.status}
-                          </span>
-                          <Link
-                            to={`/mesas/${table.slug}`}
-                            className="px-3 py-2 rounded-lg text-xs border border-white/20 hover:border-[var(--color-artificio-orange)] hover:text-[var(--color-artificio-orange)] transition-colors"
-                            id={`painel-mesa-link-${table.slug}`}
-                          >
-                            Abrir página
-                          </Link>
-                          <Link
-                            to={`/painel?edit=${table.id}`} // CORREÇÃO C1: Rota correta é /painel, não /painel-mestre
-                            className="px-3 py-2 rounded-lg text-xs bg-blue-500 hover:bg-blue-600 text-white transition-colors"
-                          >
-                            Editar
-                          </Link>
-                          <button
-                            onClick={() => handleToggleTableStatus(table.id, table.status, table.title)}
-                            disabled={togglingTableId === table.id} // CORREÇÃO B3: Desabilitar durante loading
-                            className={`px-3 py-2 rounded-lg text-xs ${table.status === 'active' ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-green-500 hover:bg-green-600'} text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
-                          >
-                            {togglingTableId === table.id ? '⏳' : (table.status === 'active' ? 'Desativar' : 'Ativar')}
-                          </button>
-                          <button
-                            onClick={() => handleDeleteTable(table.id, table.title)}
-                            disabled={deletingTableId === table.id} // CORREÇÃO B4: Desabilitar durante loading
-                            className="px-3 py-2 rounded-lg text-xs bg-red-500 hover:bg-red-600 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {deletingTableId === table.id ? '⏳' : 'Deletar'}
-                          </button>
-                        </div>
-                      </article>
-                    );
-                  })}
+                {/* GRID DE CARDS */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {myTables.map((table) => (
+                    <TableCardDashboard
+                      key={table.id}
+                      table={table}
+                      onEdit={(id: string) => navigate(`/painel?edit=${id}`)}
+                      onToggle={(table) => handleToggleTableStatus(table.id, table.status, table.title)}
+                      onDelete={(table) => handleDeleteTable(table.id, table.title)}
+                      isToggling={togglingTableId === table.id}
+                      isDeleting={deletingTableId === table.id}
+                    />
+                  ))}
                 </div>
               </section>
             ) : (
