@@ -1,0 +1,184 @@
+import { useState } from 'react';
+import { ChevronRight, ChevronDown, Edit, Trash2 } from 'lucide-react';
+import type { System } from './types';
+
+interface TreeNode extends System {
+  children?: TreeNode[];
+  depth?: number;
+  has_children?: boolean;
+}
+
+interface SystemsTreeProps {
+  systems: TreeNode[];
+  onEdit: (system: System) => void;
+  onDelete: (id: string, name: string) => void;
+}
+
+// Helper: Contar todos os filhos recursivamente
+function countAllChildren(node: TreeNode): number {
+  if (!node.children || node.children.length === 0) return 0;
+
+  return node.children.reduce((acc, child) => {
+    return acc + 1 + countAllChildren(child);
+  }, 0);
+}
+
+// Helper: Listar todos os filhos recursivamente
+function listAllChildren(node: TreeNode): TreeNode[] {
+  if (!node.children || node.children.length === 0) return [];
+
+  const result: TreeNode[] = [];
+  for (const child of node.children) {
+    result.push(child);
+    result.push(...listAllChildren(child));
+  }
+  return result;
+}
+
+function TreeNodeComponent({ 
+  node, 
+  onEdit, 
+  onDelete 
+}: { 
+  node: TreeNode; 
+  onEdit: (system: System) => void; 
+  onDelete: (id: string, name: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const hasChildren = node.children && node.children.length > 0;
+
+  const handleDelete = () => {
+    const childrenCount = countAllChildren(node);
+
+    if (childrenCount > 0) {
+      const children = listAllChildren(node);
+      const confirmMsg = `⚠️ ATENÇÃO
+
+Você está deletando "${node.name}"
+
+Isso também irá deletar ${childrenCount} item(ns) filho(s):
+
+${children.map(c => `  • ${c.name} (${c.node_type})`).join('\n')}
+
+Esta ação é IRREVERSÍVEL.
+
+Digite "DELETAR" para confirmar:`;
+
+      const input = prompt(confirmMsg);
+      if (input !== 'DELETAR') return;
+    } else {
+      if (!confirm(`Deletar "${node.name}"? Esta ação não pode ser desfeita.`)) return;
+    }
+
+    onDelete(node.id, node.name);
+  };
+
+  return (
+    <div>
+      {/* Nó atual */}
+      <div
+        className="bg-[#1B2A4A]/50 border border-white/10 rounded-lg p-4 hover:border-white/20 transition-colors flex items-center justify-between mb-2"
+        style={{ marginLeft: `${(node.depth || 0) * 24}px` }}
+      >
+        <div 
+          className="flex items-center gap-3 flex-1 cursor-pointer"
+          onClick={() => hasChildren && setIsOpen(!isOpen)}
+        >
+          {/* Botão expandir/colapsar */}
+          {hasChildren ? (
+            <button
+              className="text-white/60 hover:text-white transition-colors"
+            >
+              {isOpen ? (
+                <ChevronDown className="w-5 h-5" />
+              ) : (
+                <ChevronRight className="w-5 h-5" />
+              )}
+            </button>
+          ) : (
+            <div className="w-5" /> // Espaçamento para alinhar
+          )}
+
+          {/* Informações do sistema */}
+          <div>
+            <h3 className="text-lg font-bold text-white">
+              {node.name}
+              {hasChildren && (
+                <span className="ml-2 text-sm text-white/40">
+                  ({node.children!.length} {node.children!.length === 1 ? 'filho' : 'filhos'})
+                </span>
+              )}
+            </h3>
+            <p className="text-sm text-white/60">
+              Slug: {node.slug} | 
+              <span className="ml-2 text-xs px-2 py-0.5 rounded bg-white/10">
+                {node.node_type}
+              </span>
+            </p>
+          </div>
+        </div>
+
+        {/* Botões de ação */}
+        <div className="flex gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(node);
+            }}
+            className="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+            title="Editar"
+          >
+            <Edit className="w-5 h-5" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDelete();
+            }}
+            className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+            title="Deletar"
+          >
+            <Trash2 className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Filhos (recursivo) */}
+      {isOpen && hasChildren && (
+        <div className="ml-6">
+          {node.children!.map((child) => (
+            <TreeNodeComponent
+              key={child.id}
+              node={child}
+              onEdit={onEdit}
+              onDelete={onDelete}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function SystemsTree({ systems, onEdit, onDelete }: SystemsTreeProps) {
+  if (systems.length === 0) {
+    return (
+      <div className="text-center py-12 text-white/50">
+        Nenhum sistema encontrado
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {systems.map((system) => (
+        <TreeNodeComponent
+          key={system.id}
+          node={system}
+          onEdit={onEdit}
+          onDelete={onDelete}
+        />
+      ))}
+    </div>
+  );
+}

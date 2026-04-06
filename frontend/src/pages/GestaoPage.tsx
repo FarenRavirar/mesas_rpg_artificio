@@ -5,9 +5,9 @@ import { useNavigate } from 'react-router-dom';
 import { CheckCircle, XCircle, Clock, Edit, Trash2, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { mapCandidateToFormData } from '../utils/candidateToFormData';
-import { SystemEditModal } from '../components/SystemEditModal';
 import { ScenarioEditModal } from '../components/ScenarioEditModal';
 import { MarkdownEditor } from '../components/MarkdownEditor';
+import { SystemsPage } from '../modules/admin/systems/SystemsPage';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
@@ -57,11 +57,10 @@ export const GestaoPage = () => {
   const [rejectingAll, setRejectingAll] = useState(false);
   const [undoingCandidateId, setUndoingCandidateId] = useState<string | null>(null);
 
+
   // Estados para CRUD
   const [crudSubTab, setCrudSubTab] = useState<'systems' | 'scenarios' | 'tables'>('systems');
-  const [systemEditModal, setSystemEditModal] = useState<any>(null);
   const [scenarioEditModal, setScenarioEditModal] = useState<any>(null);
-  const [allSystems, setAllSystems] = useState<any[]>([]);
   const [allScenarios, setAllScenarios] = useState<any[]>([]);
   const [allTables, setAllTables] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -203,13 +202,12 @@ export const GestaoPage = () => {
       fetchSuggestions();
     } else if (activeTab === 'crud') {
       // Carregar dados da sub-aba CRUD selecionada
-      if (crudSubTab === 'systems') {
-        fetchAllSystems();
-      } else if (crudSubTab === 'scenarios') {
+      if (crudSubTab === 'scenarios') {
         fetchAllScenarios();
       } else if (crudSubTab === 'tables') {
         fetchAllTables();
       }
+      // Systems agora é gerenciado pelo módulo SystemsPage
     } else {
       fetchCandidates();
     }
@@ -252,24 +250,6 @@ export const GestaoPage = () => {
   };
 
   // Funções CRUD
-  const fetchAllSystems = async () => {
-    if (!token) return;
-    setLoading(true);
-    try {
-      const response = await fetch(`${API_BASE}/api/v1/systems?view=flat`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setAllSystems(data.data || []);
-      }
-    } catch (error) {
-      console.error('[GestaoPage] Erro ao buscar sistemas:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const fetchAllScenarios = async () => {
     if (!token) return;
     setLoading(true);
@@ -303,30 +283,6 @@ export const GestaoPage = () => {
       console.error('[GestaoPage] Erro ao buscar mesas:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleDeleteSystem = async (id: string, name: string) => {
-    if (!token) return;
-    if (!confirm(`Deletar sistema "${name}"? Esta ação não pode ser desfeita.`)) return;
-
-    try {
-      const response = await fetch(`${API_BASE}/api/v1/systems/admin/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.ok) {
-        toast.success('Sistema deletado!');
-        fetchAllSystems();
-        fetchSystemsTree();
-      } else {
-        const data = await response.json();
-        toast.error(data.error || 'Erro ao deletar sistema');
-      }
-    } catch (error) {
-      console.error('[GestaoPage] Erro ao deletar sistema:', error);
-      toast.error('Erro ao deletar sistema');
     }
   };
 
@@ -517,13 +473,12 @@ export const GestaoPage = () => {
   // Carregar dados CRUD quando aba CRUD estiver ativa
   useEffect(() => {
     if (activeTab === 'crud' && token) {
-      if (crudSubTab === 'systems') {
-        fetchAllSystems();
-      } else if (crudSubTab === 'scenarios') {
+      if (crudSubTab === 'scenarios') {
         fetchAllScenarios();
       } else if (crudSubTab === 'tables') {
         fetchAllTables();
       }
+      // Systems agora é gerenciado pelo módulo SystemsPage
     }
   }, [activeTab, crudSubTab, token]);
 
@@ -904,8 +859,8 @@ export const GestaoPage = () => {
               />
               <button
                 onClick={() => {
-                  if (crudSubTab === 'systems') setSystemEditModal({});
-                  else if (crudSubTab === 'scenarios') setScenarioEditModal({});
+                  if (crudSubTab === 'scenarios') setScenarioEditModal({});
+                  // Systems agora tem seu próprio botão no módulo SystemsPage
                 }}
                 className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
               >
@@ -920,46 +875,7 @@ export const GestaoPage = () => {
             ) : (
               <>
                 {/* Lista de Sistemas */}
-                {crudSubTab === 'systems' && (
-                  <div className="space-y-3">
-                    {allSystems
-                      .filter((sys) =>
-                        searchQuery
-                          ? sys.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            sys.slug.toLowerCase().includes(searchQuery.toLowerCase())
-                          : true
-                      )
-                      .map((sys) => (
-                        <div
-                          key={sys.id}
-                          className="bg-[#1B2A4A]/50 border border-white/10 rounded-lg p-4 hover:border-white/20 transition-colors flex items-center justify-between"
-                        >
-                          <div>
-                            <h3 className="text-lg font-bold text-white">{sys.name}</h3>
-                            <p className="text-sm text-white/60">
-                              Slug: {sys.slug} | Tipo: {sys.node_type}
-                            </p>
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => setSystemEditModal(sys)}
-                              className="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
-                              title="Editar"
-                            >
-                              <Edit className="w-5 h-5" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteSystem(sys.id, sys.name)}
-                              className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
-                              title="Deletar"
-                            >
-                              <Trash2 className="w-5 h-5" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                )}
+                {crudSubTab === 'systems' && <SystemsPage />}
 
                 {/* Lista de Cenários */}
                 {crudSubTab === 'scenarios' && (
@@ -1836,18 +1752,8 @@ export const GestaoPage = () => {
       </div>
 
       {/* Modais CRUD */}
-      {systemEditModal && (
-        <SystemEditModal
-          system={systemEditModal.id ? systemEditModal : null}
-          systemsTree={systemsTree}
-          token={token!}
-          onClose={() => setSystemEditModal(null)}
-          onSuccess={() => {
-            fetchAllSystems();
-            fetchSystemsTree();
-          }}
-        />
-      )}
+      {/* SystemEditModal agora está no módulo SystemsPage */}
+
 
       {scenarioEditModal && (
         <ScenarioEditModal
