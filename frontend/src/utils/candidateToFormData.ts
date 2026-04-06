@@ -27,6 +27,16 @@ export interface CandidateFormData {
     value: string;
     extra_url?: string;
   }>;
+  sessions?: Array<{
+    day_of_week: string;
+    start_time: string;
+    end_time?: string | null;
+    frequency: string;
+    slots_per_session?: number | null;
+    is_ongoing: boolean;
+    notes?: string;
+    sort_order: number;
+  }>;
   // Campos avançados (REQ-26)
   master_display_name?: string;
   campaign_length?: string;
@@ -136,6 +146,36 @@ export function findSystemId(
   }
 
   return searchInTree(systemsTree);
+}
+
+
+function normalizeImportedDayOfWeek(day: string | undefined | null): 'segunda' | 'terça' | 'quarta' | 'quinta' | 'sexta' | 'sábado' | 'domingo' | null {
+  if (!day) return null;
+
+  const normalized = day
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  const dayMap: Record<string, 'segunda' | 'terça' | 'quarta' | 'quinta' | 'sexta' | 'sábado' | 'domingo'> = {
+    segunda: 'segunda',
+    segundas: 'segunda',
+    terca: 'terça',
+    tercas: 'terça',
+    quarta: 'quarta',
+    quartas: 'quarta',
+    quinta: 'quinta',
+    quintas: 'quinta',
+    sexta: 'sexta',
+    sextas: 'sexta',
+    sabado: 'sábado',
+    sabados: 'sábado',
+    domingo: 'domingo',
+    domingos: 'domingo',
+  };
+
+  return dayMap[normalized] ?? null;
 }
 
 export function mapCandidateToFormData(
@@ -284,45 +324,47 @@ export function mapCandidateToFormData(
     }
   }
 
-  // CORREÇÃO: Gerar sessão mínima a partir de scheduleText quando sessions[] estiver vazio
-  // Evita defaults falsos de "segunda 19:00" no formulário
-  if (enrichedJson.scheduleText && (!enrichedJson.sessions || enrichedJson.sessions.length === 0)) {
-    const scheduleText = enrichedJson.scheduleText.toLowerCase();
+  // Mapear sessions do parser Python (REQ-28 Fase 1)
+  if (enrichedJson.sessions && Array.isArray(enrichedJson.sessions) && enrichedJson.sessions.length > 0) {
+    mapped.sessions = enrichedJson.sessions.map((session: any, index: number) => ({
+      day_of_week: normalizeImportedDayOfWeek(session.day_of_week) || 'segunda',
+      start_time: typeof session.start_time === 'string' && session.start_time.trim().length > 0 ? session.start_time : '19:00',
+      end_time: typeof session.end_time === 'string' && session.end_time.trim().length > 0 ? session.end_time : null,
+      frequency: typeof session.frequency === 'string' && session.frequency.trim().length > 0 ? session.frequency : 'semanal',
+      slots_per_session: session.slots_total || session.slots_per_session || null,
+      is_ongoing: session.in_progress === true || session.is_ongoing === true,
+      notes: typeof session.notes === 'string' ? session.notes : '',
+      sort_order: index,
+    }));
+    console.log('[candidateToFormData] sessions mapeadas:', mapped.sessions);
+  }
+
+  // Fallback: gerar sessão mínima a partir de scheduleText quando sessions[] estiver vazio
+  if ((!mapped.sessions || mapped.sessions.length === 0) && (enrichedJson.scheduleText || enrichedJson.schedule)) {
+    const scheduleText = String(enrichedJson.scheduleText || enrichedJson.schedule).toLowerCase();
     console.log('[candidateToFormData] Tentando parsear scheduleText:', scheduleText);
-    
-    // Detectar dia da semana
-    const dayMap: Record<string, number> = {
-      'domingo': 0, 'domingos': 0,
-      'segunda': 1, 'segundas': 1,
-      'terça': 2, 'terças': 2, 'terca': 2, 'tercas': 2,
-      'quarta': 3, 'quartas': 3,
-      'quinta': 4, 'quintas': 4,
-      'sexta': 5, 'sextas': 5,
-      'sábado': 6, 'sábados': 6, 'sabado': 6, 'sabados': 6,
-    };
-    
-    let dayOfWeek: number | null = null;
-    for (const [dayName, dayNum] of Object.entries(dayMap)) {
-      if (scheduleText.includes(dayName)) {
-        dayOfWeek = dayNum;
-        break;
-      }
-    }
-    
-    // Detectar horário (formato: 13:00, 13h, 1pm, etc)
-    const timeMatch = scheduleText.match(/(\d{1,2}):?(\d{2})?\s*(?:h|pm|am)?/);
-    let startTime = '19:00'; // Fallback seguro
-    if (timeMatch) {
-      const hour = parseInt(timeMatch[1]);
-      const minute = timeMatch[2] || '00';
-      startTime = `${hour.toString().padStart(2, '0')}:${minute}`;
-    }
-    
-    // Se conseguiu detectar dia da semana, criar sessão mínima
-    if (dayOfWeek !== null) {
-      console.log('[candidateToFormData] Sessão parseada de scheduleText:', { dayOfWeek, startTime });
-      // Nota: O formulário espera sessions[] mas não está sendo mapeado aqui
-      // Isso deve ser tratado no componente de formulário
+
+    const dayNames = ['domingo', 'domingos', 'segunda', 'segundas', 'terça', 'terças', 'terca', 'tercas', 'quarta', 'quartas', 'quinta', 'quintas', 'sexta', 'sextas', 'sábado', 'sábados', 'sabado', 'sabados'];
+    const detectedDay = dayNames.find((dayName) => scheduleText.includes(dayName));
+    const normalizedDay = normalizeImportedDayOfWeek(detectedDay ?? null);
+
+    const timeMatch = scheduleText.match(/(\d{1,2})(?::?(\d{2}))?\s*(?:h|pm|am)?/i);
+    const startTime = timeMatch
+      ? `${timeMatch[1].padStart(2, '0')}:${(timeMatch[2] || '00').padStart(2, '0')}`
+      : null;
+
+    if (normalizedDay && startTime) {
+      mapped.sessions = [{
+        day_of_week: normalizedDay,
+        start_time: startTime,
+        end_time: null,
+        frequency: mapped.frequency || 'semanal',
+        slots_per_session: null,
+        is_ongoing: Boolean(enrichedJson.is_ongoing || enrichedJson.isOngoing),
+        notes: '',
+        sort_order: 0,
+      }];
+      console.log('[candidateToFormData] sessions geradas a partir de scheduleText:', mapped.sessions);
     }
   }
 

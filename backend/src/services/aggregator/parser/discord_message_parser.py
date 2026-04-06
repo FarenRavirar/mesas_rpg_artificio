@@ -363,16 +363,20 @@ def extract_start_date(content: str) -> Optional[str]:
 
 
 def extract_schedule(content: str) -> Optional[str]:
-    """Extrai horário e dia da semana."""
+    """Extrai horário e dia da semana, removendo marcadores e prefixos."""
     patterns = [
-        r'((?:segunda|terça|quarta|quinta|sexta|sábado|domingo)s?(?:-feiras?)?)\s+(?:das?|às?)\s+(\d{1,2}h?\d{0,2})',
-        r'(?:horário|schedule):\s*(.+?)(?:\n|$)',
+        r'(?:dia\s+e\s+)?(?:horário|schedule)\s*:?\s*(.+?)(?:\n|$)',
+        r'((?:segunda|terça|quarta|quinta|sexta|sábado|domingo)s?(?:-feiras?)?\s+(?:das?|às?|as)\s+\d{1,2}[h:]?\d{0,2}(?:h|pm|am)?)',
     ]
     
     for pattern in patterns:
         match = re.search(pattern, content, re.IGNORECASE)
         if match:
-            return match.group(0).strip()
+            schedule = match.group(1).strip()
+            # Remover marcadores residuais
+            schedule = re.sub(r'^[▬\-•*:]+\s*', '', schedule)
+            schedule = re.sub(r'\*\*|\*|__', '', schedule)
+            return schedule if schedule else None
     
     return None
 
@@ -451,22 +455,24 @@ def extract_rules(content: str) -> Optional[str]:
 
 
 def extract_gm_name(content: str, metadata: Optional[Dict[str, Any]] = None) -> Optional[str]:
-    """Extrai nome do mestre."""
+    """Extrai nome do mestre. Retorna None se não houver nome válido."""
     # Tentar extrair do conteúdo
     patterns = [
-        r'(?:mestre|gm|dm):\s*(.+?)(?:\n|$)',
-        r'narrado por:\s*(.+?)(?:\n|$)',
+        r'(?:mestre|gm|dm)\s*:?\s*(.+?)(?:\n|$)',
+        r'narrado\s+por\s*:?\s*(.+?)(?:\n|$)',
+        r'mestrado\s+por\s*:?\s*(.+?)(?:\n|$)',
     ]
     
     for pattern in patterns:
         match = re.search(pattern, content, re.IGNORECASE)
         if match:
-            return match.group(1).strip()
+            name = match.group(1).strip()
+            name = re.sub(r'\*\*|\*|__', '', name)
+            # Validar que não é lixo
+            if name and len(name) > 1 and name not in ['*', '-', '▬', 'N/A', 'n/a']:
+                return name
     
-    # Fallback: usar author do metadata
-    if metadata and 'author_username' in metadata:
-        return metadata['author_username']
-    
+    # Não usar fallback automático do metadata - retornar None se não encontrar explicitamente
     return None
 
 
@@ -489,8 +495,8 @@ def extract_contacts(content: str, metadata: Optional[Dict[str, Any]] = None) ->
                 'extra_url': None
             })
     
-    # WhatsApp (regex)
-    whatsapp_match = re.search(r'(?:whatsapp|wpp|zap):\s*(\+?\d[\d\s\-\(\)]+)', content, re.IGNORECASE)
+    # WhatsApp (regex) - aceita "WhatsApp: 123" ou "WhatsApp 123"
+    whatsapp_match = re.search(r'(?:whatsapp|wpp|zap)[:\s]+(\+?\d[\d\s\-\(\)]+)', content, re.IGNORECASE)
     if whatsapp_match:
         contacts.append({
             'channel': 'whatsapp',
@@ -548,9 +554,9 @@ def extract_avatar_url(metadata: Optional[Dict[str, Any]] = None) -> Optional[st
 
 
 def extract_platforms(content: str) -> Optional[str]:
-    """Extrai plataformas de jogo (Discord, Roll20, Foundry, etc.)."""
+    """Extrai plataformas de jogo APENAS de campo explícito (sem detecção automática)."""
     patterns = [
-        r'(?:plataformas?|ferramentas?):\s*(.+?)(?:\n|$)',
+        r'(?:plataformas?|ferramentas?)\*?\*?:\s*(.+?)(?:\n|$)',
     ]
     
     for pattern in patterns:
@@ -560,26 +566,8 @@ def extract_platforms(content: str) -> Optional[str]:
             platforms = re.sub(r'\*\*|\*|__', '', platforms)
             return platforms if platforms else None
     
-    # Detectar plataformas comuns no texto
-    detected = []
-    content_lower = content.lower()
-    
-    platform_keywords = {
-        'Discord': ['discord'],
-        'Roll20': ['roll20', 'roll 20'],
-        'Foundry VTT': ['foundry', 'foundry vtt'],
-        'Owlbear': ['owlbear'],
-        'Alchemy': ['alchemy'],
-        'Astral': ['astral'],
-        'Fantasy Grounds': ['fantasy grounds'],
-        'Tabletop Simulator': ['tabletop simulator', 'tts'],
-    }
-    
-    for platform, keywords in platform_keywords.items():
-        if any(keyword in content_lower for keyword in keywords):
-            detected.append(platform)
-    
-    return ', '.join(detected) if detected else None
+    # CORREÇÃO: Não detectar plataformas automaticamente - retornar None se não houver campo explícito
+    return None
 
 
 def extract_age_rating(content: str) -> Optional[str]:
@@ -660,69 +648,101 @@ def extract_description_blocks(content: str) -> dict:
     
     content_clean = '\n'.join(cleaned_lines)
     
-    # Extrair sinopse narrativa (primeiro bloco longo após título)
+    # Extrair sinopse narrativa - capturar APENAS o bloco após o marcador
     synopsis_match = re.search(
-        r'(?:sinopse|sobre\s+a\s+história|sobre\s+esta\s+mesa|história|narrativa|descrição|resumo\s+da\s+história)\s*:?\s*\n+((?:(?!▬\s*\*?\*?(?:sistema|vagas?|tipo|modalidade|idioma|data|horário|preço|mestre|contato|plataforma|requisitos?|regras?|inscrições?)).+\n?)+?)(?:\n\n|▬|$)',
+        r'\*\*(?:resumo\s+da\s+história|sinopse|sobre\s+a\s+história|história|narrativa)\*\*\s*\n+(.+?)(?=\n\n\*\*|\n\*\*|$)',
         content_clean,
         re.IGNORECASE | re.DOTALL
     )
     if synopsis_match:
-        # Limpar linhas que começam com marcadores estruturados
         raw_text = synopsis_match.group(1).strip()
-        # Remover linhas que são claramente metadados
+        # Remover linhas que são metadados estruturados
         narrative_lines = []
         for line in raw_text.split('\n'):
             stripped = line.strip()
-            # Parar se encontrar linha de metadado estruturado
-            if re.match(r'^▬\s*\*?\*?(?:sistema|vagas?|tipo|modalidade|idioma|data|horário|preço|mestre|contato|plataforma|requisitos?|regras?|inscrições?)', stripped, re.IGNORECASE):
+            # Parar se encontrar outro marcador de seção
+            if re.match(r'^\*\*(?:sobre|inscrições?|benefícios?|regras?|estilos?)', stripped, re.IGNORECASE):
                 break
-            # Ignorar linhas muito curtas ou vazias
-            if len(stripped) > 10:
+            # Parar se encontrar metadado estruturado
+            if re.match(r'^▬\s*\*?\*?(?:sistema|vagas?|tipo|modalidade|idioma|data|horário|preço)', stripped, re.IGNORECASE):
+                break
+            if stripped:
                 narrative_lines.append(line)
         
         if narrative_lines:
             blocks['synopsis_narrative'] = '\n'.join(narrative_lines).strip()[:1000]
-    else:
-        # Fallback: pegar parágrafos longos iniciais
-        paragraphs = [p.strip() for p in content_clean.split('\n\n') if len(p.strip()) > 100]
-        if paragraphs:
-            blocks['synopsis_narrative'] = paragraphs[0][:1000]
     
-    # Extrair regras e observações
-    rules_match = re.search(
-        r'(?:regras?|observações?|avisos?|informações?\s+importantes?|requisitos?)\s*:?\s*\n+((?:.+\n?)+?)(?:\n\n|$)',
-        content_clean,
-        re.IGNORECASE | re.DOTALL
-    )
-    if rules_match:
-        blocks['rules_notes'] = rules_match.group(1).strip()[:1000]
-    
-    # Extrair instruções de inscrição
-    signup_match = re.search(
-        r'(?:inscrições?|interessados?|como\s+participar|para\s+participar|contato)\s*:?\s*\n+((?:.+\n?)+?)(?:\n\n|$)',
-        content_clean,
-        re.IGNORECASE | re.DOTALL
-    )
-    if signup_match:
-        blocks['signup_text'] = signup_match.group(1).strip()[:500]
-    
-    # Extrair benefícios
-    benefits_match = re.search(
-        r'(?:benefícios?|diferenciais?|o\s+que\s+oferecemos|incluso|material\s+incluído)\s*:?\s*\n+((?:.+\n?)+?)(?:\n\n|$)',
-        content_clean,
-        re.IGNORECASE | re.DOTALL
-    )
-    if benefits_match:
-        blocks['benefits_text'] = benefits_match.group(1).strip()[:500]
-    
-    # Extrair bio do mestre
+    # Extrair bio do mestre - capturar APENAS o bloco após o marcador
     gm_bio_match = re.search(
-        r'(?:sobre\s+o\s+mestre|sobre\s+mim|quem\s+sou|experiência\s+do\s+mestre)\s*:?\s*\n+((?:.+\n?)+?)(?:\n\n|$)',
+        r'\*\*(?:sobre\s+o\s+mestre|sobre\s+mim|quem\s+sou)\*\*\s*\n+(.+?)(?=\n\n\*\*|\n\*\*|$)',
         content_clean,
         re.IGNORECASE | re.DOTALL
     )
     if gm_bio_match:
-        blocks['gm_bio'] = gm_bio_match.group(1).strip()[:500]
+        raw_text = gm_bio_match.group(1).strip()
+        bio_lines = []
+        for line in raw_text.split('\n'):
+            stripped = line.strip()
+            if re.match(r'^\*\*(?:resumo|inscrições?|benefícios?|regras?|estilos?)', stripped, re.IGNORECASE):
+                break
+            if stripped:
+                bio_lines.append(line)
+        if bio_lines:
+            blocks['gm_bio'] = '\n'.join(bio_lines).strip()[:500]
+    
+    # Extrair instruções de inscrição - capturar APENAS o bloco após o marcador
+    signup_match = re.search(
+        r'\*\*(?:inscrições?|interessados?|como\s+participar)\*\*\s*\n+(.+?)(?=\n\n\*\*|\n\*\*|$)',
+        content_clean,
+        re.IGNORECASE | re.DOTALL
+    )
+    if signup_match:
+        raw_text = signup_match.group(1).strip()
+        signup_lines = []
+        for line in raw_text.split('\n'):
+            stripped = line.strip()
+            if re.match(r'^\*\*(?:resumo|sobre|benefícios?|regras?|estilos?)', stripped, re.IGNORECASE):
+                break
+            if stripped:
+                signup_lines.append(line)
+        if signup_lines:
+            blocks['signup_text'] = '\n'.join(signup_lines).strip()[:500]
+    
+    # Extrair benefícios - capturar APENAS o bloco após o marcador
+    benefits_match = re.search(
+        r'\*\*(?:benefícios?|diferenciais?|o\s+que\s+oferecemos)\*\*\s*\n+(.+?)(?=\n\n\*\*|\n\*\*|$)',
+        content_clean,
+        re.IGNORECASE | re.DOTALL
+    )
+    if benefits_match:
+        raw_text = benefits_match.group(1).strip()
+        benefits_lines = []
+        for line in raw_text.split('\n'):
+            stripped = line.strip()
+            if re.match(r'^\*\*(?:resumo|sobre|inscrições?|regras?|estilos?)', stripped, re.IGNORECASE):
+                break
+            if stripped:
+                benefits_lines.append(line)
+        if benefits_lines:
+            blocks['benefits_text'] = '\n'.join(benefits_lines).strip()[:500]
+    
+    # Extrair regras e observações
+    rules_match = re.search(
+        r'\*\*(?:regras?|observações?|avisos?|requisitos?)\*\*\s*\n+(.+?)(?=\n\n\*\*|\n\*\*|$)',
+        content_clean,
+        re.IGNORECASE | re.DOTALL
+    )
+    if rules_match:
+        raw_text = rules_match.group(1).strip()
+        rules_lines = []
+        for line in raw_text.split('\n'):
+            stripped = line.strip()
+            if re.match(r'^\*\*(?:resumo|sobre|inscrições?|benefícios?|estilos?)', stripped, re.IGNORECASE):
+                break
+            if stripped:
+                rules_lines.append(line)
+        if rules_lines:
+            blocks['rules_notes'] = '\n'.join(rules_lines).strip()[:1000]
     
     return blocks
 
@@ -777,9 +797,10 @@ def extract_setting_name(content: str) -> Optional[str]:
 
 
 def extract_setting_styles(content: str) -> List[str]:
-    """Extrai estilos/temáticas da mesa como array (REQ-28)."""
+    """Extrai estilos/temáticas da mesa como array (REQ-28). Nunca deriva de system."""
     patterns = [
-        r'(?:estilos?|temáticas?|temas?|gêneros?):\s*(.+?)(?:\n|$)',
+        r'\*\*(?:estilos?|temáticas?|temas?|gêneros?)\*\*\s*:?\s*(.+?)(?:\n|$)',
+        r'(?:estilos?|temáticas?|temas?|gêneros?)\s*:?\s*(.+?)(?:\n|$)',
     ]
     
     for pattern in patterns:
@@ -794,10 +815,20 @@ def extract_setting_styles(content: str) -> List[str]:
             
             # Filtrar estilos válidos (não podem ser nomes de sistema)
             valid_styles = []
+            system_keywords = [
+                'd&d', 'pathfinder', 'call of cthulhu', 'coc', 'dungeons', 'dragons',
+                'tormenta', 'fate', 'gurps', 'savage worlds', '3d&t', 'old dragon',
+                'vampiro', 'lobisomem', 'mago', 'changeling', 'wraith',
+                'cyberpunk', 'shadowrun', 'starfinder', 'mutants', 'masterminds'
+            ]
+            
             for style in styles:
-                # Ignorar se parecer nome de sistema
                 lower_style = style.lower()
-                if any(sys in lower_style for sys in ['d&d', 'pathfinder', 'call of cthulhu', 'coc', 'dungeons', 'dragons']):
+                # Ignorar se for nome de sistema
+                if any(sys in lower_style for sys in system_keywords):
+                    continue
+                # Ignorar se tiver número (ex: "Tormenta 20", "D&D 5e")
+                if re.search(r'\d', style):
                     continue
                 if len(style) > 2 and len(style) < 30:
                     valid_styles.append(style)
@@ -861,29 +892,43 @@ def extract_multiple_schedules(content: str) -> List[Dict[str, Any]]:
     Extrai múltiplas sessões estruturadas.
     
     Detecta padrões como:
-    - "Domingos às 13h"
+    - "Domingos às 13h", "Domingos às 13:00PM"
     - "Sábados 14h-18h (4 vagas)"
     - "Domingos 13h e Quartas 20h"
+    - "Todas Os Domingos, ás 13:00PM"
     """
     sessions = []
     
-    # Padrão: Dia + horário com possível faixa
-    # "Domingos 13h", "Sábados 14h-18h"
-    pattern = r'(segunda|terça|quarta|quinta|sexta|sábado|domingo)s?\s+(?:às\s+)?(\d{1,2})[h:](\d{2})?(?:\s*[-–]\s*(\d{1,2})[h:](\d{2})?)?'
+    # Padrão expandido: Dia + horário com possível faixa, suportando PM/AM e variações
+    # "Domingos 13h", "Sábados 14h-18h", "Domingos às 13:00PM"
+    pattern = r'(segunda|terça|quarta|quinta|sexta|sábado|domingo)s?[,]?\s+(?:às|as|ás)?\s*(\d{1,2})[h:]?(\d{2})?(?:h)?(?:pm|am)?(?:\s*[-–]\s*(\d{1,2})[h:]?(\d{2})?(?:h)?(?:pm|am)?)?'
     
     matches = re.finditer(pattern, content, re.IGNORECASE)
     
     for match in matches:
-        day = match.group(1).capitalize()
+        day_raw = match.group(1).lower()
         start_hour = match.group(2)
         start_min = match.group(3) or "00"
         end_hour = match.group(4)
         end_min = match.group(5) or "00" if end_hour else None
         
+        # Normalizar dia da semana para minúsculas (formato esperado pelo frontend)
+        day_map = {
+            'segunda': 'segunda',
+            'terça': 'terça',
+            'quarta': 'quarta',
+            'quinta': 'quinta',
+            'sexta': 'sexta',
+            'sábado': 'sábado',
+            'sabado': 'sábado',
+            'domingo': 'domingo'
+        }
+        day = day_map.get(day_raw, day_raw.lower())
+        
         session = {
             "day_of_week": day,
-            "start_time": f"{start_hour}:{start_min}",
-            "end_time": f"{end_hour}:{end_min}" if end_hour else None,
+            "start_time": f"{start_hour.zfill(2)}:{start_min}",
+            "end_time": f"{end_hour.zfill(2)}:{end_min}" if end_hour else None,
             "frequency": "semanal",  # Padrão
             "slots_total": None,
             "slots_available": None,

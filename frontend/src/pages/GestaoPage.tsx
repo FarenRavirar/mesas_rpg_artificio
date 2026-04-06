@@ -1437,8 +1437,16 @@ export const GestaoPage = () => {
                             <button
                               onClick={() => {
                                 setSelectedCandidate(candidate);
-                                // CORREÇÃO B02: Inicializar editedCandidate com enrichedFields do candidato
-                                setEditedCandidate(candidate.parsed_json.enrichedFields || {});
+                                // CORREÇÃO DT-03 + DT-05: Inicializar com campos básicos + enrichedFields
+                                const initialData = {
+                                  // Campos básicos de parsed_json raiz
+                                  title: candidate.parsed_json.title,
+                                  synopsis: candidate.parsed_json.synopsis,
+                                  slots_total: candidate.parsed_json.slotsTotal,
+                                  // Campos avançados de enrichedFields
+                                  ...(candidate.parsed_json.enrichedFields || {}),
+                                };
+                                setEditedCandidate(initialData);
                               }}
                               className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-colors"
                             >
@@ -1613,7 +1621,7 @@ export const GestaoPage = () => {
                       </label>
                       <input
                         type="number"
-                        defaultValue={selectedCandidate.parsed_json.slots_total || selectedCandidate.parsed_json.slots || 4}
+                        defaultValue={editedCandidate?.slots_total ?? candidateMappedData.get(selectedCandidate.id)?.slots_total ?? selectedCandidate.parsed_json.slots_total ?? selectedCandidate.parsed_json.slots ?? ''}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditedCandidate((prev: any) => ({ ...prev, slots_total: parseInt(e.target.value) }))}
                         className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                         min="1"
@@ -1643,10 +1651,11 @@ export const GestaoPage = () => {
                         Modalidade
                       </label>
                       <select
-                        defaultValue={selectedCandidate.parsed_json.modality || 'online'}
+                        defaultValue={editedCandidate?.modality ?? candidateMappedData.get(selectedCandidate.id)?.modality ?? (selectedCandidate.parsed_json.modality || '')}
                         onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setEditedCandidate((prev: any) => ({ ...prev, modality: e.target.value }))}
                         className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                       >
+                        <option value="">Selecione...</option>
                         <option value="online">Online</option>
                         <option value="presencial">Presencial</option>
                         <option value="hibrido">Híbrido</option>

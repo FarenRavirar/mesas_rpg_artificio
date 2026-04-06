@@ -2,9 +2,9 @@ import {
   getAggregatorCandidateById,
   listAggregatorCandidates,
   updateAggregatorCandidateEditorialStatus,
-} from '../../db/aggregator';
-import { db } from '../../db';
-import type { AggregatorEditorialStatus, TableContactChannel } from '../../db/types';
+} from '../db/aggregator';
+import { db } from '../db';
+import type { AggregatorEditorialStatus, TableContactChannel } from '../db/types';
 
 export interface ListCandidatesInput {
   editorialStatus?: AggregatorEditorialStatus;
