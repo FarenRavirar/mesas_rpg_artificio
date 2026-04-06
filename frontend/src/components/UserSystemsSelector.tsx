@@ -30,10 +30,11 @@ export function UserSystemsSelector({
   const fetchSystemsTree = async () => {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || '';
-      const response = await fetch(`${apiUrl}/api/v1/systems/tree`);
+      const response = await fetch(`${apiUrl}/api/v1/systems?view=tree`);
       if (!response.ok) throw new Error('Erro ao buscar árvore de sistemas');
       
       const result = await response.json();
+      console.log('[UserSystemsSelector] Sistemas carregados:', result.data?.length || 0);
       setTree(result.data || []);
     } catch (error) {
       console.error('[UserSystemsSelector] Erro ao buscar sistemas:', error);
@@ -58,6 +59,8 @@ export function UserSystemsSelector({
       </div>
     );
   }
+
+  console.log('[UserSystemsSelector] Renderizando com tree:', tree.length, 'sistemas');
 
   return (
     <div className="user-systems-selector">

@@ -26,7 +26,7 @@ router.get('/:slug', async (req: Request, res: Response) => {
         'gm.slug',
         sql<string>`COALESCE(gm.nickname, p.display_name)`.as('display_name'),
         'gm.bio_long',
-        'gm.avatar_url',
+        sql<string>`COALESCE(gm.avatar_url, p.avatar_url)`.as('avatar_url'),
         'gm.banner_url',
         'gm.languages',
         'gm.specialties',

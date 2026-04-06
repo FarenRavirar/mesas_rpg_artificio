@@ -567,17 +567,15 @@ function TabMestre() {
               <li>Exibir badge no perfil público</li>
               <li>Futuras integrações comunitárias</li>
             </ul>
-            <button
-              onClick={() => {
-                setConnecting(true); // CORREÇÃO P10: Mostrar loading
-                const apiUrl = import.meta.env.VITE_API_URL || window.location.origin;
-                window.location.href = `${apiUrl}/auth/discord/connect`;
-              }}
+            <a
+              href="/auth/discord/connect"
               className="btn-connect-discord"
-              disabled={connecting}
+              onClick={() => {
+                setConnecting(true);
+              }}
             >
               {connecting ? '⏳ Conectando...' : '🟣 Conectar Discord'}
-            </button>
+            </a>
           </div>
         )}
       </section>

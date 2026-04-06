@@ -228,6 +228,17 @@
   transition: all 0.2s;
 }
 
+/* Estilos para options dos selects */
+.form-group select option {
+  background: #1e293b; /* Fundo escuro consistente */
+  color: white;
+  padding: 0.5rem;
+}
+
+.form-group select option:checked {
+  background: var(--color-artificio-orange);
+  color: white;
+}
 
 .form-group input:focus,
 .form-group select:focus,
