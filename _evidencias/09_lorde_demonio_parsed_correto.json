@@ -1,0 +1,100 @@
+{
+  "title": "O Lorde Demônio — Tormenta",
+  "system": "Tormenta 20",
+  "type": "campanha",
+  "modality": "online",
+  "slots": 3,
+  "language": "pt-BR",
+  "schedule": "Todas Os Domingos, ás 13:00PM",
+  "price_type": "paga",
+  "price_amount": 18.0,
+  "description": "Nesta campanha, os jogadores assumem o papel de aventureiros em Arton, o mundo de Tormenta. A história gira em torno de um poderoso Lorde Demônio que ameaça destruir o equilíbrio entre os planos. Os heróis precisarão desvendar mistérios antigos, enfrentar cultistas fanáticos e tomar decisões difíceis que podem mudar o destino do mundo.\nA narrativa combina elementos de investigação, combate tático e roleplay intenso, com foco em escolhas morais complexas e consequências reais para as ações dos personagens.",
+  "contacts": [
+    {
+      "channel": "whatsapp",
+      "value": "62994292879"
+    }
+  ],
+  "platforms": "Discord, Owlbear",
+  "synopsis": "Nesta campanha, os jogadores assumem o papel de aventureiros em Arton, o mundo de Tormenta. A história gira em torno de um poderoso Lorde Demônio que ameaça destruir o equilíbrio entre os planos. Os heróis precisarão desvendar mistérios antigos, enfrentar cultistas fanáticos e tomar decisões difíceis que podem mudar o destino do mundo.",
+  "setting_name": "Tormenta",
+  "setting_styles": [
+    "Romantasia",
+    "Drama",
+    "Terror",
+    "Investigação",
+    "Shounen",
+    "Isekai"
+  ],
+  "synopsis_narrative": "Nesta campanha, os jogadores assumem o papel de aventureiros em Arton, o mundo de Tormenta. A história gira em torno de um poderoso Lorde Demônio que ameaça destruir o equilíbrio entre os planos. Os heróis precisarão desvendar mistérios antigos, enfrentar cultistas fanáticos e tomar decisões difíceis que podem mudar o destino do mundo.\nA narrativa combina elementos de investigação, combate tático e roleplay intenso, com foco em escolhas morais complexas e consequências reais para as ações dos personagens.",
+  "benefits_text": "- Mapas customizados usando Roll20 e Owlbear\n- Tokens personalizados para os PCs\n- Desenhos e ilustrações exclusivas\n- Handouts e materiais de apoio",
+  "gm_bio": "Olá! Sou mestre de RPG há 8 anos. Tenho experiência com diversos sistemas, mas Tormenta é minha paixão. Gosto de criar histórias envolventes com NPCs memoráveis e desafios que vão além do combate. Minha mesa valoriza a narrativa colaborativa e o desenvolvimento de personagens.",
+  "signup_text": "Interessados podem entrar em contato pelo WhatsApp 62994292879.",
+  "tags": [
+    "terror",
+    "investigacao",
+    "combate",
+    "roleplay",
+    "romance",
+    "drama",
+    "acao"
+  ],
+  "requires_pc": true,
+  "external_links": [],
+  "is_paid": true,
+  "priceText": "r$ 18,00 por sessão",
+  "requires_camera": false,
+  "requires_microphone": false,
+  "is_ongoing": false,
+  "sessions": [
+    {
+      "day_of_week": "domingo",
+      "start_time": "13:00",
+      "frequency": "semanal",
+      "in_progress": false
+    }
+  ],
+  "system_raw": "Tormenta 20",
+  "system_normalized": "Tormenta 20",
+  "system_classification": "válido",
+  "is_homebrew": false,
+  "is_custom": false,
+  "payment_classification": "paga",
+  "candidate_kind": "mesa",
+  "publisher_role": "mestre",
+  "is_same_person": true,
+  "confidence": 0.78,
+  "confidence_by_field": {
+    "title": 1.0,
+    "system": 1.0,
+    "schedule": 0.9,
+    "slots": 0.95,
+    "language": 0.5,
+    "price_type": 0.5,
+    "contacts": 0.8,
+    "modality": 0.9,
+    "level_range": 0.0,
+    "session_duration": 0.0,
+    "campaign_length": 0.0,
+    "experience_required": 0.0,
+    "tags": 0.8,
+    "requires_pc": 0.95,
+    "external_links": 0.0,
+    "banner_url": 0.0,
+    "avatar_url": 0.0,
+    "description": 0.9,
+    "rules_notes": 0.0,
+    "actual_gm_name": 0.0,
+    "type": 0.9,
+    "frequency": 0.0,
+    "starts_at": 0.0
+  },
+  "missingFields": [],
+  "reviewFlags": [],
+  "debug": {
+    "required_filled": 8,
+    "required_total": 8,
+    "optional_filled": 4,
+    "optional_total": 15
+  }
+}
