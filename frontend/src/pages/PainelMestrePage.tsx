@@ -86,7 +86,8 @@ function CreateGmProfileForm({ token, onSuccess }: { token: string; onSuccess: (
     setError(null);
 
     try {
-      const res = await fetch('/api/v1/gm/profile', {
+      const apiUrl = import.meta.env.VITE_API_URL || ''; // CORREÇÃO A1: URL relativa com fallback
+      const res = await fetch(`${apiUrl}/api/v1/gm/profile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ slug, nickname, bio_long: bio }),
@@ -176,6 +177,8 @@ export const PainelMestrePage = () => {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [editingTableId, setEditingTableId] = useState<string | null>(null);
   const [editingTableData, setEditingTableData] = useState<any>(null);
+  const [togglingTableId, setTogglingTableId] = useState<string | null>(null); // CORREÇÃO B3
+  const [deletingTableId, setDeletingTableId] = useState<string | null>(null); // CORREÇÃO B4
 
   useEffect(() => {
     if (!user || !token) {
@@ -187,7 +190,8 @@ export const PainelMestrePage = () => {
       setLoadingProfile(true);
 
       try {
-        const profileRes = await fetch('/api/v1/gm/me', {
+        const apiUrl = import.meta.env.VITE_API_URL || ''; // CORREÇÃO A1
+        const profileRes = await fetch(`${apiUrl}/api/v1/gm/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -214,7 +218,7 @@ export const PainelMestrePage = () => {
 
         setGmProfile(profile);
 
-        const tablesRes = await fetch('/api/v1/gm/tables', {
+        const tablesRes = await fetch(`${apiUrl}/api/v1/gm/tables`, { // CORREÇÃO A1: Reusar apiUrl
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -246,7 +250,8 @@ export const PainelMestrePage = () => {
 
       const loadTableData = async () => {
         try {
-          const response = await fetch(`/api/v1/tables/${editId}`, {
+          const apiUrl = import.meta.env.VITE_API_URL || ''; // CORREÇÃO A1
+          const response = await fetch(`${apiUrl}/api/v1/tables/${editId}`, {
             headers: { Authorization: `Bearer ${token}` },
           });
 
@@ -267,15 +272,21 @@ export const PainelMestrePage = () => {
 
       loadTableData();
     }
-  }, [token]);
+  }, [token, editingTableId]); // CORREÇÃO B2: Adicionar editingTableId nas dependências
 
   const refreshData = () => {
+    // CORREÇÃO C2, C3: Limpar estado de edição e query params
+    setEditingTableId(null);
+    setEditingTableData(null);
+    window.history.replaceState({}, '', '/painel');
+    
     setView('dashboard');
     setLoadingProfile(true);
 
+    const apiUrl = import.meta.env.VITE_API_URL || ''; // CORREÇÃO A1
     Promise.all([
-      fetch('/api/v1/gm/me', { headers: { Authorization: `Bearer ${token!}` } }),
-      fetch('/api/v1/gm/tables', { headers: { Authorization: `Bearer ${token!}` } }),
+      fetch(`${apiUrl}/api/v1/gm/me`, { headers: { Authorization: `Bearer ${token!}` } }),
+      fetch(`${apiUrl}/api/v1/gm/tables`, { headers: { Authorization: `Bearer ${token!}` } }),
     ])
       .then(async ([profileRes, tablesRes]) => {
         if (profileRes.ok) {
@@ -309,10 +320,12 @@ export const PainelMestrePage = () => {
 
     if (!confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} mesa "${title}"?`)) return;
 
+    setTogglingTableId(tableId); // CORREÇÃO B3: Mostrar loading
     try {
+      const apiUrl = import.meta.env.VITE_API_URL || ''; // CORREÇÃO A1
       const endpoint = user?.role === 'admin'
-        ? `/api/v1/gm/admin/tables/${tableId}`
-        : `/api/v1/gm/tables/${tableId}`;
+        ? `${apiUrl}/api/v1/gm/admin/tables/${tableId}`
+        : `${apiUrl}/api/v1/gm/tables/${tableId}`;
 
       const response = await fetch(endpoint, {
         method: 'PUT',
@@ -333,6 +346,8 @@ export const PainelMestrePage = () => {
     } catch (error) {
       console.error('[PainelMestrePage] Erro ao alterar status da mesa:', error);
       toast.error(`Erro ao ${action} mesa`);
+    } finally {
+      setTogglingTableId(null); // CORREÇÃO B3: Limpar loading
     }
   };
 
@@ -340,10 +355,12 @@ export const PainelMestrePage = () => {
     if (!token) return;
     if (!confirm(`Deletar mesa "${title}"? Esta ação não pode ser desfeita.`)) return;
 
+    setDeletingTableId(tableId); // CORREÇÃO B4: Mostrar loading
     try {
+      const apiUrl = import.meta.env.VITE_API_URL || ''; // CORREÇÃO A1
       const endpoint = user?.role === 'admin'
-        ? `/api/v1/gm/admin/tables/${tableId}`
-        : `/api/v1/gm/tables/${tableId}`;
+        ? `${apiUrl}/api/v1/gm/admin/tables/${tableId}`
+        : `${apiUrl}/api/v1/gm/tables/${tableId}`;
 
       const response = await fetch(endpoint, {
         method: 'DELETE',
@@ -360,6 +377,8 @@ export const PainelMestrePage = () => {
     } catch (error) {
       console.error('[PainelMestrePage] Erro ao deletar mesa:', error);
       toast.error('Erro ao deletar mesa');
+    } finally {
+      setDeletingTableId(null); // CORREÇÃO B4: Limpar loading
     }
   };
 
@@ -486,22 +505,24 @@ export const PainelMestrePage = () => {
                             Abrir página
                           </Link>
                           <Link
-                            to={`/painel-mestre?edit=${table.id}`}
+                            to={`/painel?edit=${table.id}`} // CORREÇÃO C1: Rota correta é /painel, não /painel-mestre
                             className="px-3 py-2 rounded-lg text-xs bg-blue-500 hover:bg-blue-600 text-white transition-colors"
                           >
                             Editar
                           </Link>
                           <button
                             onClick={() => handleToggleTableStatus(table.id, table.status, table.title)}
-                            className={`px-3 py-2 rounded-lg text-xs ${table.status === 'active' ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-green-500 hover:bg-green-600'} text-white transition-colors`}
+                            disabled={togglingTableId === table.id} // CORREÇÃO B3: Desabilitar durante loading
+                            className={`px-3 py-2 rounded-lg text-xs ${table.status === 'active' ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-green-500 hover:bg-green-600'} text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
                           >
-                            {table.status === 'active' ? 'Desativar' : 'Ativar'}
+                            {togglingTableId === table.id ? '⏳' : (table.status === 'active' ? 'Desativar' : 'Ativar')}
                           </button>
                           <button
                             onClick={() => handleDeleteTable(table.id, table.title)}
-                            className="px-3 py-2 rounded-lg text-xs bg-red-500 hover:bg-red-600 text-white transition-colors"
+                            disabled={deletingTableId === table.id} // CORREÇÃO B4: Desabilitar durante loading
+                            className="px-3 py-2 rounded-lg text-xs bg-red-500 hover:bg-red-600 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            Deletar
+                            {deletingTableId === table.id ? '⏳' : 'Deletar'}
                           </button>
                         </div>
                       </article>

@@ -98,20 +98,26 @@ export default function ProfileEditPage() {
       </div>
 
       {/* Tabs */}
-      <div className="profile-tabs">
+      <div className="profile-tabs" role="tablist">
         <button
+          role="tab"
+          aria-selected={activeTab === 'geral'}
           className={`tab ${activeTab === 'geral' ? 'active' : ''}`}
           onClick={() => setActiveTab('geral')}
         >
           Geral
         </button>
         <button
+          role="tab"
+          aria-selected={activeTab === 'jogador'}
           className={`tab ${activeTab === 'jogador' ? 'active' : ''}`}
           onClick={() => setActiveTab('jogador')}
         >
           Jogador
         </button>
         <button
+          role="tab"
+          aria-selected={activeTab === 'mestre'}
           className={`tab ${activeTab === 'mestre' ? 'active' : ''}`}
           onClick={() => setActiveTab('mestre')}
         >
@@ -417,6 +423,7 @@ function TabJogador() {
 
 function TabMestre() {
   const { profile, updateGm, addSystem, removeSystem } = useProfile();
+  const [disconnecting, setDisconnecting] = useState(false); // CORREÇÃO P14: Loading state
 
   if (!profile) return null;
 
@@ -523,6 +530,7 @@ function TabMestre() {
               onClick={async () => {
                 if (!confirm('Deseja desconectar sua conta Discord?')) return;
                 
+                setDisconnecting(true); // CORREÇÃO P14: Mostrar loading
                 try {
                   const apiUrl = import.meta.env.VITE_API_URL || '';
                   const response = await fetch(`${apiUrl}/auth/discord/disconnect`, {
@@ -537,15 +545,23 @@ function TabMestre() {
                     window.location.reload();
                   } else {
                     alert('Erro ao desconectar Discord');
+                    setDisconnecting(false); // CORREÇÃO P14: Limpar loading em erro
                   }
                 } catch (error) {
+                  // CORREÇÃO P08: Tratamento específico de erro de rede
                   console.error('Erro ao desconectar Discord:', error);
-                  alert('Erro ao desconectar Discord');
+                  if (error instanceof TypeError && error.message.includes('fetch')) {
+                    alert('❌ Erro de conexão.\n\nVerifique sua internet e tente novamente.');
+                  } else {
+                    alert('Erro ao desconectar Discord');
+                  }
+                  setDisconnecting(false); // CORREÇÃO P14: Limpar loading em erro
                 }
               }}
               className="btn-disconnect-discord"
+              disabled={disconnecting} // CORREÇÃO P14: Desabilitar durante loading
             >
-              Desconectar Discord
+              {disconnecting ? '⏳ Desconectando...' : 'Desconectar Discord'}
             </button>
           </div>
         ) : (
