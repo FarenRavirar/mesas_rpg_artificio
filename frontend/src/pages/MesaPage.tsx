@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { CalendarClock, Compass, Crown, Megaphone, Sparkles, Users } from 'lucide-react';
+import { Compass, Crown, Megaphone, Sparkles } from 'lucide-react';
 import type { TableDetail } from '../types/tables';
 import { applySeo } from '../utils/seo';
 import { useTableViewModel } from '../features/table/hooks/useTableViewModel';
 import { TableActionPanel } from '../features/table/components/TableActionPanel';
 import { TableHero } from '../features/table/components/TableHero';
+import { TableSchedules } from '../features/table/components/TableSchedules';
 
 export const MesaPage = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -110,74 +111,8 @@ export const MesaPage = () => {
             {/* Fase 2.2: TableHero (substituindo hero section de 74 linhas) */}
             {vm && <TableHero vm={vm} variant="full" />}
 
-            {/* 1. HORÁRIOS (decisão prática) */}
-            {table.schedules && table.schedules.length > 0 && (
-              <section className="rounded-2xl border border-white/10 bg-white/5 p-5" id="mesa-schedules">
-                <h2 className="text-lg font-bold mb-3 inline-flex items-center gap-2">
-                  <CalendarClock className="w-5 h-5" /> Horários das Sessões
-                </h2>
-                <div className="space-y-3">
-                  {table.schedules.map((schedule) => {
-                    const dayLabels: Record<string, string> = {
-                      segunda: 'Segunda-feira',
-                      terça: 'Terça-feira',
-                      quarta: 'Quarta-feira',
-                      quinta: 'Quinta-feira',
-                      sexta: 'Sexta-feira',
-                      sábado: 'Sábado',
-                      domingo: 'Domingo',
-                    };
-
-                    const frequencyLabels: Record<string, string> = {
-                      semanal: 'Semanal',
-                      quinzenal: 'Quinzenal',
-                      mensal: 'Mensal',
-                      avulsa: 'Avulsa',
-                    };
-
-                    const startTime = schedule.start_time.substring(0, 5);
-                    const endTime = schedule.end_time ? schedule.end_time.substring(0, 5) : null;
-
-                    return (
-                      <div
-                        key={schedule.id}
-                        className="rounded-xl border border-white/10 bg-[#13213f]/70 p-4 space-y-2"
-                      >
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="px-2 py-1 rounded-md bg-[var(--color-artificio-orange)]/20 border border-[var(--color-artificio-orange)]/40 text-[var(--color-artificio-orange)] text-xs font-semibold">
-                            {dayLabels[schedule.day_of_week] || schedule.day_of_week}
-                          </span>
-                          <span className="px-2 py-1 rounded-md bg-white/10 border border-white/15 text-white/90 text-xs font-semibold">
-                            {startTime}{endTime ? ` - ${endTime}` : ''}
-                          </span>
-                          <span className="px-2 py-1 rounded-md bg-blue-500/20 border border-blue-300/40 text-blue-100 text-xs">
-                            {frequencyLabels[schedule.frequency] || schedule.frequency}
-                          </span>
-                          {schedule.is_ongoing && (
-                            <span className="px-2 py-1 rounded-md bg-green-500/20 border border-green-300/40 text-green-100 text-xs">
-                              Em andamento
-                            </span>
-                          )}
-                        </div>
-
-                        {schedule.slots_per_session && (
-                          <p className="text-sm text-white/70">
-                            <Users className="w-3.5 h-3.5 inline mr-1" />
-                            {schedule.slots_per_session} vagas por sessão
-                          </p>
-                        )}
-
-                        {schedule.notes && (
-                          <p className="text-sm text-white/80 leading-relaxed">
-                            {schedule.notes}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
+            {/* Fase 2.3: TableSchedules (substituindo schedules section de 68 linhas) */}
+            {vm && <TableSchedules vm={vm} />}
 
             {/* 2. SOBRE A MESA */}
             <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
@@ -252,19 +187,21 @@ export const MesaPage = () => {
             )}
 
             {/* 6. SEGURANÇA */}
-            <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
-              <h2 className="text-lg font-bold mb-3">Segurança e Alertas</h2>
-              <div className="grid md:grid-cols-2 gap-3 text-sm">
-                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                  <p className="font-semibold mb-1">Content Warnings</p>
-                  <p className="text-white/70">{table.content_warnings?.length ? table.content_warnings.join(', ') : 'Não informado.'}</p>
+            {((table.content_warnings && table.content_warnings.length > 0) || (table.safety_tools && table.safety_tools.length > 0)) && (
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <h2 className="text-lg font-bold mb-3">Segurança e Alertas</h2>
+                <div className="grid md:grid-cols-2 gap-3 text-sm">
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                    <p className="font-semibold mb-1">Content Warnings</p>
+                    <p className="text-white/70">{table.content_warnings?.length ? table.content_warnings.join(', ') : 'Não informado.'}</p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                    <p className="font-semibold mb-1">Safety Tools</p>
+                    <p className="text-white/70">{table.safety_tools?.length ? table.safety_tools.join(', ') : 'Não informado.'}</p>
+                  </div>
                 </div>
-                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                  <p className="font-semibold mb-1">Safety Tools</p>
-                  <p className="text-white/70">{table.safety_tools?.length ? table.safety_tools.join(', ') : 'Não informado.'}</p>
-                </div>
-              </div>
-            </section>
+              </section>
+            )}
 
             {/* 7. DETALHES TÉCNICOS */}
             {(table.campaign_length || table.level_range) && (
@@ -429,87 +366,8 @@ export const MesaPage = () => {
               </section>
             )}
 
-            <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
-              <h2 className="text-lg font-bold mb-3">Segurança e Alertas</h2>
-              <div className="grid md:grid-cols-2 gap-3 text-sm">
-                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                  <p className="font-semibold mb-1">Content Warnings</p>
-                  <p className="text-white/70">{table.content_warnings?.length ? table.content_warnings.join(', ') : 'Não informado.'}</p>
-                </div>
-                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                  <p className="font-semibold mb-1">Safety Tools</p>
-                  <p className="text-white/70">{table.safety_tools?.length ? table.safety_tools.join(', ') : 'Não informado.'}</p>
-                </div>
-              </div>
-            </section>
 
-            {table.schedules && table.schedules.length > 0 && (
-              <section className="rounded-2xl border border-white/10 bg-white/5 p-5" id="mesa-schedules">
-                <h2 className="text-lg font-bold mb-3 inline-flex items-center gap-2">
-                  <CalendarClock className="w-5 h-5" /> Horários das Sessões
-                </h2>
-                <div className="space-y-3">
-                  {table.schedules.map((schedule) => {
-                    const dayLabels: Record<string, string> = {
-                      segunda: 'Segunda-feira',
-                      terça: 'Terça-feira',
-                      quarta: 'Quarta-feira',
-                      quinta: 'Quinta-feira',
-                      sexta: 'Sexta-feira',
-                      sábado: 'Sábado',
-                      domingo: 'Domingo',
-                    };
 
-                    const frequencyLabels: Record<string, string> = {
-                      semanal: 'Semanal',
-                      quinzenal: 'Quinzenal',
-                      mensal: 'Mensal',
-                      avulsa: 'Avulsa',
-                    };
-
-                    const startTime = schedule.start_time.substring(0, 5); // HH:MM
-                    const endTime = schedule.end_time ? schedule.end_time.substring(0, 5) : null;
-
-                    return (
-                      <div
-                        key={schedule.id}
-                        className="rounded-xl border border-white/10 bg-[#13213f]/70 p-4 space-y-2"
-                      >
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="px-2 py-1 rounded-md bg-[var(--color-artificio-orange)]/20 border border-[var(--color-artificio-orange)]/40 text-[var(--color-artificio-orange)] text-xs font-semibold">
-                            {dayLabels[schedule.day_of_week] || schedule.day_of_week}
-                          </span>
-                          <span className="px-2 py-1 rounded-md bg-white/10 border border-white/15 text-white/90 text-xs font-semibold">
-                            {startTime}{endTime ? ` - ${endTime}` : ''}
-                          </span>
-                          <span className="px-2 py-1 rounded-md bg-blue-500/20 border border-blue-300/40 text-blue-100 text-xs">
-                            {frequencyLabels[schedule.frequency] || schedule.frequency}
-                          </span>
-                          {schedule.is_ongoing && (
-                            <span className="px-2 py-1 rounded-md bg-green-500/20 border border-green-300/40 text-green-100 text-xs">
-                              Em andamento
-                            </span>
-                          )}
-                        </div>
-
-                        {schedule.slots_per_session && (
-                          <p className="text-sm text-white/70">
-                            <Users className="w-3.5 h-3.5 inline mr-1" />
-                            {schedule.slots_per_session} vagas por sessão
-                          </p>
-                        )}
-
-                        {schedule.notes && (
-                          <p className="text-sm text-white/80 leading-relaxed">
-                            {schedule.notes}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
 
             {/* Sinopse Narrativa (REQ-26) */}
             {table.synopsis && (
@@ -544,15 +402,6 @@ export const MesaPage = () => {
               </section>
             )}
 
-            {/* REQ-28 Fase 7: Sobre o Mestre */}
-            {table.gm_bio && (
-              <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                <h2 className="text-lg font-bold mb-3 inline-flex items-center gap-2">
-                  <Crown className="w-5 h-5" /> Sobre o Mestre
-                </h2>
-                <p className="text-white/80 leading-relaxed whitespace-pre-wrap">{table.gm_bio}</p>
-              </section>
-            )}
 
             {/* Estilo de Jogo (REQ-26) */}
             {table.style_text && (
