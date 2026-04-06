@@ -1,24 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { CalendarClock, Compass, Crown, MapPin, Megaphone, Sparkles, Users } from 'lucide-react';
+import { CalendarClock, Compass, Crown, Megaphone, Sparkles, Users } from 'lucide-react';
 import type { TableDetail } from '../types/tables';
 import { applySeo } from '../utils/seo';
-import { getTableBadges, getBadgeClasses } from '../utils/tableBadges';
 import { useTableViewModel } from '../features/table/hooks/useTableViewModel';
 import { TableActionPanel } from '../features/table/components/TableActionPanel';
-
-const modalityLabel: Record<string, string> = {
-  online: 'Online',
-  presencial: 'Presencial',
-  hibrida: 'Híbrida',
-};
-
-const experienceLabel: Record<string, string> = {
-  todos: 'Todos os níveis',
-  iniciante: 'Iniciante',
-  intermediario: 'Intermediário',
-  veterano: 'Veterano',
-};
+import { TableHero } from '../features/table/components/TableHero';
 
 export const MesaPage = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -120,77 +107,8 @@ export const MesaPage = () => {
       <section className="container mx-auto px-6">
         <article className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
           <div className="space-y-5">
-            <div className="relative h-64 md:h-80 rounded-3xl overflow-hidden border border-white/10">
-              {table.cover_url ? (
-                <img src={table.cover_url} alt={table.title} className="absolute inset-0 w-full h-full object-cover" />
-              ) : (
-                <div className="absolute inset-0 bg-gradient-to-br from-[#2a3f6d] to-[#131f38]" />
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#091427] via-[#091427]/45 to-transparent" />
-              <div className="absolute bottom-0 left-0 p-6 w-full space-y-3">
-                {/* BADGES */}
-                <div className="flex flex-wrap gap-2">
-                  <span className="px-2 py-1 rounded-md bg-black/35 border border-white/15 text-xs">{table.type}</span>
-                  <span className="px-2 py-1 rounded-md bg-black/35 border border-white/15 text-xs">{table.audience}</span>
-                  <span className="px-2 py-1 rounded-md bg-black/35 border border-white/15 text-xs">{table.system_name ?? 'Sistema livre'}</span>
-                  {table.scenario_name && (
-                    <span className="px-2 py-1 rounded-md bg-purple-500/20 border border-purple-300/40 text-purple-100 text-xs inline-flex items-center gap-1" id="mesa-badge-scenario">
-                      <MapPin className="w-3.5 h-3.5" /> {table.scenario_name}
-                    </span>
-                  )}
-                  {/* Sistema de badges extensível */}
-                  {getTableBadges(table).map((badge) => {
-                    const BadgeIcon = badge.icon;
-                    return (
-                      <span
-                        key={badge.id}
-                        className={`px-2 py-1 rounded-md text-xs inline-flex items-center gap-1 ${getBadgeClasses(badge.color)}`}
-                        id={`mesa-badge-${badge.id}`}
-                      >
-                        <BadgeIcon className="w-3.5 h-3.5" /> {badge.label}
-                      </span>
-                    );
-                  })}
-                </div>
-
-                {/* TÍTULO */}
-                <h1 className="text-3xl font-black tracking-tight">{table.title}</h1>
-
-                {/* SUBTÍTULO */}
-                <p className="text-white/80 text-sm max-w-xl">
-                  {table.listing_excerpt || table.description?.slice(0, 120)}
-                </p>
-
-                {/* DECISÃO RÁPIDA */}
-                <div className="flex flex-wrap gap-3 text-sm mt-2">
-                  <span className="inline-flex items-center gap-1">
-                    🎲 {table.system_name || 'Sistema livre'}
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    🧠 {experienceLabel[table.experience_level]}
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    🌐 {modalityLabel[table.modality]}
-                  </span>
-                </div>
-
-                {/* CTA PRIMÁRIO */}
-                <button
-                  onClick={() => {
-                    const el = document.getElementById('mesa-contato');
-                    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    el?.classList.add('ring-2', 'ring-orange-400', 'ring-offset-2', 'ring-offset-[#091427]');
-                    setTimeout(() => {
-                      el?.classList.remove('ring-2', 'ring-orange-400', 'ring-offset-2', 'ring-offset-[#091427]');
-                    }, 1500);
-                  }}
-                  className="mt-3 px-5 py-2 rounded-lg bg-[var(--color-artificio-orange)] hover:bg-[var(--color-artificio-orange-hover)] font-semibold transition-colors"
-                  id="mesa-cta-hero"
-                >
-                  🎲 Entrar na mesa
-                </button>
-              </div>
-            </div>
+            {/* Fase 2.2: TableHero (substituindo hero section de 74 linhas) */}
+            {vm && <TableHero vm={vm} variant="full" />}
 
             {/* 1. HORÁRIOS (decisão prática) */}
             {table.schedules && table.schedules.length > 0 && (
