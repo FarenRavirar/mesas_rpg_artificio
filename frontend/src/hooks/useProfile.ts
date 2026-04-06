@@ -114,7 +114,8 @@ export function useProfile(): UseProfileReturn {
     }
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/profile/me`, {
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+      const response = await fetch(`${apiUrl}/api/v1/profile/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -167,7 +168,8 @@ export function useProfile(): UseProfileReturn {
       if (!token) return;
 
       debouncedSave(async () => {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/profile/me`, {
+        const apiUrl = import.meta.env.VITE_API_URL || '';
+        const response = await fetch(`${apiUrl}/api/v1/profile/me`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -198,8 +200,9 @@ export function useProfile(): UseProfileReturn {
       if (!token) return;
 
       debouncedSave(async () => {
+        const apiUrl = import.meta.env.VITE_API_URL || '';
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/v1/profile/me/profile`,
+          `${apiUrl}/api/v1/profile/me/profile`,
           {
             method: 'PATCH',
             headers: {
@@ -227,7 +230,8 @@ export function useProfile(): UseProfileReturn {
       if (!token) return;
 
       debouncedSave(async () => {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/profile/me/player`, {
+        const apiUrl = import.meta.env.VITE_API_URL || '';
+        const response = await fetch(`${apiUrl}/api/v1/profile/me/player`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -253,7 +257,8 @@ export function useProfile(): UseProfileReturn {
       if (!token) return;
 
       debouncedSave(async () => {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/profile/me/gm`, {
+        const apiUrl = import.meta.env.VITE_API_URL || '';
+        const response = await fetch(`${apiUrl}/api/v1/profile/me/gm`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -279,7 +284,8 @@ export function useProfile(): UseProfileReturn {
       if (!token) return;
 
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/profile/me/systems`, {
+        const apiUrl = import.meta.env.VITE_API_URL || '';
+        const response = await fetch(`${apiUrl}/api/v1/profile/me/systems`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -317,8 +323,9 @@ export function useProfile(): UseProfileReturn {
       if (!token) return;
 
       try {
+        const apiUrl = import.meta.env.VITE_API_URL || '';
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/v1/profile/me/systems/${id}`,
+          `${apiUrl}/api/v1/profile/me/systems/${id}`,
           {
             method: 'DELETE',
             headers: {

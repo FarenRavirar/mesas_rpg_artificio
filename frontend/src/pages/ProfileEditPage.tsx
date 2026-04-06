@@ -516,7 +516,8 @@ function TabMestre() {
                 if (!confirm('Deseja desconectar sua conta Discord?')) return;
                 
                 try {
-                  const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/discord/disconnect`, {
+                  const apiUrl = import.meta.env.VITE_API_URL || '';
+                  const response = await fetch(`${apiUrl}/auth/discord/disconnect`, {
                     method: 'DELETE',
                     headers: {
                       'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -549,7 +550,8 @@ function TabMestre() {
             </ul>
             <button
               onClick={() => {
-                window.location.href = `${import.meta.env.VITE_API_URL}/auth/discord/connect`;
+                const apiUrl = import.meta.env.VITE_API_URL || '';
+                window.location.href = `${apiUrl}/auth/discord/connect`;
               }}
               className="btn-connect-discord"
             >
