@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { CalendarClock, Compass, Crown, Edit, Globe, MapPin, Megaphone, ShieldCheck, Sparkles, Swords, Users } from 'lucide-react';
-import { TableContacts } from '../components/TableContacts';
+import { CalendarClock, Compass, Crown, MapPin, Megaphone, Sparkles, Users } from 'lucide-react';
 import type { TableDetail } from '../types/tables';
 import { applySeo } from '../utils/seo';
-import { useAuth } from '../contexts/AuthContext';
 import { getTableBadges, getBadgeClasses } from '../utils/tableBadges';
+import { useTableViewModel } from '../features/table/hooks/useTableViewModel';
+import { TableActionPanel } from '../features/table/components/TableActionPanel';
 
 const modalityLabel: Record<string, string> = {
   online: 'Online',
@@ -22,7 +22,6 @@ const experienceLabel: Record<string, string> = {
 
 export const MesaPage = () => {
   const { slug } = useParams<{ slug: string }>();
-  const { user } = useAuth();
   const [table, setTable] = useState<TableDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -77,10 +76,8 @@ export const MesaPage = () => {
     );
   }, [table]);
 
-  const slotsLeft = useMemo(() => {
-    if (!table) return 0;
-    return Math.max(0, table.slots_total - table.slots_filled);
-  }, [table]);
+  // Fase 1: ViewModel (isola lógica, UI ainda usa table)
+  const vm = table ? useTableViewModel(table) : null;
 
   if (loading) {
     return (
@@ -755,78 +752,8 @@ export const MesaPage = () => {
             )}
           </div>
 
-          <aside className="rounded-2xl border border-white/10 bg-white/5 p-5 space-y-4 lg:sticky lg:top-6">
-            {/* 1. CTA PRIMÁRIO */}
-            <button
-              onClick={() => {
-                const el = document.getElementById('mesa-contato');
-                el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                el?.classList.add('ring-2', 'ring-orange-400', 'ring-offset-2', 'ring-offset-[#091427]');
-                setTimeout(() => {
-                  el?.classList.remove('ring-2', 'ring-orange-400', 'ring-offset-2', 'ring-offset-[#091427]');
-                }, 1500);
-              }}
-              className="w-full py-3 bg-[var(--color-artificio-orange)] hover:bg-[var(--color-artificio-orange-hover)] rounded-xl font-semibold transition-colors"
-              id="mesa-cta-aside"
-            >
-              Entrar na Mesa
-            </button>
-
-            {/* 2. URGÊNCIA (sempre mostrar, com intensidade progressiva) */}
-            <p className="text-sm font-semibold text-[var(--color-artificio-orange)]">
-              {slotsLeft === 0 && '❌ Mesa lotada'}
-              {slotsLeft > 0 && slotsLeft <= 2 && `🔥 Últimas ${slotsLeft} ${slotsLeft === 1 ? 'vaga' : 'vagas'}`}
-              {slotsLeft > 2 && slotsLeft <= 5 && `⚠️ ${slotsLeft} vagas restantes`}
-              {slotsLeft > 5 && `${slotsLeft} vagas disponíveis`}
-            </p>
-
-            {/* 3. PREÇO */}
-            {table.price_value && (
-              <div className="bg-[#13213f] p-4 rounded-xl border border-orange-400/30">
-                <p className="text-xs text-white/60">Investimento</p>
-                <p className="text-lg font-bold text-orange-400">
-                  R$ {table.price_value}
-                </p>
-                {table.price_frequency && <p className="text-xs text-white/60 mt-1">por {table.price_frequency}</p>}
-              </div>
-            )}
-
-            {/* 4. INFO RÁPIDA */}
-            <div className="space-y-2 text-sm text-white/80">
-              <p className="flex items-center gap-2"><Users className="w-4 h-4 text-[var(--color-artificio-orange)]" /> {table.slots_filled}/{table.slots_total} jogadores</p>
-              <p className="flex items-center gap-2"><Globe className="w-4 h-4 text-[var(--color-artificio-orange)]" /> {modalityLabel[table.modality] ?? table.modality}</p>
-              <p className="flex items-center gap-2"><CalendarClock className="w-4 h-4 text-[var(--color-artificio-orange)]" /> {table.starts_at ? new Date(table.starts_at).toLocaleString('pt-BR') : 'Data a combinar'}</p>
-              <p className="flex items-center gap-2"><Swords className="w-4 h-4 text-[var(--color-artificio-orange)]" /> {experienceLabel[table.experience_level] ?? table.experience_level}</p>
-              <p className="flex items-center gap-2"><MapPin className="w-4 h-4 text-[var(--color-artificio-orange)]" /> {table.city && table.state ? `${table.city} - ${table.state}` : 'Online / não informado'}</p>
-              <p className="flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-[var(--color-artificio-orange)]" /> Idioma: {table.language}</p>
-            </div>
-
-            {/* 5. CONTATO */}
-            <div id="mesa-contato" className="transition-all duration-300">
-              <TableContacts contacts={table.contacts ?? []} />
-            </div>
-
-            {/* Links secundários */}
-            {table.gm_slug && table.origin !== 'imported' && (
-              <Link
-                to={`/mestre/${table.gm_slug}`}
-                id="mesa-link-mestre"
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-white/15 hover:border-[var(--color-artificio-orange)] hover:text-[var(--color-artificio-orange)] transition-colors"
-              >
-                <Crown className="w-4 h-4" /> Ver perfil do mestre
-              </Link>
-            )}
-
-            {user?.role === 'admin' && table.id && (
-              <Link
-                to={`/painel-mestre?edit=${table.id}`}
-                id="mesa-link-editar-admin"
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[var(--color-artificio-orange)] hover:bg-[var(--color-artificio-orange-hover)] text-white font-semibold transition-colors"
-              >
-                <Edit className="w-4 h-4" /> Editar Mesa (ADM)
-              </Link>
-            )}
-          </aside>
+          {/* Fase 2: TableActionPanel (substituindo aside de 72 linhas) */}
+          {vm && <TableActionPanel vm={vm} />}
         </article>
       </section>
     </main>
