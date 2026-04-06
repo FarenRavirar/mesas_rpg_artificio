@@ -6,7 +6,6 @@ import type { TableDetail } from '../types/tables';
 import { applySeo } from '../utils/seo';
 import { useAuth } from '../contexts/AuthContext';
 import { getTableBadges, getBadgeClasses } from '../utils/tableBadges';
-import { CertificationsSection } from '../components/CertificationsSection';
 
 const modalityLabel: Record<string, string> = {
   online: 'Online',
