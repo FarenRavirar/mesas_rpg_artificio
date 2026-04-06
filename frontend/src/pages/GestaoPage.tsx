@@ -848,26 +848,27 @@ export const GestaoPage = () => {
               </button>
             </div>
 
-            {/* Busca e botão adicionar */}
-            <div className="flex gap-3 mb-6">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={`Buscar ${crudSubTab === 'systems' ? 'sistemas' : crudSubTab === 'scenarios' ? 'cenários' : 'mesas'}...`}
-                className="flex-1 px-4 py-2 bg-[#0F1A2E] border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-blue-500"
-              />
-              <button
-                onClick={() => {
-                  if (crudSubTab === 'scenarios') setScenarioEditModal({});
-                  // Systems agora tem seu próprio botão no módulo SystemsPage
-                }}
-                className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
-              >
-                <Plus className="w-5 h-5" />
-                Adicionar
-              </button>
-            </div>
+            {/* Busca e botão adicionar (exceto para Systems que tem próprio) */}
+            {crudSubTab !== 'systems' && (
+              <div className="flex gap-3 mb-6">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={`Buscar ${crudSubTab === 'scenarios' ? 'cenários' : 'mesas'}...`}
+                  className="flex-1 px-4 py-2 bg-[#0F1A2E] border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-blue-500"
+                />
+                <button
+                  onClick={() => {
+                    if (crudSubTab === 'scenarios') setScenarioEditModal({});
+                  }}
+                  className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <Plus className="w-5 h-5" />
+                  Adicionar
+                </button>
+              </div>
+            )}
 
             {/* Conteúdo das sub-abas */}
             {loading ? (

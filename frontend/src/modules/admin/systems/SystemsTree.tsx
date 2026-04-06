@@ -150,7 +150,7 @@ function TreeNodeComponent({
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     const childrenCount = countAllChildren(node);
 
     if (childrenCount > 0) {
@@ -173,7 +173,8 @@ Digite "DELETAR" para confirmar:`;
       if (!confirm(`Deletar "${node.name}"? Esta ação não pode ser desfeita.`)) return;
     }
 
-    onDelete(node.id, node.name);
+    await onDelete(node.id, node.name);
+    onUpdate(); // Atualizar árvore após deletar
   };
 
   return (
