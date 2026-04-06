@@ -70,7 +70,8 @@ export const MesaPage = () => {
   }, [table]);
 
   // Fase 1: ViewModel (isola lógica, UI ainda usa table)
-  const vm = table ? useTableViewModel(table) : null;
+  // IMPORTANTE: Hooks devem ser chamados incondicionalmente (regra do React)
+  const vm = useTableViewModel(table);
 
   if (loading) {
     return (

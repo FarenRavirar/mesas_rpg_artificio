@@ -18,6 +18,9 @@ interface TableViewProps {
 export function TableView({ table, variant = 'full' }: TableViewProps) {
   const vm = useTableViewModel(table);
 
+  // Se vm for null, não renderiza nada (não deveria acontecer pois table é obrigatório)
+  if (!vm) return null;
+
   return (
     <div className="space-y-6">
       {/* Bloco de Decisão */}
