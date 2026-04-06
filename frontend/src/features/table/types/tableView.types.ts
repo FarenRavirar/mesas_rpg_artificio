@@ -3,7 +3,7 @@ import type { TableSchedule, TableContact } from '../../../types/tables';
 /**
  * Variantes de renderização para componentes de mesa
  */
-export type TableHeroVariant = 'full' | 'card' | 'highlight' | 'panel';
+export type TableHeroVariant = 'full' | 'card' | 'compact' | 'highlight' | 'panel';
 export type TableActionPanelVariant = 'full' | 'compact' | 'owner';
 
 /**
