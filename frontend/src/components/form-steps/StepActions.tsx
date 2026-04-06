@@ -9,7 +9,7 @@ export function StepActions({
   step: number;
   setStep: (n: number) => void;
   canNext: boolean;
-  errorMessage?: string;
+  errorMessage?: string | null;
   onSubmit: () => void;
   loading?: boolean;
 }) {
