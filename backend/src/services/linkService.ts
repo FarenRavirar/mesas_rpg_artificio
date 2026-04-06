@@ -2,7 +2,18 @@ import { db } from '../db/index.js';
 import type { UserLinks } from '../db/types.js';
 
 // Tipos de link suportados
-export type LinkType = 'youtube' | 'spotify' | 'twitch' | 'twitter' | 'article' | 'website';
+export type LinkType = 
+  | 'youtube' 
+  | 'spotify' 
+  | 'twitch' 
+  | 'twitter' 
+  | 'instagram'
+  | 'facebook'
+  | 'tiktok'
+  | 'linkedin'
+  | 'podcast'
+  | 'article' 
+  | 'website';
 
 interface LinkMetadata {
   title?: string;
@@ -36,6 +47,29 @@ export function detectLinkType(url: string): LinkType {
   if (urlLower.includes('twitter.com') || urlLower.includes('x.com')) {
     return 'twitter';
   }
+  if (urlLower.includes('instagram.com')) {
+    return 'instagram';
+  }
+  if (urlLower.includes('facebook.com')) {
+    return 'facebook';
+  }
+  if (urlLower.includes('tiktok.com')) {
+    return 'tiktok';
+  }
+  if (urlLower.includes('linkedin.com')) {
+    return 'linkedin';
+  }
+  
+  // Podcasts genéricos
+  if (
+    urlLower.includes('anchor.fm') ||
+    urlLower.includes('podcasters.spotify') ||
+    urlLower.includes('deezer.com') ||
+    urlLower.includes('apple.com/podcast')
+  ) {
+    return 'podcast';
+  }
+  
   if (urlLower.includes('medium.com') || urlLower.includes('substack.com')) {
     return 'article';
   }
