@@ -111,16 +111,33 @@ export function MasterProfilePage() {
         {/* 1. Hero */}
         <MasterHero vm={vm} />
         
-        {/* 2. Actions (owner only) */}
+        {/* 2. CTA para visitantes */}
+        {!vm.isOwner && vm.tables.length > 0 && (
+          <div className="text-center">
+            <button
+              onClick={() => {
+                document.getElementById('mesas-section')?.scrollIntoView({ 
+                  behavior: 'smooth',
+                  block: 'start'
+                });
+              }}
+              className="px-6 py-3 rounded-lg bg-[var(--color-artificio-orange)] hover:bg-[var(--color-artificio-orange-hover)] transition-colors font-semibold text-lg"
+            >
+              Ver mesas disponíveis
+            </button>
+          </div>
+        )}
+        
+        {/* 3. Actions (owner only) */}
         <MasterActions vm={vm} onAvatarUpdate={handleAvatarUpdate} />
         
-        {/* 3. Stats (prova social) */}
+        {/* 4. Stats (prova social) */}
         <MasterStats vm={vm} />
         
-        {/* 4. Bio */}
+        {/* 5. Bio */}
         <MasterBio vm={vm} />
         
-        {/* 5. Mesas (principal conteúdo) */}
+        {/* 6. Mesas (principal conteúdo) */}
         <MasterTables vm={vm} />
         
       </div>

@@ -11,20 +11,22 @@ interface MasterStatsProps {
  * - Mostrar credibilidade (mesas criadas, ativas)
  * - Rating (quando disponível)
  * - Total de jogadores (quando disponível)
+ * 
+ * Regra: Não renderizar "N/A" - ausência ≠ erro
  */
 export function MasterStats({ vm }: MasterStatsProps) {
+  const stats = [
+    { label: 'Mesas criadas', value: vm.stats.tablesCount },
+    { label: 'Mesas ativas', value: vm.stats.activeTables },
+    vm.stats.totalPlayers !== undefined && { label: 'Jogadores', value: vm.stats.totalPlayers },
+    vm.stats.rating !== undefined && { label: 'Avaliação', value: `${vm.stats.rating.toFixed(1)} ⭐` },
+  ].filter(Boolean);
+
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <StatCard label="Mesas criadas" value={vm.stats.tablesCount} />
-      <StatCard label="Mesas ativas" value={vm.stats.activeTables} />
-      
-      {vm.stats.totalPlayers !== undefined && (
-        <StatCard label="Jogadores" value={vm.stats.totalPlayers} />
-      )}
-      
-      {vm.stats.rating !== undefined && (
-        <StatCard label="Avaliação" value={`${vm.stats.rating.toFixed(1)} ⭐`} />
-      )}
+      {stats.map((stat) => stat && (
+        <StatCard key={stat.label} label={stat.label} value={stat.value} />
+      ))}
     </div>
   );
 }

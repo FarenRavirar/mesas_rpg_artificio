@@ -14,6 +14,7 @@ interface MasterTablesProps {
  * - REUSO MASSIVO: TableHero + TableActionPanel
  * - Ordenação: mesas com vagas primeiro (já vem do mapper)
  * - Highlight na primeira mesa (mais relevante)
+ * - Badge "Disponível" nas mesas com vagas
  */
 export function MasterTables({ vm }: MasterTablesProps) {
   if (vm.tables.length === 0) {
@@ -24,9 +25,21 @@ export function MasterTables({ vm }: MasterTablesProps) {
     );
   }
 
+  const availableTables = vm.tables.filter(t => t.slotsLeft > 0).length;
+
   return (
-    <section className="space-y-4">
-      <h2 className="text-xl font-bold">Mesas deste mestre ({vm.tables.length})</h2>
+    <section className="space-y-4" id="mesas-section">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold">
+          Mesas deste mestre ({vm.tables.length})
+        </h2>
+        
+        {availableTables > 0 && (
+          <span className="text-sm text-green-400 font-medium">
+            {availableTables} {availableTables === 1 ? 'mesa disponível' : 'mesas disponíveis'}
+          </span>
+        )}
+      </div>
       
       {vm.tables.map((table, index) => (
         <div 
@@ -37,6 +50,13 @@ export function MasterTables({ vm }: MasterTablesProps) {
               : 'border-white/10'
           }`}
         >
+          {/* Badge de disponibilidade */}
+          {table.slotsLeft > 0 && (
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/20 border border-green-500/40 text-green-300 text-xs font-semibold">
+              ✓ Disponível ({table.slotsLeft} {table.slotsLeft === 1 ? 'vaga' : 'vagas'})
+            </div>
+          )}
+          
           {/* REUSO: TableHero em modo compacto */}
           <TableHero vm={table} variant="compact" />
           
