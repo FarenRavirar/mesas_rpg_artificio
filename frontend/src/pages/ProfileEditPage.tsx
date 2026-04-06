@@ -424,6 +424,7 @@ function TabJogador() {
 function TabMestre() {
   const { profile, updateGm, addSystem, removeSystem } = useProfile();
   const [disconnecting, setDisconnecting] = useState(false); // CORREÇÃO P14: Loading state
+  const [connecting, setConnecting] = useState(false); // CORREÇÃO P10: Loading state
 
   if (!profile) return null;
 
@@ -574,12 +575,14 @@ function TabMestre() {
             </ul>
             <button
               onClick={() => {
-                const apiUrl = import.meta.env.VITE_API_URL || '';
+                setConnecting(true); // CORREÇÃO P10: Mostrar loading
+                const apiUrl = import.meta.env.VITE_API_URL || window.location.origin;
                 window.location.href = `${apiUrl}/auth/discord/connect`;
               }}
               className="btn-connect-discord"
+              disabled={connecting}
             >
-              🟣 Conectar Discord
+              {connecting ? '⏳ Conectando...' : '🟣 Conectar Discord'}
             </button>
           </div>
         )}

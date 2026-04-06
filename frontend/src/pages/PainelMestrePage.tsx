@@ -275,6 +275,12 @@ export const PainelMestrePage = () => {
   }, [token, editingTableId]); // CORREÇÃO B2: Adicionar editingTableId nas dependências
 
   const refreshData = () => {
+    // CORREÇÃO A2: Validar token antes de usar
+    if (!token) {
+      console.warn('[PainelMestrePage] refreshData chamado sem token');
+      return;
+    }
+
     // CORREÇÃO C2, C3: Limpar estado de edição e query params
     setEditingTableId(null);
     setEditingTableData(null);
@@ -285,8 +291,8 @@ export const PainelMestrePage = () => {
 
     const apiUrl = import.meta.env.VITE_API_URL || ''; // CORREÇÃO A1
     Promise.all([
-      fetch(`${apiUrl}/api/v1/gm/me`, { headers: { Authorization: `Bearer ${token!}` } }),
-      fetch(`${apiUrl}/api/v1/gm/tables`, { headers: { Authorization: `Bearer ${token!}` } }),
+      fetch(`${apiUrl}/api/v1/gm/me`, { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(`${apiUrl}/api/v1/gm/tables`, { headers: { Authorization: `Bearer ${token}` } }),
     ])
       .then(async ([profileRes, tablesRes]) => {
         if (profileRes.ok) {

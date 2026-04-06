@@ -42,7 +42,7 @@ router.get('/discord/callback', async (req: Request, res: Response) => {
   const userId = state as string;
   
   if (!code || !userId) {
-    return res.redirect('/perfil?discord=error');
+    return res.redirect('/perfil?discord=error&reason=invalid_state'); // CORREÇÃO P03
   }
   
   try {
@@ -126,7 +126,9 @@ router.get('/discord/callback', async (req: Request, res: Response) => {
     
   } catch (error: any) {
     console.error('[Discord OAuth] Erro:', error);
-    res.redirect('/perfil?discord=error');
+    // CORREÇÃO P03: Diferenciar entre erro de rede e OAuth
+    const reason = error.message?.includes('fetch') ? 'network_error' : 'oauth_failed';
+    res.redirect(`/perfil?discord=error&reason=${reason}`);
   }
 });
 
