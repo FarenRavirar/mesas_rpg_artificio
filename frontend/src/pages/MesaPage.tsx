@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Compass, Crown, Megaphone, Sparkles } from 'lucide-react';
+import { Compass, Megaphone } from 'lucide-react';
 import type { TableDetail } from '../types/tables';
 import { applySeo } from '../utils/seo';
 import { useTableViewModel } from '../features/table/hooks/useTableViewModel';
 import { TableActionPanel } from '../features/table/components/TableActionPanel';
 import { TableHero } from '../features/table/components/TableHero';
 import { TableSchedules } from '../features/table/components/TableSchedules';
+import { TableContent } from '../features/table/components/TableContent';
+import { TableMaster } from '../features/table/components/TableMaster';
 
 export const MesaPage = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -114,65 +116,11 @@ export const MesaPage = () => {
             {/* Fase 2.3: TableSchedules (substituindo schedules section de 68 linhas) */}
             {vm && <TableSchedules vm={vm} />}
 
-            {/* 2. SOBRE A MESA */}
-            <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
-              <h2 className="text-lg font-bold mb-2">Sobre esta Mesa</h2>
-              <p className="text-white/80 leading-relaxed">{table.description || 'Sem descrição detalhada.'}</p>
-            </section>
+            {/* Fase 2.4: TableContent (substituindo seções de conteúdo narrativo) */}
+            {vm && <TableContent vm={vm} />}
 
-            {/* 3. HISTÓRIA (sinopse + narrativa agrupadas) */}
-            {(table.synopsis || table.synopsis_narrative) && (
-              <div className="space-y-5">
-                {table.synopsis && (
-                  <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                    <h2 className="text-lg font-bold mb-3">Sinopse</h2>
-                    <p className="text-white/80 leading-relaxed whitespace-pre-wrap">{table.synopsis}</p>
-                    {table.listing_excerpt && table.listing_excerpt !== table.synopsis && (
-                      <div className="mt-3 p-3 rounded-lg bg-white/5 border border-white/10">
-                        <p className="text-xs font-semibold text-white/60 mb-1">Resumo Curto</p>
-                        <p className="text-sm text-white/80">{table.listing_excerpt}</p>
-                      </div>
-                    )}
-                  </section>
-                )}
-                {table.synopsis_narrative && (
-                  <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                    <h2 className="text-lg font-bold mb-3">Sobre a História</h2>
-                    <p className="text-white/80 leading-relaxed whitespace-pre-wrap">{table.synopsis_narrative}</p>
-                  </section>
-                )}
-              </div>
-            )}
-
-            {/* 4. O QUE ESPERAR (benefícios + estilo agrupados) */}
-            {(table.benefits_text || table.style_text) && (
-              <div className="space-y-5">
-                {table.benefits_text && (
-                  <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                    <h2 className="text-lg font-bold mb-3 inline-flex items-center gap-2">
-                      <Sparkles className="w-5 h-5" /> O que você vai encontrar
-                    </h2>
-                    <p className="text-white/80 leading-relaxed whitespace-pre-wrap">{table.benefits_text}</p>
-                  </section>
-                )}
-                {table.style_text && (
-                  <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                    <h2 className="text-lg font-bold mb-3">Estilo de Jogo</h2>
-                    <p className="text-white/80 leading-relaxed whitespace-pre-wrap">{table.style_text}</p>
-                  </section>
-                )}
-              </div>
-            )}
-
-            {/* 5. MESTRE */}
-            {table.gm_bio && (
-              <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                <h2 className="text-lg font-bold mb-3 inline-flex items-center gap-2">
-                  <Crown className="w-5 h-5" /> Sobre o Mestre
-                </h2>
-                <p className="text-white/80 leading-relaxed whitespace-pre-wrap">{table.gm_bio}</p>
-              </section>
-            )}
+            {/* Fase 2.5: TableMaster (substituindo seção do mestre) */}
+            {vm && <TableMaster vm={vm} />}
 
             {table.publisher_role === 'announcer' && (
               <section className="rounded-2xl border border-slate-300/25 bg-slate-500/10 p-5" id="mesa-announcer-note">
@@ -308,8 +256,8 @@ export const MesaPage = () => {
             {/* 8. DDAL (FINAL - detalhe técnico) */}
             {table.is_ddal && (
               <section className="rounded-2xl border border-amber-300/25 bg-amber-400/10 p-5" id="mesa-ddal-metadata">
-                <h2 className="text-lg font-bold mb-3 inline-flex items-center gap-2 text-amber-100">
-                  <Sparkles className="w-5 h-5" /> 📜 Detalhes da aventura (DDAL)
+                <h2 className="text-lg font-bold mb-3 text-amber-100">
+                  📜 Detalhes da aventura (DDAL)
                 </h2>
                 <div className="grid md:grid-cols-2 gap-3 text-sm">
                   <div className="rounded-xl border border-amber-200/15 bg-[#13213f]/70 p-3">
@@ -392,24 +340,7 @@ export const MesaPage = () => {
               </section>
             )}
 
-            {/* REQ-28 Fase 7: Benefícios e Diferenciais */}
-            {table.benefits_text && (
-              <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                <h2 className="text-lg font-bold mb-3 inline-flex items-center gap-2">
-                  <Sparkles className="w-5 h-5" /> O que você vai encontrar
-                </h2>
-                <p className="text-white/80 leading-relaxed whitespace-pre-wrap">{table.benefits_text}</p>
-              </section>
-            )}
 
-
-            {/* Estilo de Jogo (REQ-26) */}
-            {table.style_text && (
-              <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                <h2 className="text-lg font-bold mb-3">Estilo de Jogo</h2>
-                <p className="text-white/80 leading-relaxed whitespace-pre-wrap">{table.style_text}</p>
-              </section>
-            )}
 
             {/* Detalhes da Campanha (REQ-26) */}
             {(table.campaign_length || table.level_range) && (
