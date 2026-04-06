@@ -98,7 +98,7 @@ interface UseProfileReturn {
   refetch: () => Promise<void>;
 }
 
-let debounceTimer: NodeJS.Timeout | null = null;
+let debounceTimer: number | null = null;
 
 export function useProfile(): UseProfileReturn {
   const { token } = useAuth();

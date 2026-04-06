@@ -223,7 +223,7 @@ export const PlayerPage = () => {
                   <div className="playstyle-bar">
                     <div 
                       className="playstyle-fill" 
-                      style={{ width: `${(player.playstyle_combat / 5) * 100}%` }}
+                      style={{ width: `${((player.playstyle_combat ?? 0) / 5) * 100}%` }}
                     />
                   </div>
                 </div>
@@ -238,7 +238,7 @@ export const PlayerPage = () => {
                   <div className="playstyle-bar">
                     <div 
                       className="playstyle-fill" 
-                      style={{ width: `${(player.playstyle_roleplay / 5) * 100}%` }}
+                      style={{ width: `${((player.playstyle_roleplay ?? 0) / 5) * 100}%` }}
                     />
                   </div>
                 </div>
@@ -253,7 +253,7 @@ export const PlayerPage = () => {
                   <div className="playstyle-bar">
                     <div 
                       className="playstyle-fill" 
-                      style={{ width: `${(player.playstyle_exploration / 5) * 100}%` }}
+                      style={{ width: `${((player.playstyle_exploration ?? 0) / 5) * 100}%` }}
                     />
                   </div>
                 </div>
@@ -268,7 +268,7 @@ export const PlayerPage = () => {
                   <div className="playstyle-bar">
                     <div 
                       className="playstyle-fill" 
-                      style={{ width: `${(player.playstyle_strategy / 5) * 100}%` }}
+                      style={{ width: `${((player.playstyle_strategy ?? 0) / 5) * 100}%` }}
                     />
                   </div>
                 </div>
