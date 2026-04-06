@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { sql } from 'kysely';
 import { db } from '../db';
 import { authMiddleware } from '../middleware/auth';
 
@@ -931,11 +932,13 @@ router.get('/tables', authMiddleware, async (req: Request, res: Response) => {
     const tables = await db
       .selectFrom('tables as t')
       .leftJoin('systems as s', 's.id', 't.system_id')
+      .leftJoin('table_metrics as tm', 'tm.table_id', 't.id')
       .select([
         't.id',
         't.slug',
         't.title',
         't.description',
+        't.banner_url as image_url', // Para dashboard de métricas
         't.status',
         't.modality',
         't.system_id',
@@ -978,6 +981,11 @@ router.get('/tables', authMiddleware, async (req: Request, res: Response) => {
         't.setting_name',
         't.setting_styles',
         's.name as system_name',
+        // Métricas de engajamento
+        sql<number>`COALESCE(tm.views_count, 0)`.as('metrics_views'),
+        sql<number>`COALESCE(tm.clicks_count, 0)`.as('metrics_clicks'),
+        sql<number>`COALESCE(tm.contacts_count, 0)`.as('metrics_contacts'),
+        sql<number>`COALESCE(tm.favorites_count, 0)`.as('metrics_favorites'),
       ])
       .where('t.gm_id', '=', gmProfile.id)
       .orderBy('t.created_at', 'desc')
@@ -1333,6 +1341,126 @@ router.delete('/admin/tables/:id', authMiddleware, async (req: Request, res: Res
   } catch (error: any) {
     console.error('[DELETE /admin/tables/:id]', error);
     return res.status(500).json({ error: 'Erro ao deletar mesa.' });
+  }
+});
+
+// =============================================================================
+// TRACKING DE MÉTRICAS
+// =============================================================================
+
+/**
+ * POST /api/v1/tables/:id/view
+ * Incrementa contador de visualizações (público, sem auth)
+ */
+router.post('/tables/:id/view', async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    await db
+      .insertInto('table_metrics')
+      .values({
+        table_id: id,
+        views_count: 1,
+      })
+      .onConflict((oc) =>
+        oc.column('table_id').doUpdateSet({
+          views_count: sql`table_metrics.views_count + 1`,
+          updated_at: sql`NOW()`,
+        })
+      )
+      .execute();
+
+    res.sendStatus(200);
+  } catch (error: any) {
+    console.error('[POST /tables/:id/view]', error);
+    res.sendStatus(500);
+  }
+});
+
+/**
+ * POST /api/v1/tables/:id/click
+ * Incrementa contador de cliques (público, sem auth)
+ */
+router.post('/tables/:id/click', async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    await db
+      .insertInto('table_metrics')
+      .values({
+        table_id: id,
+        clicks_count: 1,
+      })
+      .onConflict((oc) =>
+        oc.column('table_id').doUpdateSet({
+          clicks_count: sql`table_metrics.clicks_count + 1`,
+          updated_at: sql`NOW()`,
+        })
+      )
+      .execute();
+
+    res.sendStatus(200);
+  } catch (error: any) {
+    console.error('[POST /tables/:id/click]', error);
+    res.sendStatus(500);
+  }
+});
+
+/**
+ * POST /api/v1/tables/:id/contact
+ * Incrementa contador de contatos (público, sem auth)
+ */
+router.post('/tables/:id/contact', async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    await db
+      .insertInto('table_metrics')
+      .values({
+        table_id: id,
+        contacts_count: 1,
+      })
+      .onConflict((oc) =>
+        oc.column('table_id').doUpdateSet({
+          contacts_count: sql`table_metrics.contacts_count + 1`,
+          updated_at: sql`NOW()`,
+        })
+      )
+      .execute();
+
+    res.sendStatus(200);
+  } catch (error: any) {
+    console.error('[POST /tables/:id/contact]', error);
+    res.sendStatus(500);
+  }
+});
+
+/**
+ * POST /api/v1/tables/:id/favorite
+ * Incrementa contador de favoritos (público, sem auth)
+ */
+router.post('/tables/:id/favorite', async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    await db
+      .insertInto('table_metrics')
+      .values({
+        table_id: id,
+        favorites_count: 1,
+      })
+      .onConflict((oc) =>
+        oc.column('table_id').doUpdateSet({
+          favorites_count: sql`table_metrics.favorites_count + 1`,
+          updated_at: sql`NOW()`,
+        })
+      )
+      .execute();
+
+    res.sendStatus(200);
+  } catch (error: any) {
+    console.error('[POST /tables/:id/favorite]', error);
+    res.sendStatus(500);
   }
 });
 

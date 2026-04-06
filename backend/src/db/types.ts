@@ -446,6 +446,24 @@ export interface Database {
   aggregator_import_candidates: AggregatorImportCandidatesTable;
   aggregator_settings: AggregatorSettingsTable;
   user_links: UserLinksTable;
+  table_metrics: TableMetricsTable;
 }
+
+// Migration 16: Métricas de engajamento de mesas
+export interface TableMetricsTable {
+  id: Generated<number>;
+  table_id: string;
+  views_count: Generated<number>;
+  clicks_count: Generated<number>;
+  contacts_count: Generated<number>;
+  favorites_count: Generated<number>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export type TableMetrics = Selectable<TableMetricsTable>;
+export type NewTableMetrics = Insertable<TableMetricsTable>;
+export type TableMetricsUpdate = Updateable<TableMetricsTable>;
+
 
 

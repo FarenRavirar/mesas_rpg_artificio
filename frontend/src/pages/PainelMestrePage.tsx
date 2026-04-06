@@ -41,6 +41,20 @@ interface MyTable {
   created_at: string;
 }
 
+// Tipos para dashboard de métricas
+interface TableMetrics {
+  views: number;
+  clicks: number;
+  contacts: number;
+  favorites: number;
+}
+
+interface MyTableEnhanced extends MyTable {
+  image_url?: string | null;
+  metrics?: TableMetrics;
+}
+
+
 const slugifyFromNickname = (value: string): string => {
   return value
     .normalize('NFD')
@@ -167,12 +181,120 @@ function CreateGmProfileForm({ token, onSuccess }: { token: string; onSuccess: (
   );
 }
 
+// Componente: Card de KPI
+function StatCard({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+      <p className="text-sm text-white/50 mb-2">{label}</p>
+      <p className="text-3xl font-bold text-white">{value}</p>
+    </div>
+  );
+}
+
+// Componente: Card de Mesa com Métricas
+function TableCardDashboard({ 
+  table, 
+  onEdit, 
+  onToggle, 
+  onDelete,
+  isToggling,
+  isDeleting
+}: { 
+  table: MyTableEnhanced; 
+  onEdit: (id: string) => void;
+  onToggle: (table: MyTableEnhanced) => void;
+  onDelete: (table: MyTableEnhanced) => void;
+  isToggling: boolean;
+  isDeleting: boolean;
+}) {
+  const openSlots = Math.max(table.slots_total - table.slots_filled, 0);
+  const metrics = table.metrics || { views: 0, clicks: 0, contacts: 0, favorites: 0 };
+  
+  // Feedback inteligente: muitas views mas zero contatos
+  const hasPerformanceIssue = metrics.views > 50 && metrics.contacts === 0;
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-[#13213f] p-4 flex flex-col gap-3 hover:scale-[1.01] transition-all">
+      
+      {/* IMAGE */}
+      <div className="h-32 rounded-lg overflow-hidden bg-white/10">
+        {table.image_url ? (
+          <img src={table.image_url} alt={table.title} className="w-full h-full object-cover" />
+        ) : (
+          <div className="flex items-center justify-center h-full text-white/30 text-sm">
+            ⚠️ Sem imagem
+          </div>
+        )}
+      </div>
+
+      {/* TITLE */}
+      <div>
+        <h3 className="font-semibold text-white line-clamp-2">{table.title}</h3>
+        <p className="text-xs text-white/50 mt-1">
+          {table.system_name ?? 'Sistema livre'} · {table.modality}
+        </p>
+      </div>
+
+      {/* STATUS HUMANO */}
+      <div className="text-sm">
+        {openSlots === 0 ? (
+          <span className="text-red-400">🔥 Mesa cheia</span>
+        ) : openSlots <= 2 ? (
+          <span className="text-yellow-400">⚡ Últimas vagas ({openSlots})</span>
+        ) : (
+          <span className="text-green-400">✅ {openSlots} vagas abertas</span>
+        )}
+      </div>
+
+      {/* METRICS */}
+      <div className="flex gap-3 text-xs text-white/60">
+        <span title="Visualizações">👁️ {metrics.views}</span>
+        <span title="Contatos">💬 {metrics.contacts}</span>
+        <span title="Favoritos">❤️ {metrics.favorites}</span>
+      </div>
+
+      {/* INSIGHT AUTOMÁTICO */}
+      {hasPerformanceIssue && (
+        <div className="text-xs bg-yellow-500/10 border border-yellow-500/20 p-2 rounded-lg text-yellow-300">
+          💡 Muitas visualizações, poucos contatos. Tente melhorar título ou imagem.
+        </div>
+      )}
+
+      {/* ACTIONS */}
+      <div className="flex gap-2 mt-2">
+        <button
+          onClick={() => onEdit(table.id)}
+          className="flex-1 py-2 text-xs bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors"
+        >
+          Editar
+        </button>
+
+        <button
+          onClick={() => onToggle(table)}
+          disabled={isToggling}
+          className="flex-1 py-2 text-xs bg-yellow-500 hover:bg-yellow-600 disabled:opacity-50 rounded-lg transition-colors"
+        >
+          {isToggling ? '⏳' : table.status === 'active' ? 'Desativar' : 'Ativar'}
+        </button>
+
+        <button
+          onClick={() => onDelete(table)}
+          disabled={isDeleting}
+          className="flex-1 py-2 text-xs bg-red-500 hover:bg-red-600 disabled:opacity-50 rounded-lg transition-colors"
+        >
+          {isDeleting ? '⏳' : 'Deletar'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export const PainelMestrePage = () => {
   const { user, token } = useAuth();
   const navigate = useNavigate();
 
   const [gmProfile, setGmProfile] = useState<GmProfile | null>(null);
-  const [myTables, setMyTables] = useState<MyTable[]>([]);
+  const [myTables, setMyTables] = useState<MyTableEnhanced[]>([]);
   const [view, setView] = useState<'dashboard' | 'create-table' | 'create-profile'>('dashboard');
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [editingTableId, setEditingTableId] = useState<string | null>(null);
@@ -224,7 +346,21 @@ export const PainelMestrePage = () => {
 
         if (tablesRes.ok) {
           const tablesJson = await tablesRes.json();
-          setMyTables(tablesJson?.data ?? []);
+          const tables = tablesJson?.data ?? [];
+
+          // Mapear para MyTableEnhanced com métricas
+          const enhancedTables: MyTableEnhanced[] = tables.map((t: any) => ({
+            ...t,
+            image_url: t.image_url ?? null,
+            metrics: {
+              views: t.metrics_views ?? 0,
+              clicks: t.metrics_clicks ?? 0,
+              contacts: t.metrics_contacts ?? 0,
+              favorites: t.metrics_favorites ?? 0,
+            }
+          }));
+
+          setMyTables(enhancedTables);
         } else {
           setMyTables([]);
         }
@@ -300,9 +436,24 @@ export const PainelMestrePage = () => {
           setGmProfile(profileJson?.data ?? null);
         }
 
+
         if (tablesRes.ok) {
           const tablesJson = await tablesRes.json();
-          setMyTables(tablesJson?.data ?? []);
+          const tables = tablesJson?.data ?? [];
+
+          // Mapear para MyTableEnhanced com métricas
+          const enhancedTables: MyTableEnhanced[] = tables.map((t: any) => ({
+            ...t,
+            image_url: t.image_url ?? null,
+            metrics: {
+              views: t.metrics_views ?? 0,
+              clicks: t.metrics_clicks ?? 0,
+              contacts: t.metrics_contacts ?? 0,
+              favorites: t.metrics_favorites ?? 0,
+            }
+          }));
+
+          setMyTables(enhancedTables);
         }
       })
       .catch(() => { })
@@ -318,6 +469,23 @@ export const PainelMestrePage = () => {
     () => myTables.reduce((acc, table) => acc + Math.max(table.slots_total - table.slots_filled, 0), 0),
     [myTables]
   );
+
+  // KPIs de métricas
+  const totalViews = useMemo(
+    () => myTables.reduce((acc, table) => acc + (table.metrics?.views ?? 0), 0),
+    [myTables]
+  );
+
+  const totalContacts = useMemo(
+    () => myTables.reduce((acc, table) => acc + (table.metrics?.contacts ?? 0), 0),
+    [myTables]
+  );
+
+  const conversionRate = useMemo(
+    () => totalViews > 0 ? ((totalContacts / totalViews) * 100).toFixed(1) : '0.0',
+    [totalViews, totalContacts]
+  );
+
 
   const handleToggleTableStatus = async (tableId: string, currentStatus: string, title: string) => {
     if (!token) return;
@@ -442,22 +610,11 @@ export const PainelMestrePage = () => {
               </button>
             </div>
 
+            {/* DASHBOARD DE MÉTRICAS */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {[
-                { label: 'Mesas Ativas', value: activeTablesCount, icon: <Globe className="w-5 h-5" /> },
-                { label: 'Vagas Abertas', value: openSlotsCount, icon: <Users className="w-5 h-5" /> },
-                { label: 'Total de Mesas', value: gmProfile?.tables_count ?? 0, icon: <Dice1 className="w-5 h-5" /> },
-              ].map((card) => (
-                <div key={card.label} className="bg-white/5 border border-white/10 rounded-2xl p-6 flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-[var(--color-artificio-orange)]/10 text-[var(--color-artificio-orange)] flex items-center justify-center">
-                    {card.icon}
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{card.value}</p>
-                    <p className="text-white/40 text-sm">{card.label}</p>
-                  </div>
-                </div>
-              ))}
+              <StatCard label="👁️ Visualizações" value={totalViews} />
+              <StatCard label="💬 Contatos" value={totalContacts} />
+              <StatCard label="📈 Conversão" value={`${conversionRate}%`} />
             </div>
 
             {myTables.length > 0 ? (
