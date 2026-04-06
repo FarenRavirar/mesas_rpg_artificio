@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useProfile, type PlayerProfile, type GmProfile } from '../hooks/useProfile';
 import { UserSystemsSelector } from '../components/UserSystemsSelector';
 import { LinksManager } from '../components/LinksManager';
@@ -15,6 +15,21 @@ type TabType = 'geral' | 'jogador' | 'mestre';
 export default function ProfileEditPage() {
   const { profile, loading, saving, error } = useProfile();
   const [activeTab, setActiveTab] = useState<TabType>('geral');
+
+  // Feedback de conexão Discord
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const discordStatus = params.get('discord');
+    
+    if (discordStatus === 'connected') {
+      alert('Discord conectado com sucesso!');
+      window.history.replaceState({}, '', '/perfil');
+      window.location.reload();
+    } else if (discordStatus === 'error') {
+      alert('Erro ao conectar Discord. Tente novamente.');
+      window.history.replaceState({}, '', '/perfil');
+    }
+  }, []);
 
   if (loading) {
     return (
@@ -476,6 +491,72 @@ function TabMestre() {
 
       <section className="form-section">
         <LinksManager />
+      </section>
+
+      {/* Seção Discord */}
+      <section className="form-section">
+        <h2>Conexão Discord</h2>
+        <p className="section-description">
+          Conecte sua conta Discord para verificação e badges especiais
+        </p>
+        
+        {profile?.gm?.discord_connected ? (
+          <div className="discord-connected">
+            <p>✅ Discord conectado</p>
+            <p className="discord-username">
+              🟣 {profile.gm.discord_username}
+            </p>
+            {profile.gm.covil_verified && (
+              <div className="covil-badge">
+                🏰 Membro Verificado do Covil
+              </div>
+            )}
+            <button
+              onClick={async () => {
+                if (!confirm('Deseja desconectar sua conta Discord?')) return;
+                
+                try {
+                  const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/discord/disconnect`, {
+                    method: 'DELETE',
+                    headers: {
+                      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    },
+                  });
+                  
+                  if (response.ok) {
+                    alert('Discord desconectado com sucesso!');
+                    window.location.reload();
+                  } else {
+                    alert('Erro ao desconectar Discord');
+                  }
+                } catch (error) {
+                  console.error('Erro ao desconectar Discord:', error);
+                  alert('Erro ao desconectar Discord');
+                }
+              }}
+              className="btn-disconnect-discord"
+            >
+              Desconectar Discord
+            </button>
+          </div>
+        ) : (
+          <div className="discord-disconnected">
+            <p>Conecte sua conta Discord para:</p>
+            <ul>
+              <li>Verificar membro do servidor Covil</li>
+              <li>Exibir badge no perfil público</li>
+              <li>Futuras integrações comunitárias</li>
+            </ul>
+            <button
+              onClick={() => {
+                window.location.href = `${import.meta.env.VITE_API_URL}/auth/discord/connect`;
+              }}
+              className="btn-connect-discord"
+            >
+              🟣 Conectar Discord
+            </button>
+          </div>
+        )}
       </section>
     </div>
   );

@@ -332,6 +332,38 @@
   background: #4752c4;
 }
 
+.btn-disconnect-discord {
+  padding: 0.5rem 1rem;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-top: 1rem;
+}
+
+.btn-disconnect-discord:hover {
+  background: #dc2626;
+}
+
+.discord-username {
+  font-weight: 600;
+  color: #5865f2;
+}
+
+.discord-disconnected ul {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+}
+
+.discord-disconnected li {
+  margin: 0.5rem 0;
+  color: #6b7280;
+}
+
+
 /* Responsive */
 @media (max-width: 768px) {
   .profile-edit-page {

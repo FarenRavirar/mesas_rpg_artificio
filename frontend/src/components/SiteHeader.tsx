@@ -61,6 +61,13 @@ export const SiteHeader = () => {
 
                 <div className="absolute right-0 mt-2 w-56 bg-[#1B2A4A] border border-white/10 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 overflow-hidden">
                   <Link
+                    to="/perfil"
+                    className="block w-full text-left px-5 py-3 text-sm text-white/80 hover:text-white hover:bg-white/5 transition-colors border-b border-white/5"
+                    id="site-header-menu-perfil"
+                  >
+                    👤 Meu Perfil
+                  </Link>
+                  <Link
                     to="/painel"
                     className="block w-full text-left px-5 py-3 text-sm text-white/80 hover:text-white hover:bg-white/5 transition-colors border-b border-white/5"
                     id="site-header-menu-painel"

@@ -1,4 +1,4 @@
-import { Video, Music, Radio, MessageCircle, FileText, Globe, ExternalLink } from 'lucide-react';
+import { Video, Music, Radio, MessageCircle, FileText, Globe, ExternalLink, Camera, Share2, Briefcase } from 'lucide-react';
 import type { UserLink } from '../hooks/useLinks';
 import './LinksDisplay.css';
 
@@ -7,6 +7,11 @@ const LINK_TYPE_ICONS = {
   spotify: Music,
   twitch: Radio,
   twitter: MessageCircle,
+  instagram: Camera, // Instagram usa Camera
+  facebook: Share2, // Facebook usa Share2
+  tiktok: Music, // TikTok usa Music
+  linkedin: Briefcase, // LinkedIn usa Briefcase
+  podcast: Radio,
   article: FileText,
   website: Globe,
 };
@@ -16,8 +21,26 @@ const LINK_TYPE_LABELS = {
   spotify: 'Spotify',
   twitch: 'Twitch',
   twitter: 'Twitter/X',
+  instagram: 'Instagram',
+  facebook: 'Facebook',
+  tiktok: 'TikTok',
+  linkedin: 'LinkedIn',
+  podcast: 'Podcast',
   article: 'Artigo',
   website: 'Website',
+};
+
+// Categorias para organização visual
+const CATEGORIES = {
+  content: ['youtube', 'twitch', 'podcast', 'spotify'],
+  social: ['instagram', 'twitter', 'facebook', 'tiktok', 'linkedin'],
+  authority: ['article', 'website'],
+};
+
+const CATEGORY_LABELS = {
+  content: '🎥 Conteúdo',
+  social: '🌐 Presença',
+  authority: '🧠 Autoridade',
 };
 
 interface LinksDisplayProps {
@@ -27,15 +50,31 @@ interface LinksDisplayProps {
 export function LinksDisplay({ links }: LinksDisplayProps) {
   if (links.length === 0) return null;
 
+  // Agrupar links por categoria
+  const groupedLinks = {
+    content: links.filter(l => CATEGORIES.content.includes(l.type)),
+    social: links.filter(l => CATEGORIES.social.includes(l.type)),
+    authority: links.filter(l => CATEGORIES.authority.includes(l.type)),
+  };
+
   return (
     <section className="links-display">
       <h2>🎙️ Conteúdo & Redes</h2>
       
-      <div className="links-display-grid">
-        {links.map((link) => (
-          <LinkCard key={link.id} link={link} />
-        ))}
-      </div>
+      {Object.entries(groupedLinks).map(([category, categoryLinks]) => {
+        if (categoryLinks.length === 0) return null;
+        
+        return (
+          <div key={category} className="links-category">
+            <h3 className="category-title">{CATEGORY_LABELS[category as keyof typeof CATEGORY_LABELS]}</h3>
+            <div className="links-display-grid">
+              {categoryLinks.map((link) => (
+                <LinkCard key={link.id} link={link} />
+              ))}
+            </div>
+          </div>
+        );
+      })}
     </section>
   );
 }
@@ -45,9 +84,14 @@ interface LinkCardProps {
 }
 
 function LinkCard({ link }: LinkCardProps) {
-  const Icon = LINK_TYPE_ICONS[link.type];
-  const label = LINK_TYPE_LABELS[link.type];
-  const hasEmbed = link.embed_url && (link.type === 'youtube' || link.type === 'spotify');
+  const Icon = LINK_TYPE_ICONS[link.type as keyof typeof LINK_TYPE_ICONS] || Globe;
+  const label = LINK_TYPE_LABELS[link.type as keyof typeof LINK_TYPE_LABELS] || 'Link';
+  
+  // Apenas YouTube, Spotify e Twitch têm embed pesado
+  const hasHeavyEmbed = ['youtube', 'spotify', 'twitch'].includes(link.type) && link.embed_url;
+  
+  // Redes sociais têm preview leve
+  const isSocial = CATEGORIES.social.includes(link.type);
 
   return (
     <div className="link-card">
@@ -58,33 +102,31 @@ function LinkCard({ link }: LinkCardProps) {
         <span className="link-card-type">{label}</span>
       </div>
 
-      {hasEmbed ? (
+      {/* Embeds pesados (YouTube, Spotify, Twitch) */}
+      {hasHeavyEmbed && (
         <div className="link-card-embed">
-          {link.type === 'youtube' && (
-            <iframe
-              src={link.embed_url}
-              title={link.title || 'YouTube video'}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          )}
-          
-          {link.type === 'spotify' && (
-            <iframe
-              src={link.embed_url}
-              title={link.title || 'Spotify embed'}
-              allow="encrypted-media"
-            />
-          )}
+          <iframe
+            src={link.embed_url}
+            title={link.title || label}
+            allow={link.type === 'youtube' ? "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" : "encrypted-media"}
+            allowFullScreen={link.type === 'youtube' || link.type === 'twitch'}
+          />
         </div>
-      ) : (
-        <>
-          {link.thumbnail_url && (
-            <div className="link-card-thumbnail">
-              <img src={link.thumbnail_url} alt={link.title || ''} />
-            </div>
-          )}
-        </>
+      )}
+
+      {/* Preview leve para redes sociais */}
+      {isSocial && !hasHeavyEmbed && (
+        <div className="link-card-social-preview">
+          <Icon className="w-8 h-8" />
+          <p className="social-username">{new URL(link.url).pathname.split('/')[1] || label}</p>
+        </div>
+      )}
+
+      {/* Thumbnail para artigos/sites */}
+      {!hasHeavyEmbed && !isSocial && link.thumbnail_url && (
+        <div className="link-card-thumbnail">
+          <img src={link.thumbnail_url} alt={link.title || ''} />
+        </div>
       )}
 
       <div className="link-card-content">

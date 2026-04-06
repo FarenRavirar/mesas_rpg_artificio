@@ -15,6 +15,7 @@ import meRoutes from './routes/me';
 import profileRoutes from './routes/profile';
 import adminProfileRoutes from './routes/adminProfile';
 import linksRoutes from './routes/links';
+import discordRoutes from './routes/discord';
 import aggregatorRoutes from './routes/aggregator';
 import aggregatorReviewRoutes from './routes/aggregatorReview';
 import settingsRoutes from './routes/settings';
@@ -52,6 +53,7 @@ app.get('/api/v1/health', async (req, res) => {
 // Compatibilidade OAuth: mantém rota canônica em /api/v1/auth e aceita callback legado em /auth
 app.use('/api/v1/auth', authRoutes);
 app.use('/auth', authRoutes);
+app.use('/auth', discordRoutes);  // Discord OAuth
 app.use('/api/v1/me', meRoutes);
 app.use('/api/v1/profile', profileRoutes);  // REQ-29: Sistema de perfil completo
 app.use('/api/v1/profile', linksRoutes);  // Links e Conteúdo (prova social externa)

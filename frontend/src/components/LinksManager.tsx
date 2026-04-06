@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Trash2, Video, Music, Radio, MessageCircle, FileText, Globe, Plus, Loader } from 'lucide-react';
+import { Trash2, Video, Music, Radio, MessageCircle, FileText, Globe, Plus, Loader, Camera, Share2, Briefcase } from 'lucide-react';
 import { useLinks, type UserLink } from '../hooks/useLinks';
 import './LinksManager.css';
 
@@ -8,6 +8,11 @@ const LINK_TYPE_ICONS = {
   spotify: Music,
   twitch: Radio,
   twitter: MessageCircle,
+  instagram: Camera,
+  facebook: Share2,
+  tiktok: Music,
+  linkedin: Briefcase,
+  podcast: Radio,
   article: FileText,
   website: Globe,
 };
