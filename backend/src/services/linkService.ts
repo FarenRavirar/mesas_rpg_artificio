@@ -1,0 +1,231 @@
+import { db } from '../db/index.js';
+import type { UserLinks } from '../db/types.js';
+
+// Tipos de link suportados
+export type LinkType = 'youtube' | 'spotify' | 'twitch' | 'twitter' | 'article' | 'website';
+
+interface LinkMetadata {
+  title?: string;
+  description?: string;
+  thumbnail_url?: string;
+}
+
+interface CreateLinkInput {
+  url: string;
+}
+
+interface UserLinkWithMetadata extends UserLinks {
+  embed_url?: string;
+}
+
+/**
+ * Detecta o tipo de link baseado na URL
+ */
+export function detectLinkType(url: string): LinkType {
+  const urlLower = url.toLowerCase();
+  
+  if (urlLower.includes('youtube.com') || urlLower.includes('youtu.be')) {
+    return 'youtube';
+  }
+  if (urlLower.includes('spotify.com')) {
+    return 'spotify';
+  }
+  if (urlLower.includes('twitch.tv')) {
+    return 'twitch';
+  }
+  if (urlLower.includes('twitter.com') || urlLower.includes('x.com')) {
+    return 'twitter';
+  }
+  if (urlLower.includes('medium.com') || urlLower.includes('substack.com')) {
+    return 'article';
+  }
+  
+  return 'website';
+}
+
+/**
+ * Extrai ID do vídeo do YouTube de uma URL
+ */
+function extractYouTubeId(url: string): string | null {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/,
+    /youtube\.com\/embed\/([^&\n?#]+)/,
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) return match[1];
+  }
+  
+  return null;
+}
+
+/**
+ * Extrai ID do Spotify de uma URL
+ */
+function extractSpotifyId(url: string): { type: string; id: string } | null {
+  const match = url.match(/spotify\.com\/(track|album|playlist|episode|show)\/([^?&\n]+)/);
+  if (match) {
+    return { type: match[1], id: match[2] };
+  }
+  return null;
+}
+
+/**
+ * Gera URL de embed para links suportados
+ */
+export function generateEmbedUrl(url: string, type: LinkType): string | null {
+  switch (type) {
+    case 'youtube': {
+      const videoId = extractYouTubeId(url);
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+    }
+    
+    case 'spotify': {
+      const spotifyData = extractSpotifyId(url);
+      return spotifyData ? `https://open.spotify.com/embed/${spotifyData.type}/${spotifyData.id}` : null;
+    }
+    
+    case 'twitch': {
+      const match = url.match(/twitch\.tv\/videos\/(\d+)/);
+      if (match) {
+        return `https://player.twitch.tv/?video=${match[1]}&parent=${process.env.DOMAIN || 'localhost'}`;
+      }
+      const channelMatch = url.match(/twitch\.tv\/([^/\n?]+)/);
+      if (channelMatch) {
+        return `https://player.twitch.tv/?channel=${channelMatch[1]}&parent=${process.env.DOMAIN || 'localhost'}`;
+      }
+      return null;
+    }
+    
+    default:
+      return null;
+  }
+}
+
+/**
+ * Extrai metadata básica de uma URL
+ * Nota: Implementação simplificada. Para produção, usar biblioteca como metascraper
+ */
+async function extractMetadata(url: string, type: LinkType): Promise<LinkMetadata> {
+  // Para YouTube, podemos extrair metadata da URL
+  if (type === 'youtube') {
+    const videoId = extractYouTubeId(url);
+    if (videoId) {
+      return {
+        title: 'Vídeo no YouTube',
+        thumbnail_url: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+      };
+    }
+  }
+  
+  // Para outros tipos, retornar metadata básica
+  // TODO: Implementar extração real via Open Graph quando necessário
+  return {
+    title: new URL(url).hostname,
+  };
+}
+
+/**
+ * Lista todos os links de um usuário
+ */
+export async function getUserLinks(userId: string): Promise<UserLinkWithMetadata[]> {
+  const links = await db
+    .selectFrom('user_links')
+    .selectAll()
+    .where('user_id', '=', userId)
+    .orderBy('sort_order', 'asc')
+    .orderBy('created_at', 'desc')
+    .execute();
+  
+  // Adicionar embed_url para cada link
+  return links.map((link: UserLinks) => ({
+    ...link,
+    embed_url: generateEmbedUrl(link.url, link.type as LinkType) || undefined,
+  }));
+}
+
+/**
+ * Cria um novo link para o usuário
+ */
+export async function createUserLink(userId: string, input: CreateLinkInput): Promise<UserLinkWithMetadata> {
+  const { url } = input;
+  
+  // Validar URL
+  try {
+    new URL(url);
+  } catch {
+    throw new Error('URL inválida');
+  }
+  
+  // Verificar limite de links (máximo 10)
+  const result = await db
+    .selectFrom('user_links')
+    .select(db.fn.count<number>('id').as('count'))
+    .where('user_id', '=', userId)
+    .executeTakeFirst();
+  
+  const existingCount = result ? Number(result.count) : 0;
+  
+  if (existingCount >= 10) {
+    throw new Error('Limite de 10 links atingido');
+  }
+  
+  // Detectar tipo
+  const type = detectLinkType(url);
+  
+  // Extrair metadata
+  const metadata = await extractMetadata(url, type);
+  
+  // Criar link
+  const link = await db
+    .insertInto('user_links')
+    .values({
+      user_id: userId,
+      url,
+      type,
+      title: metadata.title || null,
+      description: metadata.description || null,
+      thumbnail_url: metadata.thumbnail_url || null,
+      sort_order: 0,
+    })
+    .returningAll()
+    .executeTakeFirstOrThrow();
+  
+  return {
+    ...link,
+    embed_url: generateEmbedUrl(link.url, type) || undefined,
+  };
+}
+
+/**
+ * Remove um link do usuário
+ */
+export async function deleteUserLink(userId: string, linkId: string): Promise<void> {
+  const result = await db
+    .deleteFrom('user_links')
+    .where('id', '=', linkId)
+    .where('user_id', '=', userId)
+    .executeTakeFirst();
+  
+  if (result.numDeletedRows === 0n) {
+    throw new Error('Link não encontrado');
+  }
+}
+
+/**
+ * Atualiza a ordem dos links
+ */
+export async function updateLinksOrder(userId: string, linkIds: string[]): Promise<void> {
+  // Atualizar sort_order de cada link
+  const updates = linkIds.map((linkId, index) =>
+    db
+      .updateTable('user_links')
+      .set({ sort_order: index })
+      .where('id', '=', linkId)
+      .where('user_id', '=', userId)
+      .execute()
+  );
+  
+  await Promise.all(updates);
+}

@@ -12,6 +12,9 @@ import systemSuggestionsRoutes from './routes/systemSuggestions';
 import systemSuggestionsAdminRoutes from './routes/systemSuggestionsAdmin';
 import notificationsRoutes from './routes/notifications';
 import meRoutes from './routes/me';
+import profileRoutes from './routes/profile';
+import adminProfileRoutes from './routes/adminProfile';
+import linksRoutes from './routes/links';
 import aggregatorRoutes from './routes/aggregator';
 import aggregatorReviewRoutes from './routes/aggregatorReview';
 import settingsRoutes from './routes/settings';
@@ -50,6 +53,9 @@ app.get('/api/v1/health', async (req, res) => {
 app.use('/api/v1/auth', authRoutes);
 app.use('/auth', authRoutes);
 app.use('/api/v1/me', meRoutes);
+app.use('/api/v1/profile', profileRoutes);  // REQ-29: Sistema de perfil completo
+app.use('/api/v1/profile', linksRoutes);  // Links e Conteúdo (prova social externa)
+app.use('/api/v1/admin', adminProfileRoutes);  // REQ-29: Admin - Selo Covil
 app.use('/api/v1/tables', tablesRoutes);
 app.use('/api/v1/tables', tableSchedulesRoutes);  // REQ-27: Agenda Estruturada
 app.use('/api/v1/systems', systemsRoutes);

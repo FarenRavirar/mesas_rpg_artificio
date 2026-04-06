@@ -630,3 +630,71 @@ Ao implementar ou revisar uma funcionalidade, validar:
 | AdminDevTools | H3 (Controle) | Não há controle de retenção de mesas importadas | Adicionar configuração de dias de expiração (REQ-20, migration_10) |
 
 **Nota:** Lista será expandida durante auditoria completa (REQ-17).
+
+---
+
+## 12. Procedimento de Aplicação de Migrations (NUNCA MAIS BATER CABEÇA)
+
+> [!CAUTION]
+> **Este é o procedimento que SEMPRE funciona para aplicar migrations.** Siga exatamente estes passos.
+
+### 12.1 Passo a Passo (Procedimento Canônico)
+
+```bash
+# 1. Conectar no servidor via SSH
+ssh -F C:\projetos\config faren
+
+# 2. Navegar para a pasta do projeto
+cd /opt/mesas-beta
+
+# 3. Verificar se o arquivo de migration existe (após o GitHub Actions ter rodado)
+ls -la database/migration_*.sql
+
+# 4. Aplicar a migration
+cat database/migration_15_user_links.sql | docker exec -i mesas-beta-db psql -U admin -d mesas_rpg
+
+# 5. Verificar se foi aplicada com sucesso
+docker exec -it mesas-beta-db psql -U admin -d mesas_rpg -c "\dt user_links"
+
+# 6. Sair do servidor
+exit
+```
+
+### 12.2 Comando Genérico (Para Qualquer Migration)
+
+```bash
+cat database/migration_XX_nome.sql | docker exec -i mesas-beta-db psql -U admin -d mesas_rpg
+```
+
+**Credenciais do banco:**
+- Usuário: `admin`
+- Banco: `mesas_rpg`
+- Container: `mesas-beta-db` (beta) ou `mesas-db` (produção)
+
+### 12.3 Troubleshooting
+
+| Problema | Solução |
+|---|---|
+| Erro "No such file or directory" | Confirmar que o GitHub Actions rodou e o arquivo está no servidor |
+| Erro "docker: command not found" | Comando deve ser executado VIA SSH no servidor, não localmente |
+| Erro "cat: command not found" | Comando `cat` deve ser executado no servidor (bash), não no PowerShell local |
+| Erro "relation already exists" | Migration já foi aplicada anteriormente |
+
+### 12.4 Verificar Tabelas no Banco
+
+```bash
+# Listar todas as tabelas
+docker exec -it mesas-beta-db psql -U admin -d mesas_rpg -c "\dt"
+
+# Ver estrutura de uma tabela específica
+docker exec -it mesas-beta-db psql -U admin -d mesas_rpg -c "\d user_links"
+```
+
+### 12.5 O Que NUNCA Fazer
+
+❌ **NUNCA** tentar aplicar migration localmente (deve ser no servidor)  
+❌ **NUNCA** rodar comandos `docker` ou `cat` no PowerShell local (use SSH)  
+❌ **NUNCA** editar o arquivo SQL diretamente no servidor
+
+**Este procedimento resolve 100% dos problemas de migrations. Siga-o sempre.**
+

@@ -2,11 +2,18 @@ import { Generated, Insertable, Selectable, Updateable } from 'kysely';
 
 export type UserRole = 'visitor' | 'player' | 'gm' | 'admin';
 export type SystemNodeType = 'system' | 'edition' | 'variant' | 'subsystem';
+export type AuthProvider = 'google' | 'discord';
+export type ExperienceLevelPlayer = 'iniciante' | 'intermediario' | 'veterano';
+export type PreferredTime = 'manha' | 'tarde' | 'noite';
+export type PricingPreference = 'free' | 'paid' | 'both';
+export type UserSystemType = 'favorite' | 'gm';
 
 export interface UsersTable {
   id: Generated<string>;
   google_id: string;
   email: string;
+  username: string | null;
+  location: string | null;
   role: Generated<UserRole>;
   refresh_token: string | null;
   privacy_public: Generated<boolean>;
@@ -18,11 +25,25 @@ export type User = Selectable<UsersTable>;
 export type NewUser = Insertable<UsersTable>;
 export type UserUpdate = Updateable<UsersTable>;
 
+export interface AuthProvidersTable {
+  id: Generated<string>;
+  user_id: string;
+  provider: AuthProvider;
+  provider_user_id: string;
+  provider_data: unknown | null;
+  created_at: Generated<Date>;
+}
+
+export type AuthProvider_Record = Selectable<AuthProvidersTable>;
+export type NewAuthProvider = Insertable<AuthProvidersTable>;
+export type AuthProviderUpdate = Updateable<AuthProvidersTable>;
+
 export interface ProfilesTable {
   id: Generated<string>;
   user_id: string;
   display_name: string;
   bio: string | null;
+  avatar_url: string | null;
   languages: Generated<string[]>;
   tags: Generated<string[]>;
   created_at: Generated<Date>;
@@ -48,6 +69,32 @@ export type UserPreference = Selectable<UserPreferencesTable>;
 export type NewUserPreference = Insertable<UserPreferencesTable>;
 export type UserPreferenceUpdate = Updateable<UserPreferencesTable>;
 
+export interface PlayerProfilesTable {
+  user_id: string;
+  experience_level: ExperienceLevelPlayer | null;
+  playstyle: unknown | null; // JSONB: { combat: number, roleplay: number, exploration: number, strategy: number }
+  preferred_days: string[] | null;
+  preferred_time: PreferredTime | null;
+  pricing_preference: PricingPreference | null;
+  updated_at: Generated<Date>;
+}
+
+export type PlayerProfile = Selectable<PlayerProfilesTable>;
+export type NewPlayerProfile = Insertable<PlayerProfilesTable>;
+export type PlayerProfileUpdate = Updateable<PlayerProfilesTable>;
+
+export interface UserSystemsTable {
+  id: Generated<string>;
+  user_id: string;
+  system_id: string;
+  type: UserSystemType;
+  created_at: Generated<Date>;
+}
+
+export type UserSystem = Selectable<UserSystemsTable>;
+export type NewUserSystem = Insertable<UserSystemsTable>;
+export type UserSystemUpdate = Updateable<UserSystemsTable>;
+
 export interface GmProfilesTable {
   id: Generated<string>;
   user_id: string;
@@ -66,9 +113,28 @@ export interface GmProfilesTable {
   tables_count: Generated<number>;
   avg_rating: number | null;
   reviews_count: Generated<number>;
+  // Discord
+  discord_connected: Generated<boolean>;
+  discord_username: string | null;
+  discord_id: string | null;
+  // Selo Covil (controlado por admin)
+  covil_verified: Generated<boolean>;
+  covil_verified_at: Date | null;
+  covil_verified_by: string | null;
+  // Experiência e monetização
+  experience_years: number | null;
+  average_price: number | null;
+  // Estilo de mestria (JSONB)
+  gm_style: unknown | null; // { narrative: number, tactical: number, sandbox: number, railroad: number }
+  tools: unknown | null; // string[] - ["Foundry VTT", "Discord", "Roll20"]
+  game_format: unknown | null; // { session_length: string, frequency: string, group_size: string }
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
+
+export type GmProfile = Selectable<GmProfilesTable>;
+export type NewGmProfile = Insertable<GmProfilesTable>;
+export type GmProfileUpdate = Updateable<GmProfilesTable>;
 
 export interface SystemsTable {
   id: Generated<string>;
@@ -339,10 +405,30 @@ export type Notification = Selectable<NotificationsTable>;
 export type NewNotification = Insertable<NotificationsTable>;
 export type NotificationUpdate = Updateable<NotificationsTable>;
 
+export interface UserLinksTable {
+  id: Generated<string>;
+  user_id: string;
+  url: string;
+  type: string;
+  title: string | null;
+  description: string | null;
+  thumbnail_url: string | null;
+  sort_order: Generated<number>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export type UserLinks = Selectable<UserLinksTable>;
+export type NewUserLink = Insertable<UserLinksTable>;
+export type UserLinkUpdate = Updateable<UserLinksTable>;
+
 export interface Database {
   users: UsersTable;
+  auth_providers: AuthProvidersTable;
   profiles: ProfilesTable;
   user_preferences: UserPreferencesTable;
+  player_profiles: PlayerProfilesTable;
+  user_systems: UserSystemsTable;
   gm_profiles: GmProfilesTable;
   systems: SystemsTable;
   system_aliases: SystemAliasesTable;
@@ -359,6 +445,7 @@ export interface Database {
   aggregator_imported_raw_messages: AggregatorImportedRawMessagesTable;
   aggregator_import_candidates: AggregatorImportCandidatesTable;
   aggregator_settings: AggregatorSettingsTable;
+  user_links: UserLinksTable;
 }
 
 

@@ -10,7 +10,9 @@ import { OnboardingPage } from './pages/OnboardingPage';
 import { CatalogoPage } from './pages/CatalogoPage';
 import { MesaPage } from './pages/MesaPage';
 import { MestrePage } from './pages/MestrePage';
+import { PlayerPage } from './pages/PlayerPage';
 import { MasterProfilePage } from './features/master/MasterProfilePage';
+import ProfileEditPage from './pages/ProfileEditPage';
 import { GestaoPage } from './pages/GestaoPage';
 import { AdminDevToolsPage } from './pages/AdminDevToolsPage';
 import { Toaster } from 'react-hot-toast';
@@ -27,9 +29,11 @@ function AppRoutes() {
       <Route path="/catalogo" element={<CatalogoPage />} />
       <Route path="/mesas/:slug" element={<MesaPage />} />
       <Route path="/mestre/:slug" element={<MestrePage />} />
+      <Route path="/jogador/:username" element={<PlayerPage />} />
       <Route path="/mestres/:masterId" element={<MasterProfilePage />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
+      <Route path="/perfil" element={<ProtectedRoute><ProfileEditPage /></ProtectedRoute>} />
       <Route path="/painel" element={<ProtectedRoute><PainelMestrePage /></ProtectedRoute>} />
       {!isLoading && isAdmin && (
         <>

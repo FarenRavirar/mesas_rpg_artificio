@@ -50,6 +50,71 @@
 
 ---
 
+## Procedimento de Migrations (Recorrente)
+
+> **Aplicar sempre que houver nova migration em `/database/migration_XX_*.sql`**
+
+### Passo 1 — Validar credenciais do banco
+
+```bash
+# Confirmar credenciais em runtime
+docker exec mesas-beta-db env | grep POSTGRES
+```
+
+**Esperado:**
+- `POSTGRES_USER=admin`
+- `POSTGRES_DB=mesas_rpg`
+
+### Passo 2 — Aplicar migration no beta
+
+```bash
+# Método 1: Via cat + pipe (recomendado para migrations grandes)
+cat database/migration_XX_nome.sql | docker exec -i mesas-beta-db psql -U admin -d mesas_rpg
+
+# Método 2: Via docker exec direto (para migrations pequenas)
+docker exec -i mesas-beta-db psql -U admin -d mesas_rpg < database/migration_XX_nome.sql
+```
+
+### Passo 3 — Validar aplicação
+
+```bash
+# Acessar psql interativo
+docker exec -it mesas-beta-db psql -U admin -d mesas_rpg
+
+# Verificar tabelas criadas
+\dt
+
+# Verificar colunas de uma tabela específica
+\d nome_da_tabela
+
+# Sair
+\q
+```
+
+### Passo 4 — Atualizar RESUMO_EXECUCAO.md
+
+Adicionar entrada na seção "Estado das Migrations (Beta)" com:
+- Nome da migration
+- Descrição breve
+- Status: ✅ aplicada (DD/MM/AAAA)
+
+### Troubleshooting
+
+**Erro: `FATAL: database "mesas" does not exist`**
+- Causa: Nome do banco incorreto
+- Solução: Usar `-d mesas_rpg` (não `-d mesas`)
+- Ver também: `ERRORS_SOLUTIONS.md` E059
+
+**Erro: `permission denied`**
+- Causa: Usuário sem permissão
+- Solução: Usar `-U admin` (não `-U postgres`)
+
+**Erro: `relation already exists`**
+- Causa: Migration já foi aplicada
+- Solução: Verificar se a tabela/coluna já existe antes de aplicar
+
+---
+
 ## Estado das Migrations (Beta)
 
 | Migration | Descrição | Status |
@@ -61,6 +126,7 @@
 | migration_07 | `notifications` + Parser Fase B — 15 colunas + 9 índices em `aggregator_import_candidates` | ✅ aplicada (05/04/2026) |
 | migration_09 | Campos `frequency`, `frequency_custom`, `rules_notes`, `banner_url` em `tables` | ✅ aplicada (04/04/2026) |
 | migration_10 | `is_covil`, `imported_expires_at` em `tables` + CleanupWorker | ❌ pendente |
+| migration_14 | Sistema completo de perfil — `auth_providers`, `player_profiles`, `user_systems`, campos Discord em `gm_profiles` | ✅ aplicada (06/04/2026) |
 
 ---
 
@@ -83,6 +149,7 @@
 | REQ-23 | CRUD Admin completo | ✅ deployado e funcional no beta | — |
 | REQ-24 | Parser Python Fase B | ✅ deployado e funcional no beta (05/04/2026) | QA com anúncios reais do Discord |
 | REQ-25 | Filtros avançados + deleção em lote de candidatos | ✅ implementado com 10 heurísticas de Nielsen | — |
+| REQ-29 | Sistema completo de perfil (player + gm + Discord + admin) | ⏳ backend completo, aguardando migration + frontend | Aplicar migration_14, implementar ProfileEditPage |
 
 **Legenda:** ✅ concluído · ⏳ pronto local, aguardando validação beta · ⏸ bloqueado
 
@@ -92,7 +159,35 @@
 
 **Ambiente beta:** Estável e operacional em `mesasbeta.artificiorpg.com`
 
-**Última sessão concluída (06/04/2026 - 01:40):**
+**Última sessão concluída (06/04/2026 - 02:15):**
+- **REQ-29: Sistema completo de perfil — Backend implementado**
+  - **Decisões de arquitetura confirmadas:**
+    - Perfil híbrido: `player_profiles` + `gm_profiles` separados
+    - Discord como conexão opcional (não login principal)
+    - Selo "Mestre do Covil" controlado por admin (curadoria manual)
+    - Username obrigatório e único
+    - Tabela `user_systems` para relacionamentos (favorite/gm)
+    - Autosave por seção (PATCH granular com debounce 500ms)
+  - **Migration 14 criada:**
+    - Tabela `auth_providers` (multi-provider: Google + Discord)
+    - Tabela `player_profiles` (experiência, estilo, disponibilidade, preferências)
+    - Tabela `user_systems` (relacionamento usuário ↔ sistemas)
+    - Campos novos em `users`: `username`, `location`
+    - Campo novo em `profiles`: `avatar_url`
+    - Campos novos em `gm_profiles`: Discord (connected, username, id), Covil (verified, verified_at, verified_by), experiência (years, average_price), estilo (gm_style, tools, game_format)
+  - **Backend TypeScript completo:**
+    - `types.ts` atualizado com 6 novos tipos
+    - `profileService.ts` criado (15 funções: CRUD player/gm, sistemas, Discord, admin)
+    - `routes/profile.ts` criado (9 endpoints autenticados)
+    - `routes/adminProfile.ts` criado (3 endpoints admin)
+    - Rotas registradas em `server.ts`
+  - **Documentação atualizada:**
+    - `RESUMO_EXECUCAO.md`: Procedimento de migrations adicionado (recorrente)
+    - `implementation_plan.md`: Plano completo com decisões fechadas
+    - `sessoes/resumo_06-04_perfil-usuario-completo.md`: Progresso detalhado
+  - **Próxima ação:** Aplicar migration_14 no beta, implementar frontend (ProfileEditPage)
+
+**Sessão anterior (06/04/2026 - 01:40):**
 - **Refatoração completa do CreateTableForm:** Fluxo multi-step otimizado
   - Nova ordem: 1=Básico, 2=Sistema, 3=Sessões, 4=Configuração, 5=Finalização, 6=Revisão
   - Contatos migrados de StepSessions para StepFinal (separação de modelos mentais)
