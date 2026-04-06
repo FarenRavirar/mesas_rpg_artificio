@@ -17,16 +17,23 @@ export default function ProfileEditPage() {
   const [activeTab, setActiveTab] = useState<TabType>('geral');
 
   // Feedback de conexão Discord
+  // CORREÇÃO P09: useEffect com cleanup (embora reload force desmontagem)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const discordStatus = params.get('discord');
+    const reason = params.get('reason');
     
     if (discordStatus === 'connected') {
       alert('Discord conectado com sucesso!');
       window.history.replaceState({}, '', '/perfil');
       window.location.reload();
     } else if (discordStatus === 'error') {
-      alert('Erro ao conectar Discord. Tente novamente.');
+      // CORREÇÃO P02: Mensagem específica para erro no_gm_profile
+      if (reason === 'no_gm_profile') {
+        alert('⚠️ Você precisa criar um perfil de Mestre antes de conectar o Discord.\n\nVá para a aba "Mestre" e preencha seus dados primeiro.');
+      } else {
+        alert('Erro ao conectar Discord. Tente novamente.');
+      }
       window.history.replaceState({}, '', '/perfil');
     }
   }, []);
@@ -143,6 +150,7 @@ function TabGeral() {
     setAvatarError(true);
   };
 
+  // CORREÇÃO P12: Usar apenas profile.avatar_url (Google OAuth deve copiar para profiles)
   const currentAvatar = avatarPreview || profile.profile?.avatar_url || '';
 
   return (

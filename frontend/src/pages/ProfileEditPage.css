@@ -2,6 +2,7 @@
   max-width: 900px;
   margin: 0 auto;
   padding: 2rem;
+  min-height: 100vh;
 }
 
 /* Loading & Error States */
@@ -13,13 +14,14 @@
   justify-content: center;
   min-height: 400px;
   gap: 1rem;
+  color: white;
 }
 
 .spinner {
   width: 48px;
   height: 48px;
-  border: 4px solid rgba(0, 0, 0, 0.1);
-  border-left-color: #8b5cf6;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-left-color: var(--color-artificio-orange);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -28,8 +30,8 @@
   display: inline-block;
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(0, 0, 0, 0.1);
-  border-left-color: #8b5cf6;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-left-color: var(--color-artificio-orange);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -46,9 +48,10 @@
   align-items: center;
   gap: 1.5rem;
   padding: 2rem;
-  background: white;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   margin-bottom: 2rem;
 }
 
@@ -85,18 +88,18 @@
 .profile-info h1 {
   margin: 0 0 0.5rem 0;
   font-size: 1.75rem;
-  color: #1f2937;
+  color: white;
 }
 
 .profile-email {
   margin: 0;
-  color: #6b7280;
+  color: rgba(255, 255, 255, 0.7);
   font-size: 0.875rem;
 }
 
 .profile-username {
   margin: 0.25rem 0 0 0;
-  color: #8b5cf6;
+  color: var(--color-artificio-orange);
   font-size: 0.875rem;
   font-weight: 500;
 }
@@ -106,10 +109,11 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: #f3f4f6;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
   border-radius: 8px;
   font-size: 0.875rem;
-  color: #6b7280;
+  color: #4ade80;
 }
 
 /* Tabs */
@@ -117,7 +121,7 @@
   display: flex;
   gap: 0.5rem;
   margin-bottom: 2rem;
-  border-bottom: 2px solid #e5e7eb;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
 }
 
 .tab {
@@ -125,7 +129,7 @@
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
-  color: #6b7280;
+  color: rgba(255, 255, 255, 0.6);
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
@@ -134,19 +138,20 @@
 }
 
 .tab:hover {
-  color: #8b5cf6;
+  color: white;
 }
 
 .tab.active {
-  color: #8b5cf6;
-  border-bottom-color: #8b5cf6;
+  color: var(--color-artificio-orange);
+  border-bottom-color: var(--color-artificio-orange);
 }
 
 /* Tab Content */
 .tab-content {
-  background: white;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   padding: 2rem;
 }
 
@@ -162,12 +167,12 @@
 .form-section h2 {
   margin: 0 0 1rem 0;
   font-size: 1.25rem;
-  color: #1f2937;
+  color: white;
 }
 
 .section-description {
   margin: 0 0 1rem 0;
-  color: #6b7280;
+  color: rgba(255, 255, 255, 0.7);
   font-size: 0.875rem;
 }
 
@@ -184,34 +189,38 @@
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
-  color: #374151;
+  color: white; /* CORREÇÃO P21: label branco para contraste */
   font-size: 0.875rem;
 }
 
 .form-group input[type='text'],
 .form-group input[type='number'],
+.form-group input[type='url'], /* CORREÇÃO P21: adicionar type url */
 .form-group select,
 .form-group textarea {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid rgba(255, 255, 255, 0.2); /* CORREÇÃO P21: borda clara */
+  background: rgba(255, 255, 255, 0.05); /* CORREÇÃO P21: background escuro */
+  color: white; /* CORREÇÃO P21: texto branco */
   border-radius: 8px;
   font-size: 1rem;
-  transition: border-color 0.2s;
+  transition: all 0.2s;
 }
 
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #8b5cf6;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+  border-color: var(--color-artificio-orange); /* CORREÇÃO P21: focus laranja */
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .form-group small {
   display: block;
   margin-top: 0.5rem;
-  color: #6b7280;
+  color: rgba(255, 255, 255, 0.6); /* CORREÇÃO P21: small text claro */
   font-size: 0.75rem;
 }
 
@@ -236,14 +245,14 @@
 .playstyle-item label {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #374151;
+  color: white; /* CORREÇÃO P21: label branco */
 }
 
 .playstyle-item input[type='range'] {
   width: 100%;
   height: 6px;
   border-radius: 3px;
-  background: #e5e7eb;
+  background: rgba(255, 255, 255, 0.2); /* CORREÇÃO P21: track escuro */
   outline: none;
   -webkit-appearance: none;
   appearance: none;
@@ -255,7 +264,7 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #8b5cf6;
+  background: var(--color-artificio-orange); /* CORREÇÃO P21: thumb laranja */
   cursor: pointer;
   transition: transform 0.2s;
 }
@@ -268,7 +277,7 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #8b5cf6;
+  background: var(--color-artificio-orange); /* CORREÇÃO P21: thumb laranja */
   cursor: pointer;
   border: none;
   transition: transform 0.2s;
@@ -281,8 +290,30 @@
 .playstyle-item span {
   text-align: center;
   font-weight: 600;
-  color: #8b5cf6;
+  color: var(--color-artificio-orange); /* CORREÇÃO P21: valor laranja */
   font-size: 1.25rem;
+}
+
+/* CORREÇÃO P21: Placeholder styles para inputs */
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.form-group input::-webkit-input-placeholder,
+.form-group textarea::-webkit-input-placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.form-group input::-moz-placeholder,
+.form-group textarea::-moz-placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* CORREÇÃO P21: Error text */
+.error-text {
+  color: #ef4444;
+  font-weight: 500;
 }
 
 /* Discord Section */
@@ -290,7 +321,8 @@
 .discord-disconnected {
   padding: 1.5rem;
   border-radius: 8px;
-  background: #f9fafb;
+  background: rgba(255, 255, 255, 0.05); /* CORREÇÃO P21: background escuro */
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .discord-connected {

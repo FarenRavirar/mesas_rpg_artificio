@@ -6,10 +6,22 @@ const router = Router();
 
 /**
  * Inicia fluxo OAuth Discord
- * Requer usuário logado via Google
+ * Requer usuário logado via Google E perfil GM criado
  */
-router.get('/discord/connect', authMiddleware, (req: Request, res: Response) => {
+router.get('/discord/connect', authMiddleware, async (req: Request, res: Response) => {
   const userId = (req.user as any).id;
+  
+  // CORREÇÃO P02, P06, P20: Validar se usuário tem perfil GM antes de iniciar OAuth
+  const gmProfile = await db
+    .selectFrom('gm_profiles')
+    .select('id')
+    .where('user_id', '=', userId)
+    .executeTakeFirst();
+  
+  if (!gmProfile) {
+    // CORREÇÃO P18: Bloquear no connect se não for GM
+    return res.redirect('/perfil?discord=error&reason=no_gm_profile');
+  }
   
   const discordAuthUrl = new URL('https://discord.com/api/oauth2/authorize');
   discordAuthUrl.searchParams.set('client_id', process.env.DISCORD_CLIENT_ID!);
@@ -97,9 +109,7 @@ router.get('/discord/callback', async (req: Request, res: Response) => {
       .updateTable('gm_profiles')
       .set({
         discord_connected: true,
-        discord_username: discordUser.discriminator !== '0' 
-          ? `${discordUser.username}#${discordUser.discriminator}`
-          : discordUser.username,
+        discord_username: discordUser.username, // CORREÇÃO P01: Discord removeu discriminators em 2023
         discord_id: discordUser.id,
         covil_verified: isInCovil,
       })
