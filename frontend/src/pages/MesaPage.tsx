@@ -37,6 +37,7 @@ export const MesaPage = () => {
         if (res.status === 404) {
           setError('Mesa não encontrada.');
           setTable(null);
+          setLoading(false);
           return;
         }
 
