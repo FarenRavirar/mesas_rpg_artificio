@@ -1,0 +1,153 @@
+import type { TableSchedule, TableContact } from '../../../types/tables';
+
+/**
+ * Variantes de renderização para componentes de mesa
+ */
+export type TableHeroVariant = 'full' | 'card' | 'highlight' | 'panel';
+export type TableActionPanelVariant = 'full' | 'compact' | 'owner';
+
+/**
+ * Configuração de CTA (Call-to-Action)
+ * Controla comportamento do botão primário
+ */
+export interface CTAConfig {
+  label: string;
+  disabled: boolean;
+  variant: 'primary' | 'secondary' | 'disabled';
+  action: 'scroll-contact' | 'external' | 'none';
+}
+
+/**
+ * Configuração de urgência (vagas)
+ * Controla tom e mensagem de urgência
+ */
+export interface UrgencyConfig {
+  label: string;
+  tone: 'critical' | 'high' | 'medium' | 'low' | 'none';
+  icon: string;
+}
+
+/**
+ * Configuração de visibilidade
+ * Controla quais seções renderizar
+ */
+export interface VisibilityConfig {
+  showPrice: boolean;
+  showSchedules: boolean;
+  showMaster: boolean;
+  showFullDetails: boolean;
+  compact: boolean;
+}
+
+/**
+ * Estrutura de certificações (DDAL, Covil do Lich, etc.)
+ * Permite filtros e renderização contextual
+ */
+export interface TableCertifications {
+  ddal?: {
+    code?: string;
+    name?: string;
+    tier?: number;
+    season?: string;
+    duration?: string;
+    format?: string;
+    orgCode?: string;
+    setting?: string;
+    rulesNotes?: string;
+  };
+  covil?: {
+    isMember: boolean;
+  };
+}
+
+/**
+ * ViewModel para renderização de mesa
+ * Desacopla API (TableDetail) da UI
+ * Ponto único de transformação de dados
+ */
+export interface TableViewModel {
+  // =============================
+  // DECISION ENGINE (configs)
+  // =============================
+  cta: CTAConfig;
+  urgency: UrgencyConfig;
+  visibility: VisibilityConfig;
+
+  // =============================
+  // DADOS
+  // =============================
+  
+  // Identificação
+  id: string;
+  slug: string;
+  title: string;
+  subtitle?: string;
+
+  // Decisão rápida (Hero)
+  system: string;
+  experience: string;
+  modality: string;
+
+  // Vagas
+  slotsLeft: number;
+  slotsTotal: number;
+  slotsFilled: number;
+  isFull: boolean;
+
+  // Preço
+  price?: number;
+  priceFrequency?: string;
+
+  // Badges/Certificações
+  certifications: TableCertifications;
+  scenario?: string;
+
+  // Mestre
+  masterName?: string;
+  masterSlug?: string;
+  masterAvatar?: string;
+  masterBio?: string;
+
+  // Horários
+  schedules: TableSchedule[];
+
+  // Conteúdo (Engagement)
+  description?: string;
+  narrative?: string;
+  benefits?: string;
+  styleText?: string;
+
+  // Segurança
+  contentWarnings: string[];
+  safetyTools: string[];
+
+  // Técnico
+  campaignLength?: string;
+  levelRange?: string;
+  billingText?: string;
+  sessionZeroFree?: boolean;
+  technicalRequirements?: string;
+  requiresPC?: boolean;
+  requiresCamera?: boolean;
+  requiresMicrophone?: boolean;
+
+  // Cenário e estilos
+  settingName?: string;
+  settingStyles?: string[];
+
+  // Metadados
+  coverUrl?: string;
+  status: string;
+  origin?: 'manual' | 'imported';
+  publisherRole: string;
+  actualGmName?: string;
+
+  // Contatos
+  contacts: TableContact[];
+
+  // Localização
+  city?: string;
+  state?: string;
+  language: string;
+  startsAt?: string;
+}
