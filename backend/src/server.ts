@@ -32,18 +32,40 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json({ limit: '10mb' })); // Suporta JSONs grandes do DiscordChatExporter
 
+// CORREÇÃO DT-005: Validar todas env vars obrigatórias no healthcheck
+const REQUIRED_ENV_VARS = [
+  'DATABASE_URL',
+  'JWT_SECRET',
+  'JWT_REFRESH_SECRET',
+  'GOOGLE_CLIENT_ID',
+  'GOOGLE_CLIENT_SECRET',
+  'IMGUR_CLIENT_ID'
+];
+
 // Verificação de ambiente em health-check
 app.get('/api/v1/health', async (req, res) => {
   try {
     const defaultResponse = { status: 'ok', environment: process.env.APP_ENV || 'local' };
+    const missingVars: string[] = [];
+
+    // Validar variáveis obrigatórias
+    for (const varName of REQUIRED_ENV_VARS) {
+      if (!process.env[varName]) {
+        missingVars.push(varName);
+      }
+    }
+
+    if (missingVars.length > 0) {
+      return res.status(500).json({
+        status: 'error',
+        message: 'Variáveis de ambiente obrigatórias ausentes',
+        missing: missingVars
+      });
+    }
 
     // Test DB connection usando Kysely
-    if (process.env.DATABASE_URL) {
-      const result = await db.selectFrom('users').select('id').limit(1).execute();
-      res.json({ ...defaultResponse, db: 'connected', usersSampled: result.length > 0 });
-    } else {
-      res.json(defaultResponse);
-    }
+    const result = await db.selectFrom('users').select('id').limit(1).execute();
+    res.json({ ...defaultResponse, db: 'connected', usersSampled: result.length > 0 });
   } catch (error: any) {
     res.status(500).json({ status: 'error', message: 'Database connection failed', details: error.message });
   }

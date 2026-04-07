@@ -5,10 +5,12 @@ interface StepConfigProps {
     type: string;
     modality: string;
     audience: string;
+    age_rating: string;
     price_type: string;
     price_value: string;
     slots_total: string;
     experience_level: string;
+    table_level: string;
     language: string;
   };
   setForm: (form: any) => void;
@@ -16,6 +18,14 @@ interface StepConfigProps {
   setPublisherRole: (role: 'gm' | 'announcer') => void;
   actualGmName: string;
   setActualGmName: (name: string) => void;
+  gamePlatform: string;
+  setGamePlatform: (platform: string) => void;
+  communicationPlatform: string;
+  setCommunicationPlatform: (platform: string) => void;
+  frequency: 'semanal' | 'quinzenal' | 'mensal' | 'outros' | null;
+  setFrequency: (freq: 'semanal' | 'quinzenal' | 'mensal' | 'outros' | null) => void;
+  frequencyCustom: string;
+  setFrequencyCustom: (custom: string) => void;
 }
 
 function InputField({ label, id, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string }) {
@@ -53,10 +63,20 @@ export function StepConfig({
   setPublisherRole,
   actualGmName,
   setActualGmName,
+  gamePlatform,
+  setGamePlatform,
+  communicationPlatform,
+  setCommunicationPlatform,
+  frequency,
+  setFrequency,
+  frequencyCustom,
+  setFrequencyCustom,
 }: StepConfigProps) {
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
+
+  const isOnline = form.modality === 'online' || form.modality === 'hibrida';
 
   return (
     <div className="space-y-6">
@@ -137,7 +157,39 @@ export function StepConfig({
           <option value="hibrida">Híbrida</option>
         </SelectField>
 
-        <SelectField label="Audiência" id="audience" name="audience" value={form.audience} onChange={handleChange}>
+        {/* Plataformas (apenas para online/híbrida) */}
+        {isOnline && (
+          <>
+            <InputField
+              label="Plataforma de Jogo"
+              id="game_platform"
+              name="game_platform"
+              value={gamePlatform}
+              onChange={(e) => setGamePlatform(e.target.value)}
+              placeholder="Ex: Roll20, Foundry VTT, Teatro da Mente"
+            />
+
+            <InputField
+              label="Plataforma de Comunicação"
+              id="communication_platform"
+              name="communication_platform"
+              value={communicationPlatform}
+              onChange={(e) => setCommunicationPlatform(e.target.value)}
+              placeholder="Ex: Discord, Zoom, Google Meet"
+            />
+          </>
+        )}
+
+        <SelectField label="Faixa Etária *" id="age_rating" name="age_rating" value={form.age_rating} onChange={handleChange}>
+          <option value="livre">Livre (Todos os públicos)</option>
+          <option value="+10">+10 anos</option>
+          <option value="+12">+12 anos</option>
+          <option value="+14">+14 anos</option>
+          <option value="+16">+16 anos</option>
+          <option value="+18">+18 anos</option>
+        </SelectField>
+
+        <SelectField label="Audiência (legado)" id="audience" name="audience" value={form.audience} onChange={handleChange}>
           <option value="livre">Livre (Todos os públicos)</option>
           <option value="adultos">Adultos (+18)</option>
         </SelectField>
@@ -162,7 +214,7 @@ export function StepConfig({
         )}
 
         <SelectField
-          label="Nível de Experiência"
+          label="Nível de Experiência do Jogador"
           id="experience_level"
           name="experience_level"
           value={form.experience_level}
@@ -173,6 +225,44 @@ export function StepConfig({
           <option value="intermediario">Intermediário</option>
           <option value="veterano">Veterano</option>
         </SelectField>
+
+        <SelectField
+          label="Nível de Complexidade da Mesa"
+          id="table_level"
+          name="table_level"
+          value={form.table_level}
+          onChange={handleChange}
+        >
+          <option value="todos">Todos os Níveis</option>
+          <option value="iniciante">Iniciante (regras simples)</option>
+          <option value="intermediario">Intermediário</option>
+          <option value="avancado">Avançado (regras complexas)</option>
+        </SelectField>
+
+        <SelectField
+          label={`Frequência das Sessões${(form.type === 'campanha' || form.type === 'oneshot-serie') ? ' *' : ''}`}
+          id="frequency"
+          name="frequency"
+          value={frequency || ''}
+          onChange={(e) => setFrequency(e.target.value as any || null)}
+        >
+          <option value="">Não especificado</option>
+          <option value="semanal">Semanal</option>
+          <option value="quinzenal">Quinzenal</option>
+          <option value="mensal">Mensal</option>
+          <option value="outros">Outros</option>
+        </SelectField>
+
+        {frequency === 'outros' && (
+          <InputField
+            label="Frequência Customizada"
+            id="frequency_custom"
+            name="frequency_custom"
+            value={frequencyCustom}
+            onChange={(e) => setFrequencyCustom(e.target.value)}
+            placeholder="Ex: A cada 3 semanas, Bimestral"
+          />
+        )}
 
         <InputField
           label="Vagas Totais"

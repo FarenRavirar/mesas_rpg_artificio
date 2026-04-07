@@ -3,6 +3,7 @@ import { ShieldCheck } from 'lucide-react';
 import bannerPlaceholder from '../../../assets/banner_placeholder.webp';
 import { SettingStylesField } from '../../SettingStylesField';
 import { ContactsFormBlock, type ContactFormEntry } from '../../ContactsFormBlock';
+import { RichTextArea } from '../../RichTextArea';
 import type { ChangeEvent, InputHTMLAttributes } from 'react';
 
 interface DdalFormState {
@@ -270,32 +271,27 @@ export function StepFinal(props: StepFinalProps) {
           {/* Descrições expandidas */}
           <div className="space-y-3">
             <p className="text-sm font-semibold text-white/80">Descrições Expandidas</p>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="synopsis" className="text-sm font-medium text-white/70">
-                Sinopse Narrativa (opcional)
-              </label>
-              <textarea
-                id="synopsis"
-                value={props.synopsis}
-                onChange={(e) => props.setSynopsis(e.target.value)}
-                rows={4}
-                placeholder="Uma sinopse mais longa e imersiva da campanha..."
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all resize-none"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="style_text" className="text-sm font-medium text-white/70">
-                Estilo de Jogo (opcional)
-              </label>
-              <textarea
-                id="style_text"
-                value={props.styleText}
-                onChange={(e) => props.setStyleText(e.target.value)}
-                rows={2}
-                placeholder="Ex: Roleplay pesado, Combate tático, Sandbox político"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all resize-none"
-              />
-            </div>
+            
+            <RichTextArea
+              id="synopsis"
+              label="Sinopse Narrativa (opcional)"
+              value={props.synopsis}
+              onChange={props.setSynopsis}
+              placeholder="Uma sinopse mais longa e imersiva da campanha..."
+              rows={4}
+              maxLength={2000}
+            />
+            
+            <RichTextArea
+              id="style_text"
+              label="Estilo de Jogo (opcional)"
+              value={props.styleText}
+              onChange={props.setStyleText}
+              placeholder="Ex: Roleplay pesado, Combate tático, Sandbox político"
+              rows={2}
+              maxLength={500}
+            />
+            
             <InputField
               label="Resumo Curto (opcional)"
               id="listing_excerpt"

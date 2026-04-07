@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { authMiddleware } from '../middleware/auth.js';
-import * as linkService from '../services/linkService.js';
+import { authMiddleware } from '../middleware/auth';
+import * as linkService from '../services/linkService';
 
 const router = Router();
 

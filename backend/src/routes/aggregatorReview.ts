@@ -73,7 +73,22 @@ router.get('/candidates/:id', async (req: Request, res: Response) => {
 // REQ-28: Aceita body opcional com overrides de campos revisados
 router.patch('/candidates/:id/accept', async (req: Request, res: Response) => {
   const { id } = req.params;
-  const overrides = req.body && typeof req.body === 'object' ? req.body : null;
+  
+  // CORREÇÃO A13: Validar estrutura de overrides antes de processar
+  let overrides = null;
+  if (req.body && typeof req.body === 'object') {
+    // Validar que overrides não contém campos perigosos
+    const dangerousFields = ['id', 'created_at', 'updated_at', 'gm_id', 'user_id'];
+    const hasInvalidFields = Object.keys(req.body).some(key => dangerousFields.includes(key));
+    
+    if (hasInvalidFields) {
+      return res.status(400).json({ 
+        error: 'Overrides contém campos não permitidos. Remova: ' + dangerousFields.join(', ') 
+      });
+    }
+    
+    overrides = req.body;
+  }
 
   try {
     const updated = await candidateService.accept(id, overrides);
@@ -133,8 +148,19 @@ router.put('/candidates/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
   const { parsed_json } = req.body;
 
+  // CORREÇÃO C05: Validar estrutura mínima de parsed_json
   if (!parsed_json || typeof parsed_json !== 'object') {
     return res.status(400).json({ error: 'Campo parsed_json é obrigatório e deve ser um objeto.' });
+  }
+
+  // Validar campos mínimos obrigatórios
+  const requiredFields = ['title'];
+  const missingFields = requiredFields.filter(field => !parsed_json[field]);
+  
+  if (missingFields.length > 0) {
+    return res.status(400).json({ 
+      error: `Campos obrigatórios ausentes em parsed_json: ${missingFields.join(', ')}` 
+    });
   }
 
   try {

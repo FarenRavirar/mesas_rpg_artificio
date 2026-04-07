@@ -1,3 +1,4 @@
+import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AppShell } from './components/AppShell';
@@ -46,36 +47,74 @@ function AppRoutes() {
 }
 
 function App() {
+  const [backendHealthy, setBackendHealthy] = React.useState<boolean | null>(null);
+
+  // CORREÇÃO DT-012: Validar backend antes de renderizar
+  React.useEffect(() => {
+    const checkBackend = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const response = await fetch(`${apiUrl}/api/v1/health`, {
+          method: 'GET',
+          signal: AbortSignal.timeout(5000)
+        });
+        setBackendHealthy(response.ok);
+      } catch {
+        setBackendHealthy(false);
+      }
+    };
+    checkBackend();
+  }, []);
+
+  if (backendHealthy === null) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'white' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '24px', marginBottom: '16px' }}>Conectando ao backend...</div>
+          <div style={{ fontSize: '14px', opacity: 0.6 }}>Aguarde</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (backendHealthy === false) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'white', backgroundColor: '#1a1a1a' }}>
+        <div style={{ textAlign: 'center', maxWidth: '500px', padding: '32px' }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
+          <div style={{ fontSize: '24px', marginBottom: '16px', fontWeight: 'bold' }}>Backend não disponível</div>
+          <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '24px' }}>
+            O servidor backend não está respondendo. Certifique-se de que o backend está rodando em http://localhost:3000
+          </div>
+          <button 
+            onClick={() => window.location.reload()} 
+            style={{ padding: '12px 24px', fontSize: '16px', cursor: 'pointer', borderRadius: '8px', border: 'none', backgroundColor: '#ff6b35', color: 'white' }}
+          >
+            Tentar novamente
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <BrowserRouter>
       <AuthProvider>
         <AppShell>
           <AppRoutes />
         </AppShell>
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              background: '#1f2937',
+              color: '#fff',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+            },
+          }}
+        />
       </AuthProvider>
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 4000,
-          style: {
-            background: '#1e293b',
-            color: '#fff',
-            border: '1px solid rgba(59, 130, 246, 0.3)',
-          },
-          success: {
-            iconTheme: {
-              primary: '#10b981',
-              secondary: '#fff',
-            },
-          },
-          error: {
-            iconTheme: {
-              primary: '#ef4444',
-              secondary: '#fff',
-            },
-          },
-        }}
-      />
     </BrowserRouter>
   );
 }

@@ -612,7 +612,7 @@ def extract_synopsis(content: str) -> Optional[str]:
     return None
 
 
-def extract_description_blocks(content: str) -> dict:
+def extract_description_blocks(content: str) -> Dict[str, Optional[str]]:
     """
     Extrai blocos editoriais separados do anúncio (REQ-28 Fase 1).
     
@@ -625,7 +625,7 @@ def extract_description_blocks(content: str) -> dict:
             'gm_bio': str              # Sobre o mestre
         }
     """
-    blocks = {
+    blocks: Dict[str, Optional[str]] = {
         'synopsis_narrative': None,
         'rules_notes': None,
         'signup_text': None,
@@ -961,7 +961,7 @@ def extract_slots_detailed(content: str) -> Dict[str, Optional[int]]:
     - "4 vagas (2 preenchidas)" → total: 4, disponíveis: 2
     - "Restam 3 vagas" → disponíveis: 3
     """
-    result = {
+    result: Dict[str, Optional[int]] = {
         "slots_total": None,
         "slots_available": None,
         "slots_filled": None
@@ -1005,7 +1005,7 @@ def extract_slots_detailed(content: str) -> Dict[str, Optional[int]]:
 
 def classify_system(system_text: str, content: str) -> Dict[str, Any]:
     """
-    Classifica o sistema extraído.
+    Classifica o sistema extraído com auto-detecção melhorada (REQ-21 Lacuna 10).
     
     Retorna classificação: válido, inválido, revisável
     Detecta homebrew e sistema próprio
@@ -1034,15 +1034,36 @@ def classify_system(system_text: str, content: str) -> Dict[str, Any]:
         result["system_classification"] = "revisável"
         result["confidence"] = 0.6
         
-        # Tentar extrair sistema base
+        # Tentar extrair sistema base (expandido)
         base_systems = {
             'd&d': 'D&D',
+            'dnd': 'D&D',
+            'dungeons': 'D&D',
+            'dragons': 'D&D',
+            '5e': 'D&D 5e',
+            '3.5': 'D&D 3.5',
             'pathfinder': 'Pathfinder',
+            'pf2e': 'Pathfinder 2e',
             'fate': 'FATE',
             'savage worlds': 'Savage Worlds',
             'gurps': 'GURPS',
             'call of cthulhu': 'Call of Cthulhu',
-            'tormenta': 'Tormenta'
+            'coc': 'Call of Cthulhu',
+            'tormenta': 'Tormenta',
+            'tormenta20': 'Tormenta20',
+            '3d&t': '3D&T',
+            'old dragon': 'Old Dragon',
+            'vampiro': 'Vampiro: A Máscara',
+            'lobisomem': 'Lobisomem: O Apocalipse',
+            'mago': 'Mago: A Ascensão',
+            'ordem paranormal': 'Ordem Paranormal',
+            'cyberpunk': 'Cyberpunk',
+            'shadowrun': 'Shadowrun',
+            'starfinder': 'Starfinder',
+            'mutants': 'Mutants & Masterminds',
+            'pbta': 'Powered by the Apocalypse',
+            'forged in the dark': 'Forged in the Dark',
+            'blades': 'Blades in the Dark',
         }
         
         for key, value in base_systems.items():
@@ -1056,6 +1077,25 @@ def classify_system(system_text: str, content: str) -> Dict[str, Any]:
         result["is_custom"] = True
         result["system_classification"] = "inválido"
         result["confidence"] = 0.3
+    
+    # Auto-detecção de sistemas conhecidos no conteúdo (se system_text estiver vazio)
+    if not system_text or len(system_text) < 3:
+        known_systems = {
+            'd&d 5e': ['d&d 5e', 'dnd 5e', '5ª edição', 'quinta edição'],
+            'pathfinder 2e': ['pathfinder 2e', 'pf2e', 'pathfinder segunda'],
+            'call of cthulhu': ['call of cthulhu', 'chamado de cthulhu', 'coc 7e'],
+            'tormenta20': ['tormenta20', 'tormenta 20', 't20'],
+            'ordem paranormal': ['ordem paranormal', 'ordo realitas', 'op rpg'],
+            'vampiro': ['vampiro a máscara', 'vampire the masquerade', 'v5', 'v20'],
+            'fate': ['fate core', 'fate acelerado', 'fate accelerated'],
+        }
+        
+        for system_name, keywords in known_systems.items():
+            if any(keyword in content_lower for keyword in keywords):
+                result["system_normalized"] = system_name
+                result["system_raw"] = system_name
+                result["confidence"] = 0.7
+                break
     
     return result
 
@@ -1268,22 +1308,30 @@ def extract_experience_required(content: str) -> Optional[str]:
 
 
 def extract_tags(content: str) -> list:
-    """Extrai tags/estilos da mesa."""
+    """Extrai tags/estilos da mesa com auto-detecção melhorada (REQ-21 Lacuna 10)."""
     tags = []
     content_lower = content.lower()
     
-    # Tags comuns
+    # Tags comuns expandidas
     tag_keywords = {
-        'terror': ['terror', 'horror', 'medo'],
-        'investigacao': ['investigação', 'mistério', 'detetive'],
-        'combate': ['combate', 'batalha', 'luta'],
-        'roleplay': ['roleplay', 'interpretação', 'rp'],
-        'exploracao': ['exploração', 'aventura', 'descoberta'],
-        'politica': ['política', 'intriga', 'diplomacia'],
-        'romance': ['romance', 'romântico', 'amor', 'romantasia'],
-        'comedia': ['comédia', 'humor', 'engraçado'],
-        'drama': ['drama', 'dramático'],
-        'acao': ['ação', 'shounen'],
+        'terror': ['terror', 'horror', 'medo', 'suspense', 'lovecraft'],
+        'investigacao': ['investigação', 'mistério', 'detetive', 'enigma', 'pistas'],
+        'combate': ['combate', 'batalha', 'luta', 'tático', 'guerra'],
+        'roleplay': ['roleplay', 'interpretação', 'rp', 'narrativo', 'imersivo'],
+        'exploracao': ['exploração', 'aventura', 'descoberta', 'dungeon crawl', 'hexcrawl'],
+        'politica': ['política', 'intriga', 'diplomacia', 'corte', 'nobres'],
+        'romance': ['romance', 'romântico', 'amor', 'romantasia', 'relacionamento'],
+        'comedia': ['comédia', 'humor', 'engraçado', 'leve', 'descontraído'],
+        'drama': ['drama', 'dramático', 'emocional', 'intenso'],
+        'acao': ['ação', 'shounen', 'adrenalina', 'dinâmico'],
+        'sandbox': ['sandbox', 'mundo aberto', 'livre', 'exploração livre'],
+        'linear': ['linear', 'história guiada', 'railroad', 'narrativa fixa'],
+        'dark': ['dark', 'sombrio', 'grimdark', 'maduro'],
+        'heroico': ['heroico', 'épico', 'heróis', 'salvadores'],
+        'survival': ['sobrevivência', 'survival', 'recursos limitados'],
+        'stealth': ['furtivo', 'stealth', 'infiltração', 'espionagem'],
+        'puzzle': ['puzzle', 'quebra-cabeça', 'enigmas', 'desafios mentais'],
+        'social': ['social', 'interação', 'conversação', 'negociação'],
     }
     
     for tag, keywords in tag_keywords.items():

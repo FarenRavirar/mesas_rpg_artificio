@@ -26,7 +26,8 @@ export const LoginPage = () => {
   const authError = searchParams.get('error');
 
   const handleLoginClick = () => {
-    window.location.href = '/api/v1/auth/google';
+    const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    window.location.href = `${backendUrl}/api/v1/auth/google`;
   };
 
   return (

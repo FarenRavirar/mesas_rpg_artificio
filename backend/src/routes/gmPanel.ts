@@ -343,6 +343,11 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Campos obrigatórios: title, type, modality.' });
   }
 
+  // Lacuna 3: Frequência obrigatória para mesas em andamento (type === 'campanha' ou 'oneshot-serie')
+  if ((type === 'campanha' || type === 'oneshot-serie') && !frequency) {
+    return res.status(400).json({ error: 'Frequência é obrigatória para campanhas e one-shots em série.' });
+  }
+
   const safePublisherRole = sanitizePublisherRole(publisher_role);
   const safeActualGmName = sanitizeOptionalText(actual_gm_name);
   const contactsPayload = sanitizeContactsPayload(contacts);
@@ -1189,7 +1194,10 @@ router.put('/admin/tables/:id', authMiddleware, async (req: Request, res: Respon
     scenario_id,
     type,
     audience,
+    age_rating,
     modality,
+    game_platform,
+    communication_platform,
     price_type,
     price_value,
     price_frequency,
@@ -1197,6 +1205,7 @@ router.put('/admin/tables/:id', authMiddleware, async (req: Request, res: Respon
     slots_filled,
     language,
     experience_level,
+    table_level,
     starts_at,
     city,
     state,
@@ -1225,6 +1234,9 @@ router.put('/admin/tables/:id', authMiddleware, async (req: Request, res: Respon
     synopsis_narrative,
     benefits_text,
     gm_bio,
+    // REQ-21: Novos campos
+    custom_scenario,
+    style_tags,
   } = req.body;
 
   try {
@@ -1279,7 +1291,10 @@ router.put('/admin/tables/:id', authMiddleware, async (req: Request, res: Respon
         scenario_id: hasOwn('scenario_id') ? (scenario_id ?? null) : undefined,
         type: type ?? undefined,
         audience: audience ?? undefined,
+        age_rating: age_rating ?? undefined,
         modality: modality ?? undefined,
+        game_platform: hasOwn('game_platform') ? sanitizeOptionalText(game_platform) : undefined,
+        communication_platform: hasOwn('communication_platform') ? sanitizeOptionalText(communication_platform) : undefined,
         price_type: price_type ?? undefined,
         price_value: hasOwn('price_value') ? (price_value ?? null) : undefined,
         price_frequency: hasOwn('price_frequency') ? (price_frequency ?? null) : undefined,
@@ -1287,6 +1302,7 @@ router.put('/admin/tables/:id', authMiddleware, async (req: Request, res: Respon
         slots_filled: slots_filled ?? undefined,
         language: language ?? undefined,
         experience_level: experience_level ?? undefined,
+        table_level: table_level ?? undefined,
         starts_at: hasOwn('starts_at') ? (starts_at ? new Date(starts_at) : null) : undefined,
         city: hasOwn('city') ? (city ?? null) : undefined,
         state: hasOwn('state') ? (state ?? null) : undefined,
@@ -1318,6 +1334,12 @@ router.put('/admin/tables/:id', authMiddleware, async (req: Request, res: Respon
         synopsis_narrative: hasOwn('synopsis_narrative') ? sanitizeOptionalText(synopsis_narrative) : undefined,
         benefits_text: hasOwn('benefits_text') ? sanitizeOptionalText(benefits_text) : undefined,
         gm_bio: hasOwn('gm_bio') ? sanitizeOptionalText(gm_bio) : undefined,
+        // REQ-21: Novos campos
+        custom_scenario: hasOwn('custom_scenario') ? sanitizeOptionalText(custom_scenario) : undefined,
+        style_tags: hasOwn('style_tags') ? (() => {
+          const sanitized = sanitizeStringArray(style_tags);
+          return sanitized.length > 0 ? sanitized : null;
+        })() : undefined,
       })
       .where('id', '=', id)
       .returning([

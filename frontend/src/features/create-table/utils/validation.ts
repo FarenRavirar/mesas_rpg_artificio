@@ -104,6 +104,11 @@ export function validateStep(step: number, data: FormState): string[] {
     if (data.publisherRole === 'announcer' && !data.actualGmName) {
       errors.push('Nome do mestre obrigatório quando você é apenas anunciante');
     }
+
+    // Lacuna 3: Frequência obrigatória para campanhas e one-shots em série
+    if ((data.form.type === 'campanha' || data.form.type === 'oneshot-serie') && !data.frequency) {
+      errors.push('Frequência é obrigatória para campanhas e one-shots em série');
+    }
   }
 
   if (step === 5) {

@@ -1,5 +1,5 @@
-import { db } from '../db/index.js';
-import type { UserLinks } from '../db/types.js';
+import { db } from '../db/index';
+import type { UserLinks } from '../db/types';
 
 // Tipos de link suportados
 export type LinkType = 

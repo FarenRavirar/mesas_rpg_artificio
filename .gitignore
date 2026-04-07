@@ -62,4 +62,27 @@ ambiente_atual_mesas.md
 tmp/cenarios.json
 tmp/sistemas.json
 tmp/catalogo_completo_sistemas.md
+<<<<<<< Updated upstream
 /sessoes
+=======
+
+# Ambiente de desenvolvimento local — NÃO versionar
+docker-compose.local.yml
+GUIA_RAPIDO_LOCAL.md
+backend/.env.local.example
+scripts/sync-db-from-beta.ps1
+scripts/test-migration.ps1
+scripts/deploy-local.ps1
+scripts/powershell-aliases.ps1
+docs/AMBIENTE_LOCAL.md
+docs/WORKFLOW_MIGRATIONS.md
+docs/SETUP_ALIASES.md
+docs/DEPLOY_LOCAL_VISUAL.md
+dev.bat
+tmp/*_dump_*.sql
+tmp/beta_dump_*.sql
+tmp/pre_migration_backup_*.sql
+/tmp
+/sessoes
+dev.bkp.bat
+>>>>>>> Stashed changes

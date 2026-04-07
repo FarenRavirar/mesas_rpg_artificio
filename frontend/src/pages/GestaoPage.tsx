@@ -9,7 +9,8 @@ import { ScenarioEditModal } from '../components/ScenarioEditModal';
 import { MarkdownEditor } from '../components/MarkdownEditor';
 import { SystemsPage } from '../modules/admin/systems/SystemsPage';
 
-const API_BASE = import.meta.env.VITE_API_URL ?? '';
+// CORREÇÃO DT-011: Fallback para dev local quando VITE_API_URL não está definida
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 interface SystemSuggestion {
   id: string;
@@ -1492,9 +1493,37 @@ export const GestaoPage = () => {
                   {/* Dados brutos (JSON) */}
                   {showRawData && (
                     <div className="mt-4 pt-4 border-t border-blue-500/20">
-                      <pre className="text-xs text-white/80 bg-black/30 p-3 rounded overflow-x-auto max-h-96">
-                        {JSON.stringify(selectedCandidate.parsed_json, null, 2)}
-                      </pre>
+                      <div className="space-y-3">
+                        {/* Campos REQ-21 destacados */}
+                        <div className="text-xs text-white/60 mb-2">
+                          <strong className="text-white/80">Campos REQ-21:</strong> age_rating, table_level, game_platform, communication_platform, custom_scenario, style_tags, frequency
+                        </div>
+                        
+                        {/* JSON formatado com scroll */}
+                        <pre className="text-xs text-white/80 bg-black/40 p-4 rounded-lg overflow-x-auto max-h-96 border border-white/10">
+                          {JSON.stringify(selectedCandidate.parsed_json, null, 2)}
+                        </pre>
+                        
+                        {/* Metadados do candidato */}
+                        <div className="grid grid-cols-2 gap-2 text-xs bg-black/20 p-3 rounded-lg">
+                          <div>
+                            <span className="text-white/50">ID:</span>
+                            <span className="text-white/80 ml-2">{selectedCandidate.id}</span>
+                          </div>
+                          <div>
+                            <span className="text-white/50">Confiança:</span>
+                            <span className="text-white/80 ml-2">{selectedCandidate.confidence_score}%</span>
+                          </div>
+                          <div>
+                            <span className="text-white/50">Status:</span>
+                            <span className="text-white/80 ml-2">{selectedCandidate.editorial_status}</span>
+                          </div>
+                          <div>
+                            <span className="text-white/50">Modo:</span>
+                            <span className="text-white/80 ml-2">{selectedCandidate.publish_mode}</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1704,10 +1733,86 @@ export const GestaoPage = () => {
                         </label>
                       </div>
                     </div>
+
+                    {/* CORREÇÃO B09: Campo de texto de cobrança */}
+                    <div>
+                      <label className="block text-sm font-semibold text-white mb-2">
+                        Texto de Cobrança
+                      </label>
+                      <input
+                        type="text"
+                        value={editedCandidate?.billing_text ?? selectedCandidate.parsed_json.enrichedFields?.billing_text ?? selectedCandidate.parsed_json.priceText ?? ''}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditedCandidate((prev: any) => ({ ...prev, billing_text: e.target.value }))}
+                        className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        placeholder="Ex: R$ 50/sessão, Gratuita, etc."
+                      />
+                    </div>
+
+                    {/* CORREÇÃO B05: Campo de URL do banner */}
+                    <div>
+                      <label className="block text-sm font-semibold text-white mb-2">
+                        URL do Banner
+                      </label>
+                      <input
+                        type="url"
+                        value={editedCandidate?.banner_url ?? selectedCandidate.parsed_json.enrichedFields?.banner_url ?? selectedCandidate.parsed_json.imageUrl ?? selectedCandidate.parsed_json.banner ?? ''}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditedCandidate((prev: any) => ({ ...prev, banner_url: e.target.value }))}
+                        className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        placeholder="https://..."
+                      />
+                    </div>
+
+                    {/* CORREÇÃO B08: Agenda (sessions) */}
+                    {selectedCandidate.parsed_json.enrichedFields?.sessions && Array.isArray(selectedCandidate.parsed_json.enrichedFields.sessions) && selectedCandidate.parsed_json.enrichedFields.sessions.length > 0 && (
+                      <div>
+                        <label className="block text-sm font-semibold text-white mb-2">
+                          Agenda (Sessões)
+                        </label>
+                        <div className="space-y-2">
+                          {selectedCandidate.parsed_json.enrichedFields.sessions.map((session: any, index: number) => (
+                            <div key={index} className="bg-white/5 border border-white/10 rounded-lg p-3">
+                              <div className="grid grid-cols-2 gap-2 text-sm">
+                                <div>
+                                  <span className="text-white/50">Dia:</span>
+                                  <span className="text-white ml-2">{session.day_of_week || 'Não informado'}</span>
+                                </div>
+                                <div>
+                                  <span className="text-white/50">Horário:</span>
+                                  <span className="text-white ml-2">
+                                    {session.start_time || 'Não informado'}
+                                    {session.end_time && ` - ${session.end_time}`}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-white/50">Frequência:</span>
+                                  <span className="text-white ml-2">{session.frequency || 'Não informado'}</span>
+                                </div>
+                                {session.slots_per_session && (
+                                  <div>
+                                    <span className="text-white/50">Vagas:</span>
+                                    <span className="text-white ml-2">{session.slots_per_session}</span>
+                                  </div>
+                                )}
+                                {session.notes && (
+                                  <div className="col-span-2">
+                                    <span className="text-white/50">Observações:</span>
+                                    <span className="text-white ml-2">{session.notes}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-xs text-white/40 mt-2">
+                          ⚠️ Edição de agenda não implementada. Para alterar, edite o parsed_json diretamente.
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Preview de Banner */}
-                  {(candidateMappedData.get(selectedCandidate.id)?.banner_url || 
+                  {(editedCandidate?.banner_url || 
+                    candidateMappedData.get(selectedCandidate.id)?.banner_url || 
                     selectedCandidate.parsed_json.imageUrl || 
                     selectedCandidate.parsed_json.banner || 
                     selectedCandidate.parsed_json.thumbnail) && (
@@ -1717,6 +1822,7 @@ export const GestaoPage = () => {
                       </label>
                       <img
                         src={
+                          editedCandidate?.banner_url ||
                           candidateMappedData.get(selectedCandidate.id)?.banner_url ||
                           selectedCandidate.parsed_json.imageUrl || 
                           selectedCandidate.parsed_json.banner || 

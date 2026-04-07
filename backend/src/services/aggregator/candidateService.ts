@@ -167,7 +167,7 @@ export const candidateService = {
     );
     const parsedContacts = readContacts(enrichedFields.contacts, parsedJson.contacts);
     
-    // banner_url: prioridade enrichedFields.banner_url > parsedJson.imageUrl/banner/thumbnail
+    // CORREÇÃO A04: Extrair banner_url e banner_deletehash
     const bannerUrl = (
       typeof enrichedFields.banner_url === 'string' ? enrichedFields.banner_url :
       typeof parsedJson.imageUrl === 'string' ? parsedJson.imageUrl :
@@ -175,6 +175,12 @@ export const candidateService = {
       typeof parsedJson.thumbnail === 'string' ? parsedJson.thumbnail :
       null
     ) || null;
+
+    const bannerDeletehash = readString(
+      enrichedFields.banner_deletehash,
+      parsedJson.banner_deletehash,
+      parsedJson.bannerDeletehash
+    );
 
     // REQ-28: Cenário e estilos (com prioridade para overrides)
     const settingName = readString(enrichedFields.setting_name, parsedJson.setting_name, parsedJson.settingName);
@@ -214,8 +220,13 @@ export const candidateService = {
       recruiterName,
     );
 
-    // CORREÇÃO A14: Extrair avatarUrl do parser Python
+    // CORREÇÃO A14 + A05: Extrair avatarUrl e avatarDeletehash do parser Python
     const avatarUrl = readString(enrichedFields.avatar_url, parsedJson.avatar_url, parsedJson.avatarUrl);
+    const avatarDeletehash = readString(
+      enrichedFields.avatar_deletehash,
+      parsedJson.avatar_deletehash,
+      parsedJson.avatarDeletehash
+    );
 
     const actualGmName = readString(enrichedFields.actual_gm_name, parsedJson.actual_gm_name, parsedJson.actualGmName);
     
@@ -239,9 +250,14 @@ export const candidateService = {
       ? rawPriceType
       : 'gratuita') as 'gratuita' | 'paga';
 
-    // Validar contatos obrigatórios
+    // CORREÇÃO A08: Validar contatos obrigatórios com mensagem específica
     if (!signupText && parsedContacts.length === 0) {
-      throw new Error('Candidato sem informação de contato. Edite o candidato e adicione ao menos um canal de contato antes de aprovar.');
+      throw new Error(
+        'Candidato sem informação de contato válida. ' +
+        'Verifique se o campo "contacts" no parsed_json contém ao menos um objeto com "channel" e "value", ' +
+        'ou se "signupText" está preenchido. ' +
+        'Edite o candidato antes de aprovar.'
+      );
     }
 
     // Buscar user genérico mestre_externo
@@ -266,8 +282,9 @@ export const candidateService = {
         slug: gmSlug,
         nickname: gmNickname,
         bio_long: gmBio || `Perfil temporário para mesa importada. Mestre: ${gmNickname}`,
-        // CORREÇÃO A14: Persistir avatar extraído do Discord
+        // CORREÇÃO A14 + A05: Persistir avatar e deletehash extraídos do Discord
         avatar_url: avatarUrl,
+        avatar_deletehash: avatarDeletehash,
       })
       .returning(['id', 'slug'])
       .execute();
@@ -303,7 +320,9 @@ export const candidateService = {
           type: tableType,
           modality,
           price_type: priceType,
+          // CORREÇÃO A04: Persistir banner_url e banner_deletehash
           banner_url: bannerUrl,
+          banner_deletehash: bannerDeletehash,
           is_covil: detectIsCovil(parsedJson),
           imported_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
           setting_name: settingName,
@@ -347,8 +366,13 @@ export const candidateService = {
           .execute();
       }
 
-      // REQ-27: Criar schedules a partir de enrichedFields.sessions[]
-      const sessions = Array.isArray(enrichedFields.sessions) ? enrichedFields.sessions : parsedJson.sessions;
+      // CORREÇÃO A09: Criar schedules a partir de enrichedFields.sessions[] (prioridade sobre parsedJson)
+      const sessions = Array.isArray(enrichedFields.sessions) 
+        ? enrichedFields.sessions 
+        : Array.isArray(parsedJson.sessions) 
+        ? parsedJson.sessions 
+        : null;
+        
       if (Array.isArray(sessions) && sessions.length > 0) {
         const scheduleValues = sessions
           .filter((session: any) => {

@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const API_BASE = import.meta.env.VITE_API_URL ?? '';
+// CORREÇÃO DT-011: Fallback para dev local quando VITE_API_URL não está definida
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 interface ScenarioEditModalProps {
   scenario: {
