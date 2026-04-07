@@ -2,8 +2,8 @@ import { Request, Response, NextFunction } from 'express';
 import fs from 'fs';
 import path from 'path';
 
-// Diretório de logs na VM
-const LOG_DIR = '/var/log/mesas-api';
+// Diretório de logs dentro do /app onde o container tem permissão
+const LOG_DIR = '/app/logs';
 const LOG_FILE = path.join(LOG_DIR, 'routes.log');
 
 // Criar diretório se não existir

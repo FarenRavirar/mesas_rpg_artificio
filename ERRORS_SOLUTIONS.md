@@ -306,8 +306,8 @@ Migration 13 adicionou 6 novos campos (age_rating, table_level, game_platform, c
 Sistema completo de logging de requisições HTTP para diagnóstico de problemas de rotas, erros de banco de dados e comportamento inesperado da API.
 
 **Localização dos logs:**
-- **Arquivo principal:** `/var/log/mesas-api/routes.log` (dentro da VM)
-- **Arquivos rotacionados:** `/var/log/mesas-api/routes-<timestamp>.log`
+- **Arquivo principal:** `/app/logs/routes.log` (dentro do container)
+- **Arquivos rotacionados:** `/app/logs/routes-<timestamp>.log`
 - **Rotação automática:** A cada 6 horas ou quando arquivo atingir 10MB
 - **Retenção:** Últimos 5 arquivos rotacionados
 
@@ -315,25 +315,25 @@ Sistema completo de logging de requisições HTTP para diagnóstico de problemas
 
 ```powershell
 # Ver últimas 50 linhas
-ssh -F C:\projetos\config faren "docker exec mesas-beta-api tail -50 /var/log/mesas-api/routes.log"
+ssh -F C:\projetos\config faren "docker exec mesas-beta-api tail -50 /app/logs/routes.log"
 
 # Ver logs em tempo real (follow)
-ssh -F C:\projetos\config faren "docker exec mesas-beta-api tail -f /var/log/mesas-api/routes.log"
+ssh -F C:\projetos\config faren "docker exec mesas-beta-api tail -f /app/logs/routes.log"
 
 # Buscar por slug específico
-ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep 'a-voz-nas-cartas' /var/log/mesas-api/routes.log"
+ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep 'a-voz-nas-cartas' /app/logs/routes.log"
 
 # Buscar por erro específico
-ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep 'ERROR' /var/log/mesas-api/routes.log | tail -20"
+ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep 'ERROR' /app/logs/routes.log | tail -20"
 
 # Buscar por código de erro PostgreSQL
-ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep '22P02' /var/log/mesas-api/routes.log"
+ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep '22P02' /app/logs/routes.log"
 
 # Buscar por Request ID específico
-ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep 'ReqID: 1712520000000-abc123' /var/log/mesas-api/routes.log"
+ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep 'ReqID: 1712520000000-abc123' /app/logs/routes.log"
 
 # Copiar log completo para análise local
-scp -F C:\projetos\config faren:/var/log/mesas-api/routes.log C:\projetos\mesas_rpg_artificio\testes\routes.log
+docker cp mesas-beta-api:/app/logs/routes.log C:\projetos\mesas_rpg_artificio\testes\routes.log
 ```
 
 **Formato do log:**
@@ -389,22 +389,22 @@ try {
 
 1. **Erro 500 em rota específica:**
    ```powershell
-   ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep 'GET /api/v1/tables' /var/log/mesas-api/routes.log | grep ERROR | tail -10"
+   ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep 'GET /api/v1/tables' /app/logs/routes.log | grep ERROR | tail -10"
    ```
 
 2. **Rastrear requisição específica por Request ID:**
    ```powershell
-   ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep 'ReqID: <id>' /var/log/mesas-api/routes.log"
+   ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep 'ReqID: <id>' /app/logs/routes.log"
    ```
 
 3. **Ver todos os erros de UUID:**
    ```powershell
-   ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep '22P02' /var/log/mesas-api/routes.log"
+   ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep '22P02' /app/logs/routes.log"
    ```
 
 4. **Ver requisições lentas (> 1000ms):**
    ```powershell
-   ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep -E 'Duration: [0-9]{4,}ms' /var/log/mesas-api/routes.log"
+   ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep -E 'Duration: [0-9]{4,}ms' /app/logs/routes.log"
    ```
 
 **Manutenção:**
