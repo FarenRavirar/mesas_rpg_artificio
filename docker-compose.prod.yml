@@ -6,6 +6,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
+        VITE_API_URL: https://mesas.artificiorpg.com
         VITE_ENABLE_DEVTOOLS: ${VITE_ENABLE_DEVTOOLS:-false}
     container_name: mesas-app
     restart: always

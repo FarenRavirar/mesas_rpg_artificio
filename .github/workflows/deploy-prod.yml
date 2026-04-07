@@ -27,16 +27,14 @@ jobs:
           script: |
             cd /opt/mesas
             git pull origin main
-            docker build --no-cache \
-              --build-arg VITE_API_URL=https://mesas.artificiorpg.com \
-              -t mesas-frontend:latest \
-              ./frontend
-            docker build --no-cache -t mesas-backend:latest ./backend
+            docker compose -f docker-compose.prod.yml build --no-cache
             docker compose -f docker-compose.prod.yml up -d mesas-db
             sleep 15
             docker exec mesas-api npm run migrate || echo "Migrations já aplicadas"
             docker compose -f docker-compose.prod.yml up -d
             docker compose -f docker-compose.prod.yml ps
+            echo "🧹 Limpando imagens antigas..."
+            docker image prune -f
       
       - name: Notify Success
         if: success()
