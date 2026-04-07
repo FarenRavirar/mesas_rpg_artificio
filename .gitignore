@@ -1,0 +1,28 @@
+﻿# Dependencias
+node_modules/
+
+# Ambiente
+.env
+*.env
+!.env.example
+
+# Secrets
+secrets.txt
+*.key
+*.pem
+id_rsa*
+
+# Build
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Temporarios
+tmp/
+temp/

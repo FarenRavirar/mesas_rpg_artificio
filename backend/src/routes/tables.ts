@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { sql } from 'kysely';
 import { db } from '../db';
+import { logDatabaseError } from '../middleware/requestLogger';
 
 const router = Router();
 
@@ -42,6 +43,8 @@ router.get('/', async (req: Request, res: Response) => {
       .leftJoin('users as u', 'u.id', 'gm.user_id')
       .leftJoin('profiles as p', 'p.user_id', 'u.id')
       .leftJoin('systems as s', 's.id', 't.system_id')
+      // CORREÇÃO A-HIGH-01: JOIN com vtt_platforms para consistência com rota de detalhes
+      .leftJoin('vtt_platforms as vtt', 'vtt.id', 't.vtt_platform_id')
       .select([
         't.id',
         't.slug',
@@ -89,6 +92,20 @@ router.get('/', async (req: Request, res: Response) => {
         'gm.avatar_url as gm_avatar_url',
         'gm.badges as gm_badges',
         sql<string>`COALESCE(gm.nickname, p.display_name)`.as('gm_display_name'),
+        // CORREÇÃO A-HIGH-01: Retornar objeto vtt_platform para cards de catálogo
+        sql<any>`
+          CASE WHEN vtt.id IS NOT NULL THEN
+            json_build_object(
+              'id', vtt.id,
+              'name', vtt.name,
+              'slug', vtt.slug,
+              'logo_filename', vtt.logo_filename,
+              'website_url', vtt.website_url
+            )
+          ELSE NULL
+          END
+        `.as('vtt_platform'),
+        't.game_platform_custom', // CORREÇÃO A-HIGH-01: Retornar custom VTT para cards
       ])
       .where('t.status', '=', 'active')
       .orderBy('t.created_at', 'desc')
@@ -192,7 +209,13 @@ router.get('/', async (req: Request, res: Response) => {
 router.get('/:slug', async (req: Request, res: Response) => {
   const { slug } = req.params;
 
+  // CORREÇÃO A-HIGH-02: Validar formato do slug antes de usar em query
+  if (!slug || slug.length > 200 || !/^[a-z0-9-]+$/i.test(slug)) {
+    return res.status(400).json({ error: 'Slug inválido.' });
+  }
+
   try {
+    console.log('[DEBUG] GET /tables/:slug - Starting query with slug:', slug);
     const table = await db
       .selectFrom('tables as t')
       .leftJoin('gm_profiles as gm', 'gm.id', 't.gm_id')
@@ -290,12 +313,7 @@ router.get('/:slug', async (req: Request, res: Response) => {
         sql<string>`COALESCE(gm.nickname, p.display_name)`.as('gm_display_name'),
         'gm.bio_long as gm_bio_long', // CORREÇÃO REG-13: Renomeado para evitar conflito com t.gm_bio
       ])
-      .where((eb) => 
-        eb.or([
-          eb('t.slug', '=', slug),
-          eb('t.id', '=', slug) // Aceita UUID também
-        ])
-      )
+      .where('t.slug', '=', slug)
       .executeTakeFirst();
 
     if (!table) {
@@ -332,7 +350,28 @@ router.get('/:slug', async (req: Request, res: Response) => {
 
     res.json({ data: { ...table, contacts, schedules } });
   } catch (error: any) {
-    console.error('[GET /tables/:slug]', error);
+    // Log detalhado de erro de banco de dados
+    logDatabaseError(req, error, {
+      route: 'GET /api/v1/tables/:slug',
+      operation: 'fetch_table_details'
+    });
+    
+    // CORREÇÃO A-CRIT-02: Detectar erro de migration pendente
+    console.error('[GET /tables/:slug]', error, { 
+      slug, 
+      errorMessage: error.message,
+      pgCode: error.code,
+      stack: error.stack 
+    });
+    
+    // Detectar erro de tabela inexistente (migration não executada)
+    if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
+      console.error('[MIGRATION PENDING] Database table does not exist. Check if migrations were executed.');
+      return res.status(503).json({ 
+        error: 'Serviço temporariamente indisponível. Tente novamente em alguns minutos.' 
+      });
+    }
+    
     res.status(500).json({ error: 'Erro ao buscar mesa.' });
   }
 });
