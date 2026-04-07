@@ -54,9 +54,7 @@ services:
       - FRONTEND_URL=https://mesasbeta.artificiorpg.com
       # Imgur
       - IMGUR_CLIENT_ID=${IMGUR_CLIENT_ID}
-      # Workers futuros, reservado para fases posteriores
-      - AGGREGATOR_CRON_SCHEDULE=0 6 * * *
-      - AGGREGATOR_DRY_RUN=false
+
     depends_on:
       mesas-beta-db:
         condition: service_healthy

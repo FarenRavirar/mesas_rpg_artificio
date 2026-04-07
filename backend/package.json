@@ -9,8 +9,7 @@
     "dev": "nodemon src/server.ts",
     "systems:import-tree": "ts-node src/scripts/systemsTreeImport.ts",
     "systems:import-json": "ts-node src/scripts/importSistemas.ts",
-    "scenarios:import": "ts-node src/scripts/importCenarios.ts",
-    "aggregator:import": "ts-node src/scripts/importDiscordExport.ts"
+    "scenarios:import": "ts-node src/scripts/importCenarios.ts"
   },
   "keywords": [],
   "author": "",

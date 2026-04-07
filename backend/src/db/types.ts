@@ -193,9 +193,7 @@ export type ExperienceLevel = 'todos' | 'iniciante' | 'intermediario' | 'veteran
 export type PublisherRole = 'gm' | 'announcer';
 export type TableContactChannel = 'whatsapp' | 'discord' | 'phone' | 'email' | 'facebook' | 'instagram' | 'form';
 export type TableOrigin = 'manual' | 'imported';
-export type AggregatorPlatform = 'discord';
-export type AggregatorPublishMode = 'manual_review' | 'auto_publish';
-export type AggregatorEditorialStatus = 'accepted' | 'rejected' | 'awaiting_review';
+
 
 export interface TablesTable {
   id: Generated<string>;
@@ -318,59 +316,7 @@ export type SettingStyleSuggestion = Selectable<SettingStyleSuggestionsTable>;
 export type NewSettingStyleSuggestion = Insertable<SettingStyleSuggestionsTable>;
 export type SettingStyleSuggestionUpdate = Updateable<SettingStyleSuggestionsTable>;
 
-export interface AggregatorSourcesTable {
-  id: Generated<string>;
-  name: string;
-  platform: Generated<AggregatorPlatform>;
-  server_id: string;
-  channel_id: string;
-  enabled: Generated<boolean>;
-  allow_paid: Generated<boolean>;
-  publish_mode: Generated<AggregatorPublishMode>;
-  default_timezone: Generated<string>;
-  notes: string | null;
-  created_at: Generated<Date>;
-  updated_at: Generated<Date>;
-}
 
-export interface AggregatorImportedRawMessagesTable {
-  id: Generated<string>;
-  source_id: string;
-  external_id: string;
-  raw_text: string;
-  author_name: string | null;
-  author_discord_id: string | null;
-  message_url: string | null;
-  processed: Generated<boolean>;
-  message_created_at: Date | null;
-  raw_payload: unknown;
-  processing_attempts: Generated<number>;
-  last_processing_error: string | null;
-  created_at: Generated<Date>;
-  updated_at: Generated<Date>;
-}
-
-export interface AggregatorImportCandidatesTable {
-  id: Generated<string>;
-  source_id: string;
-  raw_message_id: string;
-  external_id: string;
-  parsed_json: unknown;
-  confidence_score: Generated<number>;
-  editorial_status: Generated<AggregatorEditorialStatus>;
-  publish_mode: Generated<AggregatorPublishMode>;
-  publish_at: Date | null;
-  rejection_reason: string | null;
-  published_table_id: string | null;
-  created_at: Generated<Date>;
-  updated_at: Generated<Date>;
-}
-
-export interface AggregatorSettingsTable {
-  key: string;
-  value: unknown;
-  updated_at: Generated<Date>;
-}
 
 export type SuggestionStatus = 'pending' | 'approved' | 'rejected';
 
@@ -448,10 +394,7 @@ export interface Database {
   table_contacts: TableContactsTable;
   table_schedules: TableSchedulesTable;
   setting_style_suggestions: SettingStyleSuggestionsTable;
-  aggregator_sources: AggregatorSourcesTable;
-  aggregator_imported_raw_messages: AggregatorImportedRawMessagesTable;
-  aggregator_import_candidates: AggregatorImportCandidatesTable;
-  aggregator_settings: AggregatorSettingsTable;
+
   user_links: UserLinksTable;
   table_metrics: TableMetricsTable;
 }

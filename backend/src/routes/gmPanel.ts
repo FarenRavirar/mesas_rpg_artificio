@@ -1202,21 +1202,8 @@ router.delete('/tables/:id', authMiddleware, async (req: Request, res: Response)
       return res.status(404).json({ error: 'Mesa não encontrada ou sem permissão.' });
     }
 
-    // Deletar em transação (schedules, contacts, candidate reference, depois table)
+    // Deletar em transação (schedules, contacts, depois table)
     await db.transaction().execute(async (trx) => {
-      // CORREÇÃO DT-08: Limpar published_table_id do candidato original se mesa for importada
-      if (existingTable.origin === 'imported') {
-        await trx
-          .updateTable('aggregator_import_candidates')
-          .set({ 
-            published_table_id: null,
-            editorial_status: 'awaiting_review',
-            updated_at: new Date(),
-          })
-          .where('published_table_id', '=', id)
-          .execute();
-      }
-
       // Deletar schedules
       await trx
         .deleteFrom('table_schedules')
