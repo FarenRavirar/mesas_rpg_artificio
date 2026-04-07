@@ -26,13 +26,6 @@ export const HomePage = () => {
     track('hero_view');
   }, []);
 
-  // Auto-search inicial
-  useEffect(() => {
-    if (!activeSearch) {
-      setActiveSearch('RPG');
-    }
-  }, []);
-
   // Detecção de drop-off
   useEffect(() => {
     if (!tables.length && activeSearch && !isLoading) {
