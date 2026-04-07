@@ -131,7 +131,7 @@ export const ScenarioEditModal = ({ scenario, token, onClose, onSuccess }: Scena
               value={name}
               onChange={(e) => handleNameChange(e.target.value)}
               className="w-full px-4 py-3 bg-[#0F1A2E] border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-blue-500"
-              placeholder="Ex: Forgotten Realms"
+              placeholder="Ex: Tormenta"
               required
             />
           </div>
@@ -146,7 +146,7 @@ export const ScenarioEditModal = ({ scenario, token, onClose, onSuccess }: Scena
               value={slug}
               onChange={(e) => setSlug(e.target.value)}
               className="w-full px-4 py-3 bg-[#0F1A2E] border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-blue-500"
-              placeholder="forgotten-realms"
+              placeholder={slug || 'slug-gerado-automaticamente'}
               disabled={!!scenario}
             />
           </div>

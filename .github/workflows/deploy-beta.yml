@@ -40,7 +40,7 @@ jobs:
             set -e
             cd /opt/mesas-beta
 
-            docker compose -f docker-compose.beta.yml up -d --build --remove-orphans
+            docker compose -f docker-compose.beta.yml up -d --build --force-recreate --remove-orphans
 
             echo "--- Aguardando containers estabilizarem ---"
             sleep 10

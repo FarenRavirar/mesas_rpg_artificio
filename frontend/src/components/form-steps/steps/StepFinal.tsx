@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Crown, ShieldCheck } from 'lucide-react';
 // REMOVIDO: bannerPlaceholder (modo review desacoplado)
 import { SettingStylesField } from '../../SettingStylesField';
@@ -103,6 +103,12 @@ function SelectField({ label, id, children, ...props }: any) {
 }
 
 export function StepFinal(props: StepFinalProps) {
+  // DEBUG: Verificar se userRole está chegando corretamente
+  useEffect(() => {
+    console.log('[StepFinal DEBUG] userRole recebido:', props.userRole);
+    console.log('[StepFinal DEBUG] userRole === "admin"?', props.userRole === 'admin');
+  }, [props.userRole]);
+
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const handleDdalChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {

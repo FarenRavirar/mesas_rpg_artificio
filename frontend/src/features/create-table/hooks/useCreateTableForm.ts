@@ -57,8 +57,8 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
   );
   const [frequency, setFrequency] = useState(initialData?.frequency || '');
   const [frequencyCustom, setFrequencyCustom] = useState('');
-  const [gamePlatform, setGamePlatform] = useState('');
-  const [communicationPlatform, setCommunicationPlatform] = useState('');
+  const [gamePlatform, setGamePlatform] = useState(initialData?.gamePlatform || '');
+  const [communicationPlatform, setCommunicationPlatform] = useState(initialData?.communicationPlatform || '');
 
   // Configuração
   const [publisherRole, setPublisherRole] = useState<'gm' | 'announcer'>(
@@ -148,6 +148,8 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
     selectedScenarioId,
     sessions,
     frequency,
+    gamePlatform,
+    communicationPlatform,
     publisherRole,
     actualGmName,
     contacts,

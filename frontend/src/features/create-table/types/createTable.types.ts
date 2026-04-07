@@ -51,6 +51,8 @@ export interface FormState {
   // Sessões
   sessions: SessionSchedule[];
   frequency: string;
+  gamePlatform: string;
+  communicationPlatform: string;
   
   // Configuração
   publisherRole: 'gm' | 'announcer';
@@ -118,6 +120,8 @@ export interface CreateTablePayload {
   safety_tools?: string[];
   frequency?: string;
   frequency_custom?: string;
+  game_platform?: string;
+  communication_platform?: string;
   price_value?: number;
   price_frequency?: string;
   ddal_code?: string;
