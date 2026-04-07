@@ -203,6 +203,7 @@ export interface TablesTable {
   gm_id: string | null;
   system_id: string | null;
   scenario_id: string | null;
+  custom_scenario: string | null;
   title: string;
   description: string | null;
   cover_url: string | null;
@@ -211,7 +212,10 @@ export interface TablesTable {
   status: Generated<TableStatus>;
   type: TableType;
   audience: Generated<TableAudience>;
+  age_rating: 'livre' | '10+' | '12+' | '14+' | '16+' | '18+' | null;
   modality: Generated<TableModality>;
+  game_platform: string | null;
+  communication_platform: string | null;
   price_type: Generated<PriceType>;
   price_value: number | null;
   price_frequency: PriceFrequency | null;
@@ -219,6 +223,7 @@ export interface TablesTable {
   slots_filled: Generated<number>;
   language: Generated<string>;
   experience_level: Generated<ExperienceLevel>;
+  table_level: 'iniciante' | 'intermediario' | 'avancado' | null;
   starts_at: Date | null;
   city: string | null;
   state: string | null;
@@ -260,6 +265,7 @@ export interface TablesTable {
   requires_microphone: Generated<boolean>;
   setting_name: string | null;
   setting_styles: string[] | null;
+  style_tags: string[] | null;
   synopsis_narrative: string | null;
   benefits_text: string | null;
   gm_bio: string | null;

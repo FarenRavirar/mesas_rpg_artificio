@@ -248,3 +248,49 @@ Use para localizar o erro sem varrer a tabela inteira:
 | E131 | Frontend exibe "R$ null" quando price_value é null — problema visual após remoção da constraint price_value_required | **Causa raiz (05/04/2026):** Após remover a constraint `price_value_required` do banco (para permitir validação no código), o frontend passou a aceitar `price_value: null` do backend. Os componentes `MesaPage.tsx` e `TableCard.tsx` não tratavam corretamente o caso de `price_value` null, exibindo "R$ null" ao invés de ocultar a seção | Frontend exibe "R$ null" em cards de mesa e página de detalhes quando `price_type='paga'` mas `price_value` é null. Visualmente confuso e não profissional | **Solução validada (05/04/2026):** Lógica simplificada - **se tiver preço, mostra; se não tiver, não mostra nada**. (1) `MesaPage.tsx` linhas 440-447: envolver seção de preço com `{table.price_value && (...)}` para renderização condicional; (2) `TableCard.tsx` lines 108-112: envolver span de preço com `{table.price_value && (...)}` para renderização condicional; (3) Remover lógica de fallback "Gratuita" - preço só aparece quando existe valor válido; (4) Build validado sem erros TypeScript. Agora a seção de preço é completamente oculta quando `price_value` for null | Sempre usar renderização condicional para informações opcionais; evitar fallbacks visuais quando a ausência de informação é válida; validar build após mudanças de lógica condicional |
 | E132 | `ParserError: '}' de fechamento ausente` ou `Bloco Catch ou Finally ausente` em scripts PowerShell (.ps1) | **Causa raiz confirmada (07/04/2026):** Uso de emojis (como 📊) em arquivos UTF-8 sem BOM sendo lidos em ambiente Windows ANSI (CP1252). Bytes específicos de emojis podem ser interpretados como aspas inteligentes (`“`) ou escapes, fazendo o parser pular fechamentos de blocos ou `catch` | Erro ao executar script: `MissingEndCurlyBrace` ou `MissingCatchOrFinally`. A linha do erro geralmente aponta para o fechamento de um bloco `try` ou para um `Write-Host` com emoji | **Solução validada (07/04/2026):** (1) Remover emojis do script e usar indicadores ASCII (`[OK]`, `[ERRO]`); (2) Forçar encoding UTF-8 com BOM: `Get-Content script.ps1 | Out-File script.ps1 -Encoding utf8BOM` | Evitar o uso de emojis em scripts de infraestrutura PowerShell no Windows; sempre utilizar UTF-8 com BOM em arquivos `.ps1` para garantir portabilidade entre PowerShell 5.1 e 7 |
 
+
+
+---
+
+## E060 — Erro de compilação TypeScript: campo não existe em UpdateObjectExpression
+
+**Sintoma:**
+```
+error TS2353: Object literal may only specify known properties, and 'age_rating' does not exist in type 'UpdateObjectExpression<Database, "tables", "tables">'.
+```
+
+**Causa:**
+Após adicionar novos campos no banco de dados via migration, a interface TypeScript `TablesTable` em `backend/src/db/types.ts` não foi atualizada para incluir os novos campos. O Kysely usa essa interface para type-checking e não reconhece campos que não estão declarados.
+
+**Solução:**
+1. Abrir `backend/src/db/types.ts`
+2. Localizar a interface `TablesTable`
+3. Adicionar os novos campos com os tipos corretos:
+   - Para campos enum: usar union types literais (ex: `'livre' | '10+' | '12+' | '14+' | '16+' | '18+'`)
+   - Para campos nullable: adicionar `| null`
+   - Para arrays: usar `string[]` ou `string[] | null`
+   - Para campos com default: usar `Generated<tipo>` se necessário
+
+**Exemplo:**
+```typescript
+export interface TablesTable {
+  // ... campos existentes ...
+  age_rating: 'livre' | '10+' | '12+' | '14+' | '16+' | '18+' | null;
+  table_level: 'iniciante' | 'intermediario' | 'avancado' | null;
+  game_platform: string | null;
+  communication_platform: string | null;
+  custom_scenario: string | null;
+  style_tags: string[] | null;
+  // ... outros campos ...
+}
+```
+
+4. Executar `npm run build` no backend para verificar se não há mais erros
+
+**Prevenção:**
+Sempre que criar uma migration que adiciona campos à tabela `tables`, atualizar imediatamente a interface `TablesTable` em `backend/src/db/types.ts` antes de usar os campos no código.
+
+**Contexto:**
+Migration 13 adicionou 6 novos campos (age_rating, table_level, game_platform, communication_platform, custom_scenario, style_tags) mas a interface TypeScript não foi atualizada simultaneamente.
+
+**Data:** 07/04/2026
