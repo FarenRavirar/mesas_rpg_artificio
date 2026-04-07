@@ -85,6 +85,18 @@ export interface TableDetail extends TableCard {
   scenario_name?: string | null;
   scenario_subgenres?: string[];
   schedules?: TableSchedule[];
+  frequency?: string | null; // CORREÇÃO C05: Frequência das sessões
+  frequency_custom?: string | null; // CORREÇÃO C05: Frequência customizada
+  // VTT Platform (Migration 006)
+  vtt_platform?: {
+    id: string;
+    name: string;
+    slug: string;
+    logo_filename: string | null;
+    website_url: string | null;
+  } | null;
+  game_platform_custom?: string | null; // Quando mestre escolhe "Personalizado"
+  communication_platform?: string | null; // CORREÇÃO C06: Plataforma de comunicação
   origin?: 'manual' | 'imported';
   ddal_season?: string | null;
   ddal_duration?: string | null;

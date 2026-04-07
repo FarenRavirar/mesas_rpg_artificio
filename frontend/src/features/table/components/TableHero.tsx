@@ -79,7 +79,27 @@ export function TableHero({ vm, variant = 'full' }: TableHeroProps) {
           <div className="flex flex-wrap gap-3 text-sm mt-2">
             <span className="text-white/90">🎲 {vm.system}</span>
             <span className="text-white/90">🧠 {vm.experience}</span>
-            <span className="text-white/90">🌐 {vm.modality}</span>
+            {/* CORREÇÃO B01: Exibir logo VTT pequeno (20px) ao lado de modality */}
+            {vm.modality === 'online' && vm.vttPlatform ? (
+              <span className="flex items-center gap-1.5 text-white/90" title={vm.vttPlatform.name}>
+                {vm.vttPlatform.logo_filename && (
+                  <img 
+                    src={`/vtt-logos/${vm.vttPlatform.logo_filename}`} 
+                    alt={vm.vttPlatform.name}
+                    className="h-5 w-auto object-contain"
+                    onError={(e) => {
+                      // CORREÇÃO E02: Esconder imagem se falhar carregamento
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                )}
+                <span>{vm.vttPlatform.name}</span>
+              </span>
+            ) : vm.modality === 'online' && vm.gamePlatformCustom ? (
+              <span className="text-white/90">🌐 {vm.gamePlatformCustom}</span>
+            ) : (
+              <span className="text-white/90">🌐 {vm.modality}</span>
+            )}
           </div>
         )}
 

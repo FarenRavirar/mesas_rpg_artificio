@@ -212,7 +212,11 @@ export interface TablesTable {
   audience: Generated<TableAudience>;
   age_rating: 'livre' | '10+' | '12+' | '14+' | '16+' | '18+' | null;
   modality: Generated<TableModality>;
-  game_platform: string | null;
+  // VTT Platform (Migration 006)
+  vtt_platform_id: string | null; // Referência à vtt_platforms
+  game_platform_custom: string | null; // Texto livre quando seleciona "Personalizado"
+  game_platform_legacy: string | null; // Backup do campo antigo
+  game_platform: string | null; // DEPRECATED: Manter por compatibilidade temporária
   communication_platform: string | null;
   price_type: Generated<PriceType>;
   price_value: number | null;
@@ -375,6 +379,41 @@ export type UserLinks = Selectable<UserLinksTable>;
 export type NewUserLink = Insertable<UserLinksTable>;
 export type UserLinkUpdate = Updateable<UserLinksTable>;
 
+// VTT Platforms (Migration 006)
+export interface VttPlatformsTable {
+  id: Generated<string>;
+  name: string;
+  slug: string;
+  logo_filename: string | null;
+  website_url: string | null;
+  is_active: Generated<boolean>;
+  sort_order: Generated<number>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export type VttPlatform = Selectable<VttPlatformsTable>;
+export type NewVttPlatform = Insertable<VttPlatformsTable>;
+export type VttPlatformUpdate = Updateable<VttPlatformsTable>;
+
+export type VttSuggestionStatus = 'pending' | 'approved' | 'rejected';
+
+export interface VttPlatformSuggestionsTable {
+  id: Generated<string>;
+  suggested_name: string;
+  suggested_by_user_id: string;
+  table_id: string | null;
+  status: Generated<VttSuggestionStatus>;
+  admin_notes: string | null;
+  created_at: Generated<Date>;
+  reviewed_at: Date | null;
+  reviewed_by_user_id: string | null;
+}
+
+export type VttPlatformSuggestion = Selectable<VttPlatformSuggestionsTable>;
+export type NewVttPlatformSuggestion = Insertable<VttPlatformSuggestionsTable>;
+export type VttPlatformSuggestionUpdate = Updateable<VttPlatformSuggestionsTable>;
+
 export interface Database {
   users: UsersTable;
   auth_providers: AuthProvidersTable;
@@ -397,6 +436,10 @@ export interface Database {
 
   user_links: UserLinksTable;
   table_metrics: TableMetricsTable;
+  
+  // VTT Platforms (Migration 006)
+  vtt_platforms: VttPlatformsTable;
+  vtt_platform_suggestions: VttPlatformSuggestionsTable;
 }
 
 // Migration 16: Métricas de engajamento de mesas

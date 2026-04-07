@@ -54,6 +54,20 @@ export function TableSchedules({ vm }: TableSchedulesProps) {
               Início: {new Date(vm.startsAt).toLocaleDateString('pt-BR')}
             </p>
           )}
+
+          {/* CORREÇÃO C05 + B05: Exibir frequência da mesa */}
+          {vm.frequency && (
+            <div className="mt-4 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
+              <p className="text-xs text-blue-300/70 uppercase tracking-wide mb-1">Frequência das Sessões</p>
+              <p className="text-sm font-medium text-blue-200">
+                {vm.frequency === 'semanal' && '📅 Semanal'}
+                {vm.frequency === 'quinzenal' && '📅 Quinzenal'}
+                {vm.frequency === 'mensal' && '📅 Mensal'}
+                {vm.frequency === 'outros' && vm.frequencyCustom && `📅 ${vm.frequencyCustom}`}
+                {vm.frequency === 'outros' && !vm.frequencyCustom && '📅 Frequência customizada'}
+              </p>
+            </div>
+          )}
         </>
       )}
     </section>

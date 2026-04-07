@@ -269,7 +269,16 @@ export function CreateTableForm({
         )}
 
         {navigation.step === 3 && (
-          <StepSessions sessions={formHook.sessions} setSessions={formHook.setSessions} />
+          <StepSessions 
+            sessions={formHook.sessions} 
+            setSessions={formHook.setSessions}
+            form={formHook.form}
+            setForm={formHook.setForm}
+            frequency={formHook.frequency as any}
+            setFrequency={formHook.setFrequency as any}
+            frequencyCustom={formHook.frequencyCustom}
+            setFrequencyCustom={formHook.setFrequencyCustom}
+          />
         )}
 
         {navigation.step === 4 && (
@@ -280,14 +289,12 @@ export function CreateTableForm({
             setPublisherRole={formHook.setPublisherRole}
             actualGmName={formHook.actualGmName}
             setActualGmName={formHook.setActualGmName}
-            gamePlatform={formHook.gamePlatform}
-            setGamePlatform={formHook.setGamePlatform}
+            vttPlatformId={formHook.vttPlatformId}
+            setVttPlatformId={formHook.setVttPlatformId}
+            gamePlatformCustom={formHook.gamePlatformCustom}
+            setGamePlatformCustom={formHook.setGamePlatformCustom}
             communicationPlatform={formHook.communicationPlatform}
             setCommunicationPlatform={formHook.setCommunicationPlatform}
-            frequency={formHook.frequency as any}
-            setFrequency={formHook.setFrequency as any}
-            frequencyCustom={formHook.frequencyCustom}
-            setFrequencyCustom={formHook.setFrequencyCustom}
           />
         )}
 

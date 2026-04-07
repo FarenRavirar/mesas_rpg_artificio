@@ -51,7 +51,12 @@ export interface FormState {
   // Sessões
   sessions: SessionSchedule[];
   frequency: string;
-  gamePlatform: string;
+  frequencyCustom: string; // CORREÇÃO B01: Adicionar ao tipo
+  
+  // VTT Platform (select com opção "Personalizado")
+  vttPlatformId: string; // ID da VTT selecionada ou "custom"
+  gamePlatformCustom: string; // Texto livre quando vttPlatformId === "custom"
+  
   communicationPlatform: string;
   
   // Configuração
@@ -120,7 +125,9 @@ export interface CreateTablePayload {
   safety_tools?: string[];
   frequency?: string;
   frequency_custom?: string;
-  game_platform?: string;
+  // VTT Platform
+  vtt_platform_id?: string;
+  game_platform_custom?: string;
   communication_platform?: string;
   price_value?: number;
   price_frequency?: string;

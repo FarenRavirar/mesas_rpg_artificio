@@ -111,6 +111,19 @@ export interface TableViewModel {
 
   // Horários
   schedules: TableSchedule[];
+  frequency?: string; // CORREÇÃO C05: Frequência das sessões
+  frequencyCustom?: string; // CORREÇÃO C05: Frequência customizada
+
+  // Plataformas (online/híbrida)
+  vttPlatform?: {
+    id: string;
+    name: string;
+    slug: string;
+    logo_filename: string | null;
+    website_url: string | null;
+  };
+  gamePlatformCustom?: string; // Quando mestre escolhe "Personalizado"
+  communicationPlatform?: string; // CORREÇÃO C06: Plataforma de comunicação (Discord, Zoom, etc)
 
   // Conteúdo (Engagement)
   description?: string;

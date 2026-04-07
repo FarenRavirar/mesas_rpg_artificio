@@ -21,6 +21,7 @@ import discordRoutes from './routes/discord';
 // import aggregatorReviewRoutes from './routes/aggregatorReview';
 import settingsRoutes from './routes/settings';
 import adminSettingSuggestionsRoutes from './routes/adminSettingSuggestions';
+import vttPlatformsRoutes from './routes/vttPlatforms'; // Sistema de VTT Platforms
 import 'express-async-errors';
 import { db } from './db';
 
@@ -95,6 +96,7 @@ app.use('/api/v1/gm', gmRoutes);       // Perfil público do mestre
 // app.use('/api/v1/aggregator', aggregatorReviewRoutes);
 app.use('/api/v1/settings', settingsRoutes);  // REQ-28: Sugestões de estilos por cenário
 app.use('/api/v1/admin/setting-suggestions', adminSettingSuggestionsRoutes);  // REQ-28: Admin CRUD
+app.use('/api/v1/vtt-platforms', vttPlatformsRoutes);  // Sistema de VTT Platforms com logos
 
 
 

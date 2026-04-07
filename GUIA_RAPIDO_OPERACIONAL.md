@@ -26,6 +26,7 @@ Resumo executivo para reduzir custo de contexto dos agentes, com navegação rá
 | Mídia importada via Discord (banner/avatar) | `ARQUITETURA_PROJETO.md` §4.2 | `banner_url` é persistido no banco. `gm_avatar_url` é **apenas visual** no formulário de revisão — não persiste no banco |
 | Retenção de mesas importadas | `ARQUITETURA_PROJETO.md` §4.2 | Campo `imported_expires_at` na tabela `tables` (migration_10 — **pendente**). Operação de remoção irreversível — exigir double-confirm |
 | Deleção em lote de candidatos | `ARQUITETURA_PROJETO.md` §12 | `DELETE /api/v1/aggregator/candidates/bulk`. Body: `{ ids: string[] }`. Limite: 150 IDs por request. Retorna `{ deleted, requested }` |
+| Adicionar campo ao formulário de criação de mesa | Ver checklist abaixo | Caminho completo obrigatório: UI → formState → mapper → payload → backend → banco. Pular etapa causa erro 400 ou perda de dados |
 | Erros de execução | `ERRORS_SOLUTIONS.md` | Ao primeiro erro: parar e aplicar solução catalogada. Se inédito: registrar antes de continuar |
 
 ---
@@ -74,6 +75,56 @@ Resumo executivo para reduzir custo de contexto dos agentes, com navegação rá
 - **Rejeição por sistema não encontrado:** Sistema não cadastrado no banco — cadastrar via CRUD admin de sistemas
 - **Rejeição por mesa paga:** Filtro automático do parser, não é bug
 - **JSON truncado:** `repairTruncatedJson()` aplica 6 estratégias automáticas; fallback manual em `ERRORS_SOLUTIONS.md`
+
+---
+
+## Adicionar Campo ao Formulário de Criação de Mesa
+
+> [!CAUTION]
+> Pular qualquer etapa desta checklist causa erro 400 (Bad Request) ou perda silenciosa de dados no autosave/persistência.
+
+**Contexto:** O formulário de criação de mesa tem caminho completo: `UI → formState → mapper → payload → backend → banco`. Cada campo novo deve percorrer **todas as etapas**.
+
+### Checklist Obrigatória (10 passos)
+
+**Frontend — Estado e Autosave:**
+- [ ] 1. Adicionar `useState` no hook `useCreateTableForm.ts`
+- [ ] 2. Adicionar campo ao tipo `FormState` em `createTable.types.ts`
+- [ ] 3. Incluir no objeto `formState` (linha ~145-172 de `useCreateTableForm.ts`) para autosave
+- [ ] 4. Inicializar com `initialData?.nomeDoCampo || valorPadrao` para restaurar rascunho
+
+**Frontend — Envio para API:**
+- [ ] 5. Adicionar ao `mapper.ts` (função `formStateToPayload`) para enviar à API
+- [ ] 6. Adicionar ao tipo `CreateTablePayload` em `createTable.types.ts`
+
+**Backend e Banco:**
+- [ ] 7. Verificar se coluna existe no banco (`SELECT column_name FROM information_schema.columns WHERE table_name='tables' AND column_name='nome_coluna'`)
+- [ ] 8. Verificar se backend aceita o campo (rota `POST /api/v1/gm/tables` em `gmPanel.ts`)
+
+**Validação:**
+- [ ] 9. Build frontend sem erros TypeScript (`npm run build`)
+- [ ] 10. Testar criação de mesa no beta e validar persistência no banco
+
+### Sintomas de Etapa Pulada
+
+| Etapa pulada | Sintoma |
+|---|---|
+| 1-2 | Erro TypeScript: `Property does not exist on type FormState` |
+| 3 | Campo não salva no autosave (perde dados ao recarregar página) |
+| 4 | Campo não restaura do rascunho (volta vazio mesmo com autosave) |
+| 5-6 | Erro 400 Bad Request ou campo não persiste no banco |
+| 7 | Erro 500 Internal Server Error: `column does not exist` |
+| 8 | Erro 400 Bad Request ou campo ignorado silenciosamente |
+
+### Exemplo Real (gamePlatform e communicationPlatform)
+
+**Problema:** Campos adicionados na UI mas não enviados para API → erro 400.
+
+**Causa:** Passos 5 e 6 foram pulados (não estavam no `mapper.ts` nem no `CreateTablePayload`).
+
+**Solução:** Adicionar ao `mapper.ts` linha 59-60 e ao tipo linha 122-123.
+
+**Referência:** Ver commit que corrigiu esse bug (07/04/2026).
 
 ---
 

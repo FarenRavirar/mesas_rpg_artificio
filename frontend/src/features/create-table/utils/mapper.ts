@@ -56,7 +56,9 @@ export function formStateToPayload(state: FormState): CreateTablePayload {
     safety_tools: state.form.safety_tools || undefined,
     frequency: state.frequency || undefined,
     frequency_custom: state.form.frequency_custom || undefined,
-    game_platform: state.gamePlatform || undefined,
+    // VTT Platform: enviar ID ou null se "custom"
+    vtt_platform_id: (state.vttPlatformId && state.vttPlatformId !== 'custom') ? state.vttPlatformId : undefined,
+    game_platform_custom: (state.vttPlatformId === 'custom' && state.gamePlatformCustom) ? state.gamePlatformCustom : undefined,
     communication_platform: state.communicationPlatform || undefined,
     price_value: state.form.price_value ? parseFloat(state.form.price_value) : undefined,
     price_frequency: state.form.price_frequency || undefined,

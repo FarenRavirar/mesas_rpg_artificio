@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import type { ChangeEvent, InputHTMLAttributes, SelectHTMLAttributes } from 'react';
+import { useVttPlatforms } from '../../../hooks/useVttPlatforms'; // CORREÇÃO B02: Import hook VTT
 
 interface StepConfigProps {
   form: {
@@ -19,14 +21,12 @@ interface StepConfigProps {
   setPublisherRole: (role: 'gm' | 'announcer') => void;
   actualGmName: string;
   setActualGmName: (name: string) => void;
-  gamePlatform: string;
-  setGamePlatform: (platform: string) => void;
+  vttPlatformId: string;
+  setVttPlatformId: (id: string) => void;
+  gamePlatformCustom: string;
+  setGamePlatformCustom: (name: string) => void;
   communicationPlatform: string;
   setCommunicationPlatform: (platform: string) => void;
-  frequency: 'semanal' | 'quinzenal' | 'mensal' | 'outros' | null;
-  setFrequency: (freq: 'semanal' | 'quinzenal' | 'mensal' | 'outros' | null) => void;
-  frequencyCustom: string;
-  setFrequencyCustom: (custom: string) => void;
 }
 
 function InputField({ label, id, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string }) {
@@ -64,15 +64,24 @@ export function StepConfig({
   setPublisherRole,
   actualGmName,
   setActualGmName,
-  gamePlatform,
-  setGamePlatform,
+  vttPlatformId,
+  setVttPlatformId,
+  gamePlatformCustom,
+  setGamePlatformCustom,
   communicationPlatform,
   setCommunicationPlatform,
-  frequency,
-  setFrequency,
-  frequencyCustom,
-  setFrequencyCustom,
 }: StepConfigProps) {
+  // CORREÇÃO B02: Consumir hook para renderizar VTTs dinamicamente
+  const { platforms, loading: loadingVtts, error: errorVtts } = useVttPlatforms();
+
+  // CORREÇÃO G05: Resetar vttPlatformId se erro ao carregar VTTs
+  useEffect(() => {
+    if (errorVtts && vttPlatformId && vttPlatformId !== 'custom') {
+      console.warn('[StepConfig] Erro ao carregar VTTs, resetando seleção');
+      setVttPlatformId('');
+    }
+  }, [errorVtts, vttPlatformId, setVttPlatformId]);
+
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -161,14 +170,56 @@ export function StepConfig({
         {/* Plataformas (apenas para online/híbrida) */}
         {isOnline && (
           <>
-            <InputField
-              label="Plataforma de Jogo"
-              id="game_platform"
-              name="game_platform"
-              value={gamePlatform}
-              onChange={(e) => setGamePlatform(e.target.value)}
-              placeholder="Ex: Roll20, Foundry VTT, Teatro da Mente"
-            />
+            <SelectField
+              label="Plataforma de Jogo (VTT)"
+              id="vtt_platform_id"
+              name="vtt_platform_id"
+              value={vttPlatformId}
+              onChange={(e) => setVttPlatformId(e.target.value)}
+              disabled={loadingVtts}
+            >
+              <option value="">
+                {loadingVtts ? 'Carregando plataformas...' : 'Selecione a plataforma'}
+              </option>
+              {/* CORREÇÃO B02: Renderizar VTTs dinamicamente do banco */}
+              {!loadingVtts && !errorVtts && platforms.map((platform) => (
+                <option 
+                  key={platform.id} 
+                  value={platform.slug}
+                  title={platform.name}
+                >
+                  {platform.name}
+                </option>
+              ))}
+              <option value="custom" title="Plataforma personalizada ou outra não listada">✏️ Personalizado</option>
+            </SelectField>
+            {/* CORREÇÃO B02: Exibir erro se falhar ao carregar VTTs */}
+            {errorVtts && (
+              <p className="text-xs text-red-400 mt-1">
+                ⚠️ Erro ao carregar plataformas. Você pode usar a opção "Personalizado".
+              </p>
+            )}
+
+            {/* Campo customizado quando seleciona "Personalizado" */}
+            {vttPlatformId === 'custom' && (
+              <>
+                <InputField
+                  label="Nome da Plataforma Personalizada"
+                  id="game_platform_custom"
+                  name="game_platform_custom"
+                  value={gamePlatformCustom}
+                  onChange={(e) => setGamePlatformCustom(e.target.value)}
+                  placeholder="Ex: Teatro da Mente, Plataforma própria"
+                  required
+                />
+                {/* CORREÇÃO D05: Feedback visual de campo obrigatório */}
+                {!gamePlatformCustom && (
+                  <p className="text-xs text-amber-400 mt-1">
+                    ⚠️ Este campo é obrigatório quando você seleciona "Personalizado"
+                  </p>
+                )}
+              </>
+            )}
 
             <InputField
               label="Plataforma de Comunicação"
@@ -234,57 +285,6 @@ export function StepConfig({
           <option value="intermediario">Intermediário</option>
           <option value="avancado">Avançado (regras complexas)</option>
         </SelectField>
-
-        <SelectField
-          label={`Frequência das Sessões${(form.type === 'campanha' || form.type === 'oneshot-serie') ? ' *' : ''}`}
-          id="frequency"
-          name="frequency"
-          value={frequency || ''}
-          onChange={(e) => setFrequency(e.target.value as any || null)}
-        >
-          <option value="">Não especificado</option>
-          <option value="semanal">Semanal</option>
-          <option value="quinzenal">Quinzenal</option>
-          <option value="mensal">Mensal</option>
-          <option value="outros">Outros</option>
-        </SelectField>
-
-        {frequency === 'outros' && (
-          <InputField
-            label="Frequência Customizada"
-            id="frequency_custom"
-            name="frequency_custom"
-            value={frequencyCustom}
-            onChange={(e) => setFrequencyCustom(e.target.value)}
-            placeholder="Ex: A cada 3 semanas, Bimestral"
-          />
-        )}
-
-        <InputField
-          label="Vagas Totais"
-          id="slots_total"
-          name="slots_total"
-          type="number"
-          min="1"
-          max="20"
-          value={form.slots_total}
-          onChange={handleChange}
-        />
-
-        <InputField
-          label="Vagas Abertas para Recrutamento"
-          id="slots_open"
-          name="slots_open"
-          type="number"
-          min="0"
-          max={form.slots_total || "20"}
-          value={form.slots_open}
-          onChange={handleChange}
-          placeholder="Quantas vagas estão abertas para novos jogadores?"
-        />
-        <p className="text-xs text-white/50 -mt-2">
-          💡 Vagas abertas devem ser menores ou iguais ao total de jogadores
-        </p>
 
         <InputField
           label="Idioma"

@@ -56,8 +56,9 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
     }]
   );
   const [frequency, setFrequency] = useState(initialData?.frequency || '');
-  const [frequencyCustom, setFrequencyCustom] = useState('');
-  const [gamePlatform, setGamePlatform] = useState(initialData?.gamePlatform || '');
+  const [frequencyCustom, setFrequencyCustom] = useState(initialData?.frequencyCustom || ''); // CORREÇÃO B01: Restaurar do rascunho
+  const [vttPlatformId, setVttPlatformId] = useState(initialData?.vttPlatformId || '');
+  const [gamePlatformCustom, setGamePlatformCustom] = useState(initialData?.gamePlatformCustom || '');
   const [communicationPlatform, setCommunicationPlatform] = useState(initialData?.communicationPlatform || '');
 
   // Configuração
@@ -148,7 +149,9 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
     selectedScenarioId,
     sessions,
     frequency,
-    gamePlatform,
+    frequencyCustom, // CORREÇÃO B01: Incluir no formState
+    vttPlatformId,
+    gamePlatformCustom,
     communicationPlatform,
     publisherRole,
     actualGmName,
@@ -323,8 +326,10 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
     setFrequency,
     frequencyCustom,
     setFrequencyCustom,
-    gamePlatform,
-    setGamePlatform,
+    vttPlatformId,
+    setVttPlatformId,
+    gamePlatformCustom,
+    setGamePlatformCustom,
     communicationPlatform,
     setCommunicationPlatform,
     

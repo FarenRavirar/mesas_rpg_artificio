@@ -268,7 +268,7 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
   const userId = (req as any).user.userId;
 
   // Log do payload recebido para diagnóstico
-  console.log('[POST /gm/tables] Payload recebido:', {
+  console.log('[POST /gm/tables] Payload recebido:', JSON.stringify({
     userId,
     bodyKeys: Object.keys(req.body),
     title: req.body.title,
@@ -280,7 +280,7 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
     contactsCount: Array.isArray(req.body.contacts) ? req.body.contacts.length : 0,
     settingName: req.body.setting_name,
     settingStyles: req.body.setting_styles,
-  });
+  }, null, 2));
 
   const {
     title,
@@ -316,6 +316,10 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
     ddal_rules_notes,
     frequency,
     frequency_custom,
+    // VTT Platform (Migration 006)
+    vtt_platform_id,
+    game_platform_custom,
+    communication_platform,
     rules_notes,
     banner_url,
     is_covil,
@@ -393,6 +397,49 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
   if (safeFrequency === 'outros' && !safeFrequencyCustom) {
     return res.status(400).json({ error: 'Quando frequência for "Outros", informe a descrição customizada.' });
   }
+
+  // VTT Platform (Migration 006): Sanitizar e validar
+  const safeVttPlatformId = vtt_platform_id && typeof vtt_platform_id === 'string' ? vtt_platform_id.trim() : null;
+  const safeGamePlatformCustom = sanitizeOptionalText(game_platform_custom);
+  
+  // CORREÇÃO D01-D02 + G01: Buscar UUID pelo slug e validar com try/catch
+  let vttPlatformUuid: string | null = null;
+  if (safeVttPlatformId && safeVttPlatformId !== 'custom') {
+    try {
+      const vttPlatform = await db
+        .selectFrom('vtt_platforms')
+        .select(['id', 'slug'])
+        .where('slug', '=', safeVttPlatformId)
+        .where('is_active', '=', true)
+        .executeTakeFirst();
+      
+      if (!vttPlatform) {
+        return res.status(400).json({ error: 'Plataforma VTT inválida.' });
+      }
+      
+      vttPlatformUuid = vttPlatform.id;
+    } catch (error) {
+      // CORREÇÃO G01: Tratar erro de banco de dados
+      console.error('[gmPanel] Erro ao validar VTT:', error);
+      return res.status(500).json({ 
+        error: 'Erro ao validar plataforma VTT. Tente novamente em alguns instantes.' 
+      });
+    }
+  }
+  
+  // CORREÇÃO D06: Validar campo customizado obrigatório
+  if (safeVttPlatformId === 'custom' && !safeGamePlatformCustom) {
+    return res.status(400).json({ error: 'Quando selecionar "Personalizado", informe o nome da plataforma.' });
+  }
+  
+  // CORREÇÃO G06: Validar modalidade se VTT preenchida
+  if ((vttPlatformUuid || safeGamePlatformCustom) && modality !== 'online' && modality !== 'hibrida') {
+    return res.status(400).json({ 
+      error: 'Plataforma VTT só pode ser selecionada para mesas online ou híbridas.' 
+    });
+  }
+
+  const safeCommunicationPlatform = sanitizeOptionalText(communication_platform);
 
   const safeRulesNotes = sanitizeOptionalText(rules_notes);
   const safeBannerUrl = sanitizeOptionalText(banner_url);
@@ -525,6 +572,10 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
           ddal_rules_notes: safeIsDdal ? safeDdalRulesNotes : null,
           frequency: safeFrequency,
           frequency_custom: safeFrequency === 'outros' ? safeFrequencyCustom : null,
+          // VTT Platform (Migration 006) - CORREÇÃO D02: Persistir UUID, não slug
+          vtt_platform_id: vttPlatformUuid, // UUID ou null
+          game_platform_custom: safeVttPlatformId === 'custom' ? safeGamePlatformCustom : null,
+          communication_platform: safeCommunicationPlatform,
           rules_notes: safeRulesNotes,
           banner_url: safeBannerUrl,
           is_covil: safeIsCovil,
@@ -629,7 +680,7 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
 
     return res.status(201).json({ data: newTable });
   } catch (error: any) {
-    console.error('[POST /gm/tables] Erro ao criar mesa:', {
+    console.error('[POST /gm/tables] Erro ao criar mesa:', JSON.stringify({
       message: error.message,
       code: error.code,
       detail: error.detail,
@@ -637,7 +688,7 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
       table: error.table,
       column: error.column,
       stack: error.stack,
-    });
+    }, null, 2));
     
     // Retornar erro mais específico quando possível
     if (error.code === '23502') {
@@ -647,6 +698,12 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
     }
     
     if (error.code === '23503') {
+      // CORREÇÃO G02: Mensagem específica para FK de VTT
+      if (error.constraint?.includes('vtt_platform')) {
+        return res.status(400).json({ 
+          error: 'A plataforma VTT selecionada não está mais disponível. Recarregue a página e tente novamente.' 
+        });
+      }
       return res.status(400).json({ 
         error: `Referência inválida: ${error.detail || 'verifique os dados enviados'}` 
       });

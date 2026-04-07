@@ -151,6 +151,19 @@ export function mapTableToView(table: TableDetail): TableViewModel {
 
     // Horários
     schedules: table.schedules ?? [],
+    frequency: table.frequency ?? undefined, // CORREÇÃO C05
+    frequencyCustom: table.frequency_custom ?? undefined, // CORREÇÃO C05
+
+    // Plataformas
+    vttPlatform: table.vtt_platform ? {
+      id: table.vtt_platform.id,
+      name: table.vtt_platform.name,
+      slug: table.vtt_platform.slug,
+      logo_filename: table.vtt_platform.logo_filename,
+      website_url: table.vtt_platform.website_url,
+    } : undefined,
+    gamePlatformCustom: table.game_platform_custom ?? undefined,
+    communicationPlatform: table.communication_platform ?? undefined, // CORREÇÃO C06
 
     // Conteúdo
     description: table.description ?? undefined,

@@ -204,6 +204,8 @@ router.get('/:slug', async (req: Request, res: Response) => {
       .leftJoin('profiles as p', 'p.user_id', 'u.id')
       .leftJoin('systems as s', 's.id', 't.system_id')
       .leftJoin('scenarios as sc', 'sc.id', 't.scenario_id') // CORREÇÃO DT-02: JOIN para retornar cenário
+      // CORREÇÃO A01: JOIN com vtt_platforms para retornar dados de VTT
+      .leftJoin('vtt_platforms as vtt', 'vtt.id', 't.vtt_platform_id')
       .select([
         't.id',
         't.slug',
@@ -263,10 +265,29 @@ router.get('/:slug', async (req: Request, res: Response) => {
         't.synopsis_narrative',
         't.benefits_text',
         't.gm_bio',
+        // CORREÇÃO A03: Retornar frequency e frequency_custom
+        't.frequency',
+        't.frequency_custom',
+        // CORREÇÃO A01: Retornar campos de VTT Platform
+        't.game_platform_custom',
+        't.communication_platform',
         's.name as system_name',
         's.slug as system_slug',
         // CORREÇÃO DT-02: Retornar nome do cenário
         'sc.name as scenario_name',
+        // CORREÇÃO A01: Retornar objeto vtt_platform completo
+        sql<any>`
+          CASE WHEN vtt.id IS NOT NULL THEN
+            json_build_object(
+              'id', vtt.id,
+              'name', vtt.name,
+              'slug', vtt.slug,
+              'logo_filename', vtt.logo_filename,
+              'website_url', vtt.website_url
+            )
+          ELSE NULL
+          END
+        `.as('vtt_platform'),
         'gm.slug as gm_slug',
         'gm.avatar_url as gm_avatar_url',
         'gm.badges as gm_badges',
