@@ -79,7 +79,13 @@ function InputField({ label, id, ...props }: InputHTMLAttributes<HTMLInputElemen
   );
 }
 
-function CreateGmProfileForm({ token, onSuccess }: { token: string; onSuccess: () => void }) {
+const API_BASE = import.meta.env.VITE_API_URL;
+
+if (!API_BASE) {
+  throw new Error('VITE_API_URL não configurada');
+}
+
+function CreateGmProfileForm({ onSuccess }: { onSuccess: () => void }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nickname, setNickname] = useState('');
@@ -101,10 +107,10 @@ function CreateGmProfileForm({ token, onSuccess }: { token: string; onSuccess: (
     setError(null);
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || ''; // CORREÇÃO A1: URL relativa com fallback
-      const res = await fetch(`${apiUrl}/api/v1/gm/profile`, {
+      const res = await fetch(`${API_BASE}/api/v1/gm/profile`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ slug, nickname, bio_long: bio }),
       });
       const data = await res.json();
@@ -193,7 +199,7 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
 }
 
 export const PainelMestrePage = () => {
-  const { user, token } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   const [gmProfile, setGmProfile] = useState<GmProfile | null>(null);
@@ -206,7 +212,7 @@ export const PainelMestrePage = () => {
   const [deletingTableId, setDeletingTableId] = useState<string | null>(null); // CORREÇÃO B4
 
   useEffect(() => {
-    if (!user || !token) {
+    if (!user || !isAuthenticated) {
       navigate('/');
       return;
     }
@@ -215,9 +221,8 @@ export const PainelMestrePage = () => {
       setLoadingProfile(true);
 
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || ''; // CORREÇÃO A1
-        const profileRes = await fetch(`${apiUrl}/api/v1/gm/me`, {
-          headers: { Authorization: `Bearer ${token}` },
+        const profileRes = await fetch(`${API_BASE}/api/v1/gm/me`, {
+          credentials: 'include',
         });
 
         if (!profileRes.ok) {
@@ -243,8 +248,8 @@ export const PainelMestrePage = () => {
 
         setGmProfile(profile);
 
-        const tablesRes = await fetch(`${apiUrl}/api/v1/gm/tables`, { // CORREÇÃO A1: Reusar apiUrl
-          headers: { Authorization: `Bearer ${token}` },
+        const tablesRes = await fetch(`${API_BASE}/api/v1/gm/tables`, {
+          credentials: 'include',
         });
 
         if (tablesRes.ok) {
@@ -278,20 +283,19 @@ export const PainelMestrePage = () => {
     };
 
     loadPanelData();
-  }, [navigate, token, user]);
+  }, [navigate, isAuthenticated, user]);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const editId = searchParams.get('edit');
 
-    if (editId && token) {
+    if (editId && isAuthenticated) {
       setEditingTableId(editId);
 
       const loadTableData = async () => {
         try {
-          const apiUrl = import.meta.env.VITE_API_URL || ''; // CORREÇÃO A1
-          const response = await fetch(`${apiUrl}/api/v1/tables/${editId}`, {
-            headers: { Authorization: `Bearer ${token}` },
+          const response = await fetch(`${API_BASE}/api/v1/tables/${editId}`, {
+            credentials: 'include',
           });
 
           if (response.ok) {
@@ -311,16 +315,14 @@ export const PainelMestrePage = () => {
 
       loadTableData();
     }
-  }, [token, editingTableId]); // CORREÇÃO B2: Adicionar editingTableId nas dependências
+  }, [isAuthenticated, editingTableId]);
 
   const refreshData = () => {
-    // CORREÇÃO A2: Validar token antes de usar
-    if (!token) {
-      console.warn('[PainelMestrePage] refreshData chamado sem token');
+    if (!isAuthenticated) {
+      console.warn('[PainelMestrePage] refreshData chamado sem autenticação');
       return;
     }
 
-    // CORREÇÃO C2, C3: Limpar estado de edição e query params
     setEditingTableId(null);
     setEditingTableData(null);
     window.history.replaceState({}, '', '/painel');
@@ -328,10 +330,9 @@ export const PainelMestrePage = () => {
     setView('dashboard');
     setLoadingProfile(true);
 
-    const apiUrl = import.meta.env.VITE_API_URL || ''; // CORREÇÃO A1
     Promise.all([
-      fetch(`${apiUrl}/api/v1/gm/me`, { headers: { Authorization: `Bearer ${token}` } }),
-      fetch(`${apiUrl}/api/v1/gm/tables`, { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(`${API_BASE}/api/v1/gm/me`, { credentials: 'include' }),
+      fetch(`${API_BASE}/api/v1/gm/tables`, { credentials: 'include' }),
     ])
       .then(async ([profileRes, tablesRes]) => {
         if (profileRes.ok) {
@@ -383,8 +384,7 @@ export const PainelMestrePage = () => {
 
 
   const handleToggleTableStatus = async (tableId: string, currentStatus: string, title: string) => {
-    if (!token) return;
-    // CORREÇÃO BLOQUEADOR B2: Usar enum válido (draft em vez de inactive)
+    if (!isAuthenticated) return;
     const newStatus = currentStatus === 'active' ? 'draft' : 'active';
     const action = newStatus === 'active' ? 'ativar' : 'desativar';
 
@@ -392,18 +392,14 @@ export const PainelMestrePage = () => {
 
     setTogglingTableId(tableId);
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || '';
-      // CORREÇÃO BLOQUEADOR B2: Usar PATCH /tables/:id/status e endpoint admin correto
       const endpoint = user?.role === 'admin'
-        ? `${apiUrl}/api/v1/admin/tables/${tableId}/status`
-        : `${apiUrl}/api/v1/gm/tables/${tableId}/status`;
+        ? `${API_BASE}/api/v1/admin/tables/${tableId}/status`
+        : `${API_BASE}/api/v1/gm/tables/${tableId}/status`;
 
       const response = await fetch(endpoint, {
-        method: 'PATCH', // CORREÇÃO: Usar PATCH em vez de PUT
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ status: newStatus }),
       });
 
@@ -423,20 +419,18 @@ export const PainelMestrePage = () => {
   };
 
   const handleDeleteTable = async (tableId: string, title: string) => {
-    if (!token) return;
+    if (!isAuthenticated) return;
     if (!confirm(`Deletar mesa "${title}"? Esta ação não pode ser desfeita.`)) return;
 
     setDeletingTableId(tableId);
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || '';
-      // CORREÇÃO BLOQUEADOR B3: Endpoint admin correto (sem /gm/)
       const endpoint = user?.role === 'admin'
-        ? `${apiUrl}/api/v1/admin/tables/${tableId}`
-        : `${apiUrl}/api/v1/gm/tables/${tableId}`;
+        ? `${API_BASE}/api/v1/admin/tables/${tableId}`
+        : `${API_BASE}/api/v1/gm/tables/${tableId}`;
 
       const response = await fetch(endpoint, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -467,7 +461,7 @@ export const PainelMestrePage = () => {
               <h1 className="text-4xl font-extrabold mb-3">Torne-se um Mestre</h1>
               <p className="text-white/50">Crie seu perfil público e comece a publicar mesas gratuitamente.</p>
             </div>
-            <CreateGmProfileForm token={token!} onSuccess={refreshData} />
+            <CreateGmProfileForm onSuccess={refreshData} />
           </div>
         ) : view === 'create-table' ? (
           <div className="max-w-4xl mx-auto space-y-8">
@@ -478,7 +472,6 @@ export const PainelMestrePage = () => {
             </div>
             <div className="bg-white/3 border border-white/8 rounded-2xl p-8">
               <CreateTableForm
-                token={token!}
                 onSuccess={refreshData}
                 initialData={editingTableData || undefined}
               />

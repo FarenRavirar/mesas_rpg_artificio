@@ -24,12 +24,8 @@ import { draftStorage } from '../utils/draftStorage';
 const DDAL_ELIGIBLE_PATH = 'dungeons-dragons/5e/2024';
 
 interface CreateTableFormProps {
-  token: string;
   onSuccess: () => void;
   initialData?: any;
-  // REMOVIDO: Sistema de ingestão automática desacoplado
-  // mode?: 'create' | 'review';
-  // candidateId?: string;
 }
 
 const flattenTree = (nodes: SystemTreeNode[], breadcrumb: string[] = []): any[] => {
@@ -49,19 +45,16 @@ const flattenTree = (nodes: SystemTreeNode[], breadcrumb: string[] = []): any[] 
 };
 
 export function CreateTableForm({
-  token,
   onSuccess,
   initialData,
 }: CreateTableFormProps) {
   // Hooks customizados
   const formHook = useCreateTableForm({
     initialData,
-    token,
     onSuccess: () => {
       draftStorage.clear('create-table-draft');
       onSuccess();
     },
-    // REMOVIDO: mode e candidateId (sistema de ingestão desacoplado)
   });
 
   const navigation = useStepNavigation(formHook.formState);

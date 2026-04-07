@@ -2,8 +2,11 @@ import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-// CORREÇÃO DT-011: Fallback para dev local quando VITE_API_URL não está definida
-const API_BASE = import.meta.env.VITE_API_URL || '';
+const API_BASE = import.meta.env.VITE_API_URL;
+
+if (!API_BASE) {
+  throw new Error('VITE_API_URL não configurada');
+}
 
 interface SystemEditModalProps {
   system: {
@@ -15,7 +18,6 @@ interface SystemEditModalProps {
     aliases?: string[];
   } | null;
   systemsTree: any[];
-  token: string;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -31,7 +33,7 @@ const slugify = (value: string): string => {
     .replace(/-+/g, '-');
 };
 
-export const SystemEditModal = ({ system, systemsTree, token, onClose, onSuccess }: SystemEditModalProps) => {
+export const SystemEditModal = ({ system, systemsTree, onClose, onSuccess }: SystemEditModalProps) => {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [nodeType, setNodeType] = useState<'system' | 'edition' | 'variant'>('system');
@@ -94,10 +96,8 @@ export const SystemEditModal = ({ system, systemsTree, token, onClose, onSuccess
 
       const response = await fetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           name,
           node_type: nodeType,

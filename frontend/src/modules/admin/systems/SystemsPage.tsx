@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Plus, List, Network, CheckSquare } from 'lucide-react';
-import { useAuth } from '../../../contexts/AuthContext';
 import { useSystems } from './useSystems';
 import { SystemsList } from './SystemsList';
 import { SystemsTree } from './SystemsTree';
@@ -8,8 +7,11 @@ import { SystemEditModal } from '../../../components/SystemEditModal';
 import toast from 'react-hot-toast';
 import type { System } from './types';
 
-// CORREÇÃO DT-011: Fallback para dev local quando VITE_API_URL não está definida
-const API_BASE = import.meta.env.VITE_API_URL || '';
+const API_BASE = import.meta.env.VITE_API_URL;
+
+if (!API_BASE) {
+  throw new Error('VITE_API_URL não configurada');
+}
 
 interface TreeNode extends System {
   children?: TreeNode[];
@@ -81,7 +83,6 @@ function countSelectedInChildren(nodes: TreeNode[], selectedIds: Set<string>, al
 }
 
 export function SystemsPage() {
-  const { token } = useAuth();
   const {
     systems,
     loading,
@@ -89,7 +90,7 @@ export function SystemsPage() {
     setSearchQuery,
     fetchSystems,
     deleteSystem,
-  } = useSystems(token);
+  } = useSystems();
 
   const [systemEditModal, setSystemEditModal] = useState<System | null>(null);
   const [systemsTree, setSystemsTree] = useState<TreeNode[]>([]);
@@ -146,7 +147,7 @@ Digite "DELETAR" para confirmar:`;
       try {
         const response = await fetch(`${API_BASE}/api/v1/systems/admin/${id}`, {
           method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
         });
         if (response.ok) successCount++;
       } catch (error) {
@@ -248,7 +249,6 @@ Digite "DELETAR" para confirmar:`;
           systems={filteredTree}
           onEdit={setSystemEditModal}
           onDelete={deleteSystem}
-          token={token!}
           onUpdate={handleSuccess}
           selectionMode={selectionMode}
           selectedIds={selectedIds}
@@ -267,7 +267,6 @@ Digite "DELETAR" para confirmar:`;
         <SystemEditModal
           system={systemEditModal.id ? systemEditModal : null}
           systemsTree={systemsTree}
-          token={token!}
           onClose={() => setSystemEditModal(null)}
           onSuccess={handleSuccess}
         />

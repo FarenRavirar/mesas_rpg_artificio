@@ -3,12 +3,17 @@ import { Compass, LogIn, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { NotificationBell } from './NotificationBell';
 
+const API_BASE = import.meta.env.VITE_API_URL;
+
+if (!API_BASE) {
+  throw new Error('VITE_API_URL não configurada');
+}
+
 export const SiteHeader = () => {
   const { user, logout } = useAuth();
 
   const handleLoginClick = () => {
-    const backendUrl = import.meta.env.VITE_API_URL || '';
-    window.location.href = `${backendUrl}/api/v1/auth/google`;
+    window.location.assign(`${API_BASE}/api/v1/auth/google`);
   };
 
   return (
@@ -42,26 +47,14 @@ export const SiteHeader = () => {
                 </button>
 
                 <div className="absolute right-0 mt-2 w-56 bg-[#1B2A4A] border border-white/10 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 overflow-hidden">
-                  <Link
-                    to="/perfil"
-                    className="block w-full text-left px-5 py-3 text-sm text-white/80 hover:text-white hover:bg-white/5 transition-colors border-b border-white/5"
-                    id="site-header-menu-perfil"
-                  >
+                  <Link to="/perfil" className="block w-full text-left px-5 py-3 text-sm text-white/80 hover:text-white hover:bg-white/5 transition-colors border-b border-white/5" id="site-header-menu-perfil">
                     👤 Meu Perfil
                   </Link>
-                  <Link
-                    to="/painel"
-                    className="block w-full text-left px-5 py-3 text-sm text-white/80 hover:text-white hover:bg-white/5 transition-colors border-b border-white/5"
-                    id="site-header-menu-painel"
-                  >
+                  <Link to="/painel" className="block w-full text-left px-5 py-3 text-sm text-white/80 hover:text-white hover:bg-white/5 transition-colors border-b border-white/5" id="site-header-menu-painel">
                     {user.role === 'gm' || user.role === 'admin' ? 'Painel do Mestre' : 'Torne-se um Mestre'}
                   </Link>
                   {user.role === 'admin' && (
-                    <Link
-                      to="/gestao"
-                      className="block w-full text-left px-5 py-3 text-sm text-blue-300 hover:text-blue-200 hover:bg-blue-400/10 transition-colors border-b border-white/5"
-                      id="site-header-menu-gestao"
-                    >
+                    <Link to="/gestao" className="block w-full text-left px-5 py-3 text-sm text-blue-300 hover:text-blue-200 hover:bg-blue-400/10 transition-colors border-b border-white/5" id="site-header-menu-gestao">
                       🛠️ Gestão
                     </Link>
                   )}

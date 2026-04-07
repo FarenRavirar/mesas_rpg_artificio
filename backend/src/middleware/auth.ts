@@ -19,15 +19,25 @@ declare global {
 }
 
 export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  // CORREÇÃO A01: Validar JWT_SECRET existe antes de usar
+  if (!process.env.JWT_SECRET) {
+    console.error('[authMiddleware] JWT_SECRET não configurado');
+    return res.status(500).json({ error: 'Configuração de autenticação inválida.' });
+  }
+
   const authHeader = req.headers.authorization;
-  if (!authHeader) {
+  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  const cookieToken = req.cookies?.am_session ?? null;
+
+  // Prioridade: Bearer token (APIs) → Cookie (web app)
+  const token = bearerToken || cookieToken;
+
+  if (!token) {
     return res.status(401).json({ error: 'Token não fornecido.' });
   }
 
-  const [, token] = authHeader.split(' ');
-
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as AuthDecoded;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET) as AuthDecoded;
     req.user = decoded;
     next();
   } catch (error) {

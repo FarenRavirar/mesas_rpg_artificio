@@ -4,20 +4,22 @@ import type { SessionSchedule } from '../../../components/SessionRepeater';
 import type { ContactFormEntry } from '../../../components/ContactsFormBlock';
 import { formStateToPayload } from '../utils/mapper';
 
+const API_BASE = import.meta.env.VITE_API_URL;
+
+if (!API_BASE) {
+  throw new Error('VITE_API_URL não configurada');
+}
+
 interface UseCreateTableFormOptions {
   initialData?: Partial<FormState>;
-  token: string;
   onSuccess: () => void;
-  // REMOVIDO: Sistema de ingestão automática desacoplado
-  // mode?: 'create' | 'review';
-  // candidateId?: string;
 }
 
 /**
  * Hook centralizado para gerenciar todo o estado do formulário
  */
 export function useCreateTableForm(options: UseCreateTableFormOptions) {
-  const { initialData, token, onSuccess } = options;
+  const { initialData, onSuccess } = options;
 
   // Estado do formulário básico
   const [form, setForm] = useState({
@@ -215,19 +217,16 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
     try {
       const payload = formStateToPayload(formState);
 
-      // CORREÇÃO BLOQUEADOR B7: Detectar modo edição e usar PUT
       const isEditing = !!(initialData as any)?.id;
       const method = isEditing ? 'PUT' : 'POST';
       const endpoint = isEditing 
-        ? `/api/v1/gm/tables/${(initialData as any).id}` 
-        : '/api/v1/gm/tables';
+        ? `${API_BASE}/api/v1/gm/tables/${(initialData as any).id}` 
+        : `${API_BASE}/api/v1/gm/tables`;
 
       const res = await fetch(endpoint, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(payload),
       });
 

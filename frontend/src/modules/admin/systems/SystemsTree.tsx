@@ -3,8 +3,11 @@ import { ChevronRight, ChevronDown, Edit, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { System } from './types';
 
-// CORREÇÃO DT-011: Fallback para dev local quando VITE_API_URL não está definida
-const API_BASE = import.meta.env.VITE_API_URL || '';
+const API_BASE = import.meta.env.VITE_API_URL;
+
+if (!API_BASE) {
+  throw new Error('VITE_API_URL não configurada');
+}
 
 interface TreeNode extends System {
   children?: TreeNode[];
@@ -16,7 +19,6 @@ interface SystemsTreeProps {
   systems: TreeNode[];
   onEdit: (system: System) => void;
   onDelete: (id: string, name: string) => void;
-  token: string;
   onUpdate: () => void;
   selectionMode?: boolean;
   selectedIds?: Set<string>;
@@ -60,7 +62,6 @@ function TreeNodeComponent({
   node, 
   onEdit, 
   onDelete,
-  token,
   onUpdate,
   selectionMode,
   selectedIds,
@@ -69,7 +70,6 @@ function TreeNodeComponent({
   node: TreeNode; 
   onEdit: (system: System) => void; 
   onDelete: (id: string, name: string) => void;
-  token: string;
   onUpdate: () => void;
   selectionMode?: boolean;
   selectedIds?: Set<string>;
@@ -109,10 +109,8 @@ function TreeNodeComponent({
       try {
         const response = await fetch(`${API_BASE}/api/v1/systems/admin/${editingId}`, {
           method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ name: editingName.trim() }),
         });
 
@@ -135,7 +133,7 @@ function TreeNodeComponent({
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [editingName, editingId, node.name, token, onUpdate]);
+  }, [editingName, editingId, node.name, onUpdate]);
 
   const handleDoubleClick = () => {
     setEditingId(node.id);
@@ -302,7 +300,6 @@ Digite "DELETAR" para confirmar:`;
               node={child}
               onEdit={onEdit}
               onDelete={onDelete}
-              token={token}
               onUpdate={onUpdate}
               selectionMode={selectionMode}
               selectedIds={selectedIds}
@@ -315,7 +312,7 @@ Digite "DELETAR" para confirmar:`;
   );
 }
 
-export function SystemsTree({ systems, onEdit, onDelete, token, onUpdate, selectionMode, selectedIds, onSelectionChange }: SystemsTreeProps) {
+export function SystemsTree({ systems, onEdit, onDelete, onUpdate, selectionMode, selectedIds, onSelectionChange }: SystemsTreeProps) {
   if (systems.length === 0) {
     return (
       <div className="text-center py-12 text-white/50">
@@ -332,7 +329,6 @@ export function SystemsTree({ systems, onEdit, onDelete, token, onUpdate, select
           node={system}
           onEdit={onEdit}
           onDelete={onDelete}
-          token={token}
           onUpdate={onUpdate}
           selectionMode={selectionMode}
           selectedIds={selectedIds}

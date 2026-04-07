@@ -1,6 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
+const API_BASE = import.meta.env.VITE_API_URL;
+
+if (!API_BASE) {
+  throw new Error('VITE_API_URL não configurada');
+}
+
 /**
  * Hook para gerenciar perfil de usuário com autosave
  * Debounce de 500ms para evitar requisições excessivas
@@ -101,25 +107,21 @@ interface UseProfileReturn {
 let debounceTimer: number | null = null;
 
 export function useProfile(): UseProfileReturn {
-  const { token } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [profile, setProfile] = useState<FullProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchProfile = useCallback(async () => {
-    if (!token) {
+    if (!isAuthenticated) {
       setLoading(false);
       return;
     }
 
     try {
-      // CORREÇÃO DT-011: Fallback para dev local
-      const apiUrl = import.meta.env.VITE_API_URL || '';
-      const response = await fetch(`${apiUrl}/api/v1/profile/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const response = await fetch(`${API_BASE}/api/v1/profile/me`, {
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -135,7 +137,7 @@ export function useProfile(): UseProfileReturn {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     fetchProfile();
@@ -166,17 +168,13 @@ export function useProfile(): UseProfileReturn {
 
   const updateUser = useCallback(
     async (data: { username?: string; location?: string }) => {
-      if (!token) return;
+      if (!isAuthenticated) return;
 
       debouncedSave(async () => {
-        // CORREÇÃO DT-011: Fallback para dev local
-        const apiUrl = import.meta.env.VITE_API_URL || '';
-        const response = await fetch(`${apiUrl}/api/v1/profile/me`, {
+        const response = await fetch(`${API_BASE}/api/v1/profile/me`, {
           method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify(data),
         });
 
@@ -189,7 +187,7 @@ export function useProfile(): UseProfileReturn {
         setProfile((prev) => (prev ? { ...prev, user: result.data } : null));
       });
     },
-    [token, debouncedSave]
+    [isAuthenticated, debouncedSave]
   );
 
   const updateProfile = useCallback(
@@ -199,19 +197,15 @@ export function useProfile(): UseProfileReturn {
       avatar_url?: string;
       languages?: string[];
     }) => {
-      if (!token) return;
+      if (!isAuthenticated) return;
 
       debouncedSave(async () => {
-        // CORREÇÃO DT-011: Fallback para dev local
-        const apiUrl = import.meta.env.VITE_API_URL || '';
         const response = await fetch(
-          `${apiUrl}/api/v1/profile/me/profile`,
+          `${API_BASE}/api/v1/profile/me/profile`,
           {
             method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify(data),
           }
         );
@@ -225,22 +219,18 @@ export function useProfile(): UseProfileReturn {
         setProfile((prev) => (prev ? { ...prev, profile: result.data } : null));
       });
     },
-    [token, debouncedSave]
+    [isAuthenticated, debouncedSave]
   );
 
   const updatePlayer = useCallback(
     async (data: Partial<PlayerProfile>) => {
-      if (!token) return;
+      if (!isAuthenticated) return;
 
       debouncedSave(async () => {
-        // CORREÇÃO DT-011: Fallback para dev local
-        const apiUrl = import.meta.env.VITE_API_URL || '';
-        const response = await fetch(`${apiUrl}/api/v1/profile/me/player`, {
+        const response = await fetch(`${API_BASE}/api/v1/profile/me/player`, {
           method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify(data),
         });
 
@@ -253,22 +243,18 @@ export function useProfile(): UseProfileReturn {
         setProfile((prev) => (prev ? { ...prev, player: result.data } : null));
       });
     },
-    [token, debouncedSave]
+    [isAuthenticated, debouncedSave]
   );
 
   const updateGm = useCallback(
     async (data: Partial<GmProfile>) => {
-      if (!token) return;
+      if (!isAuthenticated) return;
 
       debouncedSave(async () => {
-        // CORREÇÃO DT-011: Fallback para dev local
-        const apiUrl = import.meta.env.VITE_API_URL || '';
-        const response = await fetch(`${apiUrl}/api/v1/profile/me/gm`, {
+        const response = await fetch(`${API_BASE}/api/v1/profile/me/gm`, {
           method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify(data),
         });
 
@@ -281,22 +267,18 @@ export function useProfile(): UseProfileReturn {
         setProfile((prev) => (prev ? { ...prev, gm: result.data } : null));
       });
     },
-    [token, debouncedSave]
+    [isAuthenticated, debouncedSave]
   );
 
   const addSystem = useCallback(
     async (systemId: string, type: 'favorite' | 'gm') => {
-      if (!token) return;
+      if (!isAuthenticated) return;
 
       try {
-        // CORREÇÃO DT-011: Fallback para dev local
-        const apiUrl = import.meta.env.VITE_API_URL || '';
-        const response = await fetch(`${apiUrl}/api/v1/profile/me/systems`, {
+        const response = await fetch(`${API_BASE}/api/v1/profile/me/systems`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ system_id: systemId, type }),
         });
 
@@ -321,23 +303,19 @@ export function useProfile(): UseProfileReturn {
         console.error('[useProfile] Erro ao adicionar sistema:', err);
       }
     },
-    [token]
+    [isAuthenticated]
   );
 
   const removeSystem = useCallback(
     async (id: string) => {
-      if (!token) return;
+      if (!isAuthenticated) return;
 
       try {
-        // CORREÇÃO DT-011: Fallback para dev local
-        const apiUrl = import.meta.env.VITE_API_URL || '';
         const response = await fetch(
-          `${apiUrl}/api/v1/profile/me/systems/${id}`,
+          `${API_BASE}/api/v1/profile/me/systems/${id}`,
           {
             method: 'DELETE',
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+            credentials: 'include',
           }
         );
 
@@ -360,7 +338,7 @@ export function useProfile(): UseProfileReturn {
         console.error('[useProfile] Erro ao remover sistema:', err);
       }
     },
-    [token]
+    [isAuthenticated]
   );
 
   return {

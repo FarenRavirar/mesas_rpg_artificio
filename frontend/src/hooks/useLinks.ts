@@ -1,6 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
+const API_BASE = import.meta.env.VITE_API_URL;
+
+if (!API_BASE) {
+  throw new Error('VITE_API_URL não configurada');
+}
+
 export interface UserLink {
   id: string;
   user_id: string;
@@ -26,13 +32,13 @@ interface UseLinksReturn {
 }
 
 export function useLinks(): UseLinksReturn {
-  const { token } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [links, setLinks] = useState<UserLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchLinks = useCallback(async () => {
-    if (!token) {
+    if (!isAuthenticated) {
       setLinks([]);
       setLoading(false);
       return;
@@ -42,10 +48,8 @@ export function useLinks(): UseLinksReturn {
       setLoading(true);
       setError(null);
 
-      const res = await fetch('/api/v1/profile/links', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const res = await fetch(`${API_BASE}/api/v1/profile/links`, {
+        credentials: 'include',
       });
 
       if (!res.ok) {
@@ -60,7 +64,7 @@ export function useLinks(): UseLinksReturn {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     fetchLinks();
@@ -68,17 +72,15 @@ export function useLinks(): UseLinksReturn {
 
   const addLink = useCallback(
     async (url: string): Promise<UserLink | null> => {
-      if (!token) return null;
+      if (!isAuthenticated) return null;
 
       try {
         setError(null);
 
-        const res = await fetch('/api/v1/profile/links', {
+        const res = await fetch(`${API_BASE}/api/v1/profile/links`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ url }),
         });
 
@@ -98,21 +100,19 @@ export function useLinks(): UseLinksReturn {
         return null;
       }
     },
-    [token]
+    [isAuthenticated]
   );
 
   const removeLink = useCallback(
     async (linkId: string): Promise<boolean> => {
-      if (!token) return false;
+      if (!isAuthenticated) return false;
 
       try {
         setError(null);
 
-        const res = await fetch(`/api/v1/profile/links/${linkId}`, {
+        const res = await fetch(`${API_BASE}/api/v1/profile/links/${linkId}`, {
           method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          credentials: 'include',
         });
 
         if (!res.ok) {
@@ -127,22 +127,20 @@ export function useLinks(): UseLinksReturn {
         return false;
       }
     },
-    [token]
+    [isAuthenticated]
   );
 
   const reorderLinks = useCallback(
     async (linkIds: string[]): Promise<boolean> => {
-      if (!token) return false;
+      if (!isAuthenticated) return false;
 
       try {
         setError(null);
 
-        const res = await fetch('/api/v1/profile/links/reorder', {
+        const res = await fetch(`${API_BASE}/api/v1/profile/links/reorder`, {
           method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ linkIds }),
         });
 
@@ -163,7 +161,7 @@ export function useLinks(): UseLinksReturn {
         return false;
       }
     },
-    [token, links]
+    [isAuthenticated, links]
   );
 
   const refresh = useCallback(async () => {

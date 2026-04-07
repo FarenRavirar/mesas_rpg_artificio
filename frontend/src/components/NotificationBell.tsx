@@ -2,8 +2,11 @@ import { useEffect, useState } from 'react';
 import { Bell } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
-// CORREÇÃO DT-011: Fallback para dev local quando VITE_API_URL não está definida
-const API_BASE = import.meta.env.VITE_API_URL || '';
+const API_BASE = import.meta.env.VITE_API_URL;
+
+if (!API_BASE) {
+  throw new Error('VITE_API_URL não configurada');
+}
 
 interface Notification {
   id: string;
@@ -16,18 +19,18 @@ interface Notification {
 }
 
 export const NotificationBell = () => {
-  const { token } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    if (!token) return;
+    if (!isAuthenticated) return;
 
     const fetchNotifications = async () => {
       try {
         const response = await fetch(`${API_BASE}/api/v1/notifications`, {
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
         });
         if (response.ok) {
           const data = await response.json();
@@ -40,17 +43,17 @@ export const NotificationBell = () => {
     };
 
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 60000); // Poll a cada 1 minuto
+    const interval = setInterval(fetchNotifications, 60000);
     return () => clearInterval(interval);
-  }, [token]);
+  }, [isAuthenticated]);
 
   const markAsRead = async (id: string) => {
-    if (!token) return;
+    if (!isAuthenticated) return;
 
     try {
       const response = await fetch(`${API_BASE}/api/v1/notifications/${id}/read`, {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       if (response.ok) {
         setNotifications((prev) =>
@@ -63,7 +66,7 @@ export const NotificationBell = () => {
     }
   };
 
-  if (!token) return null;
+  if (!isAuthenticated) return null;
 
   return (
     <div className="relative">

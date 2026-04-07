@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import tablesRoutes from './routes/tables';
@@ -18,83 +19,72 @@ import linksRoutes from './routes/links';
 import discordRoutes from './routes/discord';
 import settingsRoutes from './routes/settings';
 import adminSettingSuggestionsRoutes from './routes/adminSettingSuggestions';
-import vttPlatformsRoutes from './routes/vttPlatforms'; // Sistema de VTT Platforms
+import vttPlatformsRoutes from './routes/vttPlatforms';
 import 'express-async-errors';
 import { db } from './db';
 
 dotenv.config();
 
+const requiredEnv = ['FRONTEND_URL', 'JWT_SECRET', 'DATABASE_URL'] as const;
+
+for (const envName of requiredEnv) {
+  if (!process.env[envName]) {
+    throw new Error(`[startup] Variável obrigatória ausente: ${envName}`);
+  }
+}
+
+const frontendUrl = process.env.FRONTEND_URL as string;
+const frontendOrigin = new URL(frontendUrl).origin;
+
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Configuração básica
-app.use(cors());
-app.use(express.json({ limit: '10mb' })); // Suporta JSONs grandes de formulários complexos
+app.use(cors({
+  origin: frontendOrigin,
+  credentials: true,
+}));
 
-// CORREÇÃO DT-005: Validar todas env vars obrigatórias no healthcheck
-const REQUIRED_ENV_VARS = [
-  'DATABASE_URL',
-  'JWT_SECRET',
-  'JWT_REFRESH_SECRET',
-  'GOOGLE_CLIENT_ID',
-  'GOOGLE_CLIENT_SECRET',
-  'IMGUR_CLIENT_ID'
-];
+app.use(cookieParser());
+app.use(express.json({ limit: '10mb' }));
 
-// Verificação de ambiente em health-check
 app.get('/api/v1/health', async (req, res) => {
   try {
-    const defaultResponse = { status: 'ok', environment: process.env.APP_ENV || 'local' };
-    const missingVars: string[] = [];
-
-    // Validar variáveis obrigatórias
-    for (const varName of REQUIRED_ENV_VARS) {
-      if (!process.env[varName]) {
-        missingVars.push(varName);
-      }
-    }
-
-    if (missingVars.length > 0) {
-      return res.status(500).json({
-        status: 'error',
-        message: 'Variáveis de ambiente obrigatórias ausentes',
-        missing: missingVars
-      });
-    }
-
-    // Test DB connection usando Kysely
     const result = await db.selectFrom('users').select('id').limit(1).execute();
-    res.json({ ...defaultResponse, db: 'connected', usersSampled: result.length > 0 });
+    res.json({
+      status: 'ok',
+      environment: process.env.APP_ENV || 'production',
+      db: 'connected',
+      usersSampled: result.length > 0,
+    });
   } catch (error: any) {
-    res.status(500).json({ status: 'error', message: 'Database connection failed', details: error.message });
+    res.status(500).json({
+      status: 'error',
+      message: 'Database connection failed',
+      details: error.message,
+    });
   }
 });
 
-// Rotas Principais Fase 1, 2 e 3
-// Compatibilidade OAuth: mantém rota canônica em /api/v1/auth e aceita callback legado em /auth
 app.use('/api/v1/auth', authRoutes);
 app.use('/auth', authRoutes);
-app.use('/auth', discordRoutes);  // Discord OAuth
+app.use('/auth', discordRoutes);
 app.use('/api/v1/me', meRoutes);
-app.use('/api/v1/profile', profileRoutes);  // REQ-29: Sistema de perfil completo
-app.use('/api/v1/profile', linksRoutes);  // Links e Conteúdo (prova social externa)
-app.use('/api/v1/admin', adminProfileRoutes);  // REQ-29: Admin - Selo Covil
+app.use('/api/v1/profile', profileRoutes);
+app.use('/api/v1/profile', linksRoutes);
+app.use('/api/v1/admin', adminProfileRoutes);
 app.use('/api/v1/tables', tablesRoutes);
-app.use('/api/v1/tables', tableSchedulesRoutes);  // REQ-27: Agenda Estruturada
+app.use('/api/v1/tables', tableSchedulesRoutes);
 app.use('/api/v1/systems', systemsRoutes);
 app.use('/api/v1/scenarios', scenariosRoutes);
 app.use('/api/v1/system-suggestions', systemSuggestionsRoutes);
 app.use('/api/v1/notifications', notificationsRoutes);
 app.use('/api/v1/admin', systemSuggestionsAdminRoutes);
-app.use('/api/v1/gm', gmPanelRoutes);  // Painel autenticado do mestre
-app.use('/api/v1/gm', gmRoutes);       // Perfil público do mestre
-app.use('/api/v1/settings', settingsRoutes);  // REQ-28: Sugestões de estilos por cenário
-app.use('/api/v1/admin/setting-suggestions', adminSettingSuggestionsRoutes);  // REQ-28: Admin CRUD
-app.use('/api/v1/vtt-platforms', vttPlatformsRoutes);  // Sistema de VTT Platforms com logos
+app.use('/api/v1/gm', gmPanelRoutes);
+app.use('/api/v1/gm', gmRoutes);
+app.use('/api/v1/settings', settingsRoutes);
+app.use('/api/v1/admin/setting-suggestions', adminSettingSuggestionsRoutes);
+app.use('/api/v1/vtt-platforms', vttPlatformsRoutes);
 
-
-
-// Custom Error Handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('[Global Error]', err);
   res.status(500).json({ error: 'Erro interno no servidor.' });

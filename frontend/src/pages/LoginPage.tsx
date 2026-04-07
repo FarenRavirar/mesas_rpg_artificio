@@ -1,13 +1,18 @@
 import { useEffect } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { LogIn, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { applySeo } from '../utils/seo';
 
+const API_BASE = import.meta.env.VITE_API_URL;
+
+if (!API_BASE) {
+  throw new Error('VITE_API_URL não configurada');
+}
+
 export const LoginPage = () => {
-  const { token, user, isLoading } = useAuth();
+  const { isAuthenticated, user, isLoading } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     applySeo(
@@ -18,16 +23,16 @@ export const LoginPage = () => {
 
   useEffect(() => {
     if (isLoading) return;
-    if (token) {
-      navigate(user?.role === 'gm' || user?.role === 'admin' ? '/painel' : '/', { replace: true });
-    }
-  }, [isLoading, token, user?.role, navigate]);
 
-  const authError = searchParams.get('error');
+    if (isAuthenticated) {
+      navigate(user?.role === 'gm' || user?.role === 'admin' ? '/painel' : '/', {
+        replace: true,
+      });
+    }
+  }, [isLoading, isAuthenticated, user?.role, navigate]);
 
   const handleLoginClick = () => {
-    const backendUrl = import.meta.env.VITE_API_URL || '';
-    window.location.href = `${backendUrl}/api/v1/auth/google`;
+    window.location.assign(`${API_BASE}/api/v1/auth/google`);
   };
 
   return (
@@ -43,12 +48,6 @@ export const LoginPage = () => {
         <p className="mb-8 max-w-md text-sm text-white/70">
           Faça login com Google para acessar seu onboarding, painel e recursos da comunidade.
         </p>
-
-        {authError && (
-          <div id="login-auth-error" className="mb-5 w-full rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-            Não foi possível validar sua sessão. Tente entrar novamente.
-          </div>
-        )}
 
         <button
           id="login-btn-google"

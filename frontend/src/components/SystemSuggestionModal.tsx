@@ -2,8 +2,11 @@ import { useState } from 'react';
 import { X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
-// CORREÇÃO DT-011: Fallback para dev local quando VITE_API_URL não está definida
-const API_BASE = import.meta.env.VITE_API_URL || '';
+const API_BASE = import.meta.env.VITE_API_URL;
+
+if (!API_BASE) {
+  throw new Error('VITE_API_URL não configurada');
+}
 
 interface SystemSuggestionModalProps {
   isOpen: boolean;
@@ -12,7 +15,7 @@ interface SystemSuggestionModalProps {
 }
 
 export const SystemSuggestionModal = ({ isOpen, onClose, onSuccess }: SystemSuggestionModalProps) => {
-  const { token } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [parentId, setParentId] = useState('');
@@ -22,7 +25,7 @@ export const SystemSuggestionModal = ({ isOpen, onClose, onSuccess }: SystemSugg
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token) return;
+    if (!isAuthenticated) return;
 
     setLoading(true);
     setError(null);
@@ -30,10 +33,8 @@ export const SystemSuggestionModal = ({ isOpen, onClose, onSuccess }: SystemSugg
     try {
       const response = await fetch(`${API_BASE}/api/v1/system-suggestions`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           name: name.trim(),
           description: description.trim() || null,

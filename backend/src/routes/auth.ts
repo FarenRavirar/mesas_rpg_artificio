@@ -2,14 +2,31 @@ import { Router, Request, Response } from 'express';
 import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
 import { db } from '../db';
-import { UserRole } from '../db/types';
+import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
 
-// Configuração fixa vinda do .env
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
-const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3000/api/v1/auth/google/callback';
+const requiredEnv = [
+  'GOOGLE_CLIENT_ID',
+  'GOOGLE_CLIENT_SECRET',
+  'GOOGLE_CALLBACK_URL',
+  'FRONTEND_URL',
+  'JWT_SECRET',
+] as const;
+
+for (const envName of requiredEnv) {
+  if (!process.env[envName]) {
+    throw new Error(`[auth] Variável obrigatória ausente: ${envName}`);
+  }
+}
+
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID as string;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET as string;
+const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL as string;
+const FRONTEND_URL = process.env.FRONTEND_URL as string;
+const JWT_SECRET = process.env.JWT_SECRET as string;
+const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN;
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 const oauth2Client = new OAuth2Client(
   GOOGLE_CLIENT_ID,
@@ -17,12 +34,10 @@ const oauth2Client = new OAuth2Client(
   GOOGLE_CALLBACK_URL
 );
 
-// Rota 1: Redireciona usuário para o Consent Screen do Google
 router.get('/google', (req: Request, res: Response) => {
-  // Gerar state assinado para prevenir CSRF
   const state = jwt.sign(
-    { nonce: Math.random().toString(36).substring(7), timestamp: Date.now() },
-    process.env.JWT_SECRET as string,
+    { nonce: crypto.randomUUID(), timestamp: Date.now() },
+    JWT_SECRET,
     { expiresIn: '10m' }
   );
 
@@ -30,16 +45,15 @@ router.get('/google', (req: Request, res: Response) => {
     access_type: 'offline',
     scope: [
       'https://www.googleapis.com/auth/userinfo.profile',
-      'https://www.googleapis.com/auth/userinfo.email'
+      'https://www.googleapis.com/auth/userinfo.email',
     ],
     prompt: 'consent',
-    state
+    state,
   });
-  
+
   res.redirect(authorizeUrl);
 });
 
-// Rota 2: Google Callback
 router.get('/google/callback', async (req: Request, res: Response) => {
   const { code, state } = req.query;
 
@@ -47,23 +61,20 @@ router.get('/google/callback', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Código de autorização não recebido.' });
   }
 
-  // Validar state para prevenir CSRF
   if (!state || typeof state !== 'string') {
     return res.status(400).json({ error: 'State inválido.' });
   }
 
   try {
-    jwt.verify(state, process.env.JWT_SECRET as string);
+    jwt.verify(state, JWT_SECRET);
   } catch (error) {
     console.error('[OAuth] State inválido ou expirado:', error);
     return res.status(400).json({ error: 'State inválido ou expirado.' });
   }
 
   try {
-    // 1. Trocar code por tokens
     const { tokens } = await oauth2Client.getToken(code);
 
-    // 2. Buscar perfil do usuário no Google via endpoint de userinfo
     const userinfoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
     });
@@ -85,237 +96,148 @@ router.get('/google/callback', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Falha ao recuperar informações básicas do Google.' });
     }
 
-    // 3. Upsert no Banco de Dados
-    // Pesquisa se usuário já existe
-    let user = await db.selectFrom('users')
+    let user = await db
+      .selectFrom('users')
       .selectAll()
       .where('email', '=', userInfo.email)
       .executeTakeFirst();
-    
+
     let isNewUser = false;
 
     if (!user) {
       isNewUser = true;
 
-      // Inicia Transação para criar User e Profile
       await db.transaction().execute(async (trx) => {
-        // Insere em users
-        const newUser = await trx.insertInto('users')
+        const newUser = await trx
+          .insertInto('users')
           .values({
-            google_id: userInfo.id as string,
-            email: userInfo.email as string,
-            role: 'player', // Todos os novos usuários começam como player
+            google_id: userInfo.id,
+            email: userInfo.email,
+            role: 'player',
             refresh_token: tokens.refresh_token || null,
           })
           .returningAll()
           .executeTakeFirstOrThrow();
-          
+
         user = newUser;
 
-        // Insere em profiles
-        await trx.insertInto('profiles')
+        await trx
+          .insertInto('profiles')
           .values({
-            user_id: user.id as string,
+            user_id: user.id,
             display_name: userInfo.name || userInfo.given_name || 'Jogador Aventureiro',
             bio: null,
-            avatar_url: userInfo.picture || null, // Salvar avatar do Google
+            avatar_url: userInfo.picture || null,
           })
           .execute();
       });
-    } else {
-      // Atualiza refresh token se existir um novo
-      if (tokens.refresh_token) {
-        user = await db.updateTable('users')
-          .set({ refresh_token: tokens.refresh_token })
-          .where('id', '=', user.id as string)
-          .returningAll()
-          .executeTakeFirstOrThrow();
-      }
+    } else if (tokens.refresh_token) {
+      user = await db
+        .updateTable('users')
+        .set({ refresh_token: tokens.refresh_token })
+        .where('id', '=', user.id)
+        .returningAll()
+        .executeTakeFirstOrThrow();
     }
 
     if (!user) {
-      throw new Error("Erro catastrófico ao gerar usuário.");
+      throw new Error('Erro ao finalizar autenticação.');
     }
 
-    // 3.5 Buscar informações extras de perfil para o FrontEnd
-    const profile = await db.selectFrom('profiles')
+    const profile = await db
+      .selectFrom('profiles')
       .select('display_name')
-      .where('user_id', '=', user.id as string)
+      .where('user_id', '=', user.id)
       .executeTakeFirst();
 
     let avatarUrl = userInfo.picture || null;
+
     if (user.role === 'gm') {
-      const gmProfile = await db.selectFrom('gm_profiles')
+      const gmProfile = await db
+        .selectFrom('gm_profiles')
         .select('avatar_url')
-        .where('user_id', '=', user.id as string)
+        .where('user_id', '=', user.id)
         .executeTakeFirst();
-      if (gmProfile && gmProfile.avatar_url) {
+
+      if (gmProfile?.avatar_url) {
         avatarUrl = gmProfile.avatar_url;
       }
     }
 
-    // 4. Gerar JWT de Sessão (Access Token)
-    const jwtPayload: object = {
-      userId: user.id as string,
-      role: user.role,
-      name: profile?.display_name || userInfo.name || 'Jogador',
-      avatar_url: avatarUrl
+    const accessToken = jwt.sign(
+      {
+        userId: user.id,
+        role: user.role,
+        name: profile?.display_name || userInfo.name || 'Jogador',
+        avatar_url: avatarUrl,
+      },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN as any }
+    );
+
+    const redirectPath =
+      isNewUser ? '/onboarding' :
+      user.role === 'gm' || user.role === 'admin' ? '/painel' :
+      '/';
+
+    const isProd = process.env.NODE_ENV === 'production';
+
+    const cookieOptions = {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: 'lax' as const,
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      ...(COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {}),
     };
 
-    const accessToken = jwt.sign(jwtPayload, process.env.JWT_SECRET as string, {
-      expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as any
+    res.cookie('am_session', accessToken, cookieOptions);
+
+    console.log('[OAuth] Login bem-sucedido', {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      isNewUser,
+      timestamp: new Date().toISOString(),
     });
 
-    // Enviar token via postMessage para evitar vazamento por histórico/logs
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const redirectUrl = `${FRONTEND_URL.replace(/\/$/, '')}${redirectPath}`;
+    new URL(redirectUrl);
 
-    // Use origem segura para postMessage e uma URL de fallback sem token
-    const frontendOrigin = new URL(frontendUrl).origin;
-    const fallbackUrl = `${frontendUrl.replace(/\/$/, '')}/login?oauth=popup_required`;
-
-    // Serializar dados com segurança para injetar no HTML/JS
-    const serializedPayload = JSON.stringify({
-      type: 'AUTH_SUCCESS',
-      token: accessToken,
-      isNew: isNewUser,
-    });
-
-    const serializedOrigin = JSON.stringify(frontendOrigin);
-    const serializedFrontendUrl = JSON.stringify(frontendUrl);
-    const serializedFallbackUrl = JSON.stringify(fallbackUrl);
-
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.send(`<!DOCTYPE html>
-<html lang="pt-BR">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Autenticação concluída</title>
-    <style>
-      body {
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        background: #0f172a;
-        color: #e2e8f0;
-        margin: 0;
-        min-height: 100vh;
-        display: grid;
-        place-items: center;
-        padding: 24px;
-      }
-      .card {
-        width: 100%;
-        max-width: 560px;
-        background: #111827;
-        border: 1px solid #334155;
-        border-radius: 16px;
-        padding: 24px;
-        box-shadow: 0 12px 40px rgba(0,0,0,.35);
-      }
-      h1 {
-        margin: 0 0 12px;
-        font-size: 1.25rem;
-      }
-      p {
-        margin: 0 0 12px;
-        line-height: 1.5;
-        color: #cbd5e1;
-      }
-      a.button {
-        display: inline-block;
-        margin-top: 12px;
-        background: #2563eb;
-        color: white;
-        text-decoration: none;
-        padding: 12px 16px;
-        border-radius: 10px;
-        font-weight: 600;
-      }
-      .muted {
-        color: #94a3b8;
-        font-size: .95rem;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="card">
-      <h1>Autenticação concluída</h1>
-      <p id="status">Finalizando seu login...</p>
-      <p class="muted" id="details"></p>
-      <a id="continueLink" class="button" href="${fallbackUrl}">Voltar para o site</a>
-    </div>
-
-    <script>
-      (function () {
-        const payload = ${serializedPayload};
-        const targetOrigin = ${serializedOrigin};
-        const frontendUrl = ${serializedFrontendUrl};
-        const fallbackUrl = ${serializedFallbackUrl};
-
-        const statusEl = document.getElementById('status');
-        const detailsEl = document.getElementById('details');
-        const continueLink = document.getElementById('continueLink');
-
-        function setMessage(status, details) {
-          if (statusEl) statusEl.textContent = status;
-          if (detailsEl) detailsEl.textContent = details || '';
-        }
-
-        continueLink.setAttribute('href', fallbackUrl);
-
-        try {
-          if (window.opener && !window.opener.closed) {
-            window.opener.postMessage(payload, targetOrigin);
-            setMessage(
-              'Login concluído com sucesso.',
-              'Esta janela será fechada automaticamente.'
-            );
-
-            setTimeout(() => {
-              window.close();
-            }, 300);
-
-            setTimeout(() => {
-              setMessage(
-                'Se esta janela não fechar sozinha, você pode fechá-la manualmente.',
-                'Seu login já foi enviado para a janela principal.'
-              );
-            }, 1200);
-
-            return;
-          }
-
-          setMessage(
-            'Login concluído, mas esta aba não foi aberta como popup.',
-            'Para concluir a entrada automaticamente, volte ao site e inicie o login pela interface principal.'
-          );
-
-          setTimeout(() => {
-            window.location.replace(fallbackUrl);
-          }, 1800);
-        } catch (error) {
-          console.error('Erro ao finalizar OAuth:', error);
-          setMessage(
-            'Não foi possível finalizar o login automaticamente.',
-            'Clique no botão abaixo para voltar ao site e tentar novamente.'
-          );
-          continueLink.style.display = 'inline-block';
-        }
-      })();
-    </script>
-  </body>
-</html>`);
-
+    return res.redirect(redirectUrl);
   } catch (error) {
-    console.error('Erro na autenticação Google OAuth:', error);
-    res.status(500).json({ error: 'Erro de autenticação com provedor externo.' });
+    console.error('[OAuth] Erro na autenticação Google OAuth:', error);
+    return res.status(500).json({ error: 'Erro de autenticação com provedor externo.' });
   }
 });
 
-// Rota 3: Logout
-router.post('/logout', async (req: Request, res: Response) => {
-  // Apenas precisamos instruir o front a deletar o token.
-  // Pode-se implementar logica de apagar o refresh_token do banco se necessario.
-  res.json({ success: true, message: 'Logout concluído com sucesso.' });
+router.post('/logout', authMiddleware, async (req: Request, res: Response) => {
+  const isProd = process.env.NODE_ENV === 'production';
+
+  try {
+    await db
+      .updateTable('users')
+      .set({ refresh_token: null })
+      .where('id', '=', req.user!.userId)
+      .execute();
+
+    console.log('[OAuth] Logout bem-sucedido', {
+      userId: req.user!.userId,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('[OAuth] Erro ao invalidar refresh_token:', error);
+  }
+
+  res.clearCookie('am_session', {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: 'lax',
+    path: '/',
+    ...(COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {}),
+  });
+
+  return res.json({ success: true, message: 'Logout concluído com sucesso.' });
 });
 
 export default router;

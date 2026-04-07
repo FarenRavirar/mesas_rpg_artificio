@@ -6,8 +6,11 @@ import { ScenarioEditModal } from '../components/ScenarioEditModal';
 import { Edit, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-// CORREÇÃO DT-AGG-03: GestaoPage simplificada sem sistema de ingestão automática
-const API_BASE = import.meta.env.VITE_API_URL || '';
+const API_BASE = import.meta.env.VITE_API_URL;
+
+if (!API_BASE) {
+  throw new Error('VITE_API_URL não configurada');
+}
 
 interface SystemSuggestion {
   id: string;
@@ -24,7 +27,7 @@ interface SystemSuggestion {
 }
 
 export const GestaoPage = () => {
-  const { token, user } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const [suggestions, setSuggestions] = useState<SystemSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,7 +60,7 @@ export const GestaoPage = () => {
   }, [user, navigate, filter, activeTab, crudSubTab]);
 
   const fetchSuggestions = async () => {
-    if (!token) return;
+    if (!isAuthenticated) return;
     setLoading(true);
     try {
       const url = filter === 'all'
@@ -65,7 +68,7 @@ export const GestaoPage = () => {
         : `${API_BASE}/api/v1/admin/system-suggestions?status=${filter}`;
 
       const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -80,11 +83,11 @@ export const GestaoPage = () => {
   };
 
   const fetchAllScenarios = async () => {
-    if (!token) return;
+    if (!isAuthenticated) return;
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE}/api/v1/scenarios`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       if (response.ok) {
         const data = await response.json();
@@ -98,11 +101,11 @@ export const GestaoPage = () => {
   };
 
   const fetchAllTables = async () => {
-    if (!token) return;
+    if (!isAuthenticated) return;
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE}/api/v1/tables`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       if (response.ok) {
         const data = await response.json();
@@ -116,16 +119,14 @@ export const GestaoPage = () => {
   };
 
   const handleApprove = async (id: string, editedData?: { name: string; description: string | null }) => {
-    if (!token) return;
+    if (!isAuthenticated) return;
     setApprovingSuggestionId(id);
 
     try {
       const response = await fetch(`${API_BASE}/api/v1/admin/system-suggestions/${id}/approve`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(editedData || {}),
       });
 
@@ -146,17 +147,15 @@ export const GestaoPage = () => {
 
   const handleReject = async (id: string) => {
     const reason = prompt('Motivo da rejeição:');
-    if (!reason || !token) return;
+    if (!reason || !isAuthenticated) return;
 
     setRejectingSuggestionId(id);
 
     try {
       const response = await fetch(`${API_BASE}/api/v1/admin/system-suggestions/${id}/reject`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ reason }),
       });
 
@@ -176,13 +175,13 @@ export const GestaoPage = () => {
   };
 
   const handleDeleteScenario = async (id: string, name: string) => {
-    if (!token) return;
+    if (!isAuthenticated) return;
     if (!confirm(`Deletar cenário "${name}"? Esta ação não pode ser desfeita.`)) return;
 
     try {
       const response = await fetch(`${API_BASE}/api/v1/scenarios/admin/${id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -199,13 +198,13 @@ export const GestaoPage = () => {
   };
 
   const handleDeleteTable = async (id: string, title: string) => {
-    if (!token) return;
+    if (!isAuthenticated) return;
     if (!confirm(`Deletar mesa "${title}"? Esta ação não pode ser desfeita.`)) return;
 
     try {
       const response = await fetch(`${API_BASE}/api/v1/gm/admin/tables/${id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -222,7 +221,7 @@ export const GestaoPage = () => {
   };
 
   const handleToggleTableStatus = async (id: string, currentStatus: string, title: string) => {
-    if (!token) return;
+    if (!isAuthenticated) return;
     const newStatus = currentStatus === 'active' ? 'cancelled' : 'active';
     const action = newStatus === 'active' ? 'ativar' : 'cancelar';
     
@@ -231,10 +230,8 @@ export const GestaoPage = () => {
     try {
       const response = await fetch(`${API_BASE}/api/v1/gm/admin/tables/${id}`, {
         method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}` 
-        },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ status: newStatus }),
       });
 
@@ -413,10 +410,8 @@ export const GestaoPage = () => {
                                 try {
                                   const res = await fetch(`${API_BASE}/api/v1/admin/tables/${table.id}`, {
                                     method: 'PUT',
-                                    headers: {
-                                      'Content-Type': 'application/json',
-                                      Authorization: `Bearer ${token}`,
-                                    },
+                                    headers: { 'Content-Type': 'application/json' },
+                                    credentials: 'include',
                                     body: JSON.stringify({ is_covil: newValue }),
                                   });
                                   if (!res.ok) throw new Error('Erro ao atualizar');
@@ -546,7 +541,6 @@ export const GestaoPage = () => {
       {scenarioEditModal && (
         <ScenarioEditModal
           scenario={scenarioEditModal}
-          token={token!}
           onClose={() => setScenarioEditModal(null)}
           onSuccess={() => {
             setScenarioEditModal(null);

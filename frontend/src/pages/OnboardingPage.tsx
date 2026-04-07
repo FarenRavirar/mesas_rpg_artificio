@@ -6,6 +6,12 @@ import { SystemTreeSelector } from '../components/SystemTreeSelector';
 import type { SystemTreeNode } from '../types/systems';
 import { applySeo } from '../utils/seo';
 
+const API_BASE = import.meta.env.VITE_API_URL;
+
+if (!API_BASE) {
+  throw new Error('VITE_API_URL não configurada');
+}
+
 interface OptionItem {
   id: string;
   name: string;
@@ -75,7 +81,7 @@ const flattenSystemTree = (nodes: SystemTreeNode[]): SystemTreeNode[] => {
 
 export const OnboardingPage = () => {
   const navigate = useNavigate();
-  const { user, token } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [loading, setLoading] = useState(true);
@@ -108,7 +114,7 @@ export const OnboardingPage = () => {
   }, []);
 
   useEffect(() => {
-    if (!user || !token) {
+    if (!user || !isAuthenticated) {
       navigate('/');
       return;
     }
@@ -119,8 +125,8 @@ export const OnboardingPage = () => {
 
       try {
         const [meRes, optionsRes] = await Promise.all([
-          fetch('/api/v1/me', { headers: { Authorization: `Bearer ${token}` } }),
-          fetch('/api/v1/me/options', { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${API_BASE}/api/v1/me`, { credentials: 'include' }),
+          fetch(`${API_BASE}/api/v1/me/options`, { credentials: 'include' }),
         ]);
 
         if (!meRes.ok || !optionsRes.ok) {
@@ -161,7 +167,7 @@ export const OnboardingPage = () => {
     };
 
     loadData();
-  }, [navigate, token, user]);
+  }, [navigate, isAuthenticated, user]);
 
   const systemLabelById = useMemo(() => {
     const map = new Map<string, string>();
@@ -185,18 +191,16 @@ export const OnboardingPage = () => {
   };
 
   const submitOnboarding = async () => {
-    if (!token) return;
+    if (!isAuthenticated) return;
 
     setSubmitting(true);
     setError(null);
 
     try {
-      const res = await fetch('/api/v1/me/preferences', {
+      const res = await fetch(`${API_BASE}/api/v1/me/preferences`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           display_name: form.display_name,
           bio: form.bio,
