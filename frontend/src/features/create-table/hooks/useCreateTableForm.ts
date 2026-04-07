@@ -23,7 +23,7 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
   const [form, setForm] = useState({
     title: initialData?.form?.title || '',
     description: initialData?.form?.description || '',
-    type: initialData?.form?.type || 'campaign',
+    type: initialData?.form?.type || 'campanha',
     modality: initialData?.form?.modality || 'online',
     audience: initialData?.form?.audience || 'livre',
     age_rating: initialData?.form?.age_rating || 'livre',
@@ -223,7 +223,7 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
       setForm({
         title: '',
         description: '',
-        type: 'campaign',
+        type: 'campanha',
         modality: 'online',
         audience: 'livre',
         age_rating: 'livre',
