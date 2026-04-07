@@ -214,6 +214,7 @@ router.get('/:slug', async (req: Request, res: Response) => {
   }
 
   try {
+    console.log('[DEBUG] GET /tables/:slug - Starting query with slug:', slug);
     const table = await db
       .selectFrom('tables as t')
       .leftJoin('gm_profiles as gm', 'gm.id', 't.gm_id')
