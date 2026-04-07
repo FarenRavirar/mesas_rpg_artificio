@@ -9,7 +9,7 @@ export const SiteHeader = () => {
   const isDevToolsFlagEnabled = import.meta.env.VITE_ENABLE_DEVTOOLS === 'true';
 
   const handleLoginClick = () => {
-    const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    const backendUrl = import.meta.env.VITE_API_URL || '';
     window.location.href = `${backendUrl}/api/v1/auth/google`;
   };
 

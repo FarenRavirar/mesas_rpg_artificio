@@ -53,7 +53,7 @@ function App() {
   React.useEffect(() => {
     const checkBackend = async () => {
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const apiUrl = import.meta.env.VITE_API_URL || '';
         const response = await fetch(`${apiUrl}/api/v1/health`, {
           method: 'GET',
           signal: AbortSignal.timeout(5000)
@@ -84,7 +84,7 @@ function App() {
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
           <div style={{ fontSize: '24px', marginBottom: '16px', fontWeight: 'bold' }}>Backend não disponível</div>
           <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '24px' }}>
-            O servidor backend não está respondendo. Certifique-se de que o backend está rodando em http://localhost:3000
+            O servidor backend não está respondendo. Tente novamente em alguns instantes.
           </div>
           <button 
             onClick={() => window.location.reload()} 

@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { jsonrepair } from 'jsonrepair';
 
 // CORREÇÃO DT-011: Fallback para dev local quando VITE_API_URL não está definida
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_BASE = import.meta.env.VITE_API_URL || '';
 const STORAGE_KEY = 'dev_admin_token';
 
 interface RouteTest {

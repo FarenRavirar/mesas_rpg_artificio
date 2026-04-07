@@ -115,7 +115,7 @@ export function useProfile(): UseProfileReturn {
 
     try {
       // CORREÇÃO DT-011: Fallback para dev local
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const apiUrl = import.meta.env.VITE_API_URL || '';
       const response = await fetch(`${apiUrl}/api/v1/profile/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -170,7 +170,7 @@ export function useProfile(): UseProfileReturn {
 
       debouncedSave(async () => {
         // CORREÇÃO DT-011: Fallback para dev local
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const apiUrl = import.meta.env.VITE_API_URL || '';
         const response = await fetch(`${apiUrl}/api/v1/profile/me`, {
           method: 'PATCH',
           headers: {
@@ -203,7 +203,7 @@ export function useProfile(): UseProfileReturn {
 
       debouncedSave(async () => {
         // CORREÇÃO DT-011: Fallback para dev local
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const apiUrl = import.meta.env.VITE_API_URL || '';
         const response = await fetch(
           `${apiUrl}/api/v1/profile/me/profile`,
           {
@@ -234,7 +234,7 @@ export function useProfile(): UseProfileReturn {
 
       debouncedSave(async () => {
         // CORREÇÃO DT-011: Fallback para dev local
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const apiUrl = import.meta.env.VITE_API_URL || '';
         const response = await fetch(`${apiUrl}/api/v1/profile/me/player`, {
           method: 'PATCH',
           headers: {
@@ -262,7 +262,7 @@ export function useProfile(): UseProfileReturn {
 
       debouncedSave(async () => {
         // CORREÇÃO DT-011: Fallback para dev local
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const apiUrl = import.meta.env.VITE_API_URL || '';
         const response = await fetch(`${apiUrl}/api/v1/profile/me/gm`, {
           method: 'PATCH',
           headers: {
@@ -290,7 +290,7 @@ export function useProfile(): UseProfileReturn {
 
       try {
         // CORREÇÃO DT-011: Fallback para dev local
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const apiUrl = import.meta.env.VITE_API_URL || '';
         const response = await fetch(`${apiUrl}/api/v1/profile/me/systems`, {
           method: 'POST',
           headers: {
@@ -330,7 +330,7 @@ export function useProfile(): UseProfileReturn {
 
       try {
         // CORREÇÃO DT-011: Fallback para dev local
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const apiUrl = import.meta.env.VITE_API_URL || '';
         const response = await fetch(
           `${apiUrl}/api/v1/profile/me/systems/${id}`,
           {
