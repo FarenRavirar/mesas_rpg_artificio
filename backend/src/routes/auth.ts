@@ -168,24 +168,142 @@ router.get('/google/callback', async (req: Request, res: Response) => {
 
     // Enviar token via postMessage para evitar vazamento por histórico/logs
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    
-    // Retornar página HTML que envia token via postMessage
-    res.send(`
-      <!DOCTYPE html>
-      <html>
-      <head><title>Autenticação</title></head>
-      <body>
-        <script>
-          window.opener.postMessage(
-            { type: 'AUTH_SUCCESS', token: '${accessToken}', isNew: ${isNewUser} },
-            '${frontendUrl}'
+
+    // Use origem segura para postMessage e uma URL de fallback sem token
+    const frontendOrigin = new URL(frontendUrl).origin;
+    const fallbackUrl = `${frontendUrl.replace(/\/$/, '')}/login?oauth=popup_required`;
+
+    // Serializar dados com segurança para injetar no HTML/JS
+    const serializedPayload = JSON.stringify({
+      type: 'AUTH_SUCCESS',
+      token: accessToken,
+      isNew: isNewUser,
+    });
+
+    const serializedOrigin = JSON.stringify(frontendOrigin);
+    const serializedFrontendUrl = JSON.stringify(frontendUrl);
+    const serializedFallbackUrl = JSON.stringify(fallbackUrl);
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(`<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Autenticação concluída</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #0f172a;
+        color: #e2e8f0;
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+      .card {
+        width: 100%;
+        max-width: 560px;
+        background: #111827;
+        border: 1px solid #334155;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 12px 40px rgba(0,0,0,.35);
+      }
+      h1 {
+        margin: 0 0 12px;
+        font-size: 1.25rem;
+      }
+      p {
+        margin: 0 0 12px;
+        line-height: 1.5;
+        color: #cbd5e1;
+      }
+      a.button {
+        display: inline-block;
+        margin-top: 12px;
+        background: #2563eb;
+        color: white;
+        text-decoration: none;
+        padding: 12px 16px;
+        border-radius: 10px;
+        font-weight: 600;
+      }
+      .muted {
+        color: #94a3b8;
+        font-size: .95rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Autenticação concluída</h1>
+      <p id="status">Finalizando seu login...</p>
+      <p class="muted" id="details"></p>
+      <a id="continueLink" class="button" href="${fallbackUrl}">Voltar para o site</a>
+    </div>
+
+    <script>
+      (function () {
+        const payload = ${serializedPayload};
+        const targetOrigin = ${serializedOrigin};
+        const frontendUrl = ${serializedFrontendUrl};
+        const fallbackUrl = ${serializedFallbackUrl};
+
+        const statusEl = document.getElementById('status');
+        const detailsEl = document.getElementById('details');
+        const continueLink = document.getElementById('continueLink');
+
+        function setMessage(status, details) {
+          if (statusEl) statusEl.textContent = status;
+          if (detailsEl) detailsEl.textContent = details || '';
+        }
+
+        continueLink.setAttribute('href', fallbackUrl);
+
+        try {
+          if (window.opener && !window.opener.closed) {
+            window.opener.postMessage(payload, targetOrigin);
+            setMessage(
+              'Login concluído com sucesso.',
+              'Esta janela será fechada automaticamente.'
+            );
+
+            setTimeout(() => {
+              window.close();
+            }, 300);
+
+            setTimeout(() => {
+              setMessage(
+                'Se esta janela não fechar sozinha, você pode fechá-la manualmente.',
+                'Seu login já foi enviado para a janela principal.'
+              );
+            }, 1200);
+
+            return;
+          }
+
+          setMessage(
+            'Login concluído, mas esta aba não foi aberta como popup.',
+            'Para concluir a entrada automaticamente, volte ao site e inicie o login pela interface principal.'
           );
-          window.close();
-        </script>
-        <p>Autenticação concluída. Esta janela será fechada automaticamente.</p>
-      </body>
-      </html>
-    `);
+
+          setTimeout(() => {
+            window.location.replace(fallbackUrl);
+          }, 1800);
+        } catch (error) {
+          console.error('Erro ao finalizar OAuth:', error);
+          setMessage(
+            'Não foi possível finalizar o login automaticamente.',
+            'Clique no botão abaixo para voltar ao site e tentar novamente.'
+          );
+          continueLink.style.display = 'inline-block';
+        }
+      })();
+    </script>
+  </body>
+</html>`);
 
   } catch (error) {
     console.error('Erro na autenticação Google OAuth:', error);
