@@ -27,9 +27,11 @@ jobs:
           git config user.email "actions@github.com"
           git checkout main
           git merge origin/dev --no-ff -m "chore: promote beta to production ${{ inputs.version }}"
-          git tag ${{ inputs.version }} -m "Release ${{ inputs.version }}"
+          if ! git rev-parse ${{ inputs.version }} >/dev/null 2>&1; then
+            git tag ${{ inputs.version }} -m "Release ${{ inputs.version }}"
+          fi
           git push origin main
-          git push origin ${{ inputs.version }}
+          git push origin ${{ inputs.version }} || echo "Tag já existe no remote"
       
       - name: Deploy to Production
         uses: appleboy/ssh-action@v1.0.0
