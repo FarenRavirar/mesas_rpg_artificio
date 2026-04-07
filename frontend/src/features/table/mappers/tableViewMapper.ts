@@ -147,7 +147,9 @@ export function mapTableToView(table: TableDetail): TableViewModel {
     masterName: table.master_display_name ?? table.gm_display_name ?? undefined,
     masterSlug: table.gm_slug ?? undefined,
     masterAvatar: table.gm_avatar_url ?? undefined,
-    masterBio: table.table_gm_bio ?? undefined,
+    // CORREÇÃO A-MED-01 / C-MED-02: Fallback entre bio específica da mesa e bio global do perfil
+    // Prioridade: table_gm_bio (bio específica desta mesa) > gm_bio_long (bio global do perfil)
+    masterBio: table.table_gm_bio ?? table.gm_bio_long ?? undefined,
 
     // Horários
     schedules: table.schedules ?? [],

@@ -41,6 +41,21 @@ export const MesaPage = () => {
           return;
         }
 
+        // CORREÇÃO B-CRIT-01: Tratamento específico para erros de servidor
+        if (res.status === 500) {
+          setError('Serviço temporariamente indisponível. Nossa equipe já foi notificada. Tente novamente em alguns minutos.');
+          setTable(null);
+          setLoading(false);
+          return;
+        }
+
+        if (res.status === 503) {
+          setError('Sistema em manutenção. Voltaremos em breve.');
+          setTable(null);
+          setLoading(false);
+          return;
+        }
+
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         const json = await res.json();
@@ -75,7 +90,8 @@ export const MesaPage = () => {
 
     const trackView = async () => {
       try {
-        // CORREÇÃO DT-10: Usar slug ao invés de id
+        // NOTA: Backend usa POST /tables/:slug/view (não :id)
+        // Ver backend/src/routes/gmPanel.ts linha 1620
         await fetch(`/api/v1/tables/${slug}/view`, { method: 'POST' });
       } catch {
         // Silencioso - tracking não deve quebrar a UX

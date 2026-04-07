@@ -42,6 +42,8 @@ router.get('/', async (req: Request, res: Response) => {
       .leftJoin('users as u', 'u.id', 'gm.user_id')
       .leftJoin('profiles as p', 'p.user_id', 'u.id')
       .leftJoin('systems as s', 's.id', 't.system_id')
+      // CORREÇÃO A-HIGH-01: JOIN com vtt_platforms para consistência com rota de detalhes
+      .leftJoin('vtt_platforms as vtt', 'vtt.id', 't.vtt_platform_id')
       .select([
         't.id',
         't.slug',
@@ -89,6 +91,20 @@ router.get('/', async (req: Request, res: Response) => {
         'gm.avatar_url as gm_avatar_url',
         'gm.badges as gm_badges',
         sql<string>`COALESCE(gm.nickname, p.display_name)`.as('gm_display_name'),
+        // CORREÇÃO A-HIGH-01: Retornar objeto vtt_platform para cards de catálogo
+        sql<any>`
+          CASE WHEN vtt.id IS NOT NULL THEN
+            json_build_object(
+              'id', vtt.id,
+              'name', vtt.name,
+              'slug', vtt.slug,
+              'logo_filename', vtt.logo_filename,
+              'website_url', vtt.website_url
+            )
+          ELSE NULL
+          END
+        `.as('vtt_platform'),
+        't.game_platform_custom', // CORREÇÃO A-HIGH-01: Retornar custom VTT para cards
       ])
       .where('t.status', '=', 'active')
       .orderBy('t.created_at', 'desc')
@@ -191,6 +207,11 @@ router.get('/', async (req: Request, res: Response) => {
 // GET /api/v1/tables/:slug — Mesa individual
 router.get('/:slug', async (req: Request, res: Response) => {
   const { slug } = req.params;
+
+  // CORREÇÃO A-HIGH-02: Validar formato do slug antes de usar em query
+  if (!slug || slug.length > 200 || !/^[a-z0-9-]+$/i.test(slug)) {
+    return res.status(400).json({ error: 'Slug inválido.' });
+  }
 
   try {
     const table = await db
@@ -332,7 +353,21 @@ router.get('/:slug', async (req: Request, res: Response) => {
 
     res.json({ data: { ...table, contacts, schedules } });
   } catch (error: any) {
-    console.error('[GET /tables/:slug]', error);
+    // CORREÇÃO A-CRIT-02: Detectar erro de migration pendente
+    console.error('[GET /tables/:slug]', error, { 
+      slug, 
+      errorMessage: error.message,
+      stack: error.stack 
+    });
+    
+    // Detectar erro de tabela inexistente (migration não executada)
+    if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
+      console.error('[MIGRATION PENDING] Database table does not exist. Check if migrations were executed.');
+      return res.status(503).json({ 
+        error: 'Serviço temporariamente indisponível. Tente novamente em alguns minutos.' 
+      });
+    }
+    
     res.status(500).json({ error: 'Erro ao buscar mesa.' });
   }
 });
