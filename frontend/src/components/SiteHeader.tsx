@@ -5,8 +5,6 @@ import { NotificationBell } from './NotificationBell';
 
 export const SiteHeader = () => {
   const { user, logout } = useAuth();
-  const isAdmin = user?.role === 'admin';
-  const isDevToolsFlagEnabled = import.meta.env.VITE_ENABLE_DEVTOOLS === 'true';
 
   const handleLoginClick = () => {
     const backendUrl = import.meta.env.VITE_API_URL || '';
@@ -24,28 +22,11 @@ export const SiteHeader = () => {
         <nav className="hidden md:flex items-center gap-5 text-sm text-white/75">
           <Link to="/catalogo" className="hover:text-white transition-colors" id="site-header-link-catalogo">Catálogo</Link>
           <Link to="/painel" className="hover:text-white transition-colors" id="site-header-link-painel">Painel</Link>
-          {isAdmin && (
-            <Link to="/admin/devtools" className="hover:text-white transition-colors" id="site-header-link-admin-devtools">Admin DevTools</Link>
-          )}
         </nav>
 
         <div className="flex items-center space-x-3">
           {user ? (
             <>
-              {isAdmin && (
-                <span
-                  id="site-header-admin-flag-badge"
-                  className={`hidden lg:inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold tracking-wide ${
-                    isDevToolsFlagEnabled
-                      ? 'text-emerald-300 border-emerald-400/40 bg-emerald-500/10'
-                      : 'text-amber-300 border-amber-400/40 bg-amber-500/10'
-                  }`}
-                  title="Flag operacional para lembrar se o ambiente deve manter a ferramenta de DevTools destacada para QA."
-                >
-                  VITE_ENABLE_DEVTOOLS: {isDevToolsFlagEnabled ? 'ON' : 'OFF'}
-                </span>
-              )}
-
               <NotificationBell />
 
               <div className="group relative">
@@ -76,32 +57,13 @@ export const SiteHeader = () => {
                     {user.role === 'gm' || user.role === 'admin' ? 'Painel do Mestre' : 'Torne-se um Mestre'}
                   </Link>
                   {user.role === 'admin' && (
-                    <>
-                      <Link
-                        to="/gestao"
-                        className="block w-full text-left px-5 py-3 text-sm text-blue-300 hover:text-blue-200 hover:bg-blue-400/10 transition-colors border-b border-white/5"
-                        id="site-header-menu-gestao"
-                      >
-                        🛠️ Gestão
-                      </Link>
-                      <Link
-                        to="/admin/devtools"
-                        className="block w-full text-left px-5 py-3 text-sm text-orange-300 hover:text-orange-200 hover:bg-orange-400/10 transition-colors border-b border-white/5"
-                        id="site-header-menu-admin-devtools"
-                      >
-                        Admin DevTools
-                      </Link>
-                    </>
-                  )}
-                  {isAdmin && (
-                    <div id="site-header-menu-devtools-flag-info" className="px-5 py-3 border-b border-white/5 bg-white/5">
-                      <p className="text-[11px] font-semibold text-white/90">
-                        VITE_ENABLE_DEVTOOLS={isDevToolsFlagEnabled ? 'true' : 'false'}
-                      </p>
-                      <p className="mt-1 text-[11px] text-white/65 leading-relaxed">
-                        Lembrete operacional visível no frontend para não esquecer o modo do ambiente (dev/prod).
-                      </p>
-                    </div>
+                    <Link
+                      to="/gestao"
+                      className="block w-full text-left px-5 py-3 text-sm text-blue-300 hover:text-blue-200 hover:bg-blue-400/10 transition-colors border-b border-white/5"
+                      id="site-header-menu-gestao"
+                    >
+                      🛠️ Gestão
+                    </Link>
                   )}
                   <button
                     onClick={() => logout()}
