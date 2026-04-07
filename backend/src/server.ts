@@ -73,7 +73,6 @@ app.use('/api/v1/profile', profileRoutes);
 app.use('/api/v1/profile', linksRoutes);
 app.use('/api/v1/admin', adminProfileRoutes);
 app.use('/api/v1/tables', tablesRoutes);
-app.use('/api/v1/tables', tableSchedulesRoutes);
 app.use('/api/v1/systems', systemsRoutes);
 app.use('/api/v1/scenarios', scenariosRoutes);
 app.use('/api/v1/system-suggestions', systemSuggestionsRoutes);
