@@ -1207,6 +1207,24 @@ router.put('/admin/tables/:id', authMiddleware, async (req: Request, res: Respon
     frequency_custom,
     rules_notes,
     banner_url,
+    // CORREÇÃO B06: Campos REQ-26/28 estavam ausentes no admin PUT — zerados silenciosamente
+    master_display_name,
+    campaign_length,
+    level_range,
+    billing_text,
+    session_zero_free,
+    synopsis,
+    style_text,
+    listing_excerpt,
+    technical_requirements,
+    requires_pc,
+    requires_camera,
+    requires_microphone,
+    setting_name,
+    setting_styles,
+    synopsis_narrative,
+    benefits_text,
+    gm_bio,
   } = req.body;
 
   try {
@@ -1279,6 +1297,27 @@ router.put('/admin/tables/:id', authMiddleware, async (req: Request, res: Respon
         frequency_custom: hasOwn('frequency_custom') ? (frequency_custom ?? null) : undefined,
         rules_notes: hasOwn('rules_notes') ? (rules_notes ?? null) : undefined,
         banner_url: hasOwn('banner_url') ? (banner_url ?? null) : undefined,
+        // CORREÇÃO B06: Persistir campos REQ-26/28
+        master_display_name: hasOwn('master_display_name') ? sanitizeOptionalText(master_display_name) : undefined,
+        campaign_length: hasOwn('campaign_length') ? sanitizeOptionalText(campaign_length) : undefined,
+        level_range: hasOwn('level_range') ? sanitizeOptionalText(level_range) : undefined,
+        billing_text: hasOwn('billing_text') ? sanitizeOptionalText(billing_text) : undefined,
+        session_zero_free: hasOwn('session_zero_free') ? (parseOptionalBoolean(session_zero_free) ?? false) : undefined,
+        synopsis: hasOwn('synopsis') ? sanitizeOptionalText(synopsis) : undefined,
+        style_text: hasOwn('style_text') ? sanitizeOptionalText(style_text) : undefined,
+        listing_excerpt: hasOwn('listing_excerpt') ? sanitizeOptionalText(listing_excerpt) : undefined,
+        technical_requirements: hasOwn('technical_requirements') ? sanitizeOptionalText(technical_requirements) : undefined,
+        requires_pc: hasOwn('requires_pc') ? (parseOptionalBoolean(requires_pc) ?? false) : undefined,
+        requires_camera: hasOwn('requires_camera') ? (parseOptionalBoolean(requires_camera) ?? false) : undefined,
+        requires_microphone: hasOwn('requires_microphone') ? (parseOptionalBoolean(requires_microphone) ?? false) : undefined,
+        setting_name: hasOwn('setting_name') ? sanitizeOptionalText(setting_name) : undefined,
+        setting_styles: hasOwn('setting_styles') ? (() => {
+          const sanitized = sanitizeStringArray(setting_styles);
+          return sanitized.length > 0 ? sanitized : null;
+        })() : undefined,
+        synopsis_narrative: hasOwn('synopsis_narrative') ? sanitizeOptionalText(synopsis_narrative) : undefined,
+        benefits_text: hasOwn('benefits_text') ? sanitizeOptionalText(benefits_text) : undefined,
+        gm_bio: hasOwn('gm_bio') ? sanitizeOptionalText(gm_bio) : undefined,
       })
       .where('id', '=', id)
       .returning([

@@ -242,12 +242,20 @@ export function mapCandidateToFormData(
   }
 
   // Tipo de mesa
+  // CORREÇÃO C01: Mapear para valores válidos do enum do banco: campanha, one-shot, oneshot-serie, aberta
   if (enrichedJson.type) {
     const typeMap: Record<string, string> = {
       'campanha': 'campanha',
-      'oneshot': 'oneshot',
-      'one-shot': 'oneshot',
-      'aventura': 'oneshot',
+      'campaign': 'campanha',
+      'aventura': 'campanha',
+      'adventure': 'campanha',
+      'oneshot': 'one-shot',
+      'one-shot': 'one-shot',
+      'oneshot-serie': 'oneshot-serie',
+      'serie': 'oneshot-serie',
+      'aberta': 'aberta',
+      'west_marches': 'aberta',
+      'west marches': 'aberta',
     };
     const normalized = enrichedJson.type.toLowerCase();
     mapped.type = typeMap[normalized] || 'campanha';
@@ -442,10 +450,11 @@ export function mapCandidateToFormData(
     });
   }
 
-  // Telegram
+  // Telegram — mapeado para 'form' pois backend só aceita: whatsapp|discord|phone|email|facebook|instagram|form
+  // CORREÇÃO F05: 'telegram' não existe no enum do backend
   if (enrichedJson.telegram || enrichedJson.telegramUsername) {
     contacts.push({
-      channel: 'telegram',
+      channel: 'form',
       value: enrichedJson.telegram || enrichedJson.telegramUsername,
     });
   }
@@ -456,17 +465,19 @@ export function mapCandidateToFormData(
       link.includes('forms.gle') || link.includes('forms.google.com')
     );
     if (formsLink) {
+      // CORREÇÃO F05: 'formulario' → 'form' para alinhar com enum do backend
       contacts.push({
-        channel: 'formulario',
+        channel: 'form',
         value: formsLink,
       });
     }
   }
 
-  // Outros (genérico)
+  // Outros (genérico) — mapeado para 'form'
+  // CORREÇÃO F05: 'outros' não existe no enum do backend
   if (enrichedJson.otherContact || enrichedJson.contact) {
     contacts.push({
-      channel: 'outros',
+      channel: 'form',
       value: enrichedJson.otherContact || enrichedJson.contact,
     });
   }

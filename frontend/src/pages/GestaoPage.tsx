@@ -334,8 +334,9 @@ export const GestaoPage = () => {
 
   const handleToggleTableStatus = async (id: string, currentStatus: string, title: string) => {
     if (!token) return;
-    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
-    const action = newStatus === 'active' ? 'ativar' : 'desativar';
+    // CORREÇÃO F04: 'inactive' não existe no enum — usar 'cancelled' para desativar
+    const newStatus = currentStatus === 'active' ? 'cancelled' : 'active';
+    const action = newStatus === 'active' ? 'ativar' : 'cancelar';
     
     if (!confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} mesa "${title}"?`)) return;
 
@@ -1293,9 +1294,11 @@ export const GestaoPage = () => {
               <div className="space-y-4">
                 {filteredCandidates.map((candidate) => {
                   const parsed = candidate.parsed_json || {};
-                  const title = parsed.title || 'Sem título';
-                  const system = parsed.system || 'Sistema não identificado';
-                  const masterText = parsed.masterText || parsed.recruiterName || 'Não informado';
+                  // CORREÇÃO F06: Priorizar enrichedFields (parser Python) sobre campos raiz
+                  const enriched = (parsed.enrichedFields as Record<string, any>) || {};
+                  const title = enriched.title || parsed.title || 'Sem título';
+                  const system = enriched.system_normalized || enriched.system || parsed.system || 'Sistema não identificado';
+                  const masterText = enriched.master_display_name || enriched.recruiterName || parsed.masterText || parsed.recruiterName || parsed.author?.username || 'Não informado';
                   const confidence = Math.round((candidate.confidence_score || 0) * 100);
                   const mappedCandidate = candidateMappedData.get(candidate.id);
 
@@ -1371,8 +1374,13 @@ export const GestaoPage = () => {
                             </button>
                             <button
                               onClick={() => handleApproveCandidate(candidate.id)}
-                              className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg transition-colors"
+                              // CORREÇÃO F07: Desabilitar durante aprovação para evitar duplo-clique e mesa duplicada
+                              disabled={approvingCandidateId === candidate.id}
+                              className="px-4 py-2 bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
                             >
+                              {approvingCandidateId === candidate.id && (
+                                <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                              )}
                               Aprovar
                             </button>
                             <button
@@ -1497,9 +1505,11 @@ export const GestaoPage = () => {
                     <label className="block text-sm font-semibold text-white mb-2">
                       Título da Mesa *
                     </label>
+                    {/* CORREÇÃO F08: value controlado + key para forçar remount ao trocar candidato */}
                     <input
+                      key={`title-${selectedCandidate.id}`}
                       type="text"
-                      defaultValue={selectedCandidate.parsed_json.title || ''}
+                      value={editedCandidate?.title ?? selectedCandidate.parsed_json.title ?? ''}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditedCandidate((prev: any) => ({ ...prev, title: e.target.value }))}
                       className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                       placeholder="Digite o título da mesa"
@@ -1523,9 +1533,11 @@ export const GestaoPage = () => {
                       <label className="block text-sm font-semibold text-white mb-2">
                         Sistema
                       </label>
+                      {/* CORREÇÃO F08: value controlado + key para remount ao trocar candidato */}
                       <input
+                        key={`system-${selectedCandidate.id}`}
                         type="text"
-                        defaultValue={selectedCandidate.parsed_json.system || ''}
+                        value={editedCandidate?.system ?? selectedCandidate.parsed_json.enrichedFields?.system ?? selectedCandidate.parsed_json.system ?? ''}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditedCandidate((prev: any) => ({ ...prev, system: e.target.value }))}
                         className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                         placeholder="Ex: D&D 5e"
@@ -1551,15 +1563,17 @@ export const GestaoPage = () => {
                       <label className="block text-sm font-semibold text-white mb-2">
                         Tipo
                       </label>
+                      {/* CORREÇÃO F02: Valores alinhados com enum do banco: campanha, one-shot, oneshot-serie, aberta */}
                       <select
-                        defaultValue={selectedCandidate.parsed_json.type || 'oneshot'}
+                        key={`type-${selectedCandidate.id}`}
+                        value={editedCandidate?.type ?? selectedCandidate.parsed_json.type ?? 'one-shot'}
                         onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setEditedCandidate((prev: any) => ({ ...prev, type: e.target.value }))}
                         className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                       >
-                        <option value="oneshot">One-shot</option>
-                        <option value="campaign">Campanha</option>
-                        <option value="adventure">Aventura</option>
-                        <option value="west_marches">West Marches</option>
+                        <option value="one-shot">One-shot</option>
+                        <option value="campanha">Campanha</option>
+                        <option value="oneshot-serie">Série de One-shots</option>
+                        <option value="aberta">Mesa Aberta</option>
                       </select>
                     </div>
 
@@ -1567,15 +1581,17 @@ export const GestaoPage = () => {
                       <label className="block text-sm font-semibold text-white mb-2">
                         Modalidade
                       </label>
+                      {/* CORREÇÃO F03: 'hibrido' → 'hibrida' para alinhar com enum do banco */}
                       <select
-                        defaultValue={editedCandidate?.modality ?? candidateMappedData.get(selectedCandidate.id)?.modality ?? (selectedCandidate.parsed_json.modality || '')}
+                        key={`modality-${selectedCandidate.id}`}
+                        value={editedCandidate?.modality ?? candidateMappedData.get(selectedCandidate.id)?.modality ?? selectedCandidate.parsed_json.modality ?? ''}
                         onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setEditedCandidate((prev: any) => ({ ...prev, modality: e.target.value }))}
                         className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                       >
                         <option value="">Selecione...</option>
                         <option value="online">Online</option>
                         <option value="presencial">Presencial</option>
-                        <option value="hibrido">Híbrido</option>
+                        <option value="hibrida">Híbrida</option>
                       </select>
                     </div>
                   </div>
