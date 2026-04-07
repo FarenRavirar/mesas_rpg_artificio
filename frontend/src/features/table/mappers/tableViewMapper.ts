@@ -99,7 +99,7 @@ export function mapTableToView(table: TableDetail): TableViewModel {
     };
   }
 
-  if (table.is_covil_lich) {
+  if (table.is_covil) {
     certifications.covil = {
       isMember: true,
     };

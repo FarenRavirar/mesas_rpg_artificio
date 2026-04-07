@@ -398,7 +398,11 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
   const safeBannerUrl = sanitizeOptionalText(banner_url);
 
   const safeIsDdal = parseOptionalBoolean(is_ddal) ?? false;
-  const safeIsCovil = parseOptionalBoolean(is_covil) ?? false;
+  
+  // CORREÇÃO B03: Validar role admin para is_covil
+  const userRole = (req as any).user?.role;
+  const safeIsCovil = (userRole === 'admin' && parseOptionalBoolean(is_covil)) ? true : false;
+  
   const safeDdalCode = sanitizeOptionalText(ddal_code);
   const safeDdalName = sanitizeOptionalText(ddal_name);
   const safeDdalTier = sanitizeOptionalTier(ddal_tier);
@@ -554,6 +558,7 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
           'publisher_role',
           'actual_gm_name',
           'is_ddal',
+          'is_covil', // CORREÇÃO A03: Retornar flag Covil do Lich
           'ddal_code',
           'ddal_name',
           'ddal_tier',
@@ -1403,7 +1408,8 @@ router.put('/admin/tables/:id', authMiddleware, async (req: Request, res: Respon
           return sanitized.length > 0 ? sanitized : null;
         })() : undefined,
         // REQ-05: Flag Covil do Lich (admin only)
-        is_covil: hasOwn('is_covil') ? (parseOptionalBoolean(is_covil) ?? false) : undefined,
+        // CORREÇÃO B03: Validar role admin para is_covil
+        is_covil: hasOwn('is_covil') ? ((req as any).user?.role === 'admin' && parseOptionalBoolean(is_covil) ? true : false) : undefined,
       })
       .where('id', '=', id)
       .returning([

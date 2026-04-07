@@ -14,7 +14,7 @@ interface TableHeroProps {
 export function TableHero({ vm, variant = 'full' }: TableHeroProps) {
   const badges = getTableBadges({
     is_ddal: vm.certifications.ddal !== undefined,
-    is_covil_lich: vm.certifications.covil !== undefined,
+    is_covil: vm.certifications.covil !== undefined,
   } as any);
 
   return (

@@ -35,7 +35,7 @@ export interface MasterResponse {
   google_avatar_url?: string;
   banner_url?: string;
   bio?: string;
-  is_covil_lich: boolean;
+  is_covil: boolean;
   
   stats: {
     tables_count: number;

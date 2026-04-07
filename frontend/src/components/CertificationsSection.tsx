@@ -11,7 +11,7 @@ interface CertificationsSectionProps {
  * Aparece no final da página como detalhe técnico
  */
 export function CertificationsSection({ table }: CertificationsSectionProps) {
-  const hasCertifications = table.is_ddal || table.is_covil_lich;
+  const hasCertifications = table.is_ddal || table.is_covil;
 
   if (!hasCertifications) return null;
 
@@ -21,15 +21,28 @@ export function CertificationsSection({ table }: CertificationsSectionProps) {
 
       <div className="space-y-5">
         {/* Covil do Lich */}
-        {table.is_covil_lich && (
+        {table.is_covil && (
           <div className="rounded-xl border border-purple-400/30 bg-purple-500/10 p-4">
-            <h3 className="font-bold text-purple-200 flex items-center gap-2 mb-2">
-              <Crown className="w-5 h-5" />
-              Mestre do Covil do Lich
-            </h3>
-            <p className="text-sm text-white/80 leading-relaxed">
-              Este mestre faz parte do Covil do Lich — mesas com curadoria e padrão elevado de qualidade.
-            </p>
+            <div className="flex items-start gap-4">
+              <img
+                src="https://covildolich.com/wp-content/uploads/2025/09/Mestres.webp"
+                alt="Selo Covil do Lich"
+                className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                onError={(e) => {
+                  // Fallback para ícone se imagem falhar
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+              <div className="flex-1">
+                <h3 className="font-bold text-purple-200 flex items-center gap-2 mb-2">
+                  <Crown className="w-5 h-5" />
+                  Mestre do Covil do Lich
+                </h3>
+                <p className="text-sm text-white/80 leading-relaxed">
+                  Este mestre faz parte do Covil do Lich — mesas com curadoria e padrão elevado de qualidade.
+                </p>
+              </div>
+            </div>
           </div>
         )}
 

@@ -18,7 +18,7 @@ export function getTableBadges(table: TableDetail): TableBadge[] {
   const badges: TableBadge[] = [];
 
   // Covil do Lich (prioridade máxima - curadoria premium)
-  if (table.is_covil_lich) {
+  if (table.is_covil) {
     badges.push({
       id: 'covil',
       label: 'Covil do Lich',

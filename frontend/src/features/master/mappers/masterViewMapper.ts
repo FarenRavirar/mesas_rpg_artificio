@@ -33,7 +33,7 @@ export function mapMasterToView(
     banner: master.banner_url,
     bio: master.bio,
     
-    isCovil: master.is_covil_lich || false,
+    isCovil: master.is_covil || false,
     
     stats: {
       tablesCount: master.stats.tables_count,

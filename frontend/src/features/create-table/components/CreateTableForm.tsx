@@ -6,6 +6,7 @@ import type { SystemTreeNode } from '../../../types/systems';
 import { useCreateTableForm } from '../hooks/useCreateTableForm';
 import { useStepNavigation } from '../hooks/useStepNavigation';
 import { useAutosave } from '../hooks/useAutosave';
+import { useAuth } from '../../../contexts/AuthContext';
 
 // Componentes
 import { StepHeader } from '../../../components/form-steps/StepHeader';
@@ -68,6 +69,9 @@ export function CreateTableForm({
   const { draftStatus } = useAutosave(formHook.formState, {
     enabled: true, // CORREÇÃO DT-AGG-04: Sempre habilitado (modo review removido)
   });
+
+  // Auth context para verificar role do usuário
+  const { user } = useAuth();
 
   // Estado de sistemas (mantido aqui pois é específico da UI)
   const [systemsTree, setSystemsTree] = useState<SystemTreeNode[]>([]);
@@ -336,6 +340,7 @@ export function CreateTableForm({
             settingStyles={formHook.settingStyles}
             setSettingStyles={formHook.setSettingStyles}
             priceType={formHook.form.price_type}
+            userRole={user?.role}
           />
         )}
 

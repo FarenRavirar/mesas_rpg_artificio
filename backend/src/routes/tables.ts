@@ -73,6 +73,7 @@ router.get('/', async (req: Request, res: Response) => {
         't.featured',
         't.created_at',
         't.is_ddal',
+        't.is_covil', // CORREÇÃO A01: Retornar flag Covil do Lich
         't.ddal_code',
         't.ddal_name',
         't.ddal_tier',
@@ -107,11 +108,9 @@ router.get('/', async (req: Request, res: Response) => {
       query = query.where('t.is_ddal', '=', true);
     }
 
+    // CORREÇÃO A02: Filtro Covil do Lich deve usar t.is_covil, não gm.badges
     if (seal === 'covil-do-lich' || seal === 'covil_do_lich') {
-      query = query.where(sql<boolean>`(
-        'covil_do_lich' = ANY(COALESCE(gm.badges, ARRAY[]::text[]))
-        OR 'covil-do-lich' = ANY(COALESCE(gm.badges, ARRAY[]::text[]))
-      )`);
+      query = query.where('t.is_covil', '=', true);
     }
 
     if (search) {
@@ -234,6 +233,7 @@ router.get('/:slug', async (req: Request, res: Response) => {
         't.created_at',
         't.origin',
         't.is_ddal',
+        't.is_covil', // CORREÇÃO A01: Retornar flag Covil do Lich
         't.ddal_code',
         't.ddal_name',
         't.ddal_tier',

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ShieldCheck } from 'lucide-react';
+import { Crown, ShieldCheck } from 'lucide-react';
 // REMOVIDO: bannerPlaceholder (modo review desacoplado)
 import { SettingStylesField } from '../../SettingStylesField';
 import { ContactsFormBlock, type ContactFormEntry } from '../../ContactsFormBlock';
@@ -31,6 +31,7 @@ interface StepFinalProps {
   setAvatarError: (error: boolean) => void;
   isCovilMesa: boolean;
   setIsCovilMesa: (is: boolean) => void;
+  userRole?: string; // Role do usuário para controlar visibilidade de campos admin
   // REMOVIDO: mode (sistema de ingestão desacoplado)
   // mode: 'create' | 'review';
   isDdalEligibleSelection: boolean;
@@ -470,7 +471,40 @@ export function StepFinal(props: StepFinalProps) {
         </section>
       )}
 
-      {/* REMOVIDO: Covil do Lich (modo review desacoplado) */}
+      {/* Covil do Lich (admin only) */}
+      {props.userRole === 'admin' && (
+        <section className="rounded-2xl border border-purple-400/30 bg-purple-500/10 p-5 space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-purple-200 inline-flex items-center gap-2">
+                <Crown className="w-4 h-4" /> Selo Covil do Lich
+              </p>
+              <p className="text-xs text-purple-200/80 mt-1">
+                Marque esta mesa como parte do programa Covil do Lich — mesas com curadoria e padrão elevado de qualidade.
+              </p>
+            </div>
+
+            <label htmlFor="covil-toggle" className="inline-flex items-center gap-2 text-sm text-purple-200">
+              <input
+                id="covil-toggle"
+                type="checkbox"
+                checked={props.isCovilMesa}
+                onChange={(e) => props.setIsCovilMesa(e.target.checked)}
+                className="h-4 w-4 rounded border-white/20 bg-white/10"
+              />
+              É Covil do Lich
+            </label>
+          </div>
+
+          {props.isCovilMesa && (
+            <div className="rounded-xl border border-purple-300/20 bg-purple-900/20 p-3">
+              <p className="text-xs text-purple-200/90">
+                ✓ Esta mesa será exibida com o selo oficial do Covil do Lich em todos os locais onde aparecer.
+              </p>
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }

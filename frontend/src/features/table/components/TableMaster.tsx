@@ -1,5 +1,4 @@
 import type { TableViewModel } from '../types/tableView.types';
-import { Crown } from 'lucide-react';
 
 interface TableMasterProps {
   vm: TableViewModel;
@@ -38,9 +37,17 @@ export function TableMaster({ vm }: TableMasterProps) {
             
             {/* Badge Covil do Lich (confiança do mestre) */}
             {vm.certifications.covil && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 text-xs font-semibold">
-                <Crown className="w-3.5 h-3.5" />
-                Covil do Lich
+              <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-purple-500/20 border border-purple-400/30">
+                <img
+                  src="https://covildolich.com/wp-content/uploads/2025/09/Mestres.webp"
+                  alt="Covil do Lich"
+                  className="w-5 h-5 rounded object-cover"
+                  onError={(e) => {
+                    // Fallback para ícone se imagem falhar
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+                <span className="text-purple-300 text-xs font-semibold">Mestre do Covil do Lich</span>
               </span>
             )}
           </div>

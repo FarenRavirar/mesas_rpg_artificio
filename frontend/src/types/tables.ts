@@ -55,8 +55,8 @@ export interface TableCard {
   gm_slug: string | null;
   gm_avatar_url: string | null;
   gm_display_name: string | null;
-  is_ddal?: boolean;
-  is_covil_lich?: boolean;
+  is_ddal: boolean;
+  is_covil: boolean; // CORREÇÃO C01: Padronizado para is_covil (mesmo nome do backend)
   ddal_code?: string | null;
   ddal_name?: string | null;
   ddal_tier?: number | null;
