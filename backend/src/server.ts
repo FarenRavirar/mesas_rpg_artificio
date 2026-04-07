@@ -22,6 +22,7 @@ import adminSettingSuggestionsRoutes from './routes/adminSettingSuggestions';
 import vttPlatformsRoutes from './routes/vttPlatforms';
 import 'express-async-errors';
 import { db } from './db';
+import { requestLogger } from './middleware/requestLogger';
 
 dotenv.config();
 
@@ -46,6 +47,9 @@ app.use(cors({
 
 app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
+
+// Middleware de logging de todas as requisições
+app.use(requestLogger);
 
 app.get('/api/v1/health', async (req, res) => {
   try {

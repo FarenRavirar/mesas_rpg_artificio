@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { sql } from 'kysely';
 import { db } from '../db';
+import { logDatabaseError } from '../middleware/requestLogger';
 
 const router = Router();
 
@@ -349,10 +350,17 @@ router.get('/:slug', async (req: Request, res: Response) => {
 
     res.json({ data: { ...table, contacts, schedules } });
   } catch (error: any) {
+    // Log detalhado de erro de banco de dados
+    logDatabaseError(req, error, {
+      route: 'GET /api/v1/tables/:slug',
+      operation: 'fetch_table_details'
+    });
+    
     // CORREÇÃO A-CRIT-02: Detectar erro de migration pendente
     console.error('[GET /tables/:slug]', error, { 
       slug, 
       errorMessage: error.message,
+      pgCode: error.code,
       stack: error.stack 
     });
     

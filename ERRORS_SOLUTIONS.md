@@ -295,3 +295,131 @@ Sempre que criar uma migration que adiciona campos à tabela `tables`, atualizar
 Migration 13 adicionou 6 novos campos (age_rating, table_level, game_platform, communication_platform, custom_scenario, style_tags) mas a interface TypeScript não foi atualizada simultaneamente.
 
 **Data:** 07/04/2026
+
+---
+
+## E134 — Sistema de Logging de Rotas para Debug
+
+**Implementado em:** 07/04/2026
+
+**Objetivo:**
+Sistema completo de logging de requisições HTTP para diagnóstico de problemas de rotas, erros de banco de dados e comportamento inesperado da API.
+
+**Localização dos logs:**
+- **Arquivo principal:** `/var/log/mesas-api/routes.log` (dentro da VM)
+- **Arquivos rotacionados:** `/var/log/mesas-api/routes-<timestamp>.log`
+- **Rotação automática:** A cada 6 horas ou quando arquivo atingir 10MB
+- **Retenção:** Últimos 5 arquivos rotacionados
+
+**Como acessar os logs:**
+
+```powershell
+# Ver últimas 50 linhas
+ssh -F C:\projetos\config faren "docker exec mesas-beta-api tail -50 /var/log/mesas-api/routes.log"
+
+# Ver logs em tempo real (follow)
+ssh -F C:\projetos\config faren "docker exec mesas-beta-api tail -f /var/log/mesas-api/routes.log"
+
+# Buscar por slug específico
+ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep 'a-voz-nas-cartas' /var/log/mesas-api/routes.log"
+
+# Buscar por erro específico
+ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep 'ERROR' /var/log/mesas-api/routes.log | tail -20"
+
+# Buscar por código de erro PostgreSQL
+ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep '22P02' /var/log/mesas-api/routes.log"
+
+# Buscar por Request ID específico
+ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep 'ReqID: 1712520000000-abc123' /var/log/mesas-api/routes.log"
+
+# Copiar log completo para análise local
+scp -F C:\projetos\config faren:/var/log/mesas-api/routes.log C:\projetos\mesas_rpg_artificio\testes\routes.log
+```
+
+**Formato do log:**
+
+**Requisição normal:**
+```
+[2026-04-07T20:10:00.000Z] GET /api/v1/tables/slug-da-mesa | ReqID: 1712520000000-abc123 | Params: {"slug":"slug-da-mesa"} | Query: {} | IP: 192.168.1.1
+```
+
+**Erro de aplicação:**
+```
+[2026-04-07T20:10:00.500Z] GET /api/v1/tables/slug-da-mesa | ReqID: 1712520000000-abc123 | ERROR: Erro ao buscar mesa. | Code: 500 | Duration: 500ms | Params: {"slug":"slug-da-mesa"} | Query: {}
+```
+
+**Erro de banco de dados:**
+```
+[2026-04-07T20:10:00.500Z] DB_ERROR in GET /api/v1/tables/:slug (fetch_table_details) | ReqID: 1712520000000-abc123 | Error: invalid input syntax for type uuid: "slug-da-mesa" | PG Code: 22P02 | Params: {"slug":"slug-da-mesa"}
+```
+
+**Campos do log:**
+- `timestamp`: ISO 8601 com timezone UTC
+- `method`: GET, POST, PUT, DELETE, PATCH
+- `path`: Caminho da rota (ex: `/api/v1/tables/slug-da-mesa`)
+- `ReqID`: ID único da requisição para rastreamento
+- `Params`: Parâmetros de rota (ex: `{slug: "..."}`)
+- `Query`: Query string (ex: `{page: "1", limit: "10"}`)
+- `IP`: Endereço IP do cliente
+- `ERROR`: Mensagem de erro (apenas em falhas)
+- `Code`: Status HTTP (apenas em falhas)
+- `Duration`: Tempo de resposta em ms (apenas em falhas)
+- `PG Code`: Código de erro PostgreSQL (apenas em erros de banco)
+
+**Uso no código:**
+
+```typescript
+// Middleware já está ativo globalmente - não precisa adicionar em rotas individuais
+
+// Para logar erros de banco de dados em rotas específicas:
+import { logDatabaseError } from '../middleware/requestLogger';
+
+try {
+  const result = await db.selectFrom('tables').where('slug', '=', slug).executeTakeFirst();
+} catch (error: any) {
+  logDatabaseError(req, error, {
+    route: 'GET /api/v1/tables/:slug',
+    operation: 'fetch_table_details'
+  });
+  throw error;
+}
+```
+
+**Diagnóstico de problemas comuns:**
+
+1. **Erro 500 em rota específica:**
+   ```powershell
+   ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep 'GET /api/v1/tables' /var/log/mesas-api/routes.log | grep ERROR | tail -10"
+   ```
+
+2. **Rastrear requisição específica por Request ID:**
+   ```powershell
+   ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep 'ReqID: <id>' /var/log/mesas-api/routes.log"
+   ```
+
+3. **Ver todos os erros de UUID:**
+   ```powershell
+   ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep '22P02' /var/log/mesas-api/routes.log"
+   ```
+
+4. **Ver requisições lentas (> 1000ms):**
+   ```powershell
+   ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep -E 'Duration: [0-9]{4,}ms' /var/log/mesas-api/routes.log"
+   ```
+
+**Manutenção:**
+- Rotação automática a cada 6 horas ou 10MB
+- Mantém últimos 5 arquivos rotacionados
+- Logs antigos são deletados automaticamente
+- Não requer intervenção manual
+
+**Prevenção:**
+- Sempre consultar logs antes de fazer debug manual
+- Usar Request ID para rastrear requisições específicas
+- Verificar logs após deploy para detectar regressões
+- Monitorar erros 500 e códigos PostgreSQL recorrentes
+
+**Contexto:**
+Sistema implementado em 07/04/2026 após 3 horas de debug do erro 500 em `GET /api/v1/tables/:slug`. O sistema de logging teria reduzido o tempo de diagnóstico de 3 horas para ~15 minutos.
+
+
