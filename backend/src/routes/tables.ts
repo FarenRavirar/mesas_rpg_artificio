@@ -294,7 +294,12 @@ router.get('/:slug', async (req: Request, res: Response) => {
         sql<string>`COALESCE(gm.nickname, p.display_name)`.as('gm_display_name'),
         'gm.bio_long as gm_bio_long', // CORREÇÃO REG-13: Renomeado para evitar conflito com t.gm_bio
       ])
-      .where('t.slug', '=', slug)
+      .where((eb) => 
+        eb.or([
+          eb('t.slug', '=', slug),
+          eb('t.id', '=', slug) // Aceita UUID também
+        ])
+      )
       .executeTakeFirst();
 
     if (!table) {
