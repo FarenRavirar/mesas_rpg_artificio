@@ -1,0 +1,56 @@
+name: Promote Beta to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versão da release (ex: v0.1.1)'
+        required: true
+        type: string
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://mesas.artificiorpg.com
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Merge dev to main
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git checkout main
+          git merge origin/dev --no-ff -m "chore: promote beta to production ${{ inputs.version }}"
+          git tag ${{ inputs.version }} -m "Release ${{ inputs.version }}"
+          git push origin main
+          git push origin ${{ inputs.version }}
+      
+      - name: Deploy to Production
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY_PROD }}
+          script: |
+            cd /opt/mesas
+            git pull origin main
+            docker compose -f docker-compose.prod.yml build --no-cache
+            docker compose -f docker-compose.prod.yml up -d mesas-db
+            sleep 15
+            docker exec mesas-api npm run migrate || echo "Migrations já aplicadas"
+            docker compose -f docker-compose.prod.yml up -d
+            docker compose -f docker-compose.prod.yml ps
+      
+      - name: Notify Success
+        if: success()
+        run: echo "✅ Promoção para produção concluída! Versão ${{ inputs.version }}"
+      
+      - name: Notify Failure
+        if: failure()
+        run: echo "❌ Falha na promoção para produção!"
