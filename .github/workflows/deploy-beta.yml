@@ -25,6 +25,8 @@ jobs:
             docker compose -f docker-compose.beta.yml build --no-cache
             docker compose -f docker-compose.beta.yml up -d
             docker compose -f docker-compose.beta.yml ps
+            echo "🧹 Limpando imagens antigas..."
+            docker image prune -f
       
       - name: Notify Success
         if: success()
