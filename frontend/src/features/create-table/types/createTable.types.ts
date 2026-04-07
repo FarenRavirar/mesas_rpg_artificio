@@ -22,10 +22,12 @@ export interface BasicFormData {
   type: string;
   modality: string;
   audience: string;
+  age_rating: string;
   price_type: string;
   price_value: string;
   slots_total: string;
   experience_level: string;
+  table_level: string;
   language: string;
 }
 
@@ -39,6 +41,7 @@ export interface FormState {
   
   // Sessões
   sessions: SessionSchedule[];
+  frequency: string;
   
   // Configuração
   publisherRole: 'gm' | 'announcer';

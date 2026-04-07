@@ -279,6 +279,14 @@ export function CreateTableForm({
             setPublisherRole={formHook.setPublisherRole}
             actualGmName={formHook.actualGmName}
             setActualGmName={formHook.setActualGmName}
+            gamePlatform={formHook.gamePlatform}
+            setGamePlatform={formHook.setGamePlatform}
+            communicationPlatform={formHook.communicationPlatform}
+            setCommunicationPlatform={formHook.setCommunicationPlatform}
+            frequency={formHook.frequency as any}
+            setFrequency={formHook.setFrequency as any}
+            frequencyCustom={formHook.frequencyCustom}
+            setFrequencyCustom={formHook.setFrequencyCustom}
           />
         )}
 

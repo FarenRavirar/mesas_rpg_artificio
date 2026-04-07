@@ -25,10 +25,12 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
     type: initialData?.form?.type || 'campaign',
     modality: initialData?.form?.modality || 'online',
     audience: initialData?.form?.audience || 'livre',
+    age_rating: initialData?.form?.age_rating || 'livre',
     price_type: initialData?.form?.price_type || 'free',
     price_value: initialData?.form?.price_value || '',
     slots_total: initialData?.form?.slots_total || '4',
     experience_level: initialData?.form?.experience_level || 'todos',
+    table_level: initialData?.form?.table_level || '',
     language: initialData?.form?.language || 'pt-BR',
   });
 
@@ -51,6 +53,10 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
       sort_order: 0,
     }] : [])
   );
+  const [frequency, setFrequency] = useState(initialData?.frequency || '');
+  const [frequencyCustom, setFrequencyCustom] = useState('');
+  const [gamePlatform, setGamePlatform] = useState('');
+  const [communicationPlatform, setCommunicationPlatform] = useState('');
 
   // Configuração
   const [publisherRole, setPublisherRole] = useState<'gm' | 'announcer'>(
@@ -139,6 +145,7 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
     selectedSystemId,
     selectedScenarioId,
     sessions,
+    frequency,
     publisherRole,
     actualGmName,
     contacts,
@@ -221,10 +228,12 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
         type: 'campaign',
         modality: 'online',
         audience: 'livre',
+        age_rating: 'livre',
         price_type: 'free',
         price_value: '',
         slots_total: '4',
         experience_level: 'todos',
+        table_level: '',
         language: 'pt-BR',
       });
       setSelectedSystemId('');
@@ -286,6 +295,14 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
     // Sessões
     sessions,
     setSessions,
+    frequency,
+    setFrequency,
+    frequencyCustom,
+    setFrequencyCustom,
+    gamePlatform,
+    setGamePlatform,
+    communicationPlatform,
+    setCommunicationPlatform,
     
     // Configuração
     publisherRole,

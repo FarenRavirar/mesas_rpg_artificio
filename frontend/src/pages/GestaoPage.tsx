@@ -30,6 +30,7 @@ interface AggregatorCandidate {
   id: string;
   source_id: string | null;
   editorial_status: 'accepted' | 'rejected' | 'awaiting_review';
+  publish_mode: 'manual_review' | 'auto_publish';
   parsed_json: Record<string, any>;
   confidence_score: number;
   rejection_reason: string | null;
