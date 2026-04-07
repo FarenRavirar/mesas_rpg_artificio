@@ -26,8 +26,9 @@ interface CreateTableFormProps {
   token: string;
   onSuccess: () => void;
   initialData?: any;
-  mode?: 'create' | 'review';
-  candidateId?: string;
+  // REMOVIDO: Sistema de ingestão automática desacoplado
+  // mode?: 'create' | 'review';
+  // candidateId?: string;
 }
 
 const flattenTree = (nodes: SystemTreeNode[], breadcrumb: string[] = []): any[] => {
@@ -50,8 +51,6 @@ export function CreateTableForm({
   token,
   onSuccess,
   initialData,
-  mode = 'create',
-  candidateId,
 }: CreateTableFormProps) {
   // Hooks customizados
   const formHook = useCreateTableForm({
@@ -61,14 +60,13 @@ export function CreateTableForm({
       draftStorage.clear('create-table-draft');
       onSuccess();
     },
-    mode,
-    candidateId,
+    // REMOVIDO: mode e candidateId (sistema de ingestão desacoplado)
   });
 
   const navigation = useStepNavigation(formHook.formState);
 
   const { draftStatus } = useAutosave(formHook.formState, {
-    enabled: mode === 'create',
+    enabled: true, // CORREÇÃO DT-AGG-04: Sempre habilitado (modo review removido)
   });
 
   // Estado de sistemas (mantido aqui pois é específico da UI)
@@ -103,14 +101,13 @@ export function CreateTableForm({
 
   // Restore de draft
   useEffect(() => {
-    if (mode !== 'create') return;
-
+    // CORREÇÃO DT-AGG-04: Modo review removido, sempre restaurar draft
     const draft = draftStorage.load('create-table-draft');
     if (!draft) return;
 
     setSavedDraft(draft);
     setShowRestoreModal(true);
-  }, [mode]);
+  }, []);
 
   const handleRestoreDraft = () => {
     if (!savedDraft) return;
@@ -229,7 +226,7 @@ export function CreateTableForm({
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Feedback de autosave */}
-        {draftStatus !== 'idle' && mode === 'create' && (
+        {draftStatus !== 'idle' && (
           <div className="flex items-center gap-2 text-xs text-white/50">
             {draftStatus === 'saving' && (
               <>
@@ -307,7 +304,6 @@ export function CreateTableForm({
             setAvatarError={formHook.setAvatarError}
             isCovilMesa={formHook.isCovilMesa}
             setIsCovilMesa={formHook.setIsCovilMesa}
-            mode={mode}
             isDdalEligibleSelection={isDdalEligibleSelection}
             ddal={formHook.ddal}
             setDdal={formHook.setDdal}

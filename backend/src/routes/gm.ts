@@ -126,7 +126,22 @@ router.get('/:slug', async (req: Request, res: Response) => {
       contacts: contactsByTable.get(table.id) ?? [],
     }));
 
-    res.json({ data: { ...gm, tables: tablesWithContacts } });
+    // CORREÇÃO DT-04: Buscar links públicos do mestre
+    const links = await db
+      .selectFrom('user_links')
+      .innerJoin('users as u', 'u.id', 'user_links.user_id')
+      .innerJoin('gm_profiles as gm_check', 'gm_check.user_id', 'u.id')
+      .select([
+        'user_links.id',
+        'user_links.url',
+        'user_links.title',
+        'user_links.sort_order',
+      ])
+      .where('gm_check.id', '=', gm.id)
+      .orderBy('user_links.sort_order', 'asc')
+      .execute();
+
+    res.json({ data: { ...gm, tables: tablesWithContacts, links } });
   } catch (error: any) {
     console.error('[GET /gm/:slug]', error);
     res.status(500).json({ error: 'Erro ao buscar perfil do mestre.' });

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ShieldCheck } from 'lucide-react';
-import bannerPlaceholder from '../../../assets/banner_placeholder.webp';
+// REMOVIDO: bannerPlaceholder (modo review desacoplado)
 import { SettingStylesField } from '../../SettingStylesField';
 import { ContactsFormBlock, type ContactFormEntry } from '../../ContactsFormBlock';
 import { RichTextArea } from '../../RichTextArea';
@@ -31,7 +31,8 @@ interface StepFinalProps {
   setAvatarError: (error: boolean) => void;
   isCovilMesa: boolean;
   setIsCovilMesa: (is: boolean) => void;
-  mode: 'create' | 'review';
+  // REMOVIDO: mode (sistema de ingestão desacoplado)
+  // mode: 'create' | 'review';
   isDdalEligibleSelection: boolean;
   ddal: DdalFormState;
   setDdal: (ddal: DdalFormState | ((prev: DdalFormState) => DdalFormState)) => void;
@@ -143,34 +144,9 @@ export function StepFinal(props: StepFinalProps) {
             className="w-full max-h-48 object-cover"
           />
         </div>
-      ) : props.mode === 'review' && (
-        <div className="overflow-hidden rounded-xl border border-white/10 opacity-50">
-          <img
-            src={bannerPlaceholder}
-            alt="Placeholder — sem banner definido"
-            className="w-full max-h-48 object-cover"
-          />
-          <p className="text-center text-xs text-white/40 py-1 bg-black/40">
-            Sem banner — placeholder padrão será exibido
-          </p>
-        </div>
-      )}
+      ) : null}
 
-      {/* Avatar do mestre (modo review) */}
-      {props.mode === 'review' && props.gmAvatarUrl && !props.avatarError && (
-        <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
-          <img
-            src={props.gmAvatarUrl}
-            alt="Avatar do mestre (Discord)"
-            onError={() => props.setAvatarError(true)}
-            className="w-12 h-12 rounded-full object-cover border-2 border-white/20 flex-shrink-0"
-          />
-          <div>
-            <p className="text-xs font-semibold text-white/80">Avatar do mestre (importado do Discord)</p>
-            <p className="text-xs text-white/40">Não é salvo no banco. Apenas referência visual.</p>
-          </div>
-        </div>
-      )}
+      {/* REMOVIDO: Avatar do mestre (modo review desacoplado) */}
 
       {/* Rules Notes */}
       <div className="flex flex-col gap-1">
@@ -494,31 +470,7 @@ export function StepFinal(props: StepFinalProps) {
         </section>
       )}
 
-      {/* Covil do Lich (modo review) */}
-      {props.mode === 'review' && (
-        <section className="rounded-2xl border border-orange-500/30 bg-orange-900/10 p-5 space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-orange-200 flex items-center gap-2">
-                🏰 Mesa do Covil do Lich
-              </p>
-              <p className="text-xs text-orange-100/70 mt-1">
-                Detectado automaticamente pelo parser. Pode ser editado antes de publicar.
-              </p>
-            </div>
-            <label htmlFor="covil-toggle" className="inline-flex items-center gap-2 text-sm text-orange-100 cursor-pointer">
-              <input
-                id="covil-toggle"
-                type="checkbox"
-                checked={props.isCovilMesa}
-                onChange={(e) => props.setIsCovilMesa(e.target.checked)}
-                className="h-4 w-4 rounded border-orange-300/30 bg-orange-900/20 text-orange-400"
-              />
-              É Covil do Lich
-            </label>
-          </div>
-        </section>
-      )}
+      {/* REMOVIDO: Covil do Lich (modo review desacoplado) */}
     </div>
   );
 }

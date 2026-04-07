@@ -155,11 +155,56 @@ Adicionar entrada na seção "Estado das Migrations (Beta)" com:
 
 ---
 
-## Estado Atual (06/04/2026)
+## Estado Atual (07/04/2026)
 
 **Ambiente beta:** Estável e operacional em `mesasbeta.artificiorpg.com`
 
-**Última sessão concluída (06/04/2026 - 02:15):**
+**Última sessão concluída (07/04/2026 - 05:34):**
+- **Documentação completa do modelo de mesa + Sistema de ingestão automática**
+  - **Objetivo:** Preparar para desacoplamento do pipeline de ingestão automática (AggregatorBot)
+  
+  **Fase 1 — Modelo de Mesa:**
+  - **Documento criado:** `docs/MODELO_MESA_COMPLETO.md` (11 seções, 500+ linhas)
+  - **Conteúdo mapeado:**
+    - Schema completo da tabela `tables` (70+ campos em 9 migrations)
+    - 3 tabelas relacionadas: `table_contacts`, `table_schedules`, `table_metrics`
+    - Validações e constraints (slots, preço, DDAL, publisher role, frequência)
+    - Fluxo completo de criação/edição/deleção via API
+    - Endpoints públicos e autenticados
+    - Regras de negócio (elevação de role, upload de imagens, expiração)
+    - Campos internos sensíveis (deletehashes)
+    - Diferenças entre mesas manuais vs importadas
+  
+  **Fase 2 — Sistema de Ingestão Automática:**
+  - **Documento criado:** `docs/SISTEMA_INGESTAO_ATUAL.md` (11 seções, 600+ linhas)
+  - **Componentes mapeados:**
+    - 5 tabelas do banco: `aggregator_sources`, `aggregator_imported_raw_messages`, `aggregator_import_candidates`, `aggregator_candidate_audit`, `aggregator_settings`
+    - 4 grupos de rotas: `/aggregator/sources`, `/aggregator/import`, `/aggregator/candidates`, `/aggregator/exports`
+    - 9 serviços backend: `sourceService`, `importFromExporterService`, `pythonParserService`, `candidateService`, `exportService`, etc.
+    - 10 arquivos domain: `/backend/src/domain/aggregator/*`
+    - Parser Python: `discord_message_parser.py` + dependências (spaCy, pt_core_news_lg)
+    - Frontend: `AdminDevToolsPage.tsx` (1200+ linhas)
+    - Fluxo completo: coleta → parsing → fila editorial → aprovação → publicação
+  - **Plano de desacoplamento criado:**
+    - Identificados componentes a remover (5 tabelas, 3 migrations, 20+ arquivos)
+    - Identificados componentes a preservar (modelo de mesa, rotas, formulário)
+    - Proposto novo fluxo: upload manual de JSON → validação → criação direta
+  - **Próxima ação:** Criar interface de upload manual de JSON e executar desacoplamento
+  
+  **Fase 3 — Desacoplamento Executado:**
+  - **Rotas desabilitadas:** `/api/v1/aggregator/*` (comentadas em `server.ts`)
+  - **Arquivos movidos para backup:** `backend/src/_archived_aggregator/`
+    - `aggregator.ts`, `aggregatorReview.ts` (rotas)
+    - `services/aggregator/` (9 arquivos)
+    - `domain/aggregator/` (10 arquivos)
+    - `scripts/importDiscordExport.ts`
+    - `scripts/setup_python_env.*`
+    - `AdminDevToolsPage.tsx`
+  - **Frontend atualizado:** Rota `/admin/devtools` removida de `App.tsx`
+  - **Build validado:** Backend e Frontend compilam sem erros (exit code 0)
+  - **Próxima ação:** Criar migration para DROP das tabelas aggregator_* no beta
+
+**Sessão anterior (06/04/2026 - 02:15):**
 - **REQ-29: Sistema completo de perfil — Backend implementado**
   - **Decisões de arquitetura confirmadas:**
     - Perfil híbrido: `player_profiles` + `gm_profiles` separados

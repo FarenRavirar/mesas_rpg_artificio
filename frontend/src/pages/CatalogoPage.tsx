@@ -224,7 +224,7 @@ export const CatalogoPage = () => {
                 className="w-full rounded-xl bg-[#13213f] border border-white/10 px-3 py-2.5 outline-none focus:border-[var(--color-artificio-orange)]"
               >
                 <option value="">Todos</option>
-                <option value="todos">Todos</option>
+                {/* CORREÇÃO DT-06: Removida opção duplicada "Todos" */}
                 <option value="iniciante">Iniciante</option>
                 <option value="intermediario">Intermediário</option>
                 <option value="veterano">Veterano</option>

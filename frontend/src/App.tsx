@@ -15,7 +15,8 @@ import { PlayerPage } from './pages/PlayerPage';
 import { MasterProfilePage } from './features/master/MasterProfilePage';
 import ProfileEditPage from './pages/ProfileEditPage';
 import { GestaoPage } from './pages/GestaoPage';
-import { AdminDevToolsPage } from './pages/AdminDevToolsPage';
+// REMOVIDO: Sistema de ingestão automática desacoplado
+// import { AdminDevToolsPage } from './pages/AdminDevToolsPage';
 import { Toaster } from 'react-hot-toast';
 import './index.css';
 
@@ -39,7 +40,8 @@ function AppRoutes() {
       {!isLoading && isAdmin && (
         <>
           <Route path="/gestao" element={<ProtectedRoute requiredRole="admin"><GestaoPage /></ProtectedRoute>} />
-          <Route path="/admin/devtools" element={<ProtectedRoute requiredRole="admin"><AdminDevToolsPage /></ProtectedRoute>} />
+          {/* REMOVIDO: Sistema de ingestão automática desacoplado */}
+          {/* <Route path="/admin/devtools" element={<ProtectedRoute requiredRole="admin"><AdminDevToolsPage /></ProtectedRoute>} /> */}
         </>
       )}
     </Routes>

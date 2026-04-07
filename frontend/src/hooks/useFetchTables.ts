@@ -13,6 +13,7 @@ export const useFetchTables = (options: UseFetchTablesOptions = {}) => {
   const [tables, setTables] = useState<TableCard[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [totalCount, setTotalCount] = useState<number>(0); // CORREÇÃO DT-05
 
   useEffect(() => {
     const controller = new AbortController();
@@ -37,6 +38,8 @@ export const useFetchTables = (options: UseFetchTablesOptions = {}) => {
 
         const json: TablesResponse = await res.json();
         setTables(json.data);
+        // CORREÇÃO DT-05: Extrair totalCount do pagination
+        setTotalCount(json.pagination?.total ?? json.data.length);
       } catch (err: any) {
         if (err.name === 'AbortError') return;
         setError('Não foi possível carregar as mesas.');
@@ -50,5 +53,5 @@ export const useFetchTables = (options: UseFetchTablesOptions = {}) => {
     return () => controller.abort();
   }, [options.limit, options.featured, options.search, options.system, options.seal]);
 
-  return { tables, isLoading, error };
+  return { tables, isLoading, error, totalCount }; // CORREÇÃO DT-05
 };

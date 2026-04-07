@@ -14,6 +14,18 @@ export function formStateToPayload(state: FormState): CreateTablePayload {
       discord_server_url: c.discord_server_url || '',
     }));
 
+  // CORREÇÃO REG-01: Renomear sessions para schedules e mapear estrutura correta
+  const schedules = state.sessions.map((s, index) => ({
+    day_of_week: s.day_of_week,
+    start_time: s.start_time,
+    end_time: s.end_time || undefined,
+    frequency: s.frequency,
+    slots_per_session: s.slots_per_session || null,
+    is_ongoing: s.is_ongoing ?? false,
+    notes: s.notes || undefined,
+    sort_order: index,
+  }));
+
   // Construir payload base
   const payload: CreateTablePayload = {
     title: state.form.title,
@@ -25,7 +37,7 @@ export function formStateToPayload(state: FormState): CreateTablePayload {
     language: state.form.language,
     system_id: state.selectedSystemId,
     scenario_id: state.selectedScenarioId,
-    sessions: state.sessions,
+    schedules: schedules, // CORREÇÃO REG-01: Renomeado de sessions para schedules
     contacts: validContacts,
     publisher_role: state.publisherRole,
     actual_gm_name: state.publisherRole === 'announcer' ? state.actualGmName : null,
@@ -33,6 +45,18 @@ export function formStateToPayload(state: FormState): CreateTablePayload {
     banner_url: state.bannerUrl,
     is_covil: state.isCovilMesa,
     is_ddal: state.ddal.is_ddal,
+    // CORREÇÃO REG-04, REG-05, REG-06: Adicionar campos ausentes
+    audience: state.form.audience,
+    experience_level: state.form.experience_level,
+    starts_at: state.form.starts_at || undefined,
+    city: state.form.city || undefined,
+    state: state.form.state || undefined,
+    content_warnings: state.form.content_warnings || undefined,
+    safety_tools: state.form.safety_tools || undefined,
+    frequency: state.frequency || undefined,
+    frequency_custom: state.form.frequency_custom || undefined,
+    price_value: state.form.price_value ? parseFloat(state.form.price_value) : undefined,
+    price_frequency: state.form.price_frequency || undefined,
   };
 
   // Adicionar campos DDAL se aplicável

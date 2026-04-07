@@ -16,7 +16,7 @@ export const HomePage = () => {
   const [searchInput, setSearchInput] = useState('');
   const [activeSearch, setActiveSearch] = useState('');
 
-  const { tables, isLoading, error } = useFetchTables({ limit: 12, search: activeSearch || undefined });
+  const { tables, isLoading, error, totalCount } = useFetchTables({ limit: 12, search: activeSearch || undefined });
 
   useEffect(() => {
     applySeo(
@@ -54,7 +54,8 @@ export const HomePage = () => {
 
           {/* PROVA SOCIAL (DINÂMICA) */}
           <p className="text-sm text-white/60">
-            {tables.length}+ mesas abertas agora
+            {/* CORREÇÃO DT-05: Usar totalCount real ao invés de tables.length */}
+            {totalCount > 0 ? totalCount : tables.length}+ mesas abertas agora
           </p>
 
           {/* HEADLINE ORIENTADA A AÇÃO */}

@@ -8,15 +8,16 @@ interface UseCreateTableFormOptions {
   initialData?: Partial<FormState>;
   token: string;
   onSuccess: () => void;
-  mode?: 'create' | 'review';
-  candidateId?: string;
+  // REMOVIDO: Sistema de ingestão automática desacoplado
+  // mode?: 'create' | 'review';
+  // candidateId?: string;
 }
 
 /**
  * Hook centralizado para gerenciar todo o estado do formulário
  */
 export function useCreateTableForm(options: UseCreateTableFormOptions) {
-  const { initialData, token, onSuccess, mode = 'create', candidateId } = options;
+  const { initialData, token, onSuccess } = options;
 
   // Estado do formulário básico
   const [form, setForm] = useState({
@@ -42,7 +43,7 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
 
   // Sessões
   const [sessions, setSessions] = useState<SessionSchedule[]>(
-    initialData?.sessions || (mode === 'create' ? [{
+    initialData?.sessions || [{
       day_of_week: 'segunda',
       start_time: '19:00',
       end_time: '22:00',
@@ -51,7 +52,7 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
       is_ongoing: false,
       notes: '',
       sort_order: 0,
-    }] : [])
+    }]
   );
   const [frequency, setFrequency] = useState(initialData?.frequency || '');
   const [frequencyCustom, setFrequencyCustom] = useState('');
@@ -129,7 +130,7 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
   // Aviso ao sair da página com mudanças não salvas
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isDirty && mode === 'create') {
+      if (isDirty) {
         e.preventDefault();
         e.returnValue = 'Você tem alterações não salvas. Deseja realmente sair?';
       }
@@ -137,7 +138,7 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [isDirty, mode]);
+  }, [isDirty]);
 
   // Construir estado completo
   const formState: FormState = {
@@ -178,11 +179,8 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
     try {
       const payload = formStateToPayload(formState);
 
-      const endpoint = mode === 'review' && candidateId
-        ? `/api/v1/aggregator/candidates/${candidateId}/accept`
-        : '/api/v1/gm/tables';
-
-      const res = await fetch(endpoint, {
+      // CORREÇÃO DT-AGG-04: Sempre usar endpoint de criação manual
+      const res = await fetch('/api/v1/gm/tables', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

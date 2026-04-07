@@ -148,6 +148,12 @@ export function TableCardComponent({ table }: { table: TableCard }) {
               {table.system_name}
             </span>
           )}
+          {/* CORREÇÃO REG-09: Exibir cenário */}
+          {table.setting_name && (
+            <span className="flex items-center gap-1 px-2 py-1 bg-black/40 backdrop-blur-sm rounded-md text-xs font-semibold text-purple-300 border border-white/10">
+              🗺️ {table.setting_name}
+            </span>
+          )}
           <span className="flex items-center gap-1 px-2 py-1 bg-black/40 backdrop-blur-sm rounded-md text-xs font-semibold text-white border border-white/10">
             {table.modality === 'online' ? <Globe className="w-3 h-3" /> : <MapPin className="w-3 h-3" />}
             {modalityLabels[table.modality] ?? table.modality}
@@ -159,6 +165,24 @@ export function TableCardComponent({ table }: { table: TableCard }) {
             >
               <Megaphone className="w-3 h-3" /> Apenas anunciante
             </span>
+          )}
+          {/* CORREÇÃO REG-09: Exibir estilos */}
+          {table.setting_styles && table.setting_styles.length > 0 && (
+            <>
+              {table.setting_styles.slice(0, 2).map((style, i) => (
+                <span
+                  key={i}
+                  className="px-2 py-1 bg-indigo-500/20 backdrop-blur-sm rounded-md text-xs font-medium text-indigo-200 border border-indigo-400/20"
+                >
+                  {style}
+                </span>
+              ))}
+              {table.setting_styles.length > 2 && (
+                <span className="px-2 py-1 bg-black/40 backdrop-blur-sm rounded-md text-xs font-medium text-white/50 border border-white/10">
+                  +{table.setting_styles.length - 2}
+                </span>
+              )}
+            </>
           )}
         </div>
 

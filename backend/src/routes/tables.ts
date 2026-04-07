@@ -71,6 +71,8 @@ router.get('/', async (req: Request, res: Response) => {
         // CORREÇÃO DT-19: Retornar campos de cenário e estilos (REQ-28)
         't.setting_name',
         't.setting_styles',
+        // CORREÇÃO DT-01: Retornar synopsis_narrative para cards
+        't.synopsis_narrative',
         's.name as system_name',
         's.slug as system_slug',
         'gm.slug as gm_slug',
@@ -161,12 +163,20 @@ router.get('/', async (req: Request, res: Response) => {
       }));
     }
 
+    // CORREÇÃO DT-05: Contar total de mesas ativas para prova social
+    const totalCount = await db
+      .selectFrom('tables as t')
+      .select(sql<number>`COUNT(*)`.as('count'))
+      .where('t.status', '=', 'active')
+      .executeTakeFirst();
+
     res.json({
       data: tablesWithContacts,
       pagination: {
         page: pageNum,
         limit: limitNum,
         hasMore: tables.length === limitNum,
+        total: Number(totalCount?.count ?? 0), // CORREÇÃO DT-05
       },
     });
   } catch (error: any) {
@@ -186,6 +196,7 @@ router.get('/:slug', async (req: Request, res: Response) => {
       .leftJoin('users as u', 'u.id', 'gm.user_id')
       .leftJoin('profiles as p', 'p.user_id', 'u.id')
       .leftJoin('systems as s', 's.id', 't.system_id')
+      .leftJoin('scenarios as sc', 'sc.id', 't.scenario_id') // CORREÇÃO DT-02: JOIN para retornar cenário
       .select([
         't.id',
         't.slug',
@@ -245,11 +256,13 @@ router.get('/:slug', async (req: Request, res: Response) => {
         't.gm_bio',
         's.name as system_name',
         's.slug as system_slug',
+        // CORREÇÃO DT-02: Retornar nome do cenário
+        'sc.name as scenario_name',
         'gm.slug as gm_slug',
         'gm.avatar_url as gm_avatar_url',
         'gm.badges as gm_badges',
         sql<string>`COALESCE(gm.nickname, p.display_name)`.as('gm_display_name'),
-        'gm.bio_long as gm_bio',
+        'gm.bio_long as gm_bio_long', // CORREÇÃO REG-13: Renomeado para evitar conflito com t.gm_bio
       ])
       .where('t.slug', '=', slug)
       .executeTakeFirst();

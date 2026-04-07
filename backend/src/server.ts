@@ -16,8 +16,9 @@ import profileRoutes from './routes/profile';
 import adminProfileRoutes from './routes/adminProfile';
 import linksRoutes from './routes/links';
 import discordRoutes from './routes/discord';
-import aggregatorRoutes from './routes/aggregator';
-import aggregatorReviewRoutes from './routes/aggregatorReview';
+// REMOVIDO: Sistema de ingestão automática desacoplado
+// import aggregatorRoutes from './routes/aggregator';
+// import aggregatorReviewRoutes from './routes/aggregatorReview';
 import settingsRoutes from './routes/settings';
 import adminSettingSuggestionsRoutes from './routes/adminSettingSuggestions';
 import 'express-async-errors';
@@ -30,7 +31,7 @@ const port = process.env.PORT || 3000;
 
 // Configuração básica
 app.use(cors());
-app.use(express.json({ limit: '10mb' })); // Suporta JSONs grandes do DiscordChatExporter
+app.use(express.json({ limit: '10mb' })); // Suporta JSONs grandes de formulários complexos
 
 // CORREÇÃO DT-005: Validar todas env vars obrigatórias no healthcheck
 const REQUIRED_ENV_VARS = [
@@ -89,8 +90,9 @@ app.use('/api/v1/notifications', notificationsRoutes);
 app.use('/api/v1/admin', systemSuggestionsAdminRoutes);
 app.use('/api/v1/gm', gmPanelRoutes);  // Painel autenticado do mestre
 app.use('/api/v1/gm', gmRoutes);       // Perfil público do mestre
-app.use('/api/v1/aggregator', aggregatorRoutes);
-app.use('/api/v1/aggregator', aggregatorReviewRoutes);
+// REMOVIDO: Sistema de ingestão automática desacoplado
+// app.use('/api/v1/aggregator', aggregatorRoutes);
+// app.use('/api/v1/aggregator', aggregatorReviewRoutes);
 app.use('/api/v1/settings', settingsRoutes);  // REQ-28: Sugestões de estilos por cenário
 app.use('/api/v1/admin/setting-suggestions', adminSettingSuggestionsRoutes);  // REQ-28: Admin CRUD
 

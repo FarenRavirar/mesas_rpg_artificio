@@ -467,6 +467,7 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
           slug,
           gm_id: gmProfile.id,
           system_id: system_id ?? null,
+          scenario_id: req.body.scenario_id ?? null, // CORREÇÃO REG-02: Persistir cenário selecionado
           title,
           description: description ?? null,
           type,
@@ -551,12 +552,33 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
         )
         .execute();
 
-      // CORREÇÃO: Persistir schedules (REQ-27)
+      // CORREÇÃO REG-03: Validar e persistir schedules
       if (schedules && Array.isArray(schedules) && schedules.length > 0) {
+        // CORREÇÃO DT-07: Validar enum de day_of_week
+        const VALID_DAYS = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'];
+        
+        // Validar estrutura de cada schedule
+        const validSchedules = schedules.filter((s: any) => {
+          if (!s.day_of_week || !s.start_time || !s.frequency) {
+            console.warn('[POST /gm/tables] Schedule inválido ignorado:', s);
+            return false;
+          }
+          // CORREÇÃO DT-07: Validar se day_of_week é válido
+          if (!VALID_DAYS.includes(s.day_of_week)) {
+            console.warn('[POST /gm/tables] day_of_week inválido:', s.day_of_week);
+            return false;
+          }
+          return true;
+        });
+
+        if (validSchedules.length === 0) {
+          throw new Error('Nenhum horário válido foi fornecido. Verifique os campos obrigatórios: dia da semana, horário inicial e frequência.');
+        }
+
         await trx
           .insertInto('table_schedules')
           .values(
-            schedules.map((schedule: any, index: number) => ({
+            validSchedules.map((schedule: any, index: number) => ({
               table_id: insertedTable.id,
               day_of_week: schedule.day_of_week,
               start_time: schedule.start_time,
@@ -565,7 +587,7 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
               slots_per_session: schedule.slots_per_session || null,
               is_ongoing: schedule.is_ongoing ?? false,
               notes: schedule.notes || null,
-              sort_order: index,
+              sort_order: schedule.sort_order ?? index,
             }))
           )
           .execute();
@@ -1410,17 +1432,29 @@ router.delete('/admin/tables/:id', authMiddleware, async (req: Request, res: Res
 // =============================================================================
 
 /**
- * POST /api/v1/tables/:id/view
+ * POST /api/v1/tables/:slug/view
  * Incrementa contador de visualizações (público, sem auth)
+ * CORREÇÃO DT-10: Alterado de :id para :slug
  */
-router.post('/tables/:id/view', async (req: Request, res: Response) => {
-  const { id } = req.params;
+router.post('/tables/:slug/view', async (req: Request, res: Response) => {
+  const { slug } = req.params;
 
   try {
+    // CORREÇÃO DT-10: Buscar table_id pelo slug
+    const table = await db
+      .selectFrom('tables')
+      .select('id')
+      .where('slug', '=', slug)
+      .executeTakeFirst();
+
+    if (!table) {
+      return res.sendStatus(404);
+    }
+
     await db
       .insertInto('table_metrics')
       .values({
-        table_id: id,
+        table_id: table.id,
         views_count: 1,
       })
       .onConflict((oc) =>
@@ -1433,7 +1467,7 @@ router.post('/tables/:id/view', async (req: Request, res: Response) => {
 
     res.sendStatus(200);
   } catch (error: any) {
-    console.error('[POST /tables/:id/view]', error);
+    console.error('[POST /tables/:slug/view]', error);
     res.sendStatus(500);
   }
 });

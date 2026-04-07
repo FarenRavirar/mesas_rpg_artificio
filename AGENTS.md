@@ -13,7 +13,6 @@ Governança de agentes de IA neste repositório — **Anúncios de Mesas RPG (Po
 > Não pular nenhum item. A checklist existe para evitar retrabalho, não como formalidade.
 
 ### 1 — Ao iniciar a sessão (imediatamente)
-- [ ] Criar arquivo de resumo em `/sessoes/resumo_[dia-mes]_[task-curta].md` (ver §Protocolo de Sessão)
 - [ ] Ler `RESUMO_EXECUCAO.md` — estado atual e próxima ação do projeto
 - [ ] Ler este arquivo (`AGENTS.md`) na íntegra
 
@@ -28,15 +27,12 @@ Governança de agentes de IA neste repositório — **Anúncios de Mesas RPG (Po
 - [ ] **Executando lote?** → `FILA_IMPLEMENTACAO.md`
 - [ ] **Deploy ou produção?** → `OPERACAO_PRODUCAO.md`
 - [ ] **Falha de ambiente, encoding ou template?** → `PRE-FLIGHT_CHECKLIST.md`
-- [ ] **Sessões anteriores?** → `/sessoes/` (resumos históricos)
 
 ### 4 — Durante execução
-- [ ] Atualizar resumo da sessão conforme progride (marcar `[x]` nos itens)
 - [ ] Validar qualquer mudança de interface contra as 10 Heurísticas de Nielsen (ver §Regras Específicas)
-- [ ] **Nunca** executar `git commit` ou `git push` sem autorização explícita do responsável
+- [ ] [!CAUTION] **Nunca** executar `git commit` ou `git push` sem autorização explícita do responsável
 
 ### 5 — Ao finalizar a sessão
-- [ ] Garantir que o resumo em `/sessoes/` está completo e atualizado
 - [ ] Atualizar documentos afetados pela task (TODO, FILA, ERRORS_SOLUTIONS, GUIA_RAPIDO_OPERACIONAL)
 
 ---

@@ -86,3 +86,4 @@ tmp/pre_migration_backup_*.sql
 /sessoes
 dev.bkp.bat
 >>>>>>> Stashed changes
+/backend/src/_archived_aggregator

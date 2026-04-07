@@ -5,11 +5,11 @@ export interface SessionSchedule {
   id?: string;
   day_of_week: 'segunda' | 'terça' | 'quarta' | 'quinta' | 'sexta' | 'sábado' | 'domingo';
   start_time: string; // HH:MM
-  end_time: string; // HH:MM
+  end_time?: string; // HH:MM - CORREÇÃO REG-01: Opcional para compatibilidade com backend
   frequency: 'semanal' | 'quinzenal' | 'mensal' | 'avulsa';
   slots_per_session: number | null;
   is_ongoing: boolean;
-  notes: string;
+  notes?: string; // CORREÇÃO REG-01: Opcional para compatibilidade
   sort_order: number;
 }
 

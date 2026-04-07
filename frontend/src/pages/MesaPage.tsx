@@ -71,18 +71,19 @@ export const MesaPage = () => {
 
   // Tracking: incrementar visualizações
   useEffect(() => {
-    if (!table?.id) return;
+    if (!table?.id || !slug) return;
 
     const trackView = async () => {
       try {
-        await fetch(`/api/v1/tables/${table.id}/view`, { method: 'POST' });
+        // CORREÇÃO DT-10: Usar slug ao invés de id
+        await fetch(`/api/v1/tables/${slug}/view`, { method: 'POST' });
       } catch {
         // Silencioso - tracking não deve quebrar a UX
       }
     };
 
     trackView();
-  }, [table?.id]);
+  }, [table?.id, slug]);
 
 
   // Fase 1: ViewModel (isola lógica, UI ainda usa table)

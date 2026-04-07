@@ -68,6 +68,9 @@ export interface TableCard {
   };
   synopsis_narrative?: string | null;
   score?: number;
+  // CORREÇÃO REG-09: Adicionar campos de cenário e estilos
+  setting_name?: string | null;
+  setting_styles?: string[] | null;
 }
 
 export interface TableDetail extends TableCard {
@@ -115,5 +118,6 @@ export interface TablesResponse {
     page: number;
     limit: number;
     hasMore: boolean;
+    total?: number; // CORREÇÃO DT-05: Total de mesas ativas
   };
 }

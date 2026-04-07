@@ -29,6 +29,8 @@ interface GmProfilePayload {
     covil_verified?: boolean;
     experience_years?: number | null;
     average_price?: number | null;
+    // CORREÇÃO DT-04: Links públicos do mestre
+    links?: UserLink[];
     tables: Array<
       Omit<TableCard, 'gm_slug' | 'gm_avatar_url' | 'gm_display_name'>
     >;
@@ -69,21 +71,8 @@ export const MestrePage = () => {
         const json = (await res.json()) as GmProfilePayload;
         setProfile(json.data ?? null);
         
-        // Buscar links do mestre (se tiver user_id)
-        if (json.data?.id) {
-          try {
-            const linksRes = await fetch(`/api/v1/profile/links?user_id=${json.data.id}`, {
-              signal: controller.signal
-            });
-            if (linksRes.ok) {
-              const linksData = await linksRes.json();
-              setLinks(linksData.data || []);
-            }
-          } catch (err) {
-            // Links são opcionais, não quebrar se falhar
-            console.warn('Failed to load links:', err);
-          }
-        }
+        // CORREÇÃO DT-04: Links agora vêm da rota principal
+        setLinks(json.data?.links ?? []);
       } catch (err: any) {
         if (err.name === 'AbortError') return;
         setError('Não foi possível carregar o perfil do mestre.');

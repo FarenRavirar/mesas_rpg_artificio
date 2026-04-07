@@ -29,6 +29,14 @@ export interface BasicFormData {
   experience_level: string;
   table_level: string;
   language: string;
+  // CORREÇÃO REG-04: Campos ausentes
+  starts_at?: string;
+  city?: string;
+  state?: string;
+  content_warnings?: string[];
+  safety_tools?: string[];
+  frequency_custom?: string;
+  price_frequency?: string;
 }
 
 export interface FormState {
@@ -85,7 +93,7 @@ export interface CreateTablePayload {
   language: string;
   system_id: string;
   scenario_id: string | null;
-  sessions: SessionSchedule[];
+  schedules: SessionSchedule[]; // CORREÇÃO REG-01: Renomeado de sessions para schedules
   contacts: Array<{
     channel: string;
     value: string;
@@ -98,6 +106,18 @@ export interface CreateTablePayload {
   banner_url: string;
   is_covil: boolean;
   is_ddal: boolean;
+  // CORREÇÃO REG-04, REG-05, REG-06: Campos ausentes no payload
+  audience?: string;
+  experience_level?: string;
+  starts_at?: string;
+  city?: string;
+  state?: string;
+  content_warnings?: string[];
+  safety_tools?: string[];
+  frequency?: string;
+  frequency_custom?: string;
+  price_value?: number;
+  price_frequency?: string;
   ddal_code?: string;
   ddal_name?: string;
   ddal_tier?: number;
