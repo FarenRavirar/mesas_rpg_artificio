@@ -1,4 +1,4 @@
-﻿# Dependencias
+# Dependencias
 node_modules/
 
 # Ambiente
@@ -26,3 +26,7 @@ build/
 # Temporarios
 tmp/
 temp/
+
+# Logs
+logs/
+*.log

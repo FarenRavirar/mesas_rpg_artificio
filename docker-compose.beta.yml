@@ -58,6 +58,8 @@ services:
     depends_on:
       mesas-beta-db:
         condition: service_healthy
+    volumes:
+      - ./logs:/app/logs  # Logs persistentes fora do container
 
   # DATABASE (PostgreSQL)
   mesas-beta-db:

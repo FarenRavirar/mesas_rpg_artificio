@@ -306,16 +306,21 @@ Migration 13 adicionou 6 novos campos (age_rating, table_level, game_platform, c
 Sistema completo de logging de requisições HTTP para diagnóstico de problemas de rotas, erros de banco de dados e comportamento inesperado da API.
 
 **Localização dos logs:**
-- **Arquivo principal:** `/app/logs/routes.log` (dentro do container)
-- **Arquivos rotacionados:** `/app/logs/routes-<timestamp>.log`
+- **Arquivo principal (container):** `/app/logs/routes.log`
+- **Arquivo principal (servidor):** `/opt/mesas-beta/logs/routes.log`
+- **Arquivos rotacionados:** `routes-<timestamp>.log`
 - **Rotação automática:** A cada 6 horas ou quando arquivo atingir 10MB
 - **Retenção:** Últimos 5 arquivos rotacionados
+- **Persistência:** ✅ Logs sobrevivem a deploys e recriações de container
 
 **Como acessar os logs:**
 
 ```powershell
-# Ver últimas 50 linhas
+# Ver últimas 50 linhas (via container)
 ssh -F C:\projetos\config faren "docker exec mesas-beta-api tail -50 /app/logs/routes.log"
+
+# Ver últimas 50 linhas (diretamente no servidor)
+ssh -F C:\projetos\config faren "tail -50 /opt/mesas-beta/logs/routes.log"
 
 # Ver logs em tempo real (follow)
 ssh -F C:\projetos\config faren "docker exec mesas-beta-api tail -f /app/logs/routes.log"
@@ -333,7 +338,7 @@ ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep '22P02' /app/lo
 ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep 'ReqID: 1712520000000-abc123' /app/logs/routes.log"
 
 # Copiar log completo para análise local
-docker cp mesas-beta-api:/app/logs/routes.log C:\projetos\mesas_rpg_artificio\testes\routes.log
+scp -F C:\projetos\config faren:/opt/mesas-beta/logs/routes.log C:\projetos\mesas_rpg_artificio\testes\routes.log
 ```
 
 **Formato do log:**
