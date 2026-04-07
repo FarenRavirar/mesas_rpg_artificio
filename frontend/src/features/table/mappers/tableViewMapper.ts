@@ -77,7 +77,10 @@ function generateVisibilityConfig(table: TableDetail): VisibilityConfig {
  * Centraliza lógica de transformação e defaults
  */
 export function mapTableToView(table: TableDetail): TableViewModel {
-  const slotsLeft = (table.slots_total ?? 0) - (table.slots_filled ?? 0);
+  // CORREÇÃO DT-09: Usar slots_open ao invés de calcular slots_total - slots_filled
+  // slots_open = vagas abertas para recrutamento (controlado pelo mestre)
+  // slots_filled = jogadores já inscritos
+  const slotsLeft = table.slots_open ?? ((table.slots_total ?? 0) - (table.slots_filled ?? 0));
 
   // Estrutura de certificações
   const certifications: TableCertifications = {};
@@ -129,6 +132,7 @@ export function mapTableToView(table: TableDetail): TableViewModel {
     slotsLeft,
     slotsTotal: table.slots_total,
     slotsFilled: table.slots_filled,
+    slotsOpen: table.slots_open, // CORREÇÃO DT-09: Adicionar slots_open ao ViewModel
     isFull: slotsLeft <= 0,
 
     // Preço

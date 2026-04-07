@@ -333,14 +333,20 @@ export const GestaoPage = () => {
 
             {crudSubTab === 'scenarios' && (
               <div>
-                <div className="mb-4">
+                <div className="mb-4 flex gap-3">
                   <input
                     type="text"
                     placeholder="Buscar cenários..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40"
+                    className="flex-1 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40"
                   />
+                  <button
+                    onClick={() => setScenarioEditModal({})}
+                    className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors"
+                  >
+                    + Criar Cenário
+                  </button>
                 </div>
                 {loading ? (
                   <div className="text-white/60 text-center py-8">Carregando...</div>
@@ -397,6 +403,34 @@ export const GestaoPage = () => {
                           <p className="text-white/60 text-sm mt-1">
                             Status: {table.status} | Criada em: {new Date(table.created_at).toLocaleDateString('pt-BR')}
                           </p>
+                          {/* REQ-05: Checkbox Covil do Lich (admin only) */}
+                          <label className="flex items-center gap-2 mt-2 text-sm text-white/80 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={table.is_covil || false}
+                              onChange={async (e) => {
+                                const newValue = e.target.checked;
+                                try {
+                                  const res = await fetch(`${API_BASE}/api/v1/admin/tables/${table.id}`, {
+                                    method: 'PUT',
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                      Authorization: `Bearer ${token}`,
+                                    },
+                                    body: JSON.stringify({ is_covil: newValue }),
+                                  });
+                                  if (!res.ok) throw new Error('Erro ao atualizar');
+                                  toast.success(newValue ? 'Mesa marcada como Covil do Lich' : 'Marca Covil removida');
+                                  fetchAllTables();
+                                } catch (error) {
+                                  toast.error('Erro ao atualizar mesa');
+                                  console.error(error);
+                                }
+                              }}
+                              className="w-4 h-4"
+                            />
+                            🏰 Covil do Lich
+                          </label>
                         </div>
                         <div className="flex gap-2">
                           <button

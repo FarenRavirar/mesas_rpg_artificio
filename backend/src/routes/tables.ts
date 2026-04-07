@@ -53,8 +53,16 @@ router.get('/', async (req: Request, res: Response) => {
         't.modality',
         't.price_type',
         't.price_value',
+        // CORREÇÃO DT-05: Documentação de campos de vagas
+        // slots_total: Capacidade máxima da mesa (ex: 5 jogadores)
+        // slots_filled: Jogadores já inscritos/confirmados (ex: 3 jogadores)
+        // slots_open: Vagas abertas para recrutamento, controlado pelo mestre (ex: 2 vagas)
+        //   - Pode ser menor que (slots_total - slots_filled) se mestre fechar recrutamento
+        //   - Frontend deve usar slots_open para exibir "vagas disponíveis"
+        //   - Fallback: se NULL, calcular como (slots_total - slots_filled)
         't.slots_total',
         't.slots_filled',
+        't.slots_open', // REQ-02: Vagas abertas para recrutamento
         't.language',
         't.experience_level',
         't.starts_at',
@@ -212,6 +220,7 @@ router.get('/:slug', async (req: Request, res: Response) => {
         't.price_frequency',
         't.slots_total',
         't.slots_filled',
+        't.slots_open', // REQ-02: Vagas abertas para recrutamento
         't.language',
         't.experience_level',
         't.starts_at',

@@ -34,6 +34,7 @@ export function formStateToPayload(state: FormState): CreateTablePayload {
     modality: state.form.modality,
     price_type: state.form.price_type,
     slots_total: parseInt(state.form.slots_total) || 0,
+    slots_open: parseInt(state.form.slots_open) || 0, // REQ-02: Vagas abertas
     language: state.form.language,
     system_id: state.selectedSystemId,
     scenario_id: state.selectedScenarioId,

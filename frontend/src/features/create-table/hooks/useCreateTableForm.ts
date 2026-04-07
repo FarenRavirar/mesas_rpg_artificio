@@ -30,6 +30,7 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
     price_type: initialData?.form?.price_type || 'free',
     price_value: initialData?.form?.price_value || '',
     slots_total: initialData?.form?.slots_total || '4',
+    slots_open: initialData?.form?.slots_open || '4', // REQ-02: Vagas abertas
     experience_level: initialData?.form?.experience_level || 'todos',
     table_level: initialData?.form?.table_level || '',
     language: initialData?.form?.language || 'pt-BR',
@@ -176,6 +177,28 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
     setError(null);
     setContactsError(null);
 
+    // CORREÇÃO DT-10: Validar slots_open <= slots_total antes de enviar
+    const parsedSlotsTotal = Number(form.slots_total);
+    const parsedSlotsOpen = Number(form.slots_open);
+    
+    if (isNaN(parsedSlotsTotal) || parsedSlotsTotal < 1) {
+      setError('Vagas totais deve ser um número válido maior que zero.');
+      setSubmitState('idle');
+      return;
+    }
+    
+    if (isNaN(parsedSlotsOpen) || parsedSlotsOpen < 0) {
+      setError('Vagas abertas deve ser um número válido maior ou igual a zero.');
+      setSubmitState('idle');
+      return;
+    }
+    
+    if (parsedSlotsOpen > parsedSlotsTotal) {
+      setError('Vagas abertas não pode ser maior que vagas totais.');
+      setSubmitState('idle');
+      return;
+    }
+
     try {
       const payload = formStateToPayload(formState);
 
@@ -230,6 +253,7 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
         price_type: 'free',
         price_value: '',
         slots_total: '4',
+        slots_open: '4', // REQ-02: Vagas abertas
         experience_level: 'todos',
         table_level: '',
         language: 'pt-BR',

@@ -293,6 +293,7 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
     price_value,
     price_frequency,
     slots_total,
+    slots_open, // REQ-02: Vagas abertas para recrutamento
     language,
     experience_level,
     starts_at,
@@ -343,9 +344,30 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Campos obrigatórios: title, type, modality.' });
   }
 
+  // CORREÇÃO DT-20: Validar system_id obrigatório
+  if (!system_id || typeof system_id !== 'string' || system_id.trim() === '') {
+    return res.status(400).json({ error: 'Sistema é obrigatório. Selecione um sistema de RPG.' });
+  }
+
   // Lacuna 3: Frequência obrigatória para mesas em andamento (type === 'campanha' ou 'oneshot-serie')
   if ((type === 'campanha' || type === 'oneshot-serie') && !frequency) {
     return res.status(400).json({ error: 'Frequência é obrigatória para campanhas e one-shots em série.' });
+  }
+
+  // CORREÇÃO DT-01, DT-02: Validar slots_total e slots_open
+  const parsedSlotsTotal = Number(slots_total);
+  const parsedSlotsOpen = Number(slots_open);
+  
+  if (slots_total !== undefined && (isNaN(parsedSlotsTotal) || parsedSlotsTotal < 1 || parsedSlotsTotal > 100)) {
+    return res.status(400).json({ error: 'Vagas totais deve ser um número entre 1 e 100.' });
+  }
+  
+  if (slots_open !== undefined && (isNaN(parsedSlotsOpen) || parsedSlotsOpen < 0)) {
+    return res.status(400).json({ error: 'Vagas abertas deve ser um número maior ou igual a zero.' });
+  }
+  
+  if (slots_open !== undefined && slots_total !== undefined && parsedSlotsOpen > parsedSlotsTotal) {
+    return res.status(400).json({ error: 'Vagas abertas não pode ser maior que vagas totais.' });
   }
 
   const safePublisherRole = sanitizePublisherRole(publisher_role);
@@ -477,6 +499,7 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
           price_value: price_value ?? null,
           price_frequency: price_frequency ?? null,
           slots_total: slots_total ?? 4,
+          slots_open: slots_open ?? (slots_total ?? 4), // REQ-02: Default = total de vagas
           language: language ?? 'Português',
           experience_level: experience_level ?? 'todos',
           starts_at: starts_at ? new Date(starts_at) : null,
@@ -657,6 +680,7 @@ router.put('/tables/:id', authMiddleware, async (req: Request, res: Response) =>
     price_frequency,
     slots_total,
     slots_filled,
+    slots_open, // REQ-02: Vagas abertas para recrutamento
     language,
     experience_level,
     starts_at,
@@ -791,6 +815,32 @@ router.put('/tables/:id', authMiddleware, async (req: Request, res: Response) =>
       }
     }
 
+    // CORREÇÃO DT-04: Validar slots_total e slots_open na edição
+    if (hasOwn('slots_total') || hasOwn('slots_open')) {
+      const parsedSlotsTotal = slots_total !== undefined ? Number(slots_total) : undefined;
+      const parsedSlotsOpen = slots_open !== undefined ? Number(slots_open) : undefined;
+      
+      if (parsedSlotsTotal !== undefined && (isNaN(parsedSlotsTotal) || parsedSlotsTotal < 1 || parsedSlotsTotal > 100)) {
+        return res.status(400).json({ error: 'Vagas totais deve ser um número entre 1 e 100.' });
+      }
+      
+      if (parsedSlotsOpen !== undefined && (isNaN(parsedSlotsOpen) || parsedSlotsOpen < 0)) {
+        return res.status(400).json({ error: 'Vagas abertas deve ser um número maior ou igual a zero.' });
+      }
+      
+      // Validar relação entre slots_open e slots_total
+      const finalSlotsTotal = parsedSlotsTotal ?? (await db.selectFrom('tables').select('slots_total').where('id', '=', id).executeTakeFirst())?.slots_total ?? 4;
+      const finalSlotsOpen = parsedSlotsOpen ?? (await db.selectFrom('tables').select('slots_open').where('id', '=', id).executeTakeFirst())?.slots_open ?? finalSlotsTotal;
+      
+      if (parsedSlotsOpen !== undefined && parsedSlotsOpen > finalSlotsTotal) {
+        return res.status(400).json({ error: 'Vagas abertas não pode ser maior que vagas totais.' });
+      }
+      
+      if (parsedSlotsTotal !== undefined && finalSlotsOpen > parsedSlotsTotal) {
+        return res.status(400).json({ error: 'Vagas totais não pode ser menor que vagas abertas atuais.' });
+      }
+    }
+
     const updated = await db.transaction().execute(async (trx) => {
       const [updatedTable] = await trx
         .updateTable('tables')
@@ -806,6 +856,7 @@ router.put('/tables/:id', authMiddleware, async (req: Request, res: Response) =>
           price_frequency: price_frequency ?? undefined,
           slots_total: slots_total ?? undefined,
           slots_filled: slots_filled ?? undefined,
+          slots_open: slots_open ?? undefined, // REQ-02: Vagas abertas para recrutamento
           language: language ?? undefined,
           experience_level: experience_level ?? undefined,
           starts_at: starts_at ? new Date(starts_at) : undefined,
@@ -1259,6 +1310,8 @@ router.put('/admin/tables/:id', authMiddleware, async (req: Request, res: Respon
     // REQ-21: Novos campos
     custom_scenario,
     style_tags,
+    // REQ-05: Flag Covil do Lich (admin only)
+    is_covil,
   } = req.body;
 
   try {
@@ -1362,6 +1415,8 @@ router.put('/admin/tables/:id', authMiddleware, async (req: Request, res: Respon
           const sanitized = sanitizeStringArray(style_tags);
           return sanitized.length > 0 ? sanitized : null;
         })() : undefined,
+        // REQ-05: Flag Covil do Lich (admin only)
+        is_covil: hasOwn('is_covil') ? (parseOptionalBoolean(is_covil) ?? false) : undefined,
       })
       .where('id', '=', id)
       .returning([

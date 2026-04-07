@@ -9,6 +9,7 @@ interface StepConfigProps {
     price_type: string;
     price_value: string;
     slots_total: string;
+    slots_open: string; // REQ-02: Vagas abertas
     experience_level: string;
     table_level: string;
     language: string;
@@ -189,11 +190,6 @@ export function StepConfig({
           <option value="+18">+18 anos</option>
         </SelectField>
 
-        <SelectField label="Audiência (legado)" id="audience" name="audience" value={form.audience} onChange={handleChange}>
-          <option value="livre">Livre (Todos os públicos)</option>
-          <option value="adultos">Adultos (+18)</option>
-        </SelectField>
-
         <SelectField label="Cobrança" id="price_type" name="price_type" value={form.price_type} onChange={handleChange}>
           <option value="gratuita">Gratuita</option>
           <option value="paga">Paga</option>
@@ -274,6 +270,21 @@ export function StepConfig({
           value={form.slots_total}
           onChange={handleChange}
         />
+
+        <InputField
+          label="Vagas Abertas para Recrutamento"
+          id="slots_open"
+          name="slots_open"
+          type="number"
+          min="0"
+          max={form.slots_total || "20"}
+          value={form.slots_open}
+          onChange={handleChange}
+          placeholder="Quantas vagas estão abertas para novos jogadores?"
+        />
+        <p className="text-xs text-white/50 -mt-2">
+          💡 Vagas abertas devem ser menores ou iguais ao total de jogadores
+        </p>
 
         <InputField
           label="Idioma"

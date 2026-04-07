@@ -92,6 +92,7 @@ export interface TableViewModel {
   slotsLeft: number;
   slotsTotal: number;
   slotsFilled: number;
+  slotsOpen?: number; // CORREÇÃO DT-09: Vagas abertas para recrutamento
   isFull: boolean;
 
   // Preço

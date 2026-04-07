@@ -26,6 +26,7 @@ export interface BasicFormData {
   price_type: string;
   price_value: string;
   slots_total: string;
+  slots_open: string; // REQ-02: Vagas abertas para recrutamento
   experience_level: string;
   table_level: string;
   language: string;
@@ -90,6 +91,7 @@ export interface CreateTablePayload {
   modality: string;
   price_type: string;
   slots_total: number;
+  slots_open: number; // REQ-02: Vagas abertas para recrutamento
   language: string;
   system_id: string;
   scenario_id: string | null;

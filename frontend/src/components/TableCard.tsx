@@ -22,7 +22,10 @@ export function TableCardSkeleton() {
 }
 
 export function TableCardComponent({ table }: { table: TableCard }) {
-  const slotsLeft = table.slots_total - table.slots_filled;
+  // CORREÇÃO DT-08: Usar slots_open ao invés de calcular slots_total - slots_filled
+  // slots_open representa vagas abertas para recrutamento (controlado pelo mestre)
+  // slots_filled representa jogadores já inscritos
+  const slotsLeft = table.slots_open ?? (table.slots_total - table.slots_filled);
   const isFull = slotsLeft <= 0;
 
   return (

@@ -43,6 +43,7 @@ export interface TableCard {
   price_value: number | null;
   slots_total: number;
   slots_filled: number;
+  slots_open: number; // REQ-02: Vagas abertas para recrutamento
   language: string;
   experience_level: ExperienceLevel;
   featured: boolean;

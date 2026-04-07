@@ -221,6 +221,7 @@ export interface TablesTable {
   price_frequency: PriceFrequency | null;
   slots_total: Generated<number>;
   slots_filled: Generated<number>;
+  slots_open: Generated<number>; // REQ-02: Vagas abertas para recrutamento
   language: Generated<string>;
   experience_level: Generated<ExperienceLevel>;
   table_level: 'iniciante' | 'intermediario' | 'avancado' | null;
