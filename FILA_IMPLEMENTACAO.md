@@ -329,3 +329,13 @@ Este arquivo controla fila de execução; não define arquitetura de produto.
 | 136 | Fase 4 | fullstack | 5/5/5 | Testes E2E do fluxo completo | Criar teste E2E que valida fluxo completo: (1) Importar JSON com todos os campos (descrição longa, banner, cobrança, requisitos); (2) Parser extrai dados; (3) Normalização preserva campos; (4) Formulário de revisão pré-preenchido; (5) Comportamento inteligente da UI ativo; (6) Admin edita campo; (7) Aprovação persiste override; (8) Mesa publicada exibe todos os dados sem perda. Usar anúncio grande do JSON real que tenha sinopse, observações, benefícios e instruções de inscrição. Comparar texto cru da mensagem vs descrição final renderizada. | backend/tests/e2e/importacao-inteligente.test.ts | pendente | Teste crítico para garantir que não há perda de dados em nenhuma camada. Executar APÓS correção dos 3 bugs críticos (137-139) e implementação completa do fluxo. |
 
 ---
+
+## Itens da fila — Lote: otimizacao-build (Fase 3)
+
+> Otimizações de build e bundle do frontend identificadas durante deploy.
+
+| ID | Fase | Tipo | GUT | Titulo | Descrição objetiva | Arquivos esperados | Status | Observação |
+|---|---|---|---|---|---|---|---|---|
+| 140 | Fase 3 | frontend | 2/3/3 | Corrigir importação dinâmica ineficaz de validation.ts | Warning do Vite: `validation.ts` é importado dinamicamente por `useCreateTableForm.ts` mas também estaticamente por `useStepNavigation.ts`, impedindo code splitting. Solução: remover importação estática de `useStepNavigation.ts` ou converter importação dinâmica de `useCreateTableForm.ts` para estática. Avaliar impacto no bundle size antes de decidir. | `frontend/src/features/create-table/hooks/useCreateTableForm.ts`, `frontend/src/features/create-table/hooks/useStepNavigation.ts` | pendente | Score GUT: 18 (2×3×3). Não afeta funcionalidade, apenas otimização de bundle. Prioridade baixa. |
+
+---
