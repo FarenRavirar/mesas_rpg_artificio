@@ -217,7 +217,7 @@ router.delete('/me/systems/:id', authMiddleware, async (req: Request, res: Respo
   const { id } = req.params;
 
   try {
-    await profileService.removeUserSystem(id);
+    await profileService.removeUserSystem(id, userId);
     return res.status(204).send();
   } catch (error: any) {
     console.error('[DELETE /profile/me/systems/:id]', error);

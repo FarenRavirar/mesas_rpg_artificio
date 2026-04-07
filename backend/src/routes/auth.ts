@@ -19,25 +19,44 @@ const oauth2Client = new OAuth2Client(
 
 // Rota 1: Redireciona usuário para o Consent Screen do Google
 router.get('/google', (req: Request, res: Response) => {
+  // Gerar state assinado para prevenir CSRF
+  const state = jwt.sign(
+    { nonce: Math.random().toString(36).substring(7), timestamp: Date.now() },
+    process.env.JWT_SECRET as string,
+    { expiresIn: '10m' }
+  );
+
   const authorizeUrl = oauth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: [
       'https://www.googleapis.com/auth/userinfo.profile',
       'https://www.googleapis.com/auth/userinfo.email'
     ],
-    prompt: 'consent'
+    prompt: 'consent',
+    state
   });
   
-  // Dependendo do flow frontend, podemos apenas retornar a URL e o front cuida do redirect
   res.redirect(authorizeUrl);
 });
 
 // Rota 2: Google Callback
 router.get('/google/callback', async (req: Request, res: Response) => {
-  const { code } = req.query;
+  const { code, state } = req.query;
 
   if (!code || typeof code !== 'string') {
     return res.status(400).json({ error: 'Código de autorização não recebido.' });
+  }
+
+  // Validar state para prevenir CSRF
+  if (!state || typeof state !== 'string') {
+    return res.status(400).json({ error: 'State inválido.' });
+  }
+
+  try {
+    jwt.verify(state, process.env.JWT_SECRET as string);
+  } catch (error) {
+    console.error('[OAuth] State inválido ou expirado:', error);
+    return res.status(400).json({ error: 'State inválido ou expirado.' });
   }
 
   try {
@@ -81,12 +100,11 @@ router.get('/google/callback', async (req: Request, res: Response) => {
       // Inicia Transação para criar User e Profile
       await db.transaction().execute(async (trx) => {
         // Insere em users
-        const isMasterAdmin = userInfo.email === 'paulohenriquercc@gmail.com';
         const newUser = await trx.insertInto('users')
           .values({
             google_id: userInfo.id as string,
             email: userInfo.email as string,
-            role: isMasterAdmin ? 'admin' : 'player', // Padrao player, exceto admin master
+            role: 'player', // Todos os novos usuários começam como player
             refresh_token: tokens.refresh_token || null,
           })
           .returningAll()
@@ -105,17 +123,10 @@ router.get('/google/callback', async (req: Request, res: Response) => {
           .execute();
       });
     } else {
-      // Opcional: Atualiza refresh token se existir um novo, E garante role admin se for o dono
-      const isMasterAdmin = userInfo.email === 'paulohenriquercc@gmail.com';
-      const shouldUpdateRole = isMasterAdmin && user.role !== 'admin';
-      
-      if (tokens.refresh_token || shouldUpdateRole) {
-        const updateData: any = {};
-        if (tokens.refresh_token) updateData.refresh_token = tokens.refresh_token;
-        if (shouldUpdateRole) updateData.role = 'admin';
-
+      // Atualiza refresh token se existir um novo
+      if (tokens.refresh_token) {
         user = await db.updateTable('users')
-          .set(updateData)
+          .set({ refresh_token: tokens.refresh_token })
           .where('id', '=', user.id as string)
           .returningAll()
           .executeTakeFirstOrThrow();
@@ -155,13 +166,26 @@ router.get('/google/callback', async (req: Request, res: Response) => {
       expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as any
     });
 
-    // Como o backend é API, nós redirecionamos de volta para o frontend (que abriu o popup de login) 
-    // passando o token. Em um app em produção, seria ideal colocar em HttpOnly Cookie.
-    // Aqui seguiremos o fluxo simples com token na URL (ou postMessage).
+    // Enviar token via postMessage para evitar vazamento por histórico/logs
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     
-    // Fallback: redirects com o token na url para que o frontend o capture.
-    res.redirect(`${frontendUrl}/auth/callback?token=${accessToken}&isNew=${isNewUser}`);
+    // Retornar página HTML que envia token via postMessage
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head><title>Autenticação</title></head>
+      <body>
+        <script>
+          window.opener.postMessage(
+            { type: 'AUTH_SUCCESS', token: '${accessToken}', isNew: ${isNewUser} },
+            '${frontendUrl}'
+          );
+          window.close();
+        </script>
+        <p>Autenticação concluída. Esta janela será fechada automaticamente.</p>
+      </body>
+      </html>
+    `);
 
   } catch (error) {
     console.error('Erro na autenticação Google OAuth:', error);

@@ -22,10 +22,9 @@ export function TableCardSkeleton() {
 }
 
 export function TableCardComponent({ table }: { table: TableCard }) {
-  // CORREÇÃO DT-08: Usar slots_open ao invés de calcular slots_total - slots_filled
-  // slots_open representa vagas abertas para recrutamento (controlado pelo mestre)
-  // slots_filled representa jogadores já inscritos
-  const slotsLeft = table.slots_open ?? (table.slots_total - table.slots_filled);
+  // CORREÇÃO HP-06: slots_open é obrigatório (controlado pelo mestre)
+  // Não calcular fallback - se null, tratar como 0
+  const slotsLeft = table.slots_open ?? 0;
   const isFull = slotsLeft <= 0;
 
   return (
@@ -118,8 +117,9 @@ export function TableCardComponent({ table }: { table: TableCard }) {
           {/* Score visual */}
           {table.metrics && table.metrics.contacts > 0 && (
             <div className="flex gap-1">
+              {/* CORREÇÃO HP-05: Adicionar key única */}
               {Array.from({ length: Math.min(5, Math.floor(table.metrics.contacts / 2)) }).map((_, i) => (
-                <span key={i}>🔥</span>
+                <span key={`fire-${table.id}-${i}`}>🔥</span>
               ))}
             </div>
           )}

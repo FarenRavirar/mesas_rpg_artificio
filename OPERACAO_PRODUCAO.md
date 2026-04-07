@@ -8,6 +8,287 @@ Definir o runbook de operação para deploy, validação e diagnóstico da aplic
 
 ---
 
+## 🔧 GUIA COMPLETO DE MIGRATIONS (PROCEDIMENTO DEFINITIVO)
+
+> [!CAUTION]
+> **Este é o procedimento que SEMPRE funciona.** Siga exatamente estes passos para evitar erros de caracteres, arquivos não encontrados e problemas de TTY.
+
+### Pré-requisitos
+
+- Acesso SSH ao servidor configurado
+- Arquivo de migration criado localmente em `backend/src/db/migrations/migration_XX_nome.sql`
+- Conhecimento do ambiente alvo (beta ou produção)
+
+### Credenciais do Banco
+
+| Ambiente | Container | Usuário | Banco |
+|---|---|---|---|
+| Beta | `mesas-beta-db` | `admin` | `mesas_rpg` |
+| Produção | `mesas-db` | `admin` | `mesas_rpg` |
+
+---
+
+### PASSO 1: Conectar no Servidor
+
+```powershell
+# Método preferencial (usar sempre)
+ssh -F C:\projetos\config faren
+```
+
+**Alternativas se o método acima falhar:**
+```powershell
+# Método 2: Chave privada explícita
+ssh -i "C:/projetos/mesas_rpg_artificio/ssh-key-2026-03-07privada.key" ubuntu@137.131.250.231
+
+# Método 3: Chave padrão do sistema
+ssh ubuntu@137.131.250.231
+```
+
+---
+
+### PASSO 2: Localizar o Diretório de Migrations no Servidor
+
+```bash
+# Navegar para o projeto
+cd /opt/mesas-beta
+
+# Encontrar onde estão as migrations existentes
+find . -name "migration_*.sql" -type f | head -3
+
+# Resultado esperado (um destes):
+# ./backend/src/db/migrations/migration_XX.sql
+# ./database/migration_XX.sql
+# ./backend/migrations/migration_XX.sql
+```
+
+**Anotar o caminho encontrado** para usar nos próximos passos.
+
+---
+
+### PASSO 3: Criar Diretório (Se Não Existir)
+
+```bash
+# Criar diretório de migrations (ajustar caminho conforme PASSO 2)
+mkdir -p /opt/mesas-beta/backend/src/db/migrations
+```
+
+---
+
+### PASSO 4: Sair do SSH Temporariamente
+
+```bash
+exit
+```
+
+---
+
+### PASSO 5: Copiar Arquivo de Migration para o Servidor
+
+```powershell
+# No PowerShell local, copiar arquivo
+# IMPORTANTE: Ajustar o caminho de destino conforme encontrado no PASSO 2
+
+scp -F C:\projetos\config "c:\projetos\mesas_rpg_artificio\backend\src\db\migrations\migration_XX_nome.sql" faren:/opt/mesas-beta/backend/src/db/migrations/
+```
+
+**Resultado esperado:**
+```
+migration_XX_nome.sql   100%   1279   32.9KB/s   00:00
+```
+
+---
+
+### PASSO 6: Reconectar no Servidor
+
+```powershell
+ssh -F C:\projetos\config faren
+```
+
+---
+
+### PASSO 7: Verificar Arquivo Copiado
+
+```bash
+cd /opt/mesas-beta
+
+# Verificar que o arquivo existe
+ls -lh backend/src/db/migrations/migration_XX_nome.sql
+
+# Visualizar conteúdo (opcional)
+cat backend/src/db/migrations/migration_XX_nome.sql
+```
+
+---
+
+### PASSO 8: Aplicar Migration no Banco
+
+```bash
+# COMANDO DEFINITIVO (sem -it, sem problemas de TTY)
+cat backend/src/db/migrations/migration_XX_nome.sql | docker exec -i mesas-beta-db psql -U admin -d mesas_rpg
+```
+
+**Resultado esperado (sucesso):**
+```
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+COMMENT
+COMMENT
+```
+
+**Erros comuns:**
+
+| Erro | Causa | Solução |
+|---|---|---|
+| `No such file or directory` | Caminho do arquivo incorreto | Verificar PASSO 2 e ajustar caminho |
+| `relation already exists` | Migration já foi aplicada | Verificar no banco (PASSO 9) |
+| `syntax error` | SQL inválido | Revisar arquivo de migration |
+| `the input device is not a TTY` | Uso de `-it` no comando | Remover `-it`, usar apenas `-i` |
+
+---
+
+### PASSO 9: Verificar Tabela Criada
+
+```bash
+# Verificar estrutura da tabela (SEM -it)
+docker exec mesas-beta-db psql -U admin -d mesas_rpg -c '\d nome_da_tabela'
+
+# Listar todas as tabelas
+docker exec mesas-beta-db psql -U admin -d mesas_rpg -c '\dt'
+
+# Verificar índices criados
+docker exec mesas-beta-db psql -U admin -d mesas_rpg -c "SELECT indexname, indexdef FROM pg_indexes WHERE tablename = 'nome_da_tabela';"
+```
+
+---
+
+### PASSO 10: Reiniciar Backend (Se Necessário)
+
+**Quando reiniciar:**
+- Migration adiciona/altera colunas usadas pelo backend
+- Backend precisa recarregar tipos TypeScript
+- Após atualizar código compilado no container
+
+```bash
+# Reiniciar apenas o backend
+docker restart mesas-beta-api
+
+# Aguardar 10 segundos
+sleep 10
+
+# Verificar logs
+docker logs mesas-beta-api --tail 20
+```
+
+**Resultado esperado:**
+```
+Server is running on port 3000
+```
+
+---
+
+### PASSO 11: Validar Healthcheck
+
+```bash
+# Sair do SSH
+exit
+```
+
+```powershell
+# No PowerShell local, testar API
+curl.exe https://mesasbeta.artificiorpg.com/api/v1/health
+```
+
+**Resultado esperado:**
+```json
+{"status":"ok","environment":"beta","db":"connected","usersSampled":true}
+```
+
+---
+
+### PASSO 12: Documentar Migration Aplicada
+
+Atualizar `ambiente_atual_mesas.md` ou documentação equivalente:
+
+```yaml
+migrations_applied:
+  - migration_XX_nome: true  # YYYY-MM-DD
+```
+
+---
+
+### Troubleshooting Avançado
+
+#### Problema: Caracteres Estranhos no Output
+
+**Causa:** Encoding do terminal ou output muito largo.
+
+**Solução:**
+```bash
+# Usar formato simplificado
+docker exec mesas-beta-db psql -U admin -d mesas_rpg -t -c "SELECT COUNT(*) FROM nome_da_tabela;"
+```
+
+#### Problema: Migration Falha Parcialmente
+
+**Causa:** Erro no meio do script SQL.
+
+**Solução:**
+```bash
+# Verificar o que foi criado
+docker exec mesas-beta-db psql -U admin -d mesas_rpg -c '\dt'
+
+# Reverter manualmente se necessário
+docker exec mesas-beta-db psql -U admin -d mesas_rpg -c "DROP TABLE IF EXISTS nome_da_tabela CASCADE;"
+```
+
+#### Problema: Container do Banco Não Responde
+
+**Causa:** Banco travado ou sem recursos.
+
+**Solução:**
+```bash
+# Verificar status
+docker ps | grep mesas-beta-db
+
+# Verificar logs
+docker logs mesas-beta-db --tail 50
+
+# Reiniciar banco (CUIDADO: pode causar downtime)
+docker restart mesas-beta-db
+```
+
+---
+
+### Checklist Final
+
+- [ ] Migration aplicada sem erros
+- [ ] Tabela/coluna criada verificada no banco
+- [ ] Índices criados (se aplicável)
+- [ ] Backend reiniciado (se necessário)
+- [ ] Healthcheck passou
+- [ ] Documentação atualizada
+
+---
+
+### Comando Rápido (Para Migrations Futuras)
+
+```bash
+# Conectar
+ssh -F C:\projetos\config faren
+
+# Aplicar (ajustar caminho conforme seu ambiente)
+cd /opt/mesas-beta && cat backend/src/db/migrations/migration_XX_nome.sql | docker exec -i mesas-beta-db psql -U admin -d mesas_rpg
+
+# Verificar
+docker exec mesas-beta-db psql -U admin -d mesas_rpg -c '\dt nome_da_tabela'
+
+# Sair
+exit
+```
+
+---
+
 ## Estado atual dos ambientes
 
 O estado operacional validado mais recente é o seguinte:
@@ -630,71 +911,3 @@ Ao implementar ou revisar uma funcionalidade, validar:
 | AdminDevTools | H3 (Controle) | Não há controle de retenção de mesas importadas | Adicionar configuração de dias de expiração (REQ-20, migration_10) |
 
 **Nota:** Lista será expandida durante auditoria completa (REQ-17).
-
----
-
-## 12. Procedimento de Aplicação de Migrations (NUNCA MAIS BATER CABEÇA)
-
-> [!CAUTION]
-> **Este é o procedimento que SEMPRE funciona para aplicar migrations.** Siga exatamente estes passos.
-
-### 12.1 Passo a Passo (Procedimento Canônico)
-
-```bash
-# 1. Conectar no servidor via SSH
-ssh -F C:\projetos\config faren
-
-# 2. Navegar para a pasta do projeto
-cd /opt/mesas-beta
-
-# 3. Verificar se o arquivo de migration existe (após o GitHub Actions ter rodado)
-ls -la database/migration_*.sql
-
-# 4. Aplicar a migration
-cat database/migration_15_user_links.sql | docker exec -i mesas-beta-db psql -U admin -d mesas_rpg
-
-# 5. Verificar se foi aplicada com sucesso
-docker exec -it mesas-beta-db psql -U admin -d mesas_rpg -c "\dt user_links"
-
-# 6. Sair do servidor
-exit
-```
-
-### 12.2 Comando Genérico (Para Qualquer Migration)
-
-```bash
-cat database/migration_XX_nome.sql | docker exec -i mesas-beta-db psql -U admin -d mesas_rpg
-```
-
-**Credenciais do banco:**
-- Usuário: `admin`
-- Banco: `mesas_rpg`
-- Container: `mesas-beta-db` (beta) ou `mesas-db` (produção)
-
-### 12.3 Troubleshooting
-
-| Problema | Solução |
-|---|---|
-| Erro "No such file or directory" | Confirmar que o GitHub Actions rodou e o arquivo está no servidor |
-| Erro "docker: command not found" | Comando deve ser executado VIA SSH no servidor, não localmente |
-| Erro "cat: command not found" | Comando `cat` deve ser executado no servidor (bash), não no PowerShell local |
-| Erro "relation already exists" | Migration já foi aplicada anteriormente |
-
-### 12.4 Verificar Tabelas no Banco
-
-```bash
-# Listar todas as tabelas
-docker exec -it mesas-beta-db psql -U admin -d mesas_rpg -c "\dt"
-
-# Ver estrutura de uma tabela específica
-docker exec -it mesas-beta-db psql -U admin -d mesas_rpg -c "\d user_links"
-```
-
-### 12.5 O Que NUNCA Fazer
-
-❌ **NUNCA** tentar aplicar migration localmente (deve ser no servidor)  
-❌ **NUNCA** rodar comandos `docker` ou `cat` no PowerShell local (use SSH)  
-❌ **NUNCA** editar o arquivo SQL diretamente no servidor
-
-**Este procedimento resolve 100% dos problemas de migrations. Siga-o sempre.**
-

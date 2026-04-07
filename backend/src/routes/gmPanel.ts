@@ -2,11 +2,71 @@ import { Router, Request, Response } from 'express';
 import { sql } from 'kysely';
 import { db } from '../db';
 import { authMiddleware } from '../middleware/auth';
+import crypto from 'crypto';
 
 const router = Router();
 
 const DDAL_ELIGIBLE_PATH = 'dungeons-dragons/5e/2024';
 const CONTACT_CHANNELS = ['whatsapp', 'discord', 'phone', 'email', 'facebook', 'instagram', 'form'] as const;
+
+// Anti-abuso de métricas: janelas de throttle por ação (em milissegundos)
+const METRIC_THROTTLE_WINDOWS = {
+  view: 15 * 60 * 1000,      // 15 minutos
+  click: 5 * 60 * 1000,       // 5 minutos
+  contact: 30 * 60 * 1000,    // 30 minutos
+  favorite: 24 * 60 * 60 * 1000, // 24 horas
+} as const;
+
+type MetricAction = keyof typeof METRIC_THROTTLE_WINDOWS;
+
+/**
+ * Extrai IP do cliente considerando proxies (X-Forwarded-For, X-Real-IP)
+ */
+function getClientIp(req: Request): string {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded && typeof forwarded === 'string') {
+    return forwarded.split(',')[0].trim();
+  }
+  const realIp = req.headers['x-real-ip'];
+  if (realIp && typeof realIp === 'string') {
+    return realIp.trim();
+  }
+  return req.socket.remoteAddress || 'unknown';
+}
+
+/**
+ * Gera fingerprint hash (SHA256) de IP + User-Agent para deduplicação sem armazenar PII
+ */
+function generateFingerprint(req: Request): string {
+  const ip = getClientIp(req);
+  const userAgent = req.headers['user-agent'] || 'unknown';
+  const raw = `${ip}:${userAgent}`;
+  return crypto.createHash('sha256').update(raw).digest('hex');
+}
+
+/**
+ * Verifica se métrica deve ser contada (não existe evento recente na janela de throttle)
+ * Retorna true se deve contar, false se está dentro da janela (duplicado)
+ */
+async function shouldCountMetric(
+  tableId: string,
+  action: MetricAction,
+  fingerprint: string
+): Promise<boolean> {
+  const windowMs = METRIC_THROTTLE_WINDOWS[action];
+  const cutoff = new Date(Date.now() - windowMs);
+
+  const recentEvent = await db
+    .selectFrom('table_metric_events')
+    .select('id')
+    .where('table_id', '=', tableId)
+    .where('action', '=', action)
+    .where('fingerprint_hash', '=', fingerprint)
+    .where('created_at', '>', cutoff)
+    .executeTakeFirst();
+
+  return !recentEvent; // true se não existe evento recente
+}
 
 type ContactChannel = (typeof CONTACT_CHANNELS)[number];
 type PublisherRole = 'gm' | 'announcer';
@@ -341,7 +401,7 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
     // REQ-28 Fase 6: Campos editoriais separados (CORREÇÃO CRÍTICA)
     synopsis_narrative,
     benefits_text,
-    gm_bio,
+    table_gm_bio,
   } = req.body;
 
   if (!title || !type || !modality) {
@@ -481,7 +541,7 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
   // REQ-28 Fase 6: Sanitizar campos editoriais separados
   const safeSynopsisNarrative = sanitizeOptionalText(req.body.synopsis_narrative);
   const safeBenefitsText = sanitizeOptionalText(req.body.benefits_text);
-  const safeGmBio = sanitizeOptionalText(req.body.gm_bio);
+  const safeTableGmBio = sanitizeOptionalText(req.body.table_gm_bio);
 
   // CORREÇÃO E128: Validar price_value quando price_type for 'paga'
   const safePriceType = price_type ?? 'gratuita';
@@ -598,7 +658,7 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
           // REQ-28 Fase 6: Campos editoriais separados
           synopsis_narrative: safeSynopsisNarrative,
           benefits_text: safeBenefitsText,
-          gm_bio: safeGmBio,
+          table_gm_bio: safeTableGmBio,
           status: 'active',
         })
         .returning([
@@ -778,6 +838,10 @@ router.put('/tables/:id', authMiddleware, async (req: Request, res: Response) =>
     requires_microphone,
     // CORREÇÃO: Adicionar schedules (REQ-27)
     schedules,
+    // CORREÇÃO C7-A: Adicionar campos editoriais Fase 6 (REQ-28)
+    synopsis_narrative,
+    benefits_text,
+    table_gm_bio,
   } = req.body;
 
   try {
@@ -958,6 +1022,10 @@ router.put('/tables/:id', authMiddleware, async (req: Request, res: Response) =>
             const sanitized = sanitizeStringArray(req.body.setting_styles);
             return sanitized.length > 0 ? sanitized : null;
           })() : undefined,
+          // CORREÇÃO C7-A: Persistir campos editoriais Fase 6 (REQ-28)
+          synopsis_narrative: hasOwn('synopsis_narrative') ? sanitizeOptionalText(synopsis_narrative) : undefined,
+          benefits_text: hasOwn('benefits_text') ? sanitizeOptionalText(benefits_text) : undefined,
+          table_gm_bio: hasOwn('table_gm_bio') ? sanitizeOptionalText(table_gm_bio) : undefined,
         })
         .where('id', '=', id)
         .where('gm_id', '=', gmProfile.id)
@@ -1236,6 +1304,7 @@ router.patch('/tables/:id/status', authMiddleware, async (req: Request, res: Res
 
 
 
+
 // DELETE /api/v1/gm/tables/:id — Deleta mesa própria
 router.delete('/tables/:id', authMiddleware, async (req: Request, res: Response) => {
   const userId = (req as any).user.userId;
@@ -1355,7 +1424,7 @@ router.put('/admin/tables/:id', authMiddleware, async (req: Request, res: Respon
     setting_styles,
     synopsis_narrative,
     benefits_text,
-    gm_bio,
+    table_gm_bio,
     // REQ-21: Novos campos
     custom_scenario,
     style_tags,
@@ -1457,7 +1526,7 @@ router.put('/admin/tables/:id', authMiddleware, async (req: Request, res: Respon
         })() : undefined,
         synopsis_narrative: hasOwn('synopsis_narrative') ? sanitizeOptionalText(synopsis_narrative) : undefined,
         benefits_text: hasOwn('benefits_text') ? sanitizeOptionalText(benefits_text) : undefined,
-        gm_bio: hasOwn('gm_bio') ? sanitizeOptionalText(gm_bio) : undefined,
+        table_gm_bio: hasOwn('table_gm_bio') ? sanitizeOptionalText(table_gm_bio) : undefined,
         // REQ-21: Novos campos
         custom_scenario: hasOwn('custom_scenario') ? sanitizeOptionalText(custom_scenario) : undefined,
         style_tags: hasOwn('style_tags') ? (() => {
@@ -1512,6 +1581,12 @@ router.delete('/admin/tables/:id', authMiddleware, async (req: Request, res: Res
 
     // Deletar em transação (contacts primeiro, depois table)
     await db.transaction().execute(async (trx) => {
+      // CORREÇÃO A10: Deletar schedules antes de contacts
+      await trx
+        .deleteFrom('table_schedules')
+        .where('table_id', '=', id)
+        .execute();
+
       // Deletar contatos
       await trx
         .deleteFrom('table_contacts')
@@ -1540,6 +1615,7 @@ router.delete('/admin/tables/:id', authMiddleware, async (req: Request, res: Res
  * POST /api/v1/tables/:slug/view
  * Incrementa contador de visualizações (público, sem auth)
  * CORREÇÃO DT-10: Alterado de :id para :slug
+ * PROTEÇÃO: Throttle de 15 minutos por IP+User-Agent
  */
 router.post('/tables/:slug/view', async (req: Request, res: Response) => {
   const { slug } = req.params;
@@ -1556,19 +1632,41 @@ router.post('/tables/:slug/view', async (req: Request, res: Response) => {
       return res.sendStatus(404);
     }
 
-    await db
-      .insertInto('table_metrics')
-      .values({
-        table_id: table.id,
-        views_count: 1,
-      })
-      .onConflict((oc) =>
-        oc.column('table_id').doUpdateSet({
-          views_count: sql`table_metrics.views_count + 1`,
-          updated_at: sql`NOW()`,
+    const fingerprint = generateFingerprint(req);
+    const shouldCount = await shouldCountMetric(table.id, 'view', fingerprint);
+
+    if (!shouldCount) {
+      // Dentro da janela de throttle - não incrementar
+      return res.sendStatus(202); // Accepted but not processed
+    }
+
+    // Registrar evento e incrementar métrica em transação
+    await db.transaction().execute(async (trx) => {
+      // Registrar evento para deduplicação
+      await trx
+        .insertInto('table_metric_events')
+        .values({
+          table_id: table.id,
+          action: 'view',
+          fingerprint_hash: fingerprint,
         })
-      )
-      .execute();
+        .execute();
+
+      // Incrementar contador
+      await trx
+        .insertInto('table_metrics')
+        .values({
+          table_id: table.id,
+          views_count: 1,
+        })
+        .onConflict((oc) =>
+          oc.column('table_id').doUpdateSet({
+            views_count: sql`table_metrics.views_count + 1`,
+            updated_at: sql`NOW()`,
+          })
+        )
+        .execute();
+    });
 
     res.sendStatus(200);
   } catch (error: any) {
@@ -1580,24 +1678,54 @@ router.post('/tables/:slug/view', async (req: Request, res: Response) => {
 /**
  * POST /api/v1/tables/:id/click
  * Incrementa contador de cliques (público, sem auth)
+ * PROTEÇÃO: Throttle de 5 minutos por IP+User-Agent
  */
 router.post('/tables/:id/click', async (req: Request, res: Response) => {
   const { id } = req.params;
 
   try {
-    await db
-      .insertInto('table_metrics')
-      .values({
-        table_id: id,
-        clicks_count: 1,
-      })
-      .onConflict((oc) =>
-        oc.column('table_id').doUpdateSet({
-          clicks_count: sql`table_metrics.clicks_count + 1`,
-          updated_at: sql`NOW()`,
+    // Validar que mesa existe
+    const table = await db
+      .selectFrom('tables')
+      .select('id')
+      .where('id', '=', id)
+      .executeTakeFirst();
+
+    if (!table) {
+      return res.sendStatus(404);
+    }
+
+    const fingerprint = generateFingerprint(req);
+    const shouldCount = await shouldCountMetric(id, 'click', fingerprint);
+
+    if (!shouldCount) {
+      return res.sendStatus(202);
+    }
+
+    await db.transaction().execute(async (trx) => {
+      await trx
+        .insertInto('table_metric_events')
+        .values({
+          table_id: id,
+          action: 'click',
+          fingerprint_hash: fingerprint,
         })
-      )
-      .execute();
+        .execute();
+
+      await trx
+        .insertInto('table_metrics')
+        .values({
+          table_id: id,
+          clicks_count: 1,
+        })
+        .onConflict((oc) =>
+          oc.column('table_id').doUpdateSet({
+            clicks_count: sql`table_metrics.clicks_count + 1`,
+            updated_at: sql`NOW()`,
+          })
+        )
+        .execute();
+    });
 
     res.sendStatus(200);
   } catch (error: any) {
@@ -1609,24 +1737,54 @@ router.post('/tables/:id/click', async (req: Request, res: Response) => {
 /**
  * POST /api/v1/tables/:id/contact
  * Incrementa contador de contatos (público, sem auth)
+ * PROTEÇÃO: Throttle de 30 minutos por IP+User-Agent
  */
 router.post('/tables/:id/contact', async (req: Request, res: Response) => {
   const { id } = req.params;
 
   try {
-    await db
-      .insertInto('table_metrics')
-      .values({
-        table_id: id,
-        contacts_count: 1,
-      })
-      .onConflict((oc) =>
-        oc.column('table_id').doUpdateSet({
-          contacts_count: sql`table_metrics.contacts_count + 1`,
-          updated_at: sql`NOW()`,
+    // Validar que mesa existe
+    const table = await db
+      .selectFrom('tables')
+      .select('id')
+      .where('id', '=', id)
+      .executeTakeFirst();
+
+    if (!table) {
+      return res.sendStatus(404);
+    }
+
+    const fingerprint = generateFingerprint(req);
+    const shouldCount = await shouldCountMetric(id, 'contact', fingerprint);
+
+    if (!shouldCount) {
+      return res.sendStatus(202);
+    }
+
+    await db.transaction().execute(async (trx) => {
+      await trx
+        .insertInto('table_metric_events')
+        .values({
+          table_id: id,
+          action: 'contact',
+          fingerprint_hash: fingerprint,
         })
-      )
-      .execute();
+        .execute();
+
+      await trx
+        .insertInto('table_metrics')
+        .values({
+          table_id: id,
+          contacts_count: 1,
+        })
+        .onConflict((oc) =>
+          oc.column('table_id').doUpdateSet({
+            contacts_count: sql`table_metrics.contacts_count + 1`,
+            updated_at: sql`NOW()`,
+          })
+        )
+        .execute();
+    });
 
     res.sendStatus(200);
   } catch (error: any) {
@@ -1638,24 +1796,54 @@ router.post('/tables/:id/contact', async (req: Request, res: Response) => {
 /**
  * POST /api/v1/tables/:id/favorite
  * Incrementa contador de favoritos (público, sem auth)
+ * PROTEÇÃO: Throttle de 24 horas por IP+User-Agent
  */
 router.post('/tables/:id/favorite', async (req: Request, res: Response) => {
   const { id } = req.params;
 
   try {
-    await db
-      .insertInto('table_metrics')
-      .values({
-        table_id: id,
-        favorites_count: 1,
-      })
-      .onConflict((oc) =>
-        oc.column('table_id').doUpdateSet({
-          favorites_count: sql`table_metrics.favorites_count + 1`,
-          updated_at: sql`NOW()`,
+    // Validar que mesa existe
+    const table = await db
+      .selectFrom('tables')
+      .select('id')
+      .where('id', '=', id)
+      .executeTakeFirst();
+
+    if (!table) {
+      return res.sendStatus(404);
+    }
+
+    const fingerprint = generateFingerprint(req);
+    const shouldCount = await shouldCountMetric(id, 'favorite', fingerprint);
+
+    if (!shouldCount) {
+      return res.sendStatus(202);
+    }
+
+    await db.transaction().execute(async (trx) => {
+      await trx
+        .insertInto('table_metric_events')
+        .values({
+          table_id: id,
+          action: 'favorite',
+          fingerprint_hash: fingerprint,
         })
-      )
-      .execute();
+        .execute();
+
+      await trx
+        .insertInto('table_metrics')
+        .values({
+          table_id: id,
+          favorites_count: 1,
+        })
+        .onConflict((oc) =>
+          oc.column('table_id').doUpdateSet({
+            favorites_count: sql`table_metrics.favorites_count + 1`,
+            updated_at: sql`NOW()`,
+          })
+        )
+        .execute();
+    });
 
     res.sendStatus(200);
   } catch (error: any) {

@@ -66,7 +66,7 @@ function generateVisibilityConfig(table: TableDetail): VisibilityConfig {
   return {
     showPrice: !!table.price_value,
     showSchedules: (table.schedules?.length ?? 0) > 0,
-    showMaster: !!table.gm_bio || !!table.master_display_name,
+    showMaster: !!table.table_gm_bio || !!table.master_display_name,
     showFullDetails: true, // Pode ser controlado por variant no futuro
     compact: false, // Pode ser controlado por variant no futuro
   };
@@ -147,7 +147,7 @@ export function mapTableToView(table: TableDetail): TableViewModel {
     masterName: table.master_display_name ?? table.gm_display_name ?? undefined,
     masterSlug: table.gm_slug ?? undefined,
     masterAvatar: table.gm_avatar_url ?? undefined,
-    masterBio: table.gm_bio ?? undefined,
+    masterBio: table.table_gm_bio ?? undefined,
 
     // Horários
     schedules: table.schedules ?? [],

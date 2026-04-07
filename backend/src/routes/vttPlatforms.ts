@@ -40,7 +40,7 @@ router.get('/', async (req, res) => {
  * CORREÇÃO A02: Protegido com authMiddleware
  */
 router.post('/suggest', authMiddleware, async (req, res) => {
-  const userId = (req as any).user?.id;
+  const userId = req.user?.userId;
   if (!userId) {
     return res.status(401).json({ error: 'Autenticação necessária.' });
   }

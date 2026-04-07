@@ -17,17 +17,19 @@ export const useFetchTables = (options: UseFetchTablesOptions = {}) => {
 
   useEffect(() => {
     const controller = new AbortController();
+    // CORREÇÃO HP-09: Destructure options para evitar dependências de objeto
+    const { limit, featured, search, system, seal } = options;
 
     const fetchTables = async () => {
       setIsLoading(true);
       setError(null);
 
       const params = new URLSearchParams();
-      if (options.limit) params.set('limit', String(options.limit));
-      if (options.featured) params.set('featured', 'true');
-      if (options.search) params.set('search', options.search);
-      if (options.system) params.set('system', options.system);
-      if (options.seal) params.set('seal', options.seal);
+      if (limit) params.set('limit', String(limit));
+      if (featured) params.set('featured', 'true');
+      if (search) params.set('search', search);
+      if (system) params.set('system', system);
+      if (seal) params.set('seal', seal);
 
       try {
         const res = await fetch(`/api/v1/tables?${params.toString()}`, {

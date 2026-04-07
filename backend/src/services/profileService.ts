@@ -313,8 +313,12 @@ export async function addUserSystem(
   return result;
 }
 
-export async function removeUserSystem(id: string): Promise<void> {
-  await db.deleteFrom('user_systems').where('id', '=', id).execute();
+export async function removeUserSystem(id: string, userId: string): Promise<void> {
+  await db
+    .deleteFrom('user_systems')
+    .where('id', '=', id)
+    .where('user_id', '=', userId)
+    .execute();
 }
 
 export async function removeUserSystemByParams(

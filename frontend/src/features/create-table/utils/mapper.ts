@@ -94,6 +94,11 @@ export function formStateToPayload(state: FormState): CreateTablePayload {
   if (state.settingStyles && state.settingStyles.length > 0) {
     payload.setting_styles = state.settingStyles;
   }
+  
+  // Campos editoriais Fase 6 (REQ-28)
+  if (state.synopsisNarrative) payload.synopsis_narrative = state.synopsisNarrative;
+  if (state.benefitsText) payload.benefits_text = state.benefitsText;
+  if (state.tableGmBio) payload.table_gm_bio = state.tableGmBio;
 
   return payload;
 }

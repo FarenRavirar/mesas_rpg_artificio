@@ -271,7 +271,7 @@ export interface TablesTable {
   style_tags: string[] | null;
   synopsis_narrative: string | null;
   benefits_text: string | null;
-  gm_bio: string | null;
+  table_gm_bio: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -436,6 +436,7 @@ export interface Database {
 
   user_links: UserLinksTable;
   table_metrics: TableMetricsTable;
+  table_metric_events: TableMetricEventsTable;
   
   // VTT Platforms (Migration 006)
   vtt_platforms: VttPlatformsTable;
@@ -458,5 +459,19 @@ export type TableMetrics = Selectable<TableMetricsTable>;
 export type NewTableMetrics = Insertable<TableMetricsTable>;
 export type TableMetricsUpdate = Updateable<TableMetricsTable>;
 
+// Migration 07: Eventos de métricas para anti-abuso
+export type TableMetricAction = 'view' | 'click' | 'contact' | 'favorite';
+
+export interface TableMetricEventsTable {
+  id: Generated<string>;
+  table_id: string;
+  action: TableMetricAction;
+  fingerprint_hash: string;
+  created_at: Generated<Date>;
+}
+
+export type TableMetricEvent = Selectable<TableMetricEventsTable>;
+export type NewTableMetricEvent = Insertable<TableMetricEventsTable>;
+export type TableMetricEventUpdate = Updateable<TableMetricEventsTable>;
 
 

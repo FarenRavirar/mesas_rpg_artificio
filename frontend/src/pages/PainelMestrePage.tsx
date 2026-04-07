@@ -384,20 +384,22 @@ export const PainelMestrePage = () => {
 
   const handleToggleTableStatus = async (tableId: string, currentStatus: string, title: string) => {
     if (!token) return;
-    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+    // CORREÇÃO BLOQUEADOR B2: Usar enum válido (draft em vez de inactive)
+    const newStatus = currentStatus === 'active' ? 'draft' : 'active';
     const action = newStatus === 'active' ? 'ativar' : 'desativar';
 
     if (!confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} mesa "${title}"?`)) return;
 
-    setTogglingTableId(tableId); // CORREÇÃO B3: Mostrar loading
+    setTogglingTableId(tableId);
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || ''; // CORREÇÃO A1
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+      // CORREÇÃO BLOQUEADOR B2: Usar PATCH /tables/:id/status e endpoint admin correto
       const endpoint = user?.role === 'admin'
-        ? `${apiUrl}/api/v1/gm/admin/tables/${tableId}`
-        : `${apiUrl}/api/v1/gm/tables/${tableId}`;
+        ? `${apiUrl}/api/v1/admin/tables/${tableId}/status`
+        : `${apiUrl}/api/v1/gm/tables/${tableId}/status`;
 
       const response = await fetch(endpoint, {
-        method: 'PUT',
+        method: 'PATCH', // CORREÇÃO: Usar PATCH em vez de PUT
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
@@ -416,7 +418,7 @@ export const PainelMestrePage = () => {
       console.error('[PainelMestrePage] Erro ao alterar status da mesa:', error);
       toast.error(`Erro ao ${action} mesa`);
     } finally {
-      setTogglingTableId(null); // CORREÇÃO B3: Limpar loading
+      setTogglingTableId(null);
     }
   };
 
@@ -424,11 +426,12 @@ export const PainelMestrePage = () => {
     if (!token) return;
     if (!confirm(`Deletar mesa "${title}"? Esta ação não pode ser desfeita.`)) return;
 
-    setDeletingTableId(tableId); // CORREÇÃO B4: Mostrar loading
+    setDeletingTableId(tableId);
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || ''; // CORREÇÃO A1
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+      // CORREÇÃO BLOQUEADOR B3: Endpoint admin correto (sem /gm/)
       const endpoint = user?.role === 'admin'
-        ? `${apiUrl}/api/v1/gm/admin/tables/${tableId}`
+        ? `${apiUrl}/api/v1/admin/tables/${tableId}`
         : `${apiUrl}/api/v1/gm/tables/${tableId}`;
 
       const response = await fetch(endpoint, {
@@ -447,7 +450,7 @@ export const PainelMestrePage = () => {
       console.error('[PainelMestrePage] Erro ao deletar mesa:', error);
       toast.error('Erro ao deletar mesa');
     } finally {
-      setDeletingTableId(null); // CORREÇÃO B4: Limpar loading
+      setDeletingTableId(null);
     }
   };
 

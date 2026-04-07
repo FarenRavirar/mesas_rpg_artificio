@@ -15,8 +15,13 @@ const track = (event: string, data?: any) => {
 export const HomePage = () => {
   const [searchInput, setSearchInput] = useState('');
   const [activeSearch, setActiveSearch] = useState('');
+  const [activeSeal, setActiveSeal] = useState<'ddal' | 'covil-do-lich' | ''>(''); // CORREÇÃO HP-11
 
-  const { tables, isLoading, error, totalCount } = useFetchTables({ limit: 12, search: activeSearch || undefined });
+  const { tables, isLoading, error, totalCount } = useFetchTables({ 
+    limit: 12, 
+    search: activeSearch || undefined,
+    seal: activeSeal || undefined // CORREÇÃO HP-11
+  });
 
   useEffect(() => {
     applySeo(
@@ -54,8 +59,8 @@ export const HomePage = () => {
 
           {/* PROVA SOCIAL (DINÂMICA) */}
           <p className="text-sm text-white/60">
-            {/* CORREÇÃO DT-05: Usar totalCount real ao invés de tables.length */}
-            {totalCount > 0 ? totalCount : tables.length}+ mesas abertas agora
+            {/* CORREÇÃO HP-07: Sempre usar totalCount, fallback só se undefined */}
+            {totalCount ?? tables.length}+ mesas abertas agora
           </p>
 
           {/* HEADLINE ORIENTADA A AÇÃO */}
@@ -97,6 +102,40 @@ export const HomePage = () => {
             ))}
           </div>
 
+          {/* CORREÇÃO HP-11: Filtros de selos */}
+          <div className="flex flex-wrap justify-center gap-2 mt-4">
+            <button
+              onClick={() => setActiveSeal('')}
+              className={`px-3 py-1 text-xs rounded-full transition-colors ${
+                activeSeal === '' 
+                  ? 'bg-[var(--color-artificio-orange)] text-white' 
+                  : 'bg-white/10 hover:bg-white/20 text-white/70'
+              }`}
+            >
+              Todas
+            </button>
+            <button
+              onClick={() => setActiveSeal('ddal')}
+              className={`px-3 py-1 text-xs rounded-full transition-colors flex items-center gap-1 ${
+                activeSeal === 'ddal' 
+                  ? 'bg-amber-500 text-white' 
+                  : 'bg-white/10 hover:bg-white/20 text-white/70'
+              }`}
+            >
+              🏅 DDAL
+            </button>
+            <button
+              onClick={() => setActiveSeal('covil-do-lich')}
+              className={`px-3 py-1 text-xs rounded-full transition-colors flex items-center gap-1 ${
+                activeSeal === 'covil-do-lich' 
+                  ? 'bg-purple-500 text-white' 
+                  : 'bg-white/10 hover:bg-white/20 text-white/70'
+              }`}
+            >
+              💀 Covil do Lich
+            </button>
+          </div>
+
         </div>
       </section>
 
@@ -127,7 +166,11 @@ export const HomePage = () => {
               ? tables.map(t => (
                   <div
                     key={t.id}
-                    onClick={() => track('click_card', { tableId: t.id, slotsLeft: t.slots_total - t.slots_filled, price: t.price_value })}
+                    onClick={() => track('click_card', { 
+                      tableId: t.id, 
+                      slotsLeft: t.slots_open ?? 0, // CORREÇÃO HP-08: Usar slots_open
+                      price: t.price_value 
+                    })}
                   >
                     <TableCardComponent table={t} />
                   </div>
@@ -135,8 +178,18 @@ export const HomePage = () => {
               : !error && (
                 <div className="col-span-3 text-center py-20 text-white/40">
                   <p className="text-4xl mb-4">🗺️</p>
-                  <p className="text-lg font-medium">Nenhuma mesa encontrada.</p>
-                  <p className="text-sm mt-2">Seja o primeiro a publicar uma aventura!</p>
+                  {/* CORREÇÃO HP-13: Diferenciar busca vazia de catálogo vazio */}
+                  {activeSearch ? (
+                    <>
+                      <p className="text-lg font-medium">Nenhuma mesa encontrada para "{activeSearch}".</p>
+                      <p className="text-sm mt-2">Tente buscar por outro sistema ou termo.</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-lg font-medium">Nenhuma mesa aberta no momento.</p>
+                      <p className="text-sm mt-2">Seja o primeiro a publicar uma aventura!</p>
+                    </>
+                  )}
                 </div>
               )}
         </div>

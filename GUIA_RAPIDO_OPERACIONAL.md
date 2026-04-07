@@ -8,6 +8,50 @@ Resumo executivo para reduzir custo de contexto dos agentes, com navegação rá
 
 ---
 
+## 🔧 Aplicação de Migrations (Procedimento Rápido)
+
+> [!NOTE]
+> **Guia completo e detalhado:** Ver seção no topo de `OPERACAO_PRODUCAO.md`
+
+### Comando Rápido (Uso Diário)
+
+```bash
+# 1. Conectar
+ssh -F C:\projetos\config faren
+
+# 2. Localizar migrations existentes
+cd /opt/mesas-beta && find . -name "migration_*.sql" -type f | head -3
+
+# 3. Aplicar (ajustar caminho conforme encontrado)
+cat backend/src/db/migrations/migration_XX_nome.sql | docker exec -i mesas-beta-db psql -U admin -d mesas_rpg
+
+# 4. Verificar (SEM -it)
+docker exec mesas-beta-db psql -U admin -d mesas_rpg -c '\dt nome_da_tabela'
+
+# 5. Reiniciar backend (se necessário)
+docker restart mesas-beta-api && sleep 10 && docker logs mesas-beta-api --tail 20
+
+# 6. Sair
+exit
+```
+
+### Pontos Críticos
+
+- ⚠️ **NUNCA use `-it`** → causa erro "input device is not a TTY"
+- ⚠️ **Sempre use `-i`** no `docker exec`
+- ⚠️ **Localizar diretório** antes de copiar arquivo (varia entre deploys)
+- ⚠️ **Criar diretório** se não existir: `mkdir -p /opt/mesas-beta/backend/src/db/migrations`
+
+### Credenciais
+
+| Ambiente | Container | Usuário | Banco |
+|---|---|---|---|
+| Beta | `mesas-beta-db` | `admin` | `mesas_rpg` |
+| Produção | `mesas-db` | `admin` | `mesas_rpg` |
+
+---
+
+
 ## Índice rápido (use primeiro)
 
 | Cenário | Fonte canônica | Decisão rápida |

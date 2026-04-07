@@ -30,8 +30,9 @@ router.get('/', async (req: Request, res: Response) => {
     limit = '12',
   } = req.query as Record<string, string>;
 
-  const pageNum = Math.max(1, parseInt(page));
-  const limitNum = Math.min(50, Math.max(1, parseInt(limit)));
+  // CORREÇÃO HP-04: Validar NaN em parseInt
+  const pageNum = Math.max(1, parseInt(page) || 1);
+  const limitNum = Math.min(50, Math.max(1, parseInt(limit) || 12));
   const offset = (pageNum - 1) * limitNum;
 
   try {
@@ -123,18 +124,6 @@ router.get('/', async (req: Request, res: Response) => {
       )`);
     }
 
-    // Filtro de expiração para mesas importadas
-    // Regra: expiram em 5 dias OU no horário do evento (o que vier primeiro)
-    query = query.where((eb) =>
-      eb.or([
-        eb('t.origin', '=', 'manual'), // Mesas manuais sempre visíveis
-        sql<boolean>`NOW() < LEAST(
-          t.created_at + interval '5 days',
-          COALESCE(t.starts_at, t.created_at + interval '5 days')
-        )`,
-      ])
-    );
-
     const tables = await query.execute();
 
     let tablesWithContacts = tables as Array<typeof tables[number] & { contacts: PublicTableContact[] }>;
@@ -170,12 +159,16 @@ router.get('/', async (req: Request, res: Response) => {
       }));
     }
 
-    // CORREÇÃO DT-05: Contar total de mesas ativas para prova social
-    const totalCount = await db
-      .selectFrom('tables as t')
-      .select(sql<number>`COUNT(*)`.as('count'))
-      .where('t.status', '=', 'active')
-      .executeTakeFirst();
+    // CORREÇÃO HP-02: Contar total de mesas ativas COM OS MESMOS FILTROS da query principal
+    // Clonar query antes de aplicar limit/offset para contar resultados filtrados
+    const countQuery = query
+      .clearSelect()
+      .clearLimit()
+      .clearOffset()
+      .clearOrderBy()
+      .select(sql<number>`COUNT(*)`.as('count'));
+    
+    const totalCount = await countQuery.executeTakeFirst();
 
     res.json({
       data: tablesWithContacts,
@@ -187,7 +180,10 @@ router.get('/', async (req: Request, res: Response) => {
       },
     });
   } catch (error: any) {
-    console.error('[GET /tables]', error);
+    // CORREÇÃO HP-03: Log com contexto de query params
+    console.error('[GET /tables]', error, { 
+      params: { system, modality, type, audience, price_type, experience_level, state, city, featured, search, seal, page, limit }
+    });
     res.status(500).json({ error: 'Erro ao buscar mesas.' });
   }
 });
@@ -264,7 +260,7 @@ router.get('/:slug', async (req: Request, res: Response) => {
         // REQ-28 Fase 7: Campos editoriais separados
         't.synopsis_narrative',
         't.benefits_text',
-        't.gm_bio',
+        't.table_gm_bio',
         // CORREÇÃO A03: Retornar frequency e frequency_custom
         't.frequency',
         't.frequency_custom',

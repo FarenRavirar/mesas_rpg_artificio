@@ -121,6 +121,11 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
   const [settingName, setSettingName] = useState(initialData?.settingName || '');
   const [settingStyles, setSettingStyles] = useState<string[]>(initialData?.settingStyles || []);
 
+  // Campos editoriais Fase 6 (REQ-28)
+  const [synopsisNarrative, setSynopsisNarrative] = useState(initialData?.synopsisNarrative || '');
+  const [benefitsText, setBenefitsText] = useState(initialData?.benefitsText || '');
+  const [tableGmBio, setTableGmBio] = useState(initialData?.tableGmBio || '');
+
   // Submit State Machine
   type SubmitState = 'idle' | 'validating' | 'submitting' | 'success' | 'error';
   const [submitState, setSubmitState] = useState<SubmitState>('idle');
@@ -174,6 +179,9 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
     requiresMicrophone,
     settingName,
     settingStyles,
+    synopsisNarrative,
+    benefitsText,
+    tableGmBio,
   };
 
   // Função de submissão com state machine
@@ -207,9 +215,15 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
     try {
       const payload = formStateToPayload(formState);
 
-      // CORREÇÃO DT-AGG-04: Sempre usar endpoint de criação manual
-      const res = await fetch('/api/v1/gm/tables', {
-        method: 'POST',
+      // CORREÇÃO BLOQUEADOR B7: Detectar modo edição e usar PUT
+      const isEditing = !!(initialData as any)?.id;
+      const method = isEditing ? 'PUT' : 'POST';
+      const endpoint = isEditing 
+        ? `/api/v1/gm/tables/${(initialData as any).id}` 
+        : '/api/v1/gm/tables';
+
+      const res = await fetch(endpoint, {
+        method,
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
@@ -219,7 +233,7 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
 
       if (!res.ok) {
         const json = await res.json();
-        throw new Error(json.message || 'Erro ao criar mesa');
+        throw new Error(json.error || json.message || (isEditing ? 'Erro ao editar mesa' : 'Erro ao criar mesa'));
       }
 
       setSubmitState('success');
@@ -390,6 +404,14 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
     setSettingName,
     settingStyles,
     setSettingStyles,
+    
+    // Campos editoriais Fase 6 (REQ-28)
+    synopsisNarrative,
+    setSynopsisNarrative,
+    benefitsText,
+    setBenefitsText,
+    tableGmBio,
+    setTableGmBio,
     
     // Estado completo (para hooks)
     formState,

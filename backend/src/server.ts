@@ -16,9 +16,6 @@ import profileRoutes from './routes/profile';
 import adminProfileRoutes from './routes/adminProfile';
 import linksRoutes from './routes/links';
 import discordRoutes from './routes/discord';
-// REMOVIDO: Sistema de ingestão automática desacoplado
-// import aggregatorRoutes from './routes/aggregator';
-// import aggregatorReviewRoutes from './routes/aggregatorReview';
 import settingsRoutes from './routes/settings';
 import adminSettingSuggestionsRoutes from './routes/adminSettingSuggestions';
 import vttPlatformsRoutes from './routes/vttPlatforms'; // Sistema de VTT Platforms
@@ -91,9 +88,6 @@ app.use('/api/v1/notifications', notificationsRoutes);
 app.use('/api/v1/admin', systemSuggestionsAdminRoutes);
 app.use('/api/v1/gm', gmPanelRoutes);  // Painel autenticado do mestre
 app.use('/api/v1/gm', gmRoutes);       // Perfil público do mestre
-// REMOVIDO: Sistema de ingestão automática desacoplado
-// app.use('/api/v1/aggregator', aggregatorRoutes);
-// app.use('/api/v1/aggregator', aggregatorReviewRoutes);
 app.use('/api/v1/settings', settingsRoutes);  // REQ-28: Sugestões de estilos por cenário
 app.use('/api/v1/admin/setting-suggestions', adminSettingSuggestionsRoutes);  // REQ-28: Admin CRUD
 app.use('/api/v1/vtt-platforms', vttPlatformsRoutes);  // Sistema de VTT Platforms com logos

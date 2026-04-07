@@ -9,7 +9,11 @@ const router = Router();
  * Requer usuário logado via Google E perfil GM criado
  */
 router.get('/discord/connect', authMiddleware, async (req: Request, res: Response) => {
-  const userId = (req.user as any).id;
+  const userId = req.user?.userId;
+  
+  if (!userId) {
+    return res.status(401).json({ error: 'Não autenticado' });
+  }
   
   // CORREÇÃO P02, P06, P20: Validar se usuário tem perfil GM antes de iniciar OAuth
   const gmProfile = await db
@@ -137,7 +141,11 @@ router.get('/discord/callback', async (req: Request, res: Response) => {
  * Remove dados do Discord do perfil
  */
 router.delete('/discord/disconnect', authMiddleware, async (req: Request, res: Response) => {
-  const userId = (req.user as any).id;
+  const userId = req.user?.userId;
+  
+  if (!userId) {
+    return res.status(401).json({ error: 'Não autenticado' });
+  }
   
   try {
     await db
@@ -163,7 +171,11 @@ router.delete('/discord/disconnect', authMiddleware, async (req: Request, res: R
  * Requer Discord já conectado
  */
 router.post('/discord/verify-covil', authMiddleware, async (req: Request, res: Response) => {
-  const userId = (req.user as any).id;
+  const userId = req.user?.userId;
+  
+  if (!userId) {
+    return res.status(401).json({ error: 'Não autenticado' });
+  }
   
   try {
     // Buscar dados Discord do usuário

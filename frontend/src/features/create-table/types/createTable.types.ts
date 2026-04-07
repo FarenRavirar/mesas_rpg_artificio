@@ -89,6 +89,11 @@ export interface FormState {
   // Cenário e estilos
   settingName: string;
   settingStyles: string[];
+  
+  // Campos editoriais Fase 6 (REQ-28)
+  synopsisNarrative: string;
+  benefitsText: string;
+  tableGmBio: string;
 }
 
 export interface CreateTablePayload {
@@ -154,6 +159,10 @@ export interface CreateTablePayload {
   requires_microphone?: boolean;
   setting_name?: string;
   setting_styles?: string[];
+  // Campos editoriais Fase 6 (REQ-28)
+  synopsis_narrative?: string;
+  benefits_text?: string;
+  table_gm_bio?: string;
 }
 
 export type DraftStatus = 'idle' | 'saving' | 'saved';
