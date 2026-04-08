@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import { X, Zap, Calendar } from 'lucide-react';
 
 interface Changelog {
@@ -14,14 +15,64 @@ interface ChangelogModalProps {
   onClose: () => void;
 }
 
+// Função robusta de processamento de markdown
+const renderMarkdown = (text: string): ReactNode => {
+  return text.split('\n').map((line, lineIndex) => {
+    const elements: ReactNode[] = [];
+    let currentIndex = 0;
+    
+    // Regex para capturar **texto** (negrito)
+    const boldRegex = /\*\*([^*]+)\*\*/g;
+    let match;
+    
+    while ((match = boldRegex.exec(line)) !== null) {
+      // Adicionar texto antes do negrito
+      if (match.index > currentIndex) {
+        elements.push(
+          <span key={`text-${lineIndex}-${currentIndex}`}>
+            {line.substring(currentIndex, match.index)}
+          </span>
+        );
+      }
+      
+      // Adicionar negrito
+      elements.push(
+        <strong key={`bold-${lineIndex}-${match.index}`}>
+          {match[1]}
+        </strong>
+      );
+      
+      currentIndex = match.index + match[0].length;
+    }
+    
+    // Adicionar texto restante após o último negrito
+    if (currentIndex < line.length) {
+      elements.push(
+        <span key={`text-${lineIndex}-${currentIndex}`}>
+          {line.substring(currentIndex)}
+        </span>
+      );
+    }
+    
+    // Se não houver nenhum elemento, renderizar a linha vazia
+    if (elements.length === 0) {
+      elements.push(<span key={`empty-${lineIndex}`}>{line}</span>);
+    }
+    
+    return (
+      <div key={`line-${lineIndex}`}>
+        {elements}
+      </div>
+    );
+  });
+};
+
 export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose }) => {
   const [logs, setLogs] = useState<Changelog[]>([]);
   const [loading, setLoading] = useState(false);
-  // CORREÇÃO B02: Adicionar estado de erro
   const [error, setError] = useState<string | null>(null);
   const [expandedLogs, setExpandedLogs] = useState<Record<string, boolean>>({});
 
-  // CORREÇÃO FE-02: Função de retry que preserva estado do usuário
   const fetchLogs = async () => {
     try {
       setLoading(true);
@@ -44,18 +95,16 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
 
   useEffect(() => {
     if (isOpen) {
-      // CORREÇÃO C03: Adicionar AbortController para cleanup
       const controller = new AbortController();
       
       const fetchLogsWithAbort = async () => {
         try {
           setLoading(true);
-          setError(null); // CORREÇÃO B02: Limpar erro anterior
+          setError(null);
           const res = await fetch('/api/v1/changelog', {
-            signal: controller.signal, // CORREÇÃO C03: Passar signal
+            signal: controller.signal,
           });
           
-          // CORREÇÃO B01: Validar resposta HTTP
           if (!res.ok) {
             throw new Error(`Erro ao carregar atualizações (HTTP ${res.status})`);
           }
@@ -63,11 +112,9 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
           const json = await res.json();
           setLogs(json.data ?? []);
         } catch (err: any) {
-          // CORREÇÃO C03: Ignorar erro de abort
           if (err.name === 'AbortError') return;
           
           console.error('Erro ao buscar changelogs:', err);
-          // CORREÇÃO B02: Atualizar estado de erro
           setError('Não foi possível carregar as atualizações. Tente novamente mais tarde.');
         } finally {
           setLoading(false);
@@ -76,7 +123,6 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
       
       fetchLogsWithAbort();
       
-      // CORREÇÃO C03: Cleanup para abortar fetch se modal fechar
       return () => controller.abort();
     }
   }, [isOpen]);
@@ -92,131 +138,107 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
   }, {});
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-white w-full max-w-2xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+    <div 
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white w-full max-w-3xl max-h-[95vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
         
-        {/* Header */}
-        <div className="bg-[var(--color-artificio-blue)] px-6 py-6 relative flex-shrink-0">
+        {/* Header - Compacto */}
+        <div className="bg-[var(--color-artificio-blue)] px-6 py-4 relative flex-shrink-0">
           <button 
             onClick={onClose} 
-            className="absolute top-4 right-4 text-white/70 hover:text-white transition-colors"
+            className="absolute top-3 right-3 text-white/70 hover:text-white transition-colors"
             aria-label="Fechar"
           >
-            <X size={24} />
+            <X size={20} />
           </button>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="bg-[var(--color-artificio-orange)] text-white p-2 rounded-xl shadow-lg">
-              <Zap size={24} fill="currentColor" />
+          <div className="flex items-center gap-2">
+            <div className="bg-[var(--color-artificio-orange)] text-white p-1.5 rounded-lg">
+              <Zap size={18} fill="currentColor" />
             </div>
-            <h2 className="text-2xl font-black text-white uppercase tracking-tight">
+            <h2 className="text-xl font-black text-white uppercase tracking-tight">
               Novidades
             </h2>
           </div>
-          <p className="text-white/60 text-sm font-medium">
-            Confira as últimas melhorias e novidades do portal de mesas.
-          </p>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-8 bg-gray-50/30 min-h-0">{/* CORREÇÃO UX-02: min-h-0 garante que flex-1 respeita overflow */}
-          {/* CORREÇÃO B05: Adicionar aria-live para leitores de tela */}
+        {/* Content - Scroll independente */}
+        <div className="flex-1 overflow-y-auto p-6 bg-gray-50/30 min-h-0">
           {loading && (
             <div className="text-center py-8 text-gray-500" aria-live="polite">Carregando...</div>
           )}
 
-          {/* CORREÇÃO B02: Renderizar estado de erro */}
           {!loading && error && (
             <div className="text-center py-8" role="alert">
               <p className="text-red-600 font-semibold mb-2">⚠️ Erro ao carregar atualizações</p>
-              <p className="text-gray-600 text-sm">{error}</p>
-              {/* CORREÇÃO FE-02: Retry interno ao invés de reload */}
+              <p className="text-gray-600 text-sm mb-4">{error}</p>
               <button
                 onClick={fetchLogs}
-                className="mt-4 px-4 py-2 bg-[var(--color-artificio-orange)] text-white rounded-lg hover:bg-opacity-90 transition-colors"
+                className="px-4 py-2 bg-[var(--color-artificio-orange)] text-white rounded-lg hover:bg-opacity-90 transition-colors text-sm font-semibold"
               >
                 Tentar novamente
               </button>
             </div>
           )}
 
-          {/* CORREÇÃO B04: Usar key única com index */}
           {!loading && !error && Object.entries(groupedLogs).map(([date, dailyLogs], dateIndex) => (
-            <div key={`${date}-${dateIndex}`} className="relative pl-8">
-              {/* Vertical line decoration */}
-              <div className="absolute left-[11px] top-8 bottom-0 w-px bg-gray-200"></div>
+            <div key={`${date}-${dateIndex}`} className="mb-8 last:mb-0">
               
-              <div className="flex items-center gap-2 mb-4 -ml-8">
-                <div className="bg-white border-2 border-[var(--color-artificio-orange)] w-6 h-6 rounded-full flex items-center justify-center z-10">
-                  <div className="w-2 h-2 bg-[var(--color-artificio-orange)] rounded-full"></div>
-                </div>
-                <span className="bg-orange-100 text-[var(--color-artificio-orange)] px-3 py-1 rounded-full text-[11px] font-black uppercase flex items-center gap-1">
-                  <Calendar size={12} />
+              {/* Data */}
+              <div className="flex items-center gap-2 mb-4">
+                <div className="bg-[var(--color-artificio-orange)] w-2 h-2 rounded-full"></div>
+                <span className="text-[var(--color-artificio-orange)] text-xs font-bold uppercase flex items-center gap-1.5">
+                  <Calendar size={14} />
                   {date}
                 </span>
               </div>
 
+              {/* Changelogs do dia */}
               <div className="space-y-4">
                 {dailyLogs.map((log) => {
                   const isExpanded = expandedLogs[log.id];
-                  // CORREÇÃO FE-01/INT-01: JSON tem \n literal, whitespace-pre-wrap renderiza corretamente
-                  const shouldTruncate = log.body.length > 200;
+                  const shouldTruncate = log.body.length > 300;
                   
-                  // CORREÇÃO FE-03: Truncate inteligente que não corta no meio de palavra
                   let displayBody = log.body;
                   if (shouldTruncate && !isExpanded) {
-                    const truncated = log.body.slice(0, 200);
-                    // Procurar último espaço ou quebra de linha
+                    const truncated = log.body.slice(0, 300);
                     const lastSpace = Math.max(
                       truncated.lastIndexOf(' '),
                       truncated.lastIndexOf('\n')
                     );
-                    displayBody = (lastSpace > 150 ? truncated.slice(0, lastSpace) : truncated) + '...';
+                    displayBody = (lastSpace > 250 ? truncated.slice(0, lastSpace) : truncated) + '...';
                   }
 
-                  // CORREÇÃO UX-03: Processar markdown básico (negrito)
-                  const processMarkdown = (text: string) => {
-                    return text
-                      .split('\n')
-                      .map((line, i) => {
-                        // Processar negrito **texto**
-                        const parts = line.split(/(\*\*.*?\*\*)/g);
-                        return (
-                          <span key={i}>
-                            {parts.map((part, j) => {
-                              if (part.startsWith('**') && part.endsWith('**')) {
-                                return <strong key={j}>{part.slice(2, -2)}</strong>;
-                              }
-                              return <span key={j}>{part}</span>;
-                            })}
-                            {i < text.split('\n').length - 1 && <br />}
-                          </span>
-                        );
-                      });
-                  };
-
                   return (
-                    <div key={log.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
-                        log.type === 'dados' 
-                          ? 'bg-green-100 text-green-700' 
-                          : 'bg-blue-100 text-blue-700'
-                      }`}>
-                        {log.type === 'dados' ? 'CONTEÚDO' : 'SISTEMA'}
-                      </span>
-                      <h3 className="text-[var(--color-artificio-blue)] font-black text-base uppercase leading-tight mb-2 mt-2">
-                        {log.title}
-                      </h3>
-                      <div className="text-gray-600 text-sm leading-relaxed max-h-[400px] overflow-y-auto">
-                        {processMarkdown(displayBody)}
+                    <div key={log.id} className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <h3 className="text-[var(--color-artificio-blue)] font-bold text-base leading-tight flex-1">
+                          {log.title}
+                        </h3>
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase flex-shrink-0 ${
+                          log.type === 'dados' 
+                            ? 'bg-green-100 text-green-700' 
+                            : 'bg-blue-100 text-blue-700'
+                        }`}>
+                          {log.type === 'dados' ? 'CONTEÚDO' : 'SISTEMA'}
+                        </span>
                       </div>
-                      {/* CORREÇÃO B07: Adicionar aria-expanded */}
+                      
+                      <div className="text-gray-700 text-sm leading-relaxed">
+                        {renderMarkdown(displayBody)}
+                      </div>
+                      
                       {shouldTruncate && (
                         <button
                           onClick={() => setExpandedLogs(prev => ({ ...prev, [log.id]: !isExpanded }))}
-                          className="text-[var(--color-artificio-orange)] text-xs font-bold mt-2 hover:underline"
+                          className="text-[var(--color-artificio-orange)] text-xs font-bold mt-3 hover:underline"
                           aria-expanded={isExpanded}
                         >
-                          {isExpanded ? 'Ver menos' : 'Ver detalhes'}
+                          {isExpanded ? '▲ Ver menos' : '▼ Ver mais'}
                         </button>
                       )}
                     </div>
@@ -233,13 +255,13 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
           )}
         </div>
 
-        {/* Footer */}
-        <div className="p-6 bg-white border-t border-gray-100 flex justify-end">
+        {/* Footer - Compacto */}
+        <div className="p-4 bg-white border-t border-gray-100 flex justify-end flex-shrink-0">
           <button 
             onClick={onClose} 
-            className="bg-[var(--color-artificio-blue)] text-white px-8 py-3 rounded-xl font-bold uppercase hover:bg-opacity-90 transition-colors"
+            className="bg-[var(--color-artificio-blue)] text-white px-6 py-2 rounded-lg font-semibold text-sm uppercase hover:bg-opacity-90 transition-colors"
           >
-            Entendido
+            Fechar
           </button>
         </div>
       </div>
