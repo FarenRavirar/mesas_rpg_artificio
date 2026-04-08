@@ -52,7 +52,7 @@ export const SiteHeader = () => {
             title="Notas de Atualização"
             aria-label={hasNewUpdate ? "Notas de Atualização - Nova atualização disponível" : "Notas de Atualização"}
           >
-            <Zap size={20} className="group-hover:text-[var(--color-artificio-orange)] transition-colors" />
+            <Zap size={20} className="flex-shrink-0 group-hover:text-[var(--color-artificio-orange)] transition-colors" />
             {/* CORREÇÃO B06: Adicionar aria-label no badge */}
             {hasNewUpdate && (
               <span 
