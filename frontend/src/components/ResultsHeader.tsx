@@ -3,9 +3,10 @@ interface ResultsHeaderProps {
   sort: string;
   onSortChange: (value: string) => void;
   isLoading: boolean;
+  hasMore: boolean;
 }
 
-export function ResultsHeader({ count, sort, onSortChange, isLoading }: ResultsHeaderProps) {
+export function ResultsHeader({ count, sort, onSortChange, isLoading, hasMore }: ResultsHeaderProps) {
   return (
     <div className="flex items-center justify-between gap-4 py-4 border-b border-white/10">
       {/* Contador */}
@@ -14,7 +15,7 @@ export function ResultsHeader({ count, sort, onSortChange, isLoading }: ResultsH
           <span className="text-white/50">Carregando...</span>
         ) : (
           <span className="font-semibold text-white">
-            {count} {count === 1 ? 'mesa encontrada' : 'mesas encontradas'}
+            {count}{hasMore ? '+' : ''} {count === 1 ? 'mesa encontrada' : 'mesas encontradas'}
           </span>
         )}
       </div>

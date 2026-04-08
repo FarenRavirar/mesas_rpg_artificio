@@ -29,7 +29,7 @@ function AppRoutes() {
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/catalogo" element={<CatalogoPage />} />
-      <Route path="/mesas/:slug" element={<MesaPage />} />
+      <Route path="/mesa/:slug" element={<MesaPage />} />
       <Route path="/mestre/:slug" element={<MestrePage />} />
       <Route path="/jogador/:username" element={<PlayerPage />} />
       <Route path="/mestres/:masterId" element={<MasterProfilePage />} />

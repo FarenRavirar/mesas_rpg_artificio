@@ -21,8 +21,10 @@ export const CatalogoPage = () => {
   const [systems, setSystems] = useState<SystemOption[]>([]);
   const [tables, setTables] = useState<TableCard[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
 
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -41,6 +43,7 @@ export const CatalogoPage = () => {
   // CACHE + DEDUP
   const cache = useRef<Record<string, TableCard[]>>({});
   const prevQueryRef = useRef('');
+  const requestIdRef = useRef(0);
 
   // SEO
   useEffect(() => {
@@ -113,7 +116,8 @@ export const CatalogoPage = () => {
     if (priceType) params.set('price_type', priceType);
     if (experience) params.set('experience_level', experience);
     if (seal) params.set('seal', seal);
-    if (styles.length > 0) params.set('styles', styles.join(','));
+    // Normalizar styles para cache determinístico
+    if (styles.length > 0) params.set('styles', [...styles].sort().join(','));
     // CORREÇÃO UX-01: Só adicionar sort na URL se for diferente do padrão
     if (sort && sort !== 'popular') params.set('sort', sort);
 
@@ -155,6 +159,9 @@ export const CatalogoPage = () => {
     const controller = new AbortController();
 
     const loadTables = async () => {
+      // Incrementar requestId para controle de race condition
+      const requestId = ++requestIdRef.current;
+
       // Check cache first
       if (cache.current[queryString]) {
         setTables(cache.current[queryString]);
@@ -162,7 +169,12 @@ export const CatalogoPage = () => {
         return;
       }
 
-      setIsLoading(true);
+      // Separar loading inicial de refresh
+      if (tables.length > 0) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoading(true);
+      }
       setError(null);
 
       try {
@@ -174,18 +186,35 @@ export const CatalogoPage = () => {
 
         const json: TablesResponse = await res.json();
         
+        // Ignorar response se não for o request mais recente
+        if (requestId !== requestIdRef.current) return;
+        
         // Cache result
         cache.current[queryString] = json.data ?? [];
         setTables(json.data ?? []);
+        setHasMore(json.pagination?.hasMore ?? false);
         
-        // Calculate total pages from pagination
-        const total = json.pagination?.total ?? json.data?.length ?? 0;
-        setTotalPages(Math.ceil(total / 24) || 1);
+        // Usar total do backend quando disponível, senão calcular fallback
+        const totalFromApi = json.pagination?.total;
+        if (totalFromApi !== undefined) {
+          setTotalCount(totalFromApi);
+        } else {
+          // Fallback: estimativa baseada em page, limit (sem +1 incorreto)
+          const currentCount = json.data?.length ?? 0;
+          const estimatedTotal = (page - 1) * 24 + currentCount;
+          setTotalCount(estimatedTotal);
+        }
       } catch (err: any) {
         if (err.name === 'AbortError') return;
+        // Ignorar erro se não for o request mais recente
+        if (requestId !== requestIdRef.current) return;
         setError('Não foi possível carregar o catálogo no momento.');
       } finally {
-        setIsLoading(false);
+        // Só atualizar loading se for o request mais recente
+        if (requestId === requestIdRef.current) {
+          setIsLoading(false);
+          setIsRefreshing(false);
+        }
       }
     };
 
@@ -264,7 +293,8 @@ export const CatalogoPage = () => {
 
   // PAGINATION HANDLERS
   const goToPage = (newPage: number) => {
-    if (newPage < 1 || newPage > totalPages) return;
+    if (newPage < 1) return;
+    if (newPage > page && !hasMore) return; // Não avançar se não há mais páginas
     setPage(newPage);
   };
 
@@ -421,6 +451,7 @@ export const CatalogoPage = () => {
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
         onClear={clearFilters}
+        isApplying={isRefreshing}
       >
         {/* Busca */}
         <div className="relative">
@@ -542,11 +573,19 @@ export const CatalogoPage = () => {
       <section className="container mx-auto px-6 py-8">
         {/* LINHA DE CONTEXTO */}
         <div className="mb-6 space-y-4">
+          {isRefreshing && (
+            <div className="rounded-lg border border-orange-500/40 bg-orange-500/10 px-4 py-2 text-orange-200 text-sm flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+              Atualizando resultados...
+            </div>
+          )}
+          
           <ResultsHeader
-            count={tables.length}
+            count={totalCount}
             sort={sort}
             onSortChange={setSort}
             isLoading={isLoading}
+            hasMore={hasMore}
           />
 
           {/* CHIPS DE FILTROS ATIVOS */}
@@ -604,7 +643,7 @@ export const CatalogoPage = () => {
             </div>
 
             {/* PAGINATION */}
-            {!isLoading && tables.length > 0 && totalPages > 1 && (
+            {!isLoading && tables.length > 0 && (page > 1 || hasMore) && (
               <div className="flex items-center justify-center gap-2 mt-8">
                 <button
                   onClick={() => goToPage(page - 1)}
@@ -615,39 +654,18 @@ export const CatalogoPage = () => {
                   <ChevronLeft className="w-5 h-5" />
                 </button>
 
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum: number;
-                    
-                    if (totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (page <= 3) {
-                      pageNum = i + 1;
-                    } else if (page >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = page - 2 + i;
-                    }
-
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => goToPage(pageNum)}
-                        className={`min-w-[40px] h-10 rounded-lg border transition-colors ${
-                          page === pageNum
-                            ? 'border-orange-500 bg-orange-500 text-white font-semibold'
-                            : 'border-white/10 bg-white/5 hover:bg-white/10 text-white/70'
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
+                <div className="flex flex-col items-center gap-1 px-4 py-2 rounded-lg border border-white/10 bg-white/5">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-white/70">Página</span>
+                    <span className="font-semibold text-white">{page}</span>
+                    {hasMore && <span className="text-white/50">de muitas</span>}
+                  </div>
+                  <span className="text-xs text-white/50">{tables.length} resultados nesta página</span>
                 </div>
 
                 <button
                   onClick={() => goToPage(page + 1)}
-                  disabled={page === totalPages}
+                  disabled={!hasMore}
                   className="p-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   title="Próxima página"
                 >
