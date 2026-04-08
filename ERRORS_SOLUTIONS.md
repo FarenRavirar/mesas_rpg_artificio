@@ -43,7 +43,7 @@ Use para localizar o erro sem varrer a tabela inteira:
 | Docker / Containers / Rede | E038, E039, E057, E109 |
 | Git / Versionamento | E036, E071, E072, E101 |
 | TypeScript / Frontend / Build | E041, E042, E046, E067, E074 |
-| React / Frontend / Performance | E104, E111, E117 |
+| React / Frontend / Performance | E104, E111, E117, E135 |
 | Banco de Dados / SQL / PostgreSQL | E043, E049, E054, E059, E064, E065, E068, E075, E086, E088, E108, E119 |
 | SSH / Migrations / ALTER TABLE remoto | E108, E119 |
 | Ferramentas automatizadas / Agentes | E045, E050, E051, E052, E053, E058, E060, E061, E062, E063, E066, E070, E073, E076, E085, E091, E094, E095, E096, E097, E099, E100 |
@@ -426,5 +426,61 @@ try {
 
 **Contexto:**
 Sistema implementado em 07/04/2026 após 3 horas de debug do erro 500 em `GET /api/v1/tables/:slug`. O sistema de logging teria reduzido o tempo de diagnóstico de 3 horas para ~15 minutos.
+
+---
+
+## E135 — Links de WhatsApp não funcionam quando backend retorna apenas número
+
+**Sintoma:**
+Botão "Enviar mensagem no WhatsApp" na página de detalhes da mesa não abre conversa. Link gerado é inválido (ex: `https://99985199454` ao invés de `https://wa.me/5599985199454`).
+
+**Causa raiz confirmada (08/04/2026):**
+Backend retorna contatos de WhatsApp com `value` contendo apenas o número (ex: `"99985199454"`), sem formatação de URL. A função `getValidUrl` no `TableContactsBlock.tsx` (linhas 100-112) só formatava corretamente se o valor começasse com `wa.me`, mas não tratava números puros.
+
+**Diagnóstico:**
+1. Inspecionar resposta da API: `curl -s "https://mesasbeta.artificiorpg.com/api/v1/tables/<slug>" | grep -A 5 "whatsapp"`
+2. Se `value` for apenas dígitos (ex: `"99985199454"`), o problema está confirmado
+3. Testar link gerado no navegador — deve retornar erro de DNS ou página não encontrada
+
+**Solução validada (08/04/2026):**
+Corrigir função `getValidUrl` em `frontend/src/features/table/components/TableContactsBlock.tsx` (linhas 100-125) para detectar números puros e formatar como URL `wa.me`:
+
+```typescript
+const getValidUrl = (value: string): string => {
+  if (value.startsWith('http://') || value.startsWith('https://')) {
+    return value;
+  }
+  
+  if (contact.channel === 'whatsapp') {
+    if (value.startsWith('wa.me')) {
+      return `https://${value}`;
+    }
+    // Detectar número puro e formatar
+    const cleanNumber = value.replace(/\D/g, '');
+    if (cleanNumber.length >= 10) {
+      const fullNumber = cleanNumber.startsWith('55') ? cleanNumber : `55${cleanNumber}`;
+      return `https://wa.me/${fullNumber}`;
+    }
+  }
+  
+  return `https://${value}`;
+};
+```
+
+**Prevenção:**
+1. **Solução ideal (backend):** Formatar URLs de WhatsApp no backend antes de retornar na API — adicionar helper `formatWhatsAppUrl()` em `backend/src/utils/contacts.ts`
+2. **Solução atual (frontend):** Manter formatação defensiva no frontend para lidar com dados legados
+3. **Validação:** Adicionar teste E2E que verifica se links de WhatsApp abrem corretamente
+4. **Deploy:** Sempre usar script `scripts/deploy-beta.ps1` ao invés de deploy manual para evitar erros de cache
+
+**Script de deploy criado:**
+`scripts/deploy-beta.ps1` — automatiza: validação de branch, push, pull no servidor, build, cópia para container, reload nginx e validação.
+
+**Uso:**
+```powershell
+.\scripts\deploy-beta.ps1
+```
+
+**Data:** 08/04/2026
 
 
