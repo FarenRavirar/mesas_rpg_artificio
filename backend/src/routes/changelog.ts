@@ -1,26 +1,22 @@
 import { Router, Request, Response } from 'express';
-import { db } from '../db';
-import { sql } from 'kysely';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 const router = Router();
 
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const result = await sql<{
-      id: string;
-      title: string;
-      body: string;
-      type: string;
-      created_at: string;
-    }>`
-      SELECT id, title, body, type, created_at
-      FROM update_log
-      WHERE published = true
-      ORDER BY created_at DESC
-      LIMIT 50
-    `.execute(db);
+    const changelogsPath = join(__dirname, '../../..', 'database', 'changelogs.json');
+    const changelogsData = readFileSync(changelogsPath, 'utf-8');
+    const changelogs = JSON.parse(changelogsData);
+    
+    // Filtrar apenas publicados e ordenar por data
+    const published = changelogs
+      .filter((log: any) => log.published)
+      .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 50);
 
-    res.json({ data: result.rows });
+    res.json({ data: published });
   } catch (error: any) {
     console.error('[GET /changelog] Erro:', {
       message: error.message,

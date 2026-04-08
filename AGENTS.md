@@ -250,37 +250,30 @@ Isso está correto? Posso prosseguir?
 ```
 
 ### Changelog — Linguagem e Formato Obrigatórios
-**Toda mudança visível ao usuário final DEVE ter entrada no changelog (`update_log`) antes do deploy.** Não há exceções.
+**Toda mudança visível ao usuário final DEVE ter entrada no changelog (`database/changelogs.json`) antes do deploy.** Não há exceções.
 
 **Regras obrigatórias:**
-1. **Data/hora explícita** — usar timestamp fixo no formato `'YYYY-MM-DD HH:MM:SS'::timestamp`, nunca `NOW()`
+1. **Data/hora explícita** — usar formato ISO 8601 com timezone (`YYYY-MM-DDTHH:MM:SS-03:00`)
 2. **Rodapé com data/hora** — incluir linha `_Atualização publicada em DD/MM/YYYY às HH:MM_` no final do body
 3. **Linguagem 100% leiga** — sem jargão técnico, explicar benefícios para o usuário final
-4. **Arquivo SQL separado** — criar em `database/changelog_*.sql` e commitar junto com o código
+4. **Arquivo JSON versionado** — adicionar entrada em `database/changelogs.json` e commitar junto com o código
 
 **Formato obrigatório:**
-```sql
--- Changelog para [descrição da mudança]
--- Data: YYYY-MM-DD HH:MM:SS BRT
--- Deploy: Beta/Produção
-
-INSERT INTO update_log (title, body, type, published, created_at) 
-VALUES (
-  'Título Curto e Descritivo',
-  'Descrição em linguagem familiar e leiga com bullets:
-
-• **Primeira mudança** - Explicação do benefício para o usuário
-• **Segunda mudança** - O que melhorou na experiência
-• **Terceira mudança** - Como isso ajuda o usuário
-
-Frase de encerramento convidativa! 🎲
-
-_Atualização publicada em DD/MM/YYYY às HH:MM_',
-  'app',
-  true,
-  'YYYY-MM-DD HH:MM:SS'::timestamp
-);
+```json
+{
+  "id": "YYYY-MM-DD-descricao-curta",
+  "title": "Título Curto e Descritivo",
+  "body": "Descrição em linguagem familiar e leiga com bullets:\n\n• **Primeira mudança** - Explicação do benefício para o usuário\n• **Segunda mudança** - O que melhorou na experiência\n• **Terceira mudança** - Como isso ajuda o usuário\n\nFrase de encerramento convidativa! 🎲\n\n_Atualização publicada em DD/MM/YYYY às HH:MM_",
+  "type": "app",
+  "published": true,
+  "created_at": "YYYY-MM-DDTHH:MM:SS-03:00"
+}
 ```
+
+**Como adicionar novo changelog:**
+1. Abrir `database/changelogs.json`
+2. Adicionar novo objeto no início do array (mais recente primeiro)
+3. Commitar junto com o código da feature
 
 **Linguagem obrigatória: familiar, leiga e acessível.**
 - ❌ **NUNCA** usar jargão técnico: "sidebar vertical", "overflow-x", "placeholder visual", "migration", "refactor"
