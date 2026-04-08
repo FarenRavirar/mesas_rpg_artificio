@@ -65,3 +65,32 @@ export const requireAdmin = [
   authMiddleware,
   requireRole('admin')
 ];
+
+// Middleware opcional: permite usuários anônimos (não retorna 401)
+export const optionalAuth = (req: Request, res: Response, next: NextFunction) => {
+  if (!process.env.JWT_SECRET) {
+    console.error('[optionalAuth] JWT_SECRET não configurado');
+    req.user = undefined;
+    return next();
+  }
+
+  const authHeader = req.headers.authorization;
+  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  const cookieToken = req.cookies?.am_session ?? null;
+
+  const token = bearerToken || cookieToken;
+
+  if (!token) {
+    req.user = undefined; // Usuário anônimo
+    return next();
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET) as AuthDecoded;
+    req.user = decoded;
+    next();
+  } catch (error) {
+    req.user = undefined; // Token inválido = usuário anônimo
+    next();
+  }
+};

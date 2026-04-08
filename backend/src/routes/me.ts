@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { db } from '../db';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware, optionalAuth } from '../middleware/auth';
 import type { SystemNodeType } from '../db/types';
 
 const router = Router();
@@ -65,12 +65,12 @@ const getOnboardingCompleted = (preferences: { systems: string[] } | undefined):
   return Array.isArray(preferences?.systems) && preferences.systems.length > 0;
 };
 
-// GET /api/v1/me — Perfil + preferências do usuário logado
-router.get('/', authMiddleware, async (req: Request, res: Response) => {
+// GET /api/v1/me — Perfil + preferências do usuário logado (ou null se anônimo)
+router.get('/', optionalAuth, async (req: Request, res: Response) => {
   const userId = req.user?.userId;
 
   if (!userId) {
-    return res.status(401).json({ error: 'Não autenticado.' });
+    return res.json({ data: null }); // Usuário anônimo
   }
 
   try {
