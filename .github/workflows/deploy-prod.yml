@@ -27,11 +27,34 @@ jobs:
           script: |
             cd /opt/mesas
             git pull origin main
+            docker compose -f docker-compose.prod.yml down
             docker compose -f docker-compose.prod.yml build --no-cache
+            
+            # CORREÇÃO Bug #4: Substituir sleep 15 por verificação de health
+            echo "🗄️ Subindo banco de dados..."
             docker compose -f docker-compose.prod.yml up -d mesas-db
-            sleep 15
+            until docker compose -f docker-compose.prod.yml exec -T mesas-db pg_isready -U ${POSTGRES_USER:-admin} -d mesas_rpg; do
+              echo "⏳ Aguardando banco ficar healthy..."
+              sleep 3
+            done
+            echo "✅ Banco pronto!"
+            
+            # Subir resto dos serviços
+            echo "🚀 Subindo aplicação..."
             docker compose -f docker-compose.prod.yml up -d
+            
+            # CORREÇÃO Bug #5: Verificar saúde dos containers
+            echo "🔍 Verificando saúde dos containers..."
+            sleep 10
             docker compose -f docker-compose.prod.yml ps
+            
+            if ! docker compose -f docker-compose.prod.yml ps | grep -E "(mesas-app|mesas-api)" | grep -q "Up"; then
+              echo "❌ Erro: Containers não subiram corretamente"
+              docker compose -f docker-compose.prod.yml logs --tail=50
+              exit 1
+            fi
+            
+            echo "✅ Todos os containers estão rodando!"
             echo "🧹 Limpando imagens antigas..."
             docker image prune -f
       

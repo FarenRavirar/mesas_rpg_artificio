@@ -59,6 +59,19 @@ services:
     depends_on:
       mesas-db:
         condition: service_healthy
+    # CORREÇÃO: Adicionar volume de logs (estava ausente no prod)
+    volumes:
+      - ./logs:/app/logs
+    # CORREÇÃO Bug #6: Substituir deploy.resources por mem_limit (funciona com docker compose up)
+    mem_limit: 512m
+    memswap_limit: 512m
+    # CORREÇÃO: Adicionar healthcheck na API
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/v1/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # DATABASE (PostgreSQL)
   mesas-db:
@@ -75,6 +88,8 @@ services:
       - pgdata_mesas_prod:/var/lib/postgresql/data
       - ./database/init.sql:/docker-entrypoint-initdb.d/00_init.sql
       - ./database/migration_01_base_schema.sql:/docker-entrypoint-initdb.d/01_base_schema.sql
+      # CORREÇÃO Bug #7: Volume de logs removido — Postgres Alpine loga no stdout
+      # Use: docker logs mesas-db
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d mesas_rpg"]
       interval: 10s

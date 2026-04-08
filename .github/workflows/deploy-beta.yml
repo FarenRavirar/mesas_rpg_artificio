@@ -18,13 +18,39 @@ jobs:
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY_PROD }}
+          # CORREÇÃO Bug #1: Usar secret correto para beta (criar SSH_PRIVATE_KEY_BETA se não existir)
+          key: ${{ secrets.SSH_PRIVATE_KEY_BETA }}
           script: |
             cd /opt/mesas-beta
             git pull origin dev
+            docker compose -f docker-compose.beta.yml down
             docker compose -f docker-compose.beta.yml build --no-cache
+            
+            # CORREÇÃO Bug #2: Subir banco primeiro e aguardar health
+            echo "🗄️ Subindo banco de dados..."
+            docker compose -f docker-compose.beta.yml up -d mesas-beta-db
+            until docker compose -f docker-compose.beta.yml exec -T mesas-beta-db pg_isready -U ${POSTGRES_USER:-admin} -d mesas_rpg; do
+              echo "⏳ Aguardando banco ficar healthy..."
+              sleep 3
+            done
+            echo "✅ Banco pronto!"
+            
+            # Subir resto dos serviços
+            echo "🚀 Subindo aplicação..."
             docker compose -f docker-compose.beta.yml up -d
+            
+            # CORREÇÃO Bug #5: Verificar saúde dos containers
+            echo "🔍 Verificando saúde dos containers..."
+            sleep 10
             docker compose -f docker-compose.beta.yml ps
+            
+            if ! docker compose -f docker-compose.beta.yml ps | grep -E "(mesas-beta-app|mesas-beta-api)" | grep -q "Up"; then
+              echo "❌ Erro: Containers não subiram corretamente"
+              docker compose -f docker-compose.beta.yml logs --tail=50
+              exit 1
+            fi
+            
+            echo "✅ Todos os containers estão rodando!"
             echo "🧹 Limpando imagens antigas..."
             docker image prune -f
       

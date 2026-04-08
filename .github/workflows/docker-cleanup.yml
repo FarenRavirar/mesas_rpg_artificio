@@ -26,8 +26,9 @@ jobs:
             # Remover containers parados
             docker container prune -f
             
-            # Remover volumes não utilizados
-            docker volume prune -f
+            # CORREÇÃO Bug #8: Volume prune removido — pode deletar dados de containers parados
+            # Se o banco estiver parado durante a limpeza, o volume seria deletado
+            # Para limpar volumes manualmente: docker volume ls e docker volume rm <nome>
             
             # Remover networks não utilizadas
             docker network prune -f
