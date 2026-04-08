@@ -4,7 +4,6 @@ import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import tablesRoutes from './routes/tables';
-import tableSchedulesRoutes from './routes/tableSchedules';
 import gmRoutes from './routes/gm';
 import gmPanelRoutes from './routes/gmPanel';
 import systemsRoutes from './routes/systems';

@@ -376,4 +376,43 @@ router.get('/:slug', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/v1/tables/:slug/view — Registrar visualização
+router.post('/:slug/view', async (req: Request, res: Response) => {
+  const { slug } = req.params;
+
+  try {
+    // Buscar mesa pelo slug
+    const table = await db
+      .selectFrom('tables as t')
+      .select(['t.id'])
+      .where('t.slug', '=', slug)
+      .where('t.status', '=', 'active')
+      .executeTakeFirst();
+
+    if (!table) {
+      return res.status(404).json({ error: 'Mesa não encontrada.' });
+    }
+
+    // Incrementar contador de visualizações
+    await db
+      .insertInto('table_metrics')
+      .values({
+        table_id: table.id,
+        views_count: 1,
+      })
+      .onConflict((oc) =>
+        oc.column('table_id').doUpdateSet({
+          views_count: sql`table_metrics.views_count + 1`,
+          updated_at: sql`NOW()`,
+        })
+      )
+      .execute();
+
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('[POST /tables/:slug/view]', error);
+    res.status(500).json({ error: 'Erro ao registrar visualização.' });
+  }
+});
+
 export default router;

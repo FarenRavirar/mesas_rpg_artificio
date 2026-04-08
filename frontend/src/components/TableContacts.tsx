@@ -22,26 +22,42 @@ const normalizeExternalUrl = (value: string): string => {
 
 const buildMainHref = (contact: TableContact): string | null => {
   switch (contact.channel) {
-    case 'whatsapp': {
-      const phone = contact.value.replace(/\D/g, '');
-      return phone ? `https://wa.me/${phone}` : null;
-    }
+    case 'whatsapp':
     case 'phone': {
-      const phone = contact.value.replace(/[^\d+]/g, '');
-      return phone ? `tel:${phone}` : null;
+      // Ambos usam wa.me (padrão brasileiro)
+      const phone = contact.value.replace(/\D/g, '');
+      // Adiciona +55 se não tiver código de país
+      const fullPhone = phone.startsWith('55') ? phone : `55${phone}`;
+      return phone ? `https://wa.me/${fullPhone}` : null;
     }
     case 'email': {
       return `mailto:${contact.value}`;
     }
-    case 'facebook':
-    case 'instagram':
-    case 'form': {
-      return normalizeExternalUrl(contact.value);
+    case 'facebook': {
+      // Remove https:// se existir para normalizar
+      const cleanValue = contact.value.replace(/^https?:\/\/(www\.)?/i, '');
+      // Remove facebook.com ou fb.com se existir
+      const username = cleanValue.replace(/^(facebook\.com\/|fb\.com\/)/i, '');
+      return `https://fb.com/${username}`;
+    }
+    case 'instagram': {
+      // Remove https:// se existir para normalizar
+      const cleanValue = contact.value.replace(/^https?:\/\/(www\.)?/i, '');
+      // Remove instagram.com ou instagr.am se existir
+      const username = cleanValue.replace(/^(instagram\.com\/|instagr\.am\/)/i, '');
+      return `https://instagr.am/${username}`;
     }
     case 'discord': {
-      return /^https?:\/\//i.test(contact.value)
-        ? contact.value
-        : null;
+      // Se já é um link completo, usa direto
+      if (/^https?:\/\//i.test(contact.value)) {
+        return contact.value;
+      }
+      // Se é um código de convite (ex: abc123), gera discord.gg
+      const inviteCode = contact.value.replace(/^(discord\.gg\/|discord\.com\/invite\/)/i, '');
+      return `https://discord.gg/${inviteCode}`;
+    }
+    case 'form': {
+      return normalizeExternalUrl(contact.value);
     }
     default:
       return null;
