@@ -198,7 +198,8 @@ export const GestaoPage = () => {
     if (!confirm(`Deletar mesa "${title}"? Esta ação não pode ser desfeita.`)) return;
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/gm/admin/tables/${id}`, {
+      // CORREÇÃO DT-013: Rota correta é /api/v1/admin/tables/:id
+      const response = await fetch(`${API_BASE}/api/v1/admin/tables/${id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -224,7 +225,8 @@ export const GestaoPage = () => {
     if (!confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} mesa "${title}"?`)) return;
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/gm/admin/tables/${id}`, {
+      // CORREÇÃO DT-013: Rota correta é /api/v1/admin/tables/:id
+      const response = await fetch(`${API_BASE}/api/v1/admin/tables/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

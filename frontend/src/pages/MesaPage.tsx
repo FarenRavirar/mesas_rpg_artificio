@@ -11,9 +11,11 @@ import { TableContent } from '../features/table/components/TableContent';
 import { TableMaster } from '../features/table/components/TableMaster';
 import { TableSecurity } from '../features/table/components/TableSecurity';
 import { TableTechnical } from '../features/table/components/TableTechnical';
+import { useAuth } from '../contexts/AuthContext'; // CORREÇÃO DT-026: Importar useAuth
 
 export const MesaPage = () => {
   const { slug } = useParams<{ slug: string }>();
+  const { user } = useAuth(); // CORREÇÃO DT-026: Obter usuário autenticado
   const [table, setTable] = useState<TableDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -106,6 +108,9 @@ export const MesaPage = () => {
   // IMPORTANTE: Hooks devem ser chamados incondicionalmente (regra do React)
   const vm = useTableViewModel(table);
 
+  // CORREÇÃO DT-026: Calcular ownership
+  const isOwner = !!(user && table && (table as any).gm_user_id === user.id);
+
   if (loading) {
     return (
       <main className="min-h-screen bg-[var(--color-artificio-blue)] text-white flex items-center justify-center">
@@ -180,7 +185,8 @@ export const MesaPage = () => {
           </div>
 
           {/* Fase 2: TableActionPanel (substituindo aside de 72 linhas) */}
-          {vm && <TableActionPanel vm={vm} />}
+          {/* CORREÇÃO DT-026: Passar variant baseado em ownership */}
+          {vm && <TableActionPanel vm={vm} variant={isOwner ? 'owner' : 'full'} />}
         </article>
       </section>
     </main>

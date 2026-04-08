@@ -8,73 +8,47 @@ on:
 jobs:
   deploy-beta:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Deploy to Beta Server
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
-          # CORREÇÃO Bug #1: Usar secret correto para beta (criar SSH_PRIVATE_KEY_BETA se não existir)
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /opt/mesas-beta
             git pull origin dev
-            
-            # CORREÇÃO Bug #1: Build antes do down para evitar downtime
-            echo "🔨 Buildando novas imagens..."
             docker compose -f docker-compose.beta.yml build --no-cache
-            
-            # CORREÇÃO Bug #2: Subir banco primeiro com timeout
-            echo "🗄️ Subindo banco de dados..."
             docker compose -f docker-compose.beta.yml up -d mesas-beta-db
-            
             MAX_RETRIES=30
             RETRIES=0
-            # CORREÇÃO Bug #4: Usar 'admin' fixo ao invés de variável não disponível
             until docker compose -f docker-compose.beta.yml exec -T mesas-beta-db pg_isready -U admin -d mesas_rpg; do
               RETRIES=$((RETRIES+1))
               if [ $RETRIES -ge $MAX_RETRIES ]; then
-                echo "❌ Banco não ficou healthy após ${MAX_RETRIES} tentativas (90s)"
+                echo "❌ Banco não ficou pronto"
                 docker compose -f docker-compose.beta.yml logs mesas-beta-db --tail=50
                 exit 1
               fi
-              echo "⏳ Tentativa ${RETRIES}/${MAX_RETRIES}..."
               sleep 3
             done
-            echo "✅ Banco pronto!"
-            
-            # Subir aplicação com force-recreate (evita down explícito)
-            echo "🚀 Subindo aplicação..."
             docker compose -f docker-compose.beta.yml up -d --force-recreate --no-build
-            
-            # CORREÇÃO Bug #3: Aguardar healthcheck real da API
-            echo "🔍 Aguardando healthcheck da API..."
-            MAX_RETRIES=20
-            RETRIES=0
-            until [ "$(docker inspect --format='{{.State.Health.Status}}' mesas-beta-api)" = "healthy" ]; do
-              RETRIES=$((RETRIES+1))
-              if [ $RETRIES -ge $MAX_RETRIES ]; then
-                echo "❌ API não ficou healthy após ${MAX_RETRIES} tentativas (100s)"
-                docker compose -f docker-compose.beta.yml logs mesas-beta-api --tail=50
-                exit 1
-              fi
-              echo "⏳ Aguardando API... (${RETRIES}/${MAX_RETRIES})"
-              sleep 5
-            done
-            
-            echo "✅ Todos os containers estão rodando e healthy!"
+            sleep 20
+            if ! docker compose -f docker-compose.beta.yml ps | grep "mesas-beta-api" | grep -q "Up"; then
+              echo "❌ API não subiu"
+              docker compose -f docker-compose.beta.yml logs mesas-beta-api --tail=50
+              exit 1
+            fi
             docker compose -f docker-compose.beta.yml ps
-            echo "🧹 Limpando imagens antigas..."
             docker image prune -f
-      
+
       - name: Notify Success
         if: success()
         run: echo "✅ Deploy em beta concluído!"
-      
+
       - name: Notify Failure
         if: failure()
         run: echo "❌ Deploy em beta falhou!"

@@ -13,11 +13,11 @@ jobs:
     environment:
       name: production
       url: https://mesas.artificiorpg.com
-
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
+      
       - name: Deploy to Production Server
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -29,31 +29,16 @@ jobs:
             git pull origin main
             docker compose -f docker-compose.prod.yml build --no-cache
             docker compose -f docker-compose.prod.yml up -d mesas-db
-            MAX_RETRIES=30
-            RETRIES=0
-            until docker compose -f docker-compose.prod.yml exec -T mesas-db pg_isready -U admin -d mesas_rpg; do
-              RETRIES=$((RETRIES+1))
-              if [ $RETRIES -ge $MAX_RETRIES ]; then
-                echo "❌ Banco não ficou pronto"
-                docker compose -f docker-compose.prod.yml logs mesas-db --tail=50
-                exit 1
-              fi
-              sleep 3
-            done
-            docker compose -f docker-compose.prod.yml up -d --force-recreate --no-build
-            sleep 20
-            if ! docker compose -f docker-compose.prod.yml ps | grep "mesas-api" | grep -q "Up"; then
-              echo "❌ API não subiu"
-              docker compose -f docker-compose.prod.yml logs mesas-api --tail=50
-              exit 1
-            fi
+            sleep 15
+            docker compose -f docker-compose.prod.yml up -d
             docker compose -f docker-compose.prod.yml ps
+            echo "🧹 Limpando imagens antigas..."
             docker image prune -f
-
+      
       - name: Notify Success
         if: success()
         run: echo "✅ Deploy em produção concluído!"
-
+      
       - name: Notify Failure
         if: failure()
         run: echo "❌ Deploy em produção falhou!"

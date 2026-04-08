@@ -402,11 +402,11 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
     
     // Campos editoriais Fase 6 (REQ-28)
     synopsisNarrative,
-    setSynopsisNarrative,
+    setSynopsisNarrative, // CORREÇÃO DT-010: Adicionar setter
     benefitsText,
-    setBenefitsText,
+    setBenefitsText, // CORREÇÃO DT-010: Adicionar setter
     tableGmBio,
-    setTableGmBio,
+    setTableGmBio, // CORREÇÃO DT-010: Adicionar setter
     
     // Estado completo (para hooks)
     formState,

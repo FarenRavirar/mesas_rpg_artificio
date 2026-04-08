@@ -372,6 +372,7 @@ router.get('/:slug', async (req: Request, res: Response) => {
         'gm.slug as gm_slug',
         'gm.avatar_url as gm_avatar_url',
         'gm.badges as gm_badges',
+        'u.id as gm_user_id', // CORREÇÃO DT-025: Adicionar user_id para verificação de ownership
         sql<string>`COALESCE(gm.nickname, p.display_name)`.as('gm_display_name'),
         'gm.bio_long as gm_bio_long', // CORREÇÃO REG-13: Renomeado para evitar conflito com t.gm_bio
       ])

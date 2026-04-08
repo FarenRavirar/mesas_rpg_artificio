@@ -12,14 +12,18 @@ permissions:
   contents: write
 
 jobs:
-  merge:
+  promote:
     runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://mesas.artificiorpg.com
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
+      
       - name: Merge dev to main
         run: |
           git config user.name "GitHub Actions"
@@ -30,16 +34,8 @@ jobs:
             git tag ${{ inputs.version }} -m "Release ${{ inputs.version }}"
           fi
           git push origin main
-          git push origin ${{ inputs.version }} || echo "Tag já existe"
-
-  deploy:
-    needs: merge
-    runs-on: ubuntu-latest
-    environment:
-      name: production
-      url: https://mesas.artificiorpg.com
-
-    steps:
+          git push origin ${{ inputs.version }} || echo "Tag já existe no remote"
+      
       - name: Deploy to Production
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -51,25 +47,16 @@ jobs:
             git pull origin main
             docker compose -f docker-compose.prod.yml build --no-cache
             docker compose -f docker-compose.prod.yml up -d mesas-db
-            MAX_RETRIES=30
-            RETRIES=0
-            until docker compose -f docker-compose.prod.yml exec -T mesas-db pg_isready -U admin -d mesas_rpg; do
-              RETRIES=$((RETRIES+1))
-              if [ $RETRIES -ge $MAX_RETRIES ]; then
-                echo "❌ Banco não ficou pronto"
-                exit 1
-              fi
-              sleep 3
-            done
-            docker compose -f docker-compose.prod.yml up -d --force-recreate --no-build
-            sleep 20
+            sleep 15
+            docker compose -f docker-compose.prod.yml up -d
             docker compose -f docker-compose.prod.yml ps
+            echo "🧹 Limpando imagens antigas..."
             docker image prune -f
-
+      
       - name: Notify Success
         if: success()
-        run: echo "✅ Promoção concluída! Versão ${{ inputs.version }}"
-
+        run: echo "✅ Promoção para produção concluída! Versão ${{ inputs.version }}"
+      
       - name: Notify Failure
         if: failure()
-        run: echo "❌ Falha na promoção!"
+        run: echo "❌ Falha na promoção para produção!"

@@ -96,6 +96,11 @@ export function validateStep(step: number, data: FormState): string[] {
     // Step 3: Sessões
     const sessionsError = validators.sessions(data.sessions);
     if (sessionsError) errors.push(sessionsError);
+
+    // CORREÇÃO DT-024: Frequência pertence ao step 3, não ao 4
+    if ((data.form.type === 'campanha' || data.form.type === 'oneshot-serie') && !data.frequency) {
+      errors.push('Frequência é obrigatória para campanhas e one-shots em série');
+    }
   }
 
   if (step === 4) {
@@ -103,11 +108,6 @@ export function validateStep(step: number, data: FormState): string[] {
     // Validação condicional: se announcer, nome do GM é obrigatório
     if (data.publisherRole === 'announcer' && !data.actualGmName) {
       errors.push('Nome do mestre obrigatório quando você é apenas anunciante');
-    }
-
-    // Lacuna 3: Frequência obrigatória para campanhas e one-shots em série
-    if ((data.form.type === 'campanha' || data.form.type === 'oneshot-serie') && !data.frequency) {
-      errors.push('Frequência é obrigatória para campanhas e one-shots em série');
     }
   }
 
