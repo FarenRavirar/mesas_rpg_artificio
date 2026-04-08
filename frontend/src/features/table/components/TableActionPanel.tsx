@@ -1,5 +1,6 @@
 import type { TableViewModel, TableActionPanelVariant } from '../types/tableView.types';
 import { getButtonStyle, getUrgencyColor, handleCTA } from '../utils/uiHelpers';
+import { TableContactsBlock } from './TableContactsBlock';
 
 interface TableActionPanelProps {
   vm: TableViewModel;
@@ -77,18 +78,27 @@ export function TableActionPanel({ vm, variant = 'full' }: TableActionPanelProps
             <div className="flex justify-between items-center">
               <span className="text-white/60">Jogo</span>
               <div className="flex items-center gap-2" title={vm.vttPlatform.name}>
-                {vm.vttPlatform.logo_filename && (
+                {vm.vttPlatform.logo_filename ? (
                   <img 
                     src={`/vtt-logos/${vm.vttPlatform.logo_filename}`} 
                     alt={vm.vttPlatform.name}
                     className="h-8 w-auto object-contain"
                     onError={(e) => {
-                      // CORREÇÃO E01: Esconder imagem se falhar carregamento
-                      e.currentTarget.style.display = 'none';
+                      // Fallback: substituir imagem por texto estilizado
+                      const img = e.currentTarget;
+                      const parent = img.parentElement;
+                      if (parent && !parent.querySelector('.vtt-fallback-text')) {
+                        img.style.display = 'none';
+                        const textSpan = document.createElement('span');
+                        textSpan.className = 'vtt-fallback-text text-white font-medium text-sm';
+                        textSpan.textContent = vm.vttPlatform?.name || 'VTT';
+                        parent.appendChild(textSpan);
+                      }
                     }}
                   />
+                ) : (
+                  <span className="text-white font-medium text-sm">{vm.vttPlatform.name}</span>
                 )}
-                <span className="text-white font-medium">{vm.vttPlatform.name}</span>
               </div>
             </div>
           )}
@@ -108,63 +118,8 @@ export function TableActionPanel({ vm, variant = 'full' }: TableActionPanelProps
         </div>
       )}
 
-      {/* Contatos */}
-      {vm.contacts.length > 0 && (
-        <div id="mesa-contato" className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
-          <h3 className="text-sm font-semibold text-white/90 uppercase tracking-wide">
-            Como participar
-          </h3>
-          <div className="space-y-2">
-            {vm.contacts.map((contact, idx) => {
-              // Discord não tem link direto - mostrar username com instrução
-              if (contact.channel === 'discord') {
-                // CORREÇÃO B04: Validar se username não está vazio
-                if (!contact.value || !contact.value.trim()) {
-                  console.warn('[TableActionPanel] Discord contact com username vazio ignorado');
-                  return null;
-                }
-                
-                return (
-                  <div
-                    key={idx}
-                    className="flex items-start gap-2 text-sm text-white/80"
-                  >
-                    <span className="text-lg mt-0.5">{getContactIcon(contact.channel)}</span>
-                    <div className="space-y-1">
-                      <p className="font-medium">Discord: <span className="text-orange-400">{contact.value}</span></p>
-                      <p className="text-xs text-white/60">Envie uma mensagem direta no Discord</p>
-                      {contact.discord_server_url && (
-                        <a
-                          href={contact.discord_server_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-orange-400 hover:text-orange-300 transition"
-                        >
-                          🔗 Entrar no servidor Discord
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                );
-              }
-
-              // Outros canais com link
-              return (
-                <a
-                  key={idx}
-                  href={contact.value}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-sm text-white/80 hover:text-orange-400 transition"
-                >
-                  <span className="text-lg">{getContactIcon(contact.channel)}</span>
-                  <span>{contact.label || contact.channel}</span>
-                </a>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      {/* Contatos - Componente dedicado com design system completo */}
+      <TableContactsBlock contacts={vm.contacts} />
 
       {/* Variante Owner (Painel do Mestre) */}
       {variant === 'owner' && (
@@ -179,18 +134,4 @@ export function TableActionPanel({ vm, variant = 'full' }: TableActionPanelProps
       )}
     </aside>
   );
-}
-
-/**
- * Helper para ícones de contato
- */
-function getContactIcon(type: string): string {
-  const icons: Record<string, string> = {
-    whatsapp: '💬',
-    discord: '🎮',
-    email: '📧',
-    form: '📝',
-    other: '🔗',
-  };
-  return icons[type.toLowerCase()] || icons.other;
 }
