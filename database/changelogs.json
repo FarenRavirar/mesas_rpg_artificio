@@ -1,5 +1,13 @@
 [
   {
+    "id": "2026-04-08-performance-catalogo",
+    "title": "Catálogo mais rápido e estável",
+    "body": "Fizemos melhorias técnicas importantes no catálogo que você vai sentir na prática:\n\n• **Carrega mais rápido** - Os filtros agora respondem instantaneamente quando você muda alguma coisa\n• **Não trava mais** - Corrigimos um problema que às vezes fazia a página travar ao usar vários filtros\n• **Link funciona sempre** - Agora você pode copiar o link da página com os filtros ativos e ele sempre vai funcionar direitinho\n• **Voltar e avançar** - Os botões de voltar e avançar do navegador agora funcionam perfeitamente com os filtros\n• **Mais confiável** - A página não perde mais os filtros quando você atualiza ou compartilha o link\n\nEssas melhorias deixam tudo mais suave e confiável para você encontrar suas mesas! 🎲\n\n_Atualização publicada em 08/04/2026 às 07:07_",
+    "type": "app",
+    "published": true,
+    "created_at": "2026-04-08T07:07:00-03:00"
+  },
+  {
     "id": "2026-04-08-ux-catalogo",
     "title": "Catálogo mais organizado e fácil de usar",
     "body": "Melhoramos a forma como você busca e filtra mesas no catálogo:\n\n• **Filtros mais organizados** - Agora fica mais fácil encontrar o que você procura, com tudo separadinho em blocos\n• **Filtros no celular** - No celular, você clica no botão \"Filtros\" e abre um menu lateral bonitinho\n• **Você vê o que filtrou** - Os filtros que você escolheu aparecem como etiquetas coloridas que você pode remover clicando nelas\n• **Botões mais claros** - Agora você sabe na hora se pode entrar na mesa ou se precisa ver os detalhes primeiro\n• **Mais mesas na tela** - Reorganizamos tudo para você ver mais mesas de uma vez\n\nExplore o catálogo e encontre sua próxima aventura! 🎲\n\n_Atualização publicada em 08/04/2026 às 03:26_",
