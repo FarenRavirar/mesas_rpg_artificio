@@ -14,7 +14,8 @@ export interface CTAConfig {
   label: string;
   disabled: boolean;
   variant: 'primary' | 'secondary' | 'disabled';
-  action: 'scroll-contact' | 'external' | 'none';
+  action: 'scroll-contact' | 'external-link' | 'none';
+  actionUrl?: string;
 }
 
 /**

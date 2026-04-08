@@ -85,6 +85,208 @@ docker exec mesas-beta-db env | grep POSTGRES
 > [!CAUTION]
 > O banco **não se chama `mesas`** — o nome correto é `mesas_rpg`. Usar `-d mesas` resulta em `FATAL: database "mesas" does not exist`. Ver também `ERRORS_SOLUTIONS.md` E059.
 
+### 3.2 Ambiente de Desenvolvimento Local (Localhost)
+
+> **Palavras-chave para busca:** localhost, desenvolvimento local, túnel SSH, ambiente dev, rodar localmente, testar local, backend local, frontend local, proxy vite, conexão banco local
+
+**Objetivo:** Rodar frontend e backend localmente conectados ao banco de dados beta via túnel SSH para desenvolvimento e testes com dados reais.
+
+#### 3.2.1 Arquitetura do Ambiente Local
+
+```
+Frontend (localhost:5173)
+    ↓ Proxy Vite (/api/* → localhost:3000)
+Backend (localhost:3000)
+    ↓ DATABASE_URL (localhost:5432)
+Túnel SSH (porta 5432)
+    ↓ Encaminha para container remoto
+PostgreSQL Beta (172.18.0.9:5432 no servidor Oracle)
+```
+
+#### 3.2.2 Pré-requisitos
+
+1. **Node.js** instalado (versão compatível com o projeto)
+2. **SSH** configurado com chave privada para acesso ao servidor Oracle
+3. **Credenciais do banco beta** (disponíveis em `C:\projetos\Secrets`)
+
+#### 3.2.3 Configuração do Backend Local
+
+**Arquivo:** `backend/.env`
+
+```env
+# Servidor
+PORT=3000
+NODE_ENV=development
+
+# Banco de Dados PostgreSQL (beta - via túnel SSH)
+# Senha: MesasRPG#2026!Xk9vPq (URL-encoded)
+DATABASE_URL=postgresql://admin:MesasRPG%232026%21Xk9vPq@localhost:5432/mesas_rpg
+
+# Autenticação JWT
+JWT_SECRET=mesas_rpg_jwt_secret_super_seguro_2026_minimo_32_caracteres_aqui
+
+# Frontend URL (para redirect após OAuth)
+FRONTEND_URL=http://localhost:5173
+
+# Google OAuth (NECESSÁRIO CONFIGURAR para testar login)
+GOOGLE_CLIENT_ID=seu_client_id_aqui.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=seu_client_secret_aqui
+GOOGLE_CALLBACK_URL=http://localhost:3000/api/v1/auth/google/callback
+
+# Imgur API (NECESSÁRIO CONFIGURAR para testar upload de imagens)
+IMGUR_CLIENT_ID=seu_imgur_client_id_aqui
+
+# Discord OAuth (integração perfil mestre)
+DISCORD_CLIENT_ID=1490592397950976162
+DISCORD_CLIENT_SECRET=-y9qOC4ICxVJ2l-iM9n81m110chyaNWH
+DISCORD_GUILD_ID=1258189767720304672
+DISCORD_REDIRECT_URI=http://localhost:3000/auth/discord/callback
+```
+
+**Notas importantes:**
+- A senha do PostgreSQL **deve ser URL-encoded** (`#` → `%23`, `!` → `%21`)
+- Credenciais completas estão em `C:\projetos\Secrets\senha docker producao posgress.txt`
+- Google OAuth e Imgur são **opcionais** para desenvolvimento (funcionalidades relacionadas não funcionarão sem configuração)
+
+#### 3.2.4 Configuração do Frontend Local
+
+**Arquivo:** `frontend/vite.config.ts`
+
+```typescript
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+    },
+  },
+})
+```
+
+**Função do proxy:** Redireciona todas as requisições `/api/*` do frontend para o backend local, evitando problemas de CORS.
+
+#### 3.2.5 Túnel SSH para PostgreSQL
+
+**Problema:** Os containers PostgreSQL no servidor Oracle **não expõem portas públicas**. Eles rodam em rede Docker interna.
+
+**Solução:** Criar túnel SSH que encaminha porta local `5432` para o IP interno do container beta.
+
+**Passo 1 — Obter IP do container beta:**
+
+```bash
+ssh -i "C:/projetos/gerenciador_telegram/ssh-key-2026-03-07privada.key" ubuntu@137.131.250.231 "docker inspect mesas-beta-db --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'"
+```
+
+**Resultado esperado:** `172.18.0.9` (pode variar se container for recriado)
+
+**Passo 2 — Criar túnel SSH:**
+
+```bash
+ssh -L 5432:172.18.0.9:5432 -i "C:/projetos/gerenciador_telegram/ssh-key-2026-03-07privada.key" ubuntu@137.131.250.231
+```
+
+**O que esse comando faz:**
+- `-L 5432:172.18.0.9:5432` — Mapeia porta local 5432 para porta 5432 do container remoto
+- Mantém conexão SSH ativa em background
+- Permite que `localhost:5432` acesse o PostgreSQL beta
+
+**Nota:** O túnel deve permanecer ativo durante todo o desenvolvimento. Se a conexão SSH cair, o backend perderá acesso ao banco.
+
+#### 3.2.6 Iniciar Ambiente Local
+
+**Terminal 1 — Túnel SSH:**
+```bash
+ssh -L 5432:172.18.0.9:5432 -i "C:/projetos/gerenciador_telegram/ssh-key-2026-03-07privada.key" ubuntu@137.131.250.231
+```
+
+**Terminal 2 — Backend:**
+```bash
+cd backend
+npm run dev
+```
+
+**Terminal 3 — Frontend:**
+```bash
+cd frontend
+npm run dev
+```
+
+**Verificação:**
+- Backend: `http://localhost:3000` (deve responder "Cannot GET /")
+- Frontend: `http://localhost:5173` (deve carregar catálogo com dados reais)
+
+#### 3.2.7 Problemas Comuns
+
+**Erro: "Database connection failed"**
+- Verificar se túnel SSH está ativo
+- Confirmar IP do container: `docker inspect mesas-beta-db`
+- Verificar credenciais no `.env` (senha URL-encoded)
+
+**Erro: "password authentication failed"**
+- Senha no `.env` está incorreta ou não está URL-encoded
+- Confirmar senha real: `docker exec mesas-beta-db env | grep POSTGRES`
+
+**Imagens não carregam (404)**
+- URLs do Discord **expiram** (contêm tokens temporários `ex=`, `is=`, `hm=`)
+- Fallback (dado 🎲) deve aparecer automaticamente
+- Solução permanente: re-upload para Imgur (conforme arquitetura §16)
+
+**Frontend não conecta ao backend**
+- Verificar se proxy está configurado no `vite.config.ts`
+- Reiniciar dev server do frontend após alterar `vite.config.ts`
+- Verificar se backend está rodando na porta 3000
+
+**Health check retorna 500**
+- Problema conhecido (não crítico)
+- Não afeta funcionalidade principal da aplicação
+- Rotas de dados (`/api/v1/tables`, `/api/v1/systems`) funcionam normalmente
+
+#### 3.2.8 Limitações do Ambiente Local
+
+**Funcionalidades que NÃO funcionam sem configuração adicional:**
+- ❌ Login com Google OAuth (requer `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET`)
+- ❌ Upload de imagens (requer `IMGUR_CLIENT_ID`)
+- ❌ Integração Discord (opcional, não essencial para desenvolvimento)
+
+**Funcionalidades que funcionam normalmente:**
+- ✅ Catálogo de mesas com dados reais
+- ✅ Página de detalhes de mesa
+- ✅ Filtros e busca
+- ✅ CTA inteligente (Discord/WhatsApp direto)
+- ✅ Painel de gestão (se usuário estiver autenticado)
+- ✅ Todas as alterações de código (hot reload)
+
+#### 3.2.9 Dados de Teste
+
+**Banco beta contém:**
+- 4 mesas de teste
+- Sistemas reais (D&D 5e 2024, Fabula Ultima, 2300 AD)
+- Cenários e tags
+- Usuários e perfis de mestre
+
+**Nota sobre imagens:**
+- Mesas de teste têm URLs do Discord que **expiraram**
+- Fallback (dado 🎲) funciona corretamente
+- Para testar upload de imagens, configurar `IMGUR_CLIENT_ID`
+
+#### 3.2.10 Alternativa: Testar Direto no Beta
+
+Se configurar ambiente local for complexo, testar diretamente em:
+
+**https://mesasbeta.artificiorpg.com**
+
+- Backend já está rodando
+- Banco de dados já está conectado
+- Todas as funcionalidades disponíveis
+- Deploy automático via GitHub Actions (branch `dev`)
+
 ---
 
 ## 4. Modelo de Dados (Entidades Principais)

@@ -1295,6 +1295,7 @@ router.get('/tables', authMiddleware, async (req: Request, res: Response) => {
 // PATCH /api/v1/gm/tables/:id/status — Altera status da mesa
 router.patch('/tables/:id/status', authMiddleware, async (req: Request, res: Response) => {
   const userId = (req as any).user.userId;
+  const userRole = (req as any).user.role;
   const { id } = req.params;
   const { status } = req.body;
 
@@ -1304,27 +1305,52 @@ router.patch('/tables/:id/status', authMiddleware, async (req: Request, res: Res
   }
 
   try {
+    // Verificar se mesa existe
+    const table = await db
+      .selectFrom('tables')
+      .select(['id', 'gm_id', 'title'])
+      .where('id', '=', id)
+      .executeTakeFirst();
+
+    if (!table) {
+      return res.status(404).json({ error: 'Mesa não encontrada.' });
+    }
+
+    // Admin pode alterar qualquer mesa
+    if (userRole === 'admin') {
+      const result = await db
+        .updateTable('tables')
+        .set({ status })
+        .where('id', '=', id)
+        .returning(['id', 'slug', 'title', 'status'])
+        .executeTakeFirst();
+
+      return res.json({ data: result });
+    }
+
+    // GM só pode alterar própria mesa
     const gmProfile = await db
       .selectFrom('gm_profiles')
       .select('id')
       .where('user_id', '=', userId)
       .executeTakeFirst();
 
-    if (!gmProfile) return res.status(403).json({ error: 'Acesso negado.' });
+    if (!gmProfile) {
+      return res.status(403).json({ error: 'Acesso negado.' });
+    }
+
+    if (table.gm_id !== gmProfile.id) {
+      return res.status(403).json({ error: 'Sem permissão para alterar esta mesa.' });
+    }
 
     const result = await db
       .updateTable('tables')
       .set({ status })
       .where('id', '=', id)
-      .where('gm_id', '=', gmProfile.id)
       .returning(['id', 'slug', 'title', 'status'])
-      .execute();
+      .executeTakeFirst();
 
-    if (result.length === 0) {
-      return res.status(404).json({ error: 'Mesa não encontrada ou sem permissão.' });
-    }
-
-    return res.json({ data: result[0] });
+    return res.json({ data: result });
   } catch (error: any) {
     console.error('[PATCH /gm/tables/:id/status]', error);
     return res.status(500).json({ error: 'Erro ao atualizar status.' });

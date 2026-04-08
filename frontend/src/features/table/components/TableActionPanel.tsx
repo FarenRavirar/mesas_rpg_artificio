@@ -1,5 +1,5 @@
 import type { TableViewModel, TableActionPanelVariant } from '../types/tableView.types';
-import { getButtonStyle, getUrgencyColor, handleCTA } from '../utils/uiHelpers';
+import { getButtonStyle, getUrgencyColor, handleCTA, handleEdit, handleStatus, handleDelete } from '../utils/uiHelpers';
 import { TableContactsBlock } from './TableContactsBlock';
 
 interface TableActionPanelProps {
@@ -13,6 +13,114 @@ interface TableActionPanelProps {
  * Reutilizável em: MesaPage, Painel do Mestre, Card expandido
  */
 export function TableActionPanel({ vm, variant = 'full' }: TableActionPanelProps) {
+  // Modo owner: apenas gestão, sem CTA de conversão
+  if (variant === 'owner') {
+    return (
+      <aside className="space-y-3 lg:sticky lg:top-4">
+        {/* Info Rápida */}
+        <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-white/60">Sistema</span>
+            <span className="text-white font-medium">{vm.system}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-white/60">Experiência</span>
+            <span className="text-white font-medium">{vm.experience}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-white/60">Modalidade</span>
+            <span className="text-white font-medium">{vm.modality}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-white/60">Vagas</span>
+            <span className="text-white font-medium">
+              {vm.slotsLeft} {vm.slotsLeft === 1 ? 'disponível' : 'disponíveis'}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-white/60">Status</span>
+            <span className={`font-medium ${
+              vm.status === 'active' ? 'text-green-400' :
+              vm.status === 'cancelled' ? 'text-yellow-400' :
+              vm.status === 'full' ? 'text-orange-400' :
+              vm.status === 'ended' ? 'text-red-400' :
+              'text-white'
+            }`}>
+              {vm.status === 'active' && '✓ Ativa'}
+              {vm.status === 'cancelled' && '⏸ Desativada'}
+              {vm.status === 'full' && '🔒 Lotada'}
+              {vm.status === 'ended' && '✕ Encerrada'}
+            </span>
+          </div>
+        </div>
+
+        {/* Gestão */}
+        <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
+          <p className="text-xs font-semibold text-white/60 uppercase tracking-wide mb-3">
+            Gerenciamento
+          </p>
+
+          <button
+            onClick={() => handleEdit(vm.id)}
+            className="w-full py-2 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 text-sm font-medium transition"
+          >
+            ✏️ Editar mesa
+          </button>
+
+          {vm.status !== 'cancelled' && (
+            <button
+              onClick={() => handleStatus(vm.id, 'cancelled')}
+              className="w-full py-2 rounded-lg bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 text-sm font-medium transition"
+            >
+              ⏸️ Desativar mesa
+            </button>
+          )}
+
+          {vm.status === 'cancelled' && (
+            <button
+              onClick={() => handleStatus(vm.id, 'active')}
+              className="w-full py-2 rounded-lg bg-green-500/20 hover:bg-green-500/30 text-green-300 text-sm font-medium transition"
+            >
+              ▶️ Reativar mesa
+            </button>
+          )}
+
+          {vm.status !== 'full' && vm.slotsLeft === 0 && (
+            <button
+              onClick={() => handleStatus(vm.id, 'full')}
+              className="w-full py-2 rounded-lg bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 text-sm font-medium transition"
+            >
+              🔒 Marcar como lotada
+            </button>
+          )}
+
+          {vm.status !== 'ended' && (
+            <button
+              onClick={() => handleStatus(vm.id, 'ended')}
+              className="w-full py-2 rounded-lg bg-gray-500/20 hover:bg-gray-500/30 text-gray-300 text-sm font-medium transition"
+            >
+              ✓ Marcar como encerrada
+            </button>
+          )}
+        </div>
+
+        {/* Ação destrutiva isolada */}
+        <div className="pt-3 border-t border-red-500/20">
+          <button
+            onClick={() => handleDelete(vm.id)}
+            className="w-full py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm font-medium transition"
+          >
+            🗑 Excluir permanentemente
+          </button>
+          <p className="text-xs text-red-400/60 mt-2 text-center">
+            Ação irreversível
+          </p>
+        </div>
+      </aside>
+    );
+  }
+
+  // Modo público: CTA + conversão
   return (
     <aside className="space-y-4 lg:sticky lg:top-4">
       
@@ -62,7 +170,7 @@ export function TableActionPanel({ vm, variant = 'full' }: TableActionPanelProps
         <div className="flex justify-between">
           <span className="text-white/60">Vagas</span>
           <span className="text-white font-medium">
-            {vm.slotsFilled}/{vm.slotsTotal}
+            {vm.slotsLeft} {vm.slotsLeft === 1 ? 'disponível' : 'disponíveis'}
           </span>
         </div>
       </div>
@@ -120,18 +228,6 @@ export function TableActionPanel({ vm, variant = 'full' }: TableActionPanelProps
 
       {/* Contatos - Componente dedicado com design system completo */}
       <TableContactsBlock contacts={vm.contacts} />
-
-      {/* Variante Owner (Painel do Mestre) */}
-      {variant === 'owner' && (
-        <div className="space-y-2 pt-4 border-t border-white/10">
-          <button className="w-full py-2 rounded-lg bg-white/10 hover:bg-white/20 text-sm font-medium transition">
-            ✏️ Editar mesa
-          </button>
-          <button className="w-full py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm font-medium transition">
-            🗑️ Excluir mesa
-          </button>
-        </div>
-      )}
     </aside>
   );
 }
