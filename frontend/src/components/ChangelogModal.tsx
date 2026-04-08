@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { ReactNode } from 'react';
 import { X, Zap, Calendar } from 'lucide-react';
 
@@ -137,9 +138,11 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
     return acc;
   }, {});
 
-  return (
+  if (!isOpen) return null;
+
+  const modalContent = (
     <div 
-      className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto p-4 bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto p-4 bg-black/60 backdrop-blur-sm"
       onClick={onClose}
     >
       <div 
@@ -267,4 +270,6 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };
