@@ -54,6 +54,12 @@ export function TableCardComponent({ table }: { table: TableCard }) {
   const isFull = slotsLeft <= 0;
   const isUrgent = slotsLeft <= 2 && !isFull;
 
+  // Lógica de CTA baseada em estado (ISO 9241 – Controllability)
+  const canJoinDirectly = !isFull && table.status === 'active';
+  const primaryCTA = canJoinDirectly
+    ? { label: 'Entrar na mesa →', variant: 'primary' as const }
+    : { label: 'Ver detalhes →', variant: 'secondary' as const };
+
   const queryClient = useQueryClient();
 
   // Prefetch no hover com debounce
@@ -75,7 +81,7 @@ export function TableCardComponent({ table }: { table: TableCard }) {
     fetch(`/api/v1/tables/${table.slug}/click`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ variant: 'refactored_v3' }),
+      body: JSON.stringify({ variant: 'refactored_v4' }),
       keepalive: true,
     }).catch(() => {});
   }, [table.slug]);
@@ -88,7 +94,7 @@ export function TableCardComponent({ table }: { table: TableCard }) {
       className="group relative block w-full h-[420px] rounded-2xl overflow-hidden bg-[#1B2A4A] border border-white/10 hover:border-[var(--color-artificio-orange)]/40 transition-all duration-300 cursor-pointer shadow-lg hover:shadow-[0_0_30px_rgba(232,82,26,0.15)] hover:-translate-y-1"
       id={`table-card-${table.slug}`}
     >
-      {/* IMAGEM (40% altura = 168px) */}
+      {/* BLOCO 1: HEADER (Imagem + Badges críticos) */}
       <div className="h-[168px] relative overflow-hidden">
         {table.cover_url ? (
           <img
@@ -98,14 +104,11 @@ export function TableCardComponent({ table }: { table: TableCard }) {
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-[#2A3F6D] to-[#1B2A4A] flex items-center justify-center">
-            <div className="text-center space-y-2">
-              <div className="text-5xl opacity-30">🎲</div>
-              <p className="text-white/40 text-xs font-medium">Sem imagem</p>
-            </div>
+            <div className="text-5xl opacity-30">🎲</div>
           </div>
         )}
 
-        {/* Badges sobre imagem com fundo escuro translúcido */}
+        {/* Badges críticos apenas */}
         <div className="absolute top-3 left-3 flex flex-wrap gap-2">
           {table.is_ddal && (
             <span className="px-2 py-1 rounded-md text-[11px] font-black tracking-wide text-amber-100 bg-black/70 backdrop-blur-sm border border-amber-500/30">
@@ -119,7 +122,6 @@ export function TableCardComponent({ table }: { table: TableCard }) {
           )}
         </div>
 
-        {/* Featured - topo direito */}
         {table.featured && (
           <span className="absolute top-3 right-3 px-2 py-1 bg-[var(--color-artificio-orange)] rounded-md text-xs font-bold text-white">
             ★ Destaque
@@ -127,10 +129,9 @@ export function TableCardComponent({ table }: { table: TableCard }) {
         )}
       </div>
 
-      {/* CONTEÚDO (60% altura = 252px) */}
+      {/* BLOCO 2: CONTENT (Título + Sistema/Modalidade) */}
       <div className="h-[252px] p-4 flex flex-col">
-        {/* Sistema + Modalidade (badges pequenos) */}
-        <div className="flex gap-2 mb-2">
+        <div className="flex gap-2 mb-3">
           {table.system_name && (
             <span className="flex items-center gap-1 px-2 py-1 bg-[#13213f] rounded-md text-xs font-semibold text-[var(--color-artificio-orange)] border border-white/10">
               <Dice1 className="w-3 h-3" />
@@ -143,37 +144,34 @@ export function TableCardComponent({ table }: { table: TableCard }) {
           </span>
         </div>
 
-        {/* Título (destaque) */}
-        <h3 className="text-lg font-bold text-white group-hover:text-[var(--color-artificio-orange)] transition-colors line-clamp-2 leading-tight mb-3">
+        <h3 className="text-lg font-bold text-white group-hover:text-[var(--color-artificio-orange)] transition-colors line-clamp-2 leading-tight mb-4">
           {table.title}
         </h3>
 
-        {/* Mestre (prova social) */}
-        {table.gm_display_name && (
-          <div className="flex items-center gap-2 mb-3">
-            {table.gm_avatar_url ? (
-              <img 
-                src={table.gm_avatar_url} 
-                alt={table.gm_display_name}
-                className="w-6 h-6 rounded-full border border-white/20"
-              />
-            ) : (
-              <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-xs">
-                👤
-              </div>
-            )}
-            <span className="text-sm text-white/70 font-medium truncate">
-              {table.gm_display_name}
-            </span>
-          </div>
-        )}
-
-        {/* Vagas + Preço (lado a lado) - empurra para o final */}
+        {/* BLOCO 3: METADATA (Mestre + Vagas + Preço) */}
         <div className="mt-auto space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            {/* Vagas com dots visuais */}
+          {table.gm_display_name && (
             <div className="flex items-center gap-2">
-              {/* Dots (máximo 5, adiciona +X se passar) */}
+              {table.gm_avatar_url ? (
+                <img 
+                  src={table.gm_avatar_url} 
+                  alt={table.gm_display_name}
+                  className="w-6 h-6 rounded-full border border-white/20"
+                />
+              ) : (
+                <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-xs">
+                  👤
+                </div>
+              )}
+              <span className="text-sm text-white/70 font-medium truncate">
+                {table.gm_display_name}
+              </span>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between gap-3">
+            {/* Vagas */}
+            <div className="flex items-center gap-2">
               <div className="flex gap-1">
                 {Array.from({ length: Math.min(5, table.slots_total ?? 0) }).map((_, i) => (
                   <div
@@ -190,7 +188,6 @@ export function TableCardComponent({ table }: { table: TableCard }) {
                 )}
               </div>
               
-              {/* Texto de vagas com cor semântica */}
               {isFull ? (
                 <span className="text-xs font-bold text-red-400">Lotada</span>
               ) : isUrgent ? (
@@ -200,7 +197,7 @@ export function TableCardComponent({ table }: { table: TableCard }) {
               )}
             </div>
 
-            {/* Preço com contexto */}
+            {/* Preço */}
             {table.price_type === 'gratuita' ? (
               <span className="text-sm font-bold text-green-400">Gratuito</span>
             ) : table.price_value ? (
@@ -210,13 +207,13 @@ export function TableCardComponent({ table }: { table: TableCard }) {
             ) : null}
           </div>
 
-          {/* CTA diferenciado por urgência */}
+          {/* BLOCO 4: ACTION (CTA único baseado em estado) */}
           <div className={`w-full py-2.5 rounded-lg text-sm font-bold text-center transition-colors ${
-            isUrgent
+            primaryCTA.variant === 'primary'
               ? 'bg-orange-600 hover:bg-orange-700 text-white'
               : 'border-2 border-orange-600 text-orange-600 hover:bg-orange-600/10'
           }`}>
-            {table.publisher_role === 'announcer' ? 'Ver detalhes' : 'Entrar na mesa →'}
+            {primaryCTA.label}
           </div>
         </div>
       </div>
