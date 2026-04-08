@@ -1,7 +1,8 @@
 services:
   # FRONTEND (Nginx servindo build estático do React/Vite)
   # Roteado via Cloudflare Tunnel existente, sem porta pública exposta no host
-  mesas-beta-app:
+  # CORREÇÃO WF-01: Service name deve corresponder ao container_name para consistência
+  mesas-beta-frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile

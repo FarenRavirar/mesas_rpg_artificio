@@ -33,7 +33,7 @@ export const CatalogoPage = () => {
   const [experience, setExperience] = useState('');
   const [seal, setSeal] = useState<CatalogSeal>('');
   const [styles, setStyles] = useState<string[]>([]); // NOVO: Filtro de estilos
-  const [sort, setSort] = useState('popular'); // CORREÇÃO: Padrão = popular (ranking inteligente)
+  const [sort, setSort] = useState('popular'); // CORREÇÃO UX-01: Padrão = popular, mas não forçar na URL
   const [page, setPage] = useState(1);
   
   const [isFilterOpen, setIsFilterOpen] = useState(false); // Drawer mobile
@@ -114,7 +114,8 @@ export const CatalogoPage = () => {
     if (experience) params.set('experience_level', experience);
     if (seal) params.set('seal', seal);
     if (styles.length > 0) params.set('styles', styles.join(','));
-    if (sort) params.set('sort', sort);
+    // CORREÇÃO UX-01: Só adicionar sort na URL se for diferente do padrão
+    if (sort && sort !== 'popular') params.set('sort', sort);
 
     return params.toString();
   }, [debouncedSearch, system, modality, priceType, experience, seal, styles, sort, page]);

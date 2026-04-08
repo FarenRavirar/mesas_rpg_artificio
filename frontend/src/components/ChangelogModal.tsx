@@ -21,12 +21,33 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
   const [error, setError] = useState<string | null>(null);
   const [expandedLogs, setExpandedLogs] = useState<Record<string, boolean>>({});
 
+  // CORREÇÃO FE-02: Função de retry que preserva estado do usuário
+  const fetchLogs = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await fetch('/api/v1/changelog');
+      
+      if (!res.ok) {
+        throw new Error(`Erro ao carregar atualizações (HTTP ${res.status})`);
+      }
+      
+      const json = await res.json();
+      setLogs(json.data ?? []);
+    } catch (err: any) {
+      console.error('Erro ao buscar changelogs:', err);
+      setError('Não foi possível carregar as atualizações. Tente novamente mais tarde.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       // CORREÇÃO C03: Adicionar AbortController para cleanup
       const controller = new AbortController();
       
-      const fetchLogs = async () => {
+      const fetchLogsWithAbort = async () => {
         try {
           setLoading(true);
           setError(null); // CORREÇÃO B02: Limpar erro anterior
@@ -53,7 +74,7 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
         }
       };
       
-      fetchLogs();
+      fetchLogsWithAbort();
       
       // CORREÇÃO C03: Cleanup para abortar fetch se modal fechar
       return () => controller.abort();
@@ -108,11 +129,12 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
             <div className="text-center py-8" role="alert">
               <p className="text-red-600 font-semibold mb-2">⚠️ Erro ao carregar atualizações</p>
               <p className="text-gray-600 text-sm">{error}</p>
+              {/* CORREÇÃO FE-02: Retry interno ao invés de reload */}
               <button
-                onClick={() => window.location.reload()}
+                onClick={fetchLogs}
                 className="mt-4 px-4 py-2 bg-[var(--color-artificio-orange)] text-white rounded-lg hover:bg-opacity-90 transition-colors"
               >
-                Recarregar página
+                Tentar novamente
               </button>
             </div>
           )}
@@ -136,10 +158,20 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
               <div className="space-y-4">
                 {dailyLogs.map((log) => {
                   const isExpanded = expandedLogs[log.id];
-                  const shouldTruncate = log.body.length > 120;
-                  const displayBody = shouldTruncate && !isExpanded 
-                    ? log.body.slice(0, 120) + '...' 
-                    : log.body;
+                  // CORREÇÃO FE-01/INT-01: JSON tem \n literal, whitespace-pre-wrap renderiza corretamente
+                  const shouldTruncate = log.body.length > 200;
+                  
+                  // CORREÇÃO FE-03: Truncate inteligente que não corta no meio de palavra
+                  let displayBody = log.body;
+                  if (shouldTruncate && !isExpanded) {
+                    const truncated = log.body.slice(0, 200);
+                    // Procurar último espaço ou quebra de linha
+                    const lastSpace = Math.max(
+                      truncated.lastIndexOf(' '),
+                      truncated.lastIndexOf('\n')
+                    );
+                    displayBody = (lastSpace > 150 ? truncated.slice(0, lastSpace) : truncated) + '...';
+                  }
 
                   return (
                     <div key={log.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
@@ -153,10 +185,9 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
                       <h3 className="text-[var(--color-artificio-blue)] font-black text-base uppercase leading-tight mb-2 mt-2">
                         {log.title}
                       </h3>
-                      {/* CORREÇÃO B03: whitespace-pre-wrap já protege contra XSS, texto é renderizado como texto puro */}
-                      <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-wrap">
+                      <div className="text-gray-600 text-sm leading-relaxed whitespace-pre-wrap max-h-[400px] overflow-y-auto">
                         {displayBody}
-                      </p>
+                      </div>
                       {/* CORREÇÃO B07: Adicionar aria-expanded */}
                       {shouldTruncate && (
                         <button

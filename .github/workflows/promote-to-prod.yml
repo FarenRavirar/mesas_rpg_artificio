@@ -22,15 +22,21 @@ jobs:
 
       - name: Merge dev to main
         run: |
+          set -euo pipefail
+
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
+
+          git fetch origin main dev --tags
           git checkout main
           git merge origin/dev --no-ff -m "chore: promote beta to production ${{ inputs.version }}"
-          if ! git rev-parse ${{ inputs.version }} >/dev/null 2>&1; then
-            git tag ${{ inputs.version }} -m "Release ${{ inputs.version }}"
+
+          if ! git rev-parse "${{ inputs.version }}" >/dev/null 2>&1; then
+            git tag -a "${{ inputs.version }}" -m "Release ${{ inputs.version }}"
           fi
+
           git push origin main
-          git push origin ${{ inputs.version }} || echo "Tag já existe"
+          git push origin "${{ inputs.version }}" || echo "Tag já existe"
 
   deploy:
     needs: merge
@@ -47,12 +53,17 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY_PROD }}
           script: |
+            set -euo pipefail
+
             cd /opt/mesas
             git pull origin main
+            docker compose -f docker-compose.prod.yml down
             docker compose -f docker-compose.prod.yml build --no-cache
             docker compose -f docker-compose.prod.yml up -d mesas-db
+
             MAX_RETRIES=30
             RETRIES=0
+
             until docker compose -f docker-compose.prod.yml exec -T mesas-db pg_isready -U admin -d mesas_rpg; do
               RETRIES=$((RETRIES+1))
               if [ $RETRIES -ge $MAX_RETRIES ]; then
@@ -61,8 +72,23 @@ jobs:
               fi
               sleep 3
             done
+
             docker compose -f docker-compose.prod.yml up -d --force-recreate --no-build
             sleep 20
+
+            # CORREÇÃO WF-06: Validar health da API antes de considerar deploy bem-sucedido
+            if ! docker compose -f docker-compose.prod.yml ps | grep "mesas-api" | grep -q "Up"; then
+              echo "❌ API não subiu"
+              docker compose -f docker-compose.prod.yml logs mesas-api --tail=50
+              exit 1
+            fi
+
+            # CORREÇÃO INT-03: Validar se frontend buildou com sucesso
+            if ! docker compose -f docker-compose.prod.yml logs mesas-frontend 2>&1 | grep -q "build completed"; then
+              echo "⚠️ Verificando logs do frontend para possíveis erros de build"
+              docker compose -f docker-compose.prod.yml logs mesas-frontend --tail=100
+            fi
+
             docker compose -f docker-compose.prod.yml ps
             docker image prune -f
 
@@ -73,3 +99,190 @@ jobs:
       - name: Notify Failure
         if: failure()
         run: echo "❌ Falha na promoção!"
+
+  release:
+    needs: deploy
+    if: success()
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ inputs.version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch tags
+        run: git fetch --tags origin
+
+      # CORREÇÃO WF-05: Sincronizar com código deployado para garantir release notes corretas
+      - name: Sync with deployed code
+        run: |
+          git fetch origin main --tags
+          git checkout main
+
+      - name: Descobrir última release de produção
+        id: previous
+        run: |
+          PREVIOUS_TAG=$(gh release list \
+            --exclude-drafts \
+            --exclude-pre-releases \
+            --limit 1 \
+            --json tagName \
+            --jq '.[0].tagName' || echo "")
+
+          echo "tag=${PREVIOUS_TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Montar resumo executivo
+        env:
+          PREVIOUS_TAG: ${{ steps.previous.outputs.tag }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${PREVIOUS_TAG}" ]; then
+            RANGE="${PREVIOUS_TAG}..${VERSION}"
+            git diff --name-only "${PREVIOUS_TAG}" "${VERSION}" > changed_files.txt
+          else
+            RANGE="${VERSION}"
+            : > changed_files.txt
+          fi
+
+          TOTAL_COMMITS=$(git rev-list --count "${RANGE}" 2>/dev/null || echo 0)
+          FEATURES=$(git log "${RANGE}" --pretty=format:'%s' | grep -Eci '^(feat)(\(.+\))?:' || true)
+          FIXES=$(git log "${RANGE}" --pretty=format:'%s' | grep -Eci '^(fix)(\(.+\))?:' || true)
+          REFACTORS=$(git log "${RANGE}" --pretty=format:'%s' | grep -Eci '^(refactor|perf)(\(.+\))?:' || true)
+          CHORES=$(git log "${RANGE}" --pretty=format:'%s' | grep -Eci '^(build|ci|chore|deps)(\(.+\))?:' || true)
+
+          {
+            echo "## Resumo da versão ${VERSION}"
+            echo
+
+            if [ -n "${PREVIOUS_TAG}" ]; then
+              echo "- Comparação: \`${PREVIOUS_TAG}\` → \`${VERSION}\`"
+            else
+              echo "- Primeira release publicada em produção"
+            fi
+
+            echo "- Total de commits: ${TOTAL_COMMITS}"
+            echo "- Features: ${FEATURES}"
+            echo "- Correções: ${FIXES}"
+            echo "- Refatorações/performance: ${REFACTORS}"
+            echo "- Infra/chore/deps: ${CHORES}"
+            echo
+            echo "### Áreas impactadas"
+
+            FOUND_AREA=0
+
+            if grep -qE '^frontend/' changed_files.txt; then
+              echo "- Frontend"
+              FOUND_AREA=1
+            fi
+
+            if grep -qE '^backend/' changed_files.txt; then
+              echo "- Backend"
+              FOUND_AREA=1
+            fi
+
+            if grep -qE '(^|/)(docker-compose|Dockerfile|\.github/workflows/)' changed_files.txt; then
+              echo "- Infra e deploy"
+              FOUND_AREA=1
+            fi
+
+            if grep -qE '(^|/)(migrations/|prisma/|db/|.*\.sql$)' changed_files.txt; then
+              echo "- Banco de dados"
+              FOUND_AREA=1
+            fi
+
+            if grep -qE '(^|/)(auth/|oauth|session|jwt|discord|google)' changed_files.txt; then
+              echo "- Autenticação"
+              FOUND_AREA=1
+            fi
+
+            if grep -qE '\.md$' changed_files.txt; then
+              echo "- Documentação"
+              FOUND_AREA=1
+            fi
+
+            if [ "$FOUND_AREA" -eq 0 ]; then
+              echo "- Escopo não identificado automaticamente"
+            fi
+
+            echo
+            echo "### Atenção operacional"
+
+            ATTENTION=0
+
+            if grep -qE '(^|/)(migrations/|prisma/|db/|.*\.sql$)' changed_files.txt; then
+              echo "- Há alterações que podem afetar banco de dados ou migrações."
+              ATTENTION=1
+            fi
+
+            if grep -qE '(^|/)(docker-compose|Dockerfile|\.github/workflows/)' changed_files.txt; then
+              echo "- Há alterações de infraestrutura ou deploy."
+              ATTENTION=1
+            fi
+
+            if grep -qE '(^|/)(auth/|oauth|session|jwt|discord|google)' changed_files.txt; then
+              echo "- Há alterações em autenticação, sessão ou permissões."
+              ATTENTION=1
+            fi
+
+            if [ "$ATTENTION" -eq 0 ]; then
+              echo "- Sem alertas operacionais detectados automaticamente."
+            fi
+
+            echo
+            echo "### Principais commits"
+            git log "${RANGE}" --pretty=format:'- %s (%h)' -n 15
+          } > executive_notes.md
+
+      - name: Gerar notas automáticas do GitHub
+        env:
+          PREVIOUS_TAG: ${{ steps.previous.outputs.tag }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${PREVIOUS_TAG}" ]; then
+            gh api \
+              repos/${{ github.repository }}/releases/generate-notes \
+              -X POST \
+              -f tag_name="${VERSION}" \
+              -f target_commitish=main \
+              -f previous_tag_name="${PREVIOUS_TAG}" \
+              --jq '.body' > github_notes.md
+          else
+            gh api \
+              repos/${{ github.repository }}/releases/generate-notes \
+              -X POST \
+              -f tag_name="${VERSION}" \
+              -f target_commitish=main \
+              --jq '.body' > github_notes.md
+          fi
+
+      - name: Consolidar release notes
+        run: |
+          {
+            cat executive_notes.md
+            echo
+            echo "---"
+            echo
+            cat github_notes.md
+          } > final_release_notes.md
+
+      - name: Criar ou atualizar release
+        run: |
+          set -euo pipefail
+
+          if gh release view "${VERSION}" >/dev/null 2>&1; then
+            gh release edit "${VERSION}" \
+              --title "Production ${VERSION}" \
+              --notes-file final_release_notes.md \
+              --latest
+          else
+            gh release create "${VERSION}" \
+              --title "Production ${VERSION}" \
+              --notes-file final_release_notes.md \
+              --latest
+          fi

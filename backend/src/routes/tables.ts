@@ -109,14 +109,7 @@ router.get('/', async (req: Request, res: Response) => {
         't.game_platform_custom', // CORREÇÃO A-HIGH-01: Retornar custom VTT para cards
       ])
       .where('t.status', '=', 'active')
-      .where((eb) => eb.and([
-        eb('t.title', 'not ilike', '%teste%'),
-        eb('t.title', 'not ilike', '%asdf%'),
-        eb('t.title', '!=', '')
-      ]))
-      .orderBy('t.created_at', 'desc')
-      .limit(limitNum)
-      .offset(offset);
+      .orderBy('t.created_at', 'desc');
 
     if (system) query = query.where('s.slug', '=', system);
     if (modality) query = query.where('t.modality', '=', modality as any);
@@ -203,6 +196,19 @@ router.get('/', async (req: Request, res: Response) => {
         .orderBy('t.created_at', 'desc');
     }
 
+    // CORREÇÃO BE-03: Contagem otimizada - usar query original sem SELECT complexos
+    // Isso evita duplicar lógica de filtros e mantém type-safety do Kysely
+    const countResult = await query
+      .clearSelect()
+      .clearOrderBy()
+      .select(sql<number>`COUNT(DISTINCT t.id)`.as('count'))
+      .executeTakeFirst();
+    
+    const totalCount = Number(countResult?.count ?? 0);
+
+    // Aplicar limit/offset DEPOIS da contagem
+    query = query.limit(limitNum).offset(offset);
+
     const tables = await query.execute();
 
     let tablesWithContacts = tables as Array<typeof tables[number] & { contacts: PublicTableContact[] }>;
@@ -238,24 +244,13 @@ router.get('/', async (req: Request, res: Response) => {
       }));
     }
 
-    // CORREÇÃO HP-02: Contar total de mesas ativas COM OS MESMOS FILTROS da query principal
-    // Clonar query antes de aplicar limit/offset para contar resultados filtrados
-    const countQuery = query
-      .clearSelect()
-      .clearLimit()
-      .clearOffset()
-      .clearOrderBy()
-      .select(sql<number>`COUNT(*)`.as('count'));
-    
-    const totalCount = await countQuery.executeTakeFirst();
-
     res.json({
       data: tablesWithContacts,
       pagination: {
         page: pageNum,
         limit: limitNum,
         hasMore: tables.length === limitNum,
-        total: Number(totalCount?.count ?? 0), // CORREÇÃO DT-05
+        total: totalCount, // CORREÇÃO BE-03: totalCount já é número
       },
     });
   } catch (error: any) {

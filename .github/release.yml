@@ -1,0 +1,55 @@
+changelog:
+  exclude:
+    labels:
+      - skip-changelog
+      - duplicate
+      - invalid
+    authors:
+      - github-actions
+
+  categories:
+    - title: Frontend
+      labels:
+        - area:frontend
+        - ui
+        - ux
+
+    - title: Backend
+      labels:
+        - area:backend
+        - api
+
+    - title: Banco de dados
+      labels:
+        - area:database
+        - migration
+
+    - title: Infraestrutura e deploy
+      labels:
+        - area:infra
+        - ci
+        - docker
+
+    - title: Autenticação e permissões
+      labels:
+        - area:auth
+
+    - title: Correções
+      labels:
+        - type:bug
+        - bug
+
+    - title: Novidades
+      labels:
+        - type:feature
+        - enhancement
+
+    - title: Refatorações e performance
+      labels:
+        - type:refactor
+        - performance
+
+    - title: Documentação
+      labels:
+        - documentation
+        - type:docs

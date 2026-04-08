@@ -13,7 +13,6 @@ RUN npm ci
 
 COPY backend/tsconfig.json ./
 COPY backend/src/ ./src/
-COPY docs/taxonomia/arvores_de_sistemas.md ./arvores_de_sistemas.md
 COPY backend/sistemas.json ./sistemas.json
 COPY backend/cenarios.json ./cenarios.json
 COPY database/changelogs.json ./database/changelogs.json

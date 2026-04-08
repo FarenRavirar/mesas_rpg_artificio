@@ -21,6 +21,8 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           envs: GH_TOKEN
           script: |
+            # CORREÇÃO WF-03: Adicionar fail-fast para evitar erros silenciosos
+            set -euo pipefail
             export GH_TOKEN="${{ secrets.GH_TOKEN }}"
             cd /opt/mesas-beta
             git fetch https://$GH_TOKEN@github.com/FarenRavirar/mesas_rpg_artificio.git dev
@@ -46,6 +48,13 @@ jobs:
               docker compose -f docker-compose.beta.yml logs mesas-beta-api --tail=50
               exit 1
             fi
+            
+            # CORREÇÃO INT-03: Validar se frontend buildou com sucesso
+            if ! docker compose -f docker-compose.beta.yml logs mesas-beta-frontend 2>&1 | grep -q "build completed"; then
+              echo "⚠️ Verificando logs do frontend para possíveis erros de build"
+              docker compose -f docker-compose.beta.yml logs mesas-beta-frontend --tail=100
+            fi
+            
             docker compose -f docker-compose.beta.yml ps
             docker image prune -f
 
