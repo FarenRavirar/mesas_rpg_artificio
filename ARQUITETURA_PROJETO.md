@@ -150,12 +150,15 @@ DISCORD_REDIRECT_URI=http://localhost:3000/auth/discord/callback
 
 #### 3.2.4 Configuração do Frontend Local
 
-**Arquivo:** `frontend/vite.config.ts`
+**Arquivo:** `frontend/vite.config.local.ts` (criar manualmente, não versionado)
 
 ```typescript
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+
+// Configuração LOCAL para desenvolvimento
+// Este arquivo NÃO deve ser versionado no Git
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -171,6 +174,8 @@ export default defineConfig({
 ```
 
 **Função do proxy:** Redireciona todas as requisições `/api/*` do frontend para o backend local, evitando problemas de CORS.
+
+**Nota importante:** O arquivo `vite.config.ts` versionado **não contém** configuração de proxy para não interferir nos builds de produção. O arquivo `vite.config.local.ts` é ignorado pelo Git e usado apenas para desenvolvimento local.
 
 #### 3.2.5 Túnel SSH para PostgreSQL
 
@@ -215,8 +220,10 @@ npm run dev
 **Terminal 3 — Frontend:**
 ```bash
 cd frontend
-npm run dev
+npm run dev -- --config vite.config.local.ts
 ```
+
+**Nota:** O parâmetro `--config vite.config.local.ts` é necessário para usar a configuração local com proxy. Sem ele, o frontend usará `vite.config.ts` (sem proxy) e as requisições `/api` falharão.
 
 **Verificação:**
 - Backend: `http://localhost:3000` (deve responder "Cannot GET /")

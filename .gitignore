@@ -32,3 +32,6 @@ logs/
 *.log
 /.github/workflows/COPIA
 .github/workflows/deploy-prod - Copia.yml
+
+# Configuração local de desenvolvimento
+frontend/vite.config.local.ts
