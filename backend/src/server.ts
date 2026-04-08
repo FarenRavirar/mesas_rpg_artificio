@@ -19,6 +19,7 @@ import discordRoutes from './routes/discord';
 import settingsRoutes from './routes/settings';
 import adminSettingSuggestionsRoutes from './routes/adminSettingSuggestions';
 import vttPlatformsRoutes from './routes/vttPlatforms';
+import changelogRoutes from './routes/changelog';
 import 'express-async-errors';
 import { db } from './db';
 import { requestLogger } from './middleware/requestLogger';
@@ -86,6 +87,7 @@ app.use('/api/v1/gm', gmRoutes);
 app.use('/api/v1/settings', settingsRoutes);
 app.use('/api/v1/admin/setting-suggestions', adminSettingSuggestionsRoutes);
 app.use('/api/v1/vtt-platforms', vttPlatformsRoutes);
+app.use('/api/v1/changelog', changelogRoutes);
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('[Global Error]', err);
