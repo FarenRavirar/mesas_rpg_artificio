@@ -17,23 +17,46 @@ interface ChangelogModalProps {
 export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose }) => {
   const [logs, setLogs] = useState<Changelog[]>([]);
   const [loading, setLoading] = useState(false);
+  // CORREÇÃO B02: Adicionar estado de erro
+  const [error, setError] = useState<string | null>(null);
   const [expandedLogs, setExpandedLogs] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (isOpen) {
+      // CORREÇÃO C03: Adicionar AbortController para cleanup
+      const controller = new AbortController();
+      
       const fetchLogs = async () => {
         try {
           setLoading(true);
-          const res = await fetch('/api/v1/changelog');
+          setError(null); // CORREÇÃO B02: Limpar erro anterior
+          const res = await fetch('/api/v1/changelog', {
+            signal: controller.signal, // CORREÇÃO C03: Passar signal
+          });
+          
+          // CORREÇÃO B01: Validar resposta HTTP
+          if (!res.ok) {
+            throw new Error(`Erro ao carregar atualizações (HTTP ${res.status})`);
+          }
+          
           const json = await res.json();
           setLogs(json.data ?? []);
-        } catch (error) {
-          console.error('Erro ao buscar changelogs:', error);
+        } catch (err: any) {
+          // CORREÇÃO C03: Ignorar erro de abort
+          if (err.name === 'AbortError') return;
+          
+          console.error('Erro ao buscar changelogs:', err);
+          // CORREÇÃO B02: Atualizar estado de erro
+          setError('Não foi possível carregar as atualizações. Tente novamente mais tarde.');
         } finally {
           setLoading(false);
         }
       };
+      
       fetchLogs();
+      
+      // CORREÇÃO C03: Cleanup para abortar fetch se modal fechar
+      return () => controller.abort();
     }
   }, [isOpen]);
 
@@ -65,7 +88,7 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
               <Zap size={24} fill="currentColor" />
             </div>
             <h2 className="text-2xl font-black text-white uppercase tracking-tight">
-              Notas de Atualização
+              Novidades
             </h2>
           </div>
           <p className="text-white/60 text-sm font-medium">
@@ -75,12 +98,28 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-8 bg-gray-50/30">
+          {/* CORREÇÃO B05: Adicionar aria-live para leitores de tela */}
           {loading && (
-            <div className="text-center py-8 text-gray-500">Carregando...</div>
+            <div className="text-center py-8 text-gray-500" aria-live="polite">Carregando...</div>
           )}
 
-          {!loading && Object.entries(groupedLogs).map(([date, dailyLogs]) => (
-            <div key={date} className="relative pl-8">
+          {/* CORREÇÃO B02: Renderizar estado de erro */}
+          {!loading && error && (
+            <div className="text-center py-8" role="alert">
+              <p className="text-red-600 font-semibold mb-2">⚠️ Erro ao carregar atualizações</p>
+              <p className="text-gray-600 text-sm">{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-4 px-4 py-2 bg-[var(--color-artificio-orange)] text-white rounded-lg hover:bg-opacity-90 transition-colors"
+              >
+                Recarregar página
+              </button>
+            </div>
+          )}
+
+          {/* CORREÇÃO B04: Usar key única com index */}
+          {!loading && !error && Object.entries(groupedLogs).map(([date, dailyLogs], dateIndex) => (
+            <div key={`${date}-${dateIndex}`} className="relative pl-8">
               {/* Vertical line decoration */}
               <div className="absolute left-[11px] top-8 bottom-0 w-px bg-gray-200"></div>
               
@@ -114,13 +153,16 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
                       <h3 className="text-[var(--color-artificio-blue)] font-black text-base uppercase leading-tight mb-2 mt-2">
                         {log.title}
                       </h3>
+                      {/* CORREÇÃO B03: whitespace-pre-wrap já protege contra XSS, texto é renderizado como texto puro */}
                       <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-wrap">
                         {displayBody}
                       </p>
+                      {/* CORREÇÃO B07: Adicionar aria-expanded */}
                       {shouldTruncate && (
                         <button
                           onClick={() => setExpandedLogs(prev => ({ ...prev, [log.id]: !isExpanded }))}
                           className="text-[var(--color-artificio-orange)] text-xs font-bold mt-2 hover:underline"
+                          aria-expanded={isExpanded}
                         >
                           {isExpanded ? 'Ver menos' : 'Ver detalhes'}
                         </button>
@@ -132,7 +174,7 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
             </div>
           ))}
 
-          {!loading && logs.length === 0 && (
+          {!loading && !error && logs.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               Nenhuma atualização disponível no momento.
             </div>

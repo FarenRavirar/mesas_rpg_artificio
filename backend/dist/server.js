@@ -9,7 +9,6 @@ const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const auth_1 = __importDefault(require("./routes/auth"));
 const tables_1 = __importDefault(require("./routes/tables"));
-const tableSchedules_1 = __importDefault(require("./routes/tableSchedules"));
 const gm_1 = __importDefault(require("./routes/gm"));
 const gmPanel_1 = __importDefault(require("./routes/gmPanel"));
 const systems_1 = __importDefault(require("./routes/systems"));
@@ -25,8 +24,10 @@ const discord_1 = __importDefault(require("./routes/discord"));
 const settings_1 = __importDefault(require("./routes/settings"));
 const adminSettingSuggestions_1 = __importDefault(require("./routes/adminSettingSuggestions"));
 const vttPlatforms_1 = __importDefault(require("./routes/vttPlatforms"));
+const changelog_1 = __importDefault(require("./routes/changelog"));
 require("express-async-errors");
 const db_1 = require("./db");
+const requestLogger_1 = require("./middleware/requestLogger");
 dotenv_1.default.config();
 const requiredEnv = ['FRONTEND_URL', 'JWT_SECRET', 'DATABASE_URL'];
 for (const envName of requiredEnv) {
@@ -44,6 +45,8 @@ app.use((0, cors_1.default)({
 }));
 app.use((0, cookie_parser_1.default)());
 app.use(express_1.default.json({ limit: '10mb' }));
+// Middleware de logging de todas as requisições
+app.use(requestLogger_1.requestLogger);
 app.get('/api/v1/health', async (req, res) => {
     try {
         const result = await db_1.db.selectFrom('users').select('id').limit(1).execute();
@@ -70,7 +73,6 @@ app.use('/api/v1/profile', profile_1.default);
 app.use('/api/v1/profile', links_1.default);
 app.use('/api/v1/admin', adminProfile_1.default);
 app.use('/api/v1/tables', tables_1.default);
-app.use('/api/v1/tables', tableSchedules_1.default);
 app.use('/api/v1/systems', systems_1.default);
 app.use('/api/v1/scenarios', scenarios_1.default);
 app.use('/api/v1/system-suggestions', systemSuggestions_1.default);
@@ -81,6 +83,7 @@ app.use('/api/v1/gm', gm_1.default);
 app.use('/api/v1/settings', settings_1.default);
 app.use('/api/v1/admin/setting-suggestions', adminSettingSuggestions_1.default);
 app.use('/api/v1/vtt-platforms', vttPlatforms_1.default);
+app.use('/api/v1/changelog', changelog_1.default);
 app.use((err, req, res, next) => {
     console.error('[Global Error]', err);
     res.status(500).json({ error: 'Erro interno no servidor.' });

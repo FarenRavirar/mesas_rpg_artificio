@@ -21,6 +21,20 @@ CREATE TABLE public.update_log (
 CREATE INDEX idx_update_log_published  ON public.update_log(published);
 CREATE INDEX idx_update_log_created_at ON public.update_log(created_at DESC);
 
+-- CORREÇÃO A03: Trigger para atualizar updated_at automaticamente
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER set_updated_at
+BEFORE UPDATE ON public.update_log
+FOR EACH ROW
+EXECUTE FUNCTION update_updated_at_column();
+
 -- Comentários
 COMMENT ON TABLE public.update_log IS 'Registro de atualizações do sistema (changelog público)';
 COMMENT ON COLUMN public.update_log.title IS 'Título da atualização';

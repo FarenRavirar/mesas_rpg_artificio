@@ -6,11 +6,7 @@ import { SystemTreeSelector } from '../components/SystemTreeSelector';
 import type { SystemTreeNode } from '../types/systems';
 import { applySeo } from '../utils/seo';
 
-const API_BASE = import.meta.env.VITE_API_URL;
-
-if (!API_BASE) {
-  throw new Error('VITE_API_URL não configurada');
-}
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 interface OptionItem {
   id: string;

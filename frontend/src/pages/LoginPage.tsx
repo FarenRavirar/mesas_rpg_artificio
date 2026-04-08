@@ -4,11 +4,7 @@ import { LogIn, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { applySeo } from '../utils/seo';
 
-const API_BASE = import.meta.env.VITE_API_URL;
-
-if (!API_BASE) {
-  throw new Error('VITE_API_URL não configurada');
-}
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export const LoginPage = () => {
   const { isAuthenticated, user, isLoading } = useAuth();

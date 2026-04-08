@@ -79,11 +79,7 @@ function InputField({ label, id, ...props }: InputHTMLAttributes<HTMLInputElemen
   );
 }
 
-const API_BASE = import.meta.env.VITE_API_URL;
-
-if (!API_BASE) {
-  throw new Error('VITE_API_URL não configurada');
-}
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 function CreateGmProfileForm({ onSuccess }: { onSuccess: () => void }) {
   const [loading, setLoading] = useState(false);

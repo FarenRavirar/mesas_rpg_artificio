@@ -16,7 +16,12 @@ router.get('/', async (req: Request, res: Response) => {
 
     res.json({ data: logs });
   } catch (error: any) {
-    console.error('[GET /changelog]', error);
+    // CORREÇÃO A01: Log estruturado com stack trace para debug em produção
+    console.error('[GET /changelog] Erro ao buscar atualizações:', {
+      message: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString(),
+    });
     res.status(500).json({ error: 'Erro ao buscar atualizações.' });
   }
 });

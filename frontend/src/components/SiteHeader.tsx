@@ -5,11 +5,7 @@ import { NotificationBell } from './NotificationBell';
 import { ChangelogModal } from './ChangelogModal';
 import { useState, useEffect } from 'react';
 
-const API_BASE = import.meta.env.VITE_API_URL;
-
-if (!API_BASE) {
-  throw new Error('VITE_API_URL não configurada');
-}
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export const SiteHeader = () => {
   const { user, logout } = useAuth();
@@ -54,10 +50,15 @@ export const SiteHeader = () => {
             onClick={handleOpenChangelog}
             className="relative p-2 text-white hover:bg-white/10 rounded-full transition-all group"
             title="Notas de Atualização"
+            aria-label={hasNewUpdate ? "Notas de Atualização - Nova atualização disponível" : "Notas de Atualização"}
           >
             <Zap size={20} className="group-hover:text-[var(--color-artificio-orange)] transition-colors" />
+            {/* CORREÇÃO B06: Adicionar aria-label no badge */}
             {hasNewUpdate && (
-              <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 border-2 border-[#1B2A4A] rounded-full animate-bounce"></span>
+              <span 
+                className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 border-2 border-[#1B2A4A] rounded-full animate-bounce"
+                aria-label="Nova atualização disponível"
+              ></span>
             )}
           </button>
 

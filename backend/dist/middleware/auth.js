@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.requireAdmin = exports.requireRole = exports.authMiddleware = void 0;
+exports.optionalAuth = exports.requireAdmin = exports.requireRole = exports.authMiddleware = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const authMiddleware = (req, res, next) => {
     // CORREÇÃO A01: Validar JWT_SECRET existe antes de usar
@@ -47,3 +47,29 @@ exports.requireAdmin = [
     exports.authMiddleware,
     (0, exports.requireRole)('admin')
 ];
+// Middleware opcional: permite usuários anônimos (não retorna 401)
+const optionalAuth = (req, res, next) => {
+    if (!process.env.JWT_SECRET) {
+        console.error('[optionalAuth] JWT_SECRET não configurado');
+        req.user = undefined;
+        return next();
+    }
+    const authHeader = req.headers.authorization;
+    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    const cookieToken = req.cookies?.am_session ?? null;
+    const token = bearerToken || cookieToken;
+    if (!token) {
+        req.user = undefined; // Usuário anônimo
+        return next();
+    }
+    try {
+        const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
+        req.user = decoded;
+        next();
+    }
+    catch (error) {
+        req.user = undefined; // Token inválido = usuário anônimo
+        next();
+    }
+};
+exports.optionalAuth = optionalAuth;
