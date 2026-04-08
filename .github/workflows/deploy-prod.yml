@@ -46,7 +46,7 @@ jobs:
               fi
               sleep 3
             done
-            docker compose -f docker-compose.prod.yml up -d --force-recreate --no-build
+            docker compose -f docker-compose.prod.yml up -d --force-recreate
             sleep 20
             if ! docker compose -f docker-compose.prod.yml ps | grep "mesas-api" | grep -q "Up"; then
               echo "❌ API não subiu"
