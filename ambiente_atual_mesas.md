@@ -50,13 +50,13 @@ workflows:
 
 ```yaml
 beta:
-  app: mesas-beta-app
+  app: mesas-beta-frontend
   api: mesas-beta-api
   db: mesas-beta-db
   volume_logical: pgdata_mesas_beta
   external_network: gerenciador_telegram_default
   app_port_local: not_exposed
-  cloudflare_upstream: http://mesas-beta-app:80
+  cloudflare_upstream: http://mesas-beta-frontend:80
 
 prod:
   app: mesas-app
@@ -217,7 +217,7 @@ forced_no_cache: false
 forced_full_down: false
 post_steps:
   - docker compose ps
-  - docker compose logs --tail=30 mesas-beta-app
+  - docker compose logs --tail=30 mesas-beta-frontend
   - docker compose logs --tail=30 mesas-beta-api
   - docker image prune -f
 ```
@@ -289,7 +289,7 @@ public_entrypoint:
 
 ```yaml
 domain: mesasbeta.artificiorpg.com
-cloudflare_upstream: http://mesas-beta-app:80
+cloudflare_upstream: http://mesas-beta-frontend:80
 ```
 
 remote_paths:
@@ -322,7 +322,7 @@ FRONTEND_URL=https://mesasbeta.artificiorpg.com
 runtime_stack_state_last_seen:
 
 ```yaml
-mesas-beta-app:
+mesas-beta-frontend:
   port_mapping: none
   internal_port: 80/tcp
   status: running
@@ -372,7 +372,7 @@ db_mounts:
 ## cloudflare_mapping_known
 
 ```yaml
-beta_domain: mesasbeta.artificiorpg.com -> http://mesas-beta-app:80
+beta_domain: mesasbeta.artificiorpg.com -> http://mesas-beta-frontend:80
 prod_domain: mesas.artificiorpg.com -> http://mesas-app:80
 ```
 
@@ -546,3 +546,4 @@ check_prod_remote_path_state:
 ```powershell
 ssh -i "C:/projetos/mesas_rpg_artificio/ssh-key-2026-03-07privada.key" ubuntu@137.131.250.231 "echo '===== /opt/mesas =====' && ls -la /opt/mesas && echo && echo '===== arquivos até 2 níveis =====' && find /opt/mesas -maxdepth 2 -type f | sort"
 ```
+

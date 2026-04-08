@@ -296,7 +296,7 @@ O estado operacional validado mais recente é o seguinte:
 - Beta ativo em `mesasbeta.artificiorpg.com`
 - Pasta remota beta: `/opt/mesas-beta/`
 - Compose beta em uso: `/opt/mesas-beta/docker-compose.beta.yml`
-- Containers beta esperados: `mesas-beta-app`, `mesas-beta-api`, `mesas-beta-db`
+- Containers beta esperados: `mesas-beta-frontend`, `mesas-beta-api`, `mesas-beta-db`
 - Produção prevista em `mesas.artificiorpg.com`
 - Pasta remota de produção: `/opt/mesas/`
 - Compose de produção esperado: `/opt/mesas/docker-compose.prod.yml`
@@ -354,7 +354,7 @@ nano /opt/mesas-beta/.env
 
 **Após editar `.env`, reiniciar containers:**
 ```bash
-docker restart mesas-beta-api mesas-beta-app
+docker restart mesas-beta-api mesas-beta-frontend
 ```
 
 ---
@@ -387,9 +387,9 @@ services:
     networks:
       - mesas-beta-network
 
-  mesas-beta-app:
+  mesas-beta-frontend:
     build: ./frontend
-    container_name: mesas-beta-app
+    container_name: mesas-beta-frontend
     depends_on:
       - mesas-beta-api
     networks:
@@ -404,7 +404,7 @@ services:
 **Comandos corretos:**
 ```bash
 # ✅ CORRETO: Usar nome do container
-docker restart mesas-beta-api mesas-beta-app
+docker restart mesas-beta-api mesas-beta-frontend
 
 # ❌ ERRADO: Usar docker compose com nome de serviço
 docker compose -f docker-compose.beta.yml restart backend frontend
@@ -416,7 +416,7 @@ docker compose -f docker-compose.beta.yml restart backend frontend
 docker ps --filter 'name=mesas-beta' --format '{{.Names}}'
 # Saída:
 # mesas-beta-api
-# mesas-beta-app
+# mesas-beta-frontend
 # mesas-beta-db
 ```
 
@@ -427,7 +427,7 @@ docker ps --filter 'name=mesas-beta' --format '{{.Names}}'
 
 | Ambiente | Branch | Pasta no servidor | Containers principais | Exposição atual | URL |
 |---|---|---|---|---|---|
-| Beta | `dev` | `/opt/mesas-beta/` | `mesas-beta-app`, `mesas-beta-api`, `mesas-beta-db` | Cloudflare Tunnel para `http://mesas-beta-app:80`, sem porta pública no host | `mesasbeta.artificiorpg.com` |
+| Beta | `dev` | `/opt/mesas-beta/` | `mesas-beta-frontend`, `mesas-beta-api`, `mesas-beta-db` | Cloudflare Tunnel para `http://mesas-beta-frontend:80`, sem porta pública no host | `mesasbeta.artificiorpg.com` |
 | Produção | `main` | `/opt/mesas/` | `mesas-app`, `mesas-api`, `mesas-db` | Publicação prevista para `http://mesas-app:80` via Cloudflare; runtime ainda não publicado | `mesas.artificiorpg.com` |
 
 ---
@@ -447,7 +447,7 @@ cd /opt/mesas-beta
 docker compose -f docker-compose.beta.yml up -d --build --remove-orphans
 sleep 10
 docker compose -f docker-compose.beta.yml ps
-docker compose -f docker-compose.beta.yml logs --tail=30 mesas-beta-app
+docker compose -f docker-compose.beta.yml logs --tail=30 mesas-beta-frontend
 docker compose -f docker-compose.beta.yml logs --tail=30 mesas-beta-api
 docker image prune -f
 
@@ -472,7 +472,7 @@ O que o agente PODE fazer para diagnóstico read-only:
 ```bash
 # Beta
 docker compose -f /opt/mesas-beta/docker-compose.beta.yml ps
-docker compose -f /opt/mesas-beta/docker-compose.beta.yml logs --tail=50 mesas-beta-app
+docker compose -f /opt/mesas-beta/docker-compose.beta.yml logs --tail=50 mesas-beta-frontend
 docker compose -f /opt/mesas-beta/docker-compose.beta.yml logs --tail=50 mesas-beta-api
 
 # Produção
@@ -533,7 +533,7 @@ ssh ubuntu@137.131.250.231
    ```
 6. Verificar logs se houver erro:
    ```bash
-   docker compose -f /opt/mesas-beta/docker-compose.beta.yml logs --tail=50 mesas-beta-app
+   docker compose -f /opt/mesas-beta/docker-compose.beta.yml logs --tail=50 mesas-beta-frontend
    docker compose -f /opt/mesas-beta/docker-compose.beta.yml logs --tail=50 mesas-beta-api
    ```
 7. **Aggregator Discord (migration_05 aplicada no beta em 04/04/2026):**
@@ -588,7 +588,7 @@ ssh ubuntu@137.131.250.231
 | Sintoma | Causa provável | Solução inicial |
 |---|---|---|
 | `502 Bad Gateway` | Container offline, erro na API ou destino incorreto no Cloudflare | Verificar `docker compose ps`, logs da app e da API, e o target do hostname no Cloudflare |
-| `404 Not Found` | Build frontend ausente, rota errada ou rsync incompleto | Verificar logs do workflow e logs do container `mesas-beta-app` ou `mesas-app` |
+| `404 Not Found` | Build frontend ausente, rota errada ou rsync incompleto | Verificar logs do workflow e logs do container `mesas-beta-frontend` ou `mesas-app` |
 | Site desatualizado | Cache de navegador agressivo ou deploy não concluído | Hard refresh e conferência do run no GitHub Actions |
 | API não sobe | Falha de conexão com PostgreSQL ou variável ausente | Verificar `.env`, `DATABASE_URL` e logs do container da API |
 | Healthcheck falha com `Invalid URL` | `DATABASE_URL` montada incorretamente com caractere especial na senha | Consultar `ERRORS_SOLUTIONS.md` E086 |
@@ -598,7 +598,7 @@ ssh ubuntu@137.131.250.231
 ### 5.1 Nota sobre nomes de containers
 
 Atualmente os nomes canônicos esperados são:
-- Beta app: `mesas-beta-app`
+- Beta app: `mesas-beta-frontend`
 - Beta API: `mesas-beta-api`
 - Beta DB: `mesas-beta-db`
 - Produção app: `mesas-app`
@@ -627,7 +627,7 @@ Mapeamentos relevantes atualmente conhecidos:
 
 | Domínio | Serviço interno | Observação |
 |---|---|---|
-| `mesasbeta.artificiorpg.com` | `http://mesas-beta-app:80` | Beta ativo |
+| `mesasbeta.artificiorpg.com` | `http://mesas-beta-frontend:80` | Beta ativo |
 | `mesas.artificiorpg.com` | `http://mesas-app:80` | Produção prevista, ainda não publicada nesta rodada |
 | `glossariorpg.artificiorpg.com` | `http://glossario-app:80` | Glossário, não mexer sem escopo explícito |
 | `glossariobeta.artificiorpg.com` | `http://glossario-beta-app:80` | Glossário beta, não mexer sem escopo explícito |

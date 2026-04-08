@@ -58,7 +58,7 @@ Os recursos principais arquitetados incluem:
 
 | Ambiente | URL | Branch | Container | Exposição atual |
 |---|---|---|---|---|
-| **Beta (Deploy Contínuo)** | `mesasbeta.artificiorpg.com` | `dev` | `mesas-beta-app` | Cloudflare Tunnel via `mesas-beta-app:80`, sem porta pública dedicada no host |
+| **Beta (Deploy Contínuo)** | `mesasbeta.artificiorpg.com` | `dev` | `mesas-beta-frontend` | Cloudflare Tunnel via `mesas-beta-frontend:80`, sem porta pública dedicada no host |
 | **Produção** | `mesas.artificiorpg.com` | `main` | `mesas-app` | Ainda não publicada operacionalmente nesta rodada |
 
 ### 3.1 Credenciais e Nomes Canônicos do PostgreSQL
@@ -1180,6 +1180,7 @@ const formData = mapCandidateToFormData(candidate);
 
 > **Lembre-se:** Este é um presente do Artifício RPG para a comunidade brasileira de RPG.
 > Gratuito · Sem anúncios · Sem coleta de dados · Feito com ♥ pela comunidade.
+
 
 
 

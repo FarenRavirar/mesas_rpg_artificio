@@ -60,7 +60,7 @@ Não é necessário em tarefas fora do modo lote.
 | 001 | 0 | infra | 5/5/5 | Criar repositório GitHub | Criar `mesas_rpg_artificio` na conta `FarenRavirar`, criar branch `dev` como padrão, proteger `main` | — | concluido | Manual pelo responsável |
 | 002 | 0 | infra | 5/5/5 | Configurar Secrets no GitHub | Adicionar `SSH_PRIVATE_KEY`, `SSH_HOST`, `SSH_USER` nos Secrets do repositório | — | concluido | Manual pelo responsável |
 | 003 | 0 | infra | 5/5/5 | Criar estrutura de pastas na Oracle | Criar `/opt/mesas-beta/` e `/opt/mesas/` com `.env` preenchido em cada uma | — | concluido | Ver variáveis obrigatórias em checklist |
-| 004 | 0 | infra | 5/5/5 | Criar docker-compose.beta.yml | Compose com serviços `mesas-beta-app`, `mesas-beta-api` e `mesas-beta-db`, exposto via Cloudflare para `mesas-beta-app:80`, sem porta pública dedicada no host | `docker-compose.beta.yml` | concluido | Alinhado ao ambiente validado |
+| 004 | 0 | infra | 5/5/5 | Criar docker-compose.beta.yml | Compose com serviços `mesas-beta-frontend`, `mesas-beta-api` e `mesas-beta-db`, exposto via Cloudflare para `mesas-beta-frontend:80`, sem porta pública dedicada no host | `docker-compose.beta.yml` | concluido | Alinhado ao ambiente validado |
 | 005 | 0 | infra | 4/5/5 | Criar docker-compose.prod.yml | Compose de produção sem porta pública, roteado via Cloudflare Tunnel existente | `docker-compose.prod.yml` | concluido | Nunca criar novo túnel |
 | 006 | 0 | infra | 5/5/5 | Configurar Hostname Cloudflare | Adicionar entradas no túnel existente para `mesasbeta` e `mesas` | — | concluido | Manual no painel Cloudflare |
 | 007 | 0 | infra | 5/5/5 | Criar workflows de CI/CD | Criar `deploy-beta.yml` e `deploy-production.yml` com rsync + rebuild Docker | `.github/workflows/deploy-*.yml` | concluido | — |
@@ -294,7 +294,7 @@ Se um item do lote falhar:
 3. Manter o lote sem deploy até nova validação
 4. Se o deploy beta quebrar, verificar logs:
    ```bash
-   docker compose -f /opt/mesas-beta/docker-compose.beta.yml logs --tail=50 mesas-beta-app
+   docker compose -f /opt/mesas-beta/docker-compose.beta.yml logs --tail=50 mesas-beta-frontend
    ```
 
 ## Referências
@@ -339,3 +339,4 @@ Este arquivo controla fila de execução; não define arquitetura de produto.
 | 140 | Fase 3 | frontend | 2/3/3 | Corrigir importação dinâmica ineficaz de validation.ts | Warning do Vite: `validation.ts` é importado dinamicamente por `useCreateTableForm.ts` mas também estaticamente por `useStepNavigation.ts`, impedindo code splitting. Solução: remover importação estática de `useStepNavigation.ts` ou converter importação dinâmica de `useCreateTableForm.ts` para estática. Avaliar impacto no bundle size antes de decidir. | `frontend/src/features/create-table/hooks/useCreateTableForm.ts`, `frontend/src/features/create-table/hooks/useStepNavigation.ts` | pendente | Score GUT: 18 (2×3×3). Não afeta funcionalidade, apenas otimização de bundle. Prioridade baixa. |
 
 ---
+
