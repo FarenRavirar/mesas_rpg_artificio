@@ -1,5 +1,5 @@
 -- Changelog para refatoração UX do catálogo
--- Data: 2026-04-08
+-- Data: 2026-04-08 03:26:00 BRT
 -- Deploy: Beta
 
 INSERT INTO update_log (title, body, type, published, created_at) 
@@ -7,14 +7,16 @@ VALUES (
   'Catálogo mais organizado e fácil de usar',
   'Melhoramos a forma como você busca e filtra mesas no catálogo:
 
-• **Filtros mais claros** - Agora os filtros ficam organizados em blocos separados, facilitando encontrar o que você procura
-• **Filtros no celular** - No celular, os filtros aparecem em um menu lateral bonitinho quando você clica no botão "Filtros"
-• **Você vê o que está filtrando** - Os filtros ativos aparecem como etiquetas que você pode remover clicando nelas
-• **Botões mais espertos** - Os cards das mesas agora mostram "Entrar na mesa" quando tem vaga, ou "Ver detalhes" quando está lotada
-• **Mais espaço para ver as mesas** - Reorganizamos tudo para você ver mais mesas de uma vez
+• **Filtros mais organizados** - Agora fica mais fácil encontrar o que você procura, com tudo separadinho em blocos
+• **Filtros no celular** - No celular, você clica no botão "Filtros" e abre um menu lateral bonitinho
+• **Você vê o que filtrou** - Os filtros que você escolheu aparecem como etiquetas coloridas que você pode remover clicando nelas
+• **Botões mais claros** - Agora você sabe na hora se pode entrar na mesa ou se precisa ver os detalhes primeiro
+• **Mais mesas na tela** - Reorganizamos tudo para você ver mais mesas de uma vez
 
-Explore o catálogo e encontre sua próxima aventura! 🎲',
+Explore o catálogo e encontre sua próxima aventura! 🎲
+
+_Atualização publicada em 08/04/2026 às 03:26_',
   'app',
   true,
-  NOW()
+  '2026-04-08 03:26:00'::timestamp
 );

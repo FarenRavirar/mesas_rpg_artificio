@@ -250,10 +250,20 @@ Isso está correto? Posso prosseguir?
 ```
 
 ### Changelog — Linguagem e Formato Obrigatórios
-**Toda mudança visível ao usuário final DEVE ter entrada no changelog (`update_log`) após deploy.** Não há exceções.
+**Toda mudança visível ao usuário final DEVE ter entrada no changelog (`update_log`) antes do deploy.** Não há exceções.
+
+**Regras obrigatórias:**
+1. **Data/hora explícita** — usar timestamp fixo no formato `'YYYY-MM-DD HH:MM:SS'::timestamp`, nunca `NOW()`
+2. **Rodapé com data/hora** — incluir linha `_Atualização publicada em DD/MM/YYYY às HH:MM_` no final do body
+3. **Linguagem 100% leiga** — sem jargão técnico, explicar benefícios para o usuário final
+4. **Arquivo SQL separado** — criar em `database/changelog_*.sql` e commitar junto com o código
 
 **Formato obrigatório:**
 ```sql
+-- Changelog para [descrição da mudança]
+-- Data: YYYY-MM-DD HH:MM:SS BRT
+-- Deploy: Beta/Produção
+
 INSERT INTO update_log (title, body, type, published, created_at) 
 VALUES (
   'Título Curto e Descritivo',
@@ -263,10 +273,12 @@ VALUES (
 • **Segunda mudança** - O que melhorou na experiência
 • **Terceira mudança** - Como isso ajuda o usuário
 
-Frase de encerramento convidativa! 🎲',
+Frase de encerramento convidativa! 🎲
+
+_Atualização publicada em DD/MM/YYYY às HH:MM_',
   'app',
   true,
-  NOW()
+  'YYYY-MM-DD HH:MM:SS'::timestamp
 );
 ```
 
