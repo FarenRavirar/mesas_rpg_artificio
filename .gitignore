@@ -30,3 +30,5 @@ temp/
 # Logs
 logs/
 *.log
+/.github/workflows/COPIA
+.github/workflows/deploy-prod - Copia.yml

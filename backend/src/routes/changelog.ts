@@ -1,23 +1,28 @@
 import { Router, Request, Response } from 'express';
 import { db } from '../db';
+import { sql } from 'kysely';
 
 const router = Router();
 
-// GET /api/v1/changelog — Público (não requer autenticação)
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const logs = await db
-      .selectFrom('update_log')
-      .select(['id', 'title', 'body', 'type', 'created_at'])
-      .where('published', '=', true)
-      .orderBy('created_at', 'desc')
-      .limit(50)
-      .execute();
+    const result = await sql<{
+      id: string;
+      title: string;
+      body: string;
+      type: string;
+      created_at: string;
+    }>`
+      SELECT id, title, body, type, created_at
+      FROM update_log
+      WHERE published = true
+      ORDER BY created_at DESC
+      LIMIT 50
+    `.execute(db);
 
-    res.json({ data: logs });
+    res.json({ data: result.rows });
   } catch (error: any) {
-    // CORREÇÃO A01: Log estruturado com stack trace para debug em produção
-    console.error('[GET /changelog] Erro ao buscar atualizações:', {
+    console.error('[GET /changelog] Erro:', {
       message: error.message,
       stack: error.stack,
       timestamp: new Date().toISOString(),
