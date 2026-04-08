@@ -751,6 +751,50 @@ Antes de implementar nova feature de interface:
 - [ ] Mensagens de erro são claras e sugerem solução?
 - [ ] Ajuda contextual disponível quando necessário?
 
+### 14.6. Padrão URL-Driven State (useUrlState<T>)
+
+**Decisão Arquitetural (Abril/2026):** Estado de filtros e navegação deve ser gerenciado via URL como fonte única de verdade.
+
+**Motivação:**
+- URLs compartilháveis funcionam corretamente (filtros preservados)
+- Botões voltar/avançar do navegador funcionam naturalmente
+- Cache do React Query alinhado deterministicamente com estado visível
+- Eliminação de estado duplicado (URL vs React state)
+
+**Implementação:**
+
+**Hook Genérico (`hooks/useUrlState.ts`):**
+```typescript
+useUrlState<T>(
+  parse: (params: URLSearchParams) => T,
+  serialize: (state: T) => URLSearchParams
+): [T, (updater: T | ((prev: T) => T)) => void]
+```
+
+**Características:**
+- Normalização automática de URL (formato canônico)
+- Proteção anti-loop via `useRef`
+- Updater function estilo React (`T | (prev: T) => T`)
+- Performance otimizada com `useMemo`
+- Dev warnings em desenvolvimento
+
+**Adapter Específico (`hooks/useCatalogFilters.ts`):**
+```typescript
+useCatalogFilters(): [CatalogFilters, SetCatalogFilters]
+```
+
+**Parser e Builder (`utils/catalogFilters.ts`):**
+- `parseCatalogFilters(params: URLSearchParams): CatalogFilters`
+- `buildCatalogParams(filters: CatalogFilters): URLSearchParams`
+- Helper DRY: `parseEnum<T>(value, validValues, fallback)`
+- URI encoding/decoding para caracteres especiais
+
+**Uso em Novas Features:**
+Qualquer feature que precise de estado na URL deve usar `useUrlState<T>` com parser e serializer específicos. Não reimplementar lógica de normalização ou sincronização manualmente.
+
+**Exemplo de Implementação:**
+Ver `CatalogoPage.tsx` (refatorado em Abril/2026) como referência de uso correto do padrão.
+
 ---
 
 ## 15. Glossário do Projeto

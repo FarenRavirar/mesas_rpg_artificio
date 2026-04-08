@@ -21,7 +21,7 @@ export function useCatalogTables(filters: CatalogFilters, searchParamsString: st
     placeholderData: (previousData) => previousData, // React Query v5 - mantém dados anteriores durante transição
     staleTime: 10 * 1000, // 10 segundos - reduz refetch desnecessário
     retry: 1,
-    enabled: !!searchParamsString, // Só executa se houver params válidos
+    // enabled removido - deve executar sempre, mesmo com URL vazia (sem filtros = todas as mesas)
   });
 
   // Separar loading inicial de refetch
