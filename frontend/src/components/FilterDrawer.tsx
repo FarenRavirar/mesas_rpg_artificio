@@ -5,9 +5,10 @@ interface FilterDrawerProps {
   onClose: () => void;
   onClear: () => void;
   children: React.ReactNode;
+  isApplying?: boolean;
 }
 
-export function FilterDrawer({ isOpen, onClose, onClear, children }: FilterDrawerProps) {
+export function FilterDrawer({ isOpen, onClose, onClear, children, isApplying = false }: FilterDrawerProps) {
   if (!isOpen) return null;
 
   return (
@@ -15,11 +16,11 @@ export function FilterDrawer({ isOpen, onClose, onClear, children }: FilterDrawe
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/60 z-40 md:hidden"
-        onClick={onClose}
+        onClick={isApplying ? undefined : onClose}
       />
 
       {/* Drawer */}
-      <div className="fixed right-0 top-0 h-full w-[85%] max-w-sm bg-[#1B2A4A] z-50 md:hidden overflow-y-auto">
+      <div className={`fixed right-0 top-0 h-full w-[85%] max-w-sm bg-[#1B2A4A] z-50 md:hidden overflow-y-auto ${isApplying ? 'opacity-50 pointer-events-none' : ''}`}>
         {/* Header */}
         <div className="sticky top-0 bg-[#1B2A4A] border-b border-white/10 p-4 flex items-center justify-between">
           <h2 className="text-lg font-bold text-white">Filtros</h2>
