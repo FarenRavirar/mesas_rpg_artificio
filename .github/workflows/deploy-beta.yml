@@ -25,6 +25,7 @@ jobs:
             cd /opt/mesas-beta
             git fetch https://$GH_TOKEN@github.com/FarenRavirar/mesas_rpg_artificio.git dev
             git reset --hard FETCH_HEAD
+            docker compose -f docker-compose.beta.yml down
             docker compose -f docker-compose.beta.yml build --no-cache
             docker compose -f docker-compose.beta.yml up -d mesas-beta-db
             MAX_RETRIES=30
