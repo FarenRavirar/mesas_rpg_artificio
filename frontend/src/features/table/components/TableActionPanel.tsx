@@ -107,7 +107,7 @@ export function TableActionPanel({ vm, variant = 'full' }: TableActionPanelProps
         {/* Ação destrutiva isolada */}
         <div className="pt-3 border-t border-red-500/20">
           <button
-            onClick={() => handleDelete(vm.id)}
+            onClick={() => handleDelete(vm.id, vm.title)}
             className="w-full py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm font-medium transition"
           >
             🗑 Excluir permanentemente

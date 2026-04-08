@@ -4,7 +4,26 @@ import type { TableViewModel, TableCertifications, CTAConfig, UrgencyConfig, Vis
 /**
  * Gera configuração de CTA baseado no estado da mesa e contatos disponíveis
  */
-function generateCTAConfig(slotsLeft: number, contacts: any[]): CTAConfig {
+function generateCTAConfig(table: TableDetail, slotsLeft: number, contacts: any[]): CTAConfig {
+  // CORREÇÃO: Bloquear CTA para mesas desativadas/encerradas
+  if (table.status === 'cancelled') {
+    return {
+      label: 'Mesa desativada',
+      disabled: true,
+      variant: 'disabled',
+      action: 'none',
+    };
+  }
+
+  if (table.status === 'ended') {
+    return {
+      label: 'Mesa encerrada',
+      disabled: true,
+      variant: 'disabled',
+      action: 'none',
+    };
+  }
+
   const isFull = slotsLeft <= 0;
 
   if (isFull) {
@@ -73,7 +92,24 @@ function getWhatsAppUrl(value: string): string {
 /**
  * Gera configuração de urgência baseado em vagas restantes
  */
-function generateUrgencyConfig(slotsLeft: number): UrgencyConfig {
+function generateUrgencyConfig(table: TableDetail, slotsLeft: number): UrgencyConfig {
+  // CORREÇÃO: Urgência específica para status
+  if (table.status === 'cancelled') {
+    return {
+      label: '⏸️ Mesa desativada',
+      tone: 'none',
+      icon: '⏸️',
+    };
+  }
+
+  if (table.status === 'ended') {
+    return {
+      label: '🏁 Mesa encerrada',
+      tone: 'none',
+      icon: '🏁',
+    };
+  }
+
   if (slotsLeft === 0) {
     return {
       label: '❌ Mesa lotada',
@@ -155,8 +191,8 @@ export function mapTableToView(table: TableDetail): TableViewModel {
     // =============================
     // DECISION ENGINE (configs)
     // =============================
-    cta: generateCTAConfig(slotsLeft, table.contacts ?? []),
-    urgency: generateUrgencyConfig(slotsLeft),
+    cta: generateCTAConfig(table, slotsLeft, table.contacts ?? []),
+    urgency: generateUrgencyConfig(table, slotsLeft),
     visibility: generateVisibilityConfig(table),
 
     // =============================

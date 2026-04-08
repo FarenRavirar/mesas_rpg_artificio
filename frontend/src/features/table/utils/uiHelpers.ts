@@ -104,9 +104,10 @@ export async function handleStatus(id: string, status: string): Promise<void> {
 }
 
 /**
- * Handler para deletar mesa
+ * Handler para deletar mesa com confirmação reforçada
  */
-export async function handleDelete(id: string): Promise<void> {
+export async function handleDelete(id: string, title: string): Promise<void> {
+  // Primeira confirmação: aviso sobre irreversibilidade
   const confirmed = confirm(
     '⚠️ ATENÇÃO: Excluir permanentemente?\n\n' +
     'Esta ação NÃO pode ser desfeita.\n' +
@@ -116,8 +117,17 @@ export async function handleDelete(id: string): Promise<void> {
   
   if (!confirmed) return;
 
-  const doubleConfirm = confirm('Confirma a exclusão PERMANENTE?');
-  if (!doubleConfirm) return;
+  // Segunda confirmação: digitação do nome da mesa
+  const userInput = prompt(
+    `Para confirmar a exclusão PERMANENTE, digite o nome da mesa:\n\n"${title}"`
+  );
+
+  if (userInput === null) return; // Usuário cancelou
+
+  if (userInput.trim() !== title.trim()) {
+    alert('❌ Nome incorreto. Exclusão cancelada por segurança.');
+    return;
+  }
 
   try {
     const res = await fetch(`/api/v1/gm/tables/${id}`, {
@@ -133,7 +143,7 @@ export async function handleDelete(id: string): Promise<void> {
       return;
     }
 
-    alert('Mesa excluída com sucesso.');
+    alert('✅ Mesa excluída com sucesso.');
     window.location.href = '/painel';
   } catch (error) {
     alert('Erro ao excluir mesa. Tente novamente.');
