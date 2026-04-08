@@ -1,3 +1,5 @@
+import { getSlotsVisualState } from '../utils/slots';
+
 interface TableMetrics {
   views: number;
   clicks: number;
@@ -13,6 +15,7 @@ interface MyTableEnhanced {
   modality: string;
   slots_total: number;
   slots_filled: number;
+  slots_open?: number; // REQ-02: Vagas abertas para recrutamento
   system_name: string | null;
   image_url?: string | null;
   metrics?: TableMetrics;
@@ -35,7 +38,7 @@ export function TableCardDashboard({
   isToggling,
   isDeleting,
 }: TableCardDashboardProps) {
-  const openSlots = Math.max(table.slots_total - table.slots_filled, 0);
+  const { open: openSlots } = getSlotsVisualState(table);
   const metrics = table.metrics || { views: 0, clicks: 0, contacts: 0, favorites: 0 };
 
   // Feedback inteligente: muitas views mas zero contatos
