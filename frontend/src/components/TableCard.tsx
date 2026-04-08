@@ -55,6 +55,8 @@ export function TableCardComponent({ table }: { table: TableCard }) {
   const isUrgent = slotsLeft <= 2 && !isFull;
 
   // Lógica de CTA baseada em estado (ISO 9241 – Controllability)
+  // Estado A: pode entrar direto → CTA primário "Entrar" + secundário "Ver detalhes"
+  // Estado B: precisa avaliar → CTA primário "Ver detalhes" apenas
   const canJoinDirectly = !isFull && table.status === 'active';
   const primaryCTA = canJoinDirectly
     ? { label: 'Entrar na mesa →', variant: 'primary' as const }
@@ -207,13 +209,23 @@ export function TableCardComponent({ table }: { table: TableCard }) {
             ) : null}
           </div>
 
-          {/* BLOCO 4: ACTION (CTA único baseado em estado) */}
-          <div className={`w-full py-2.5 rounded-lg text-sm font-bold text-center transition-colors ${
-            primaryCTA.variant === 'primary'
-              ? 'bg-orange-600 hover:bg-orange-700 text-white'
-              : 'border-2 border-orange-600 text-orange-600 hover:bg-orange-600/10'
-          }`}>
-            {primaryCTA.label}
+          {/* BLOCO 4: ACTION (CTA primário + secundário opcional) */}
+          <div className="space-y-2">
+            <div className={`w-full py-2.5 rounded-lg text-sm font-bold text-center transition-colors ${
+              primaryCTA.variant === 'primary'
+                ? 'bg-orange-600 hover:bg-orange-700 text-white'
+                : 'border-2 border-orange-600 text-orange-600 hover:bg-orange-600/10'
+            }`}>
+              {primaryCTA.label}
+            </div>
+            
+            {canJoinDirectly && (
+              <div className="text-center">
+                <span className="text-xs text-white/60 hover:text-white transition-colors cursor-pointer">
+                  Ver detalhes
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>

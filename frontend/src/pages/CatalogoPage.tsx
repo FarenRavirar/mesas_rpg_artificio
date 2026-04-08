@@ -1,12 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { RotateCcw, Search, ShieldCheck, Star, ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react';
 import { TableCardComponent, TableCardSkeleton } from '../components/TableCard';
 import { FilterDrawer } from '../components/FilterDrawer';
 import { ActiveFiltersChips } from '../components/ActiveFiltersChips';
 import { ResultsHeader } from '../components/ResultsHeader';
-import type { CatalogSeal, TableCard, TablesResponse } from '../types/tables';
+import type { CatalogSeal } from '../types/tables';
 import { applySeo } from '../utils/seo';
+import { useCatalogTables } from '../hooks/useCatalogTables';
+import { useCatalogFilters } from '../hooks/useCatalogFilters';
+import type { StyleOption } from '../services/catalogService';
+
+// Constantes de validação (compartilhadas com parser)
+const VALID_STYLES: StyleOption[] = ['Narrativo', 'Combate intenso', 'Investigação', 'Roleplay pesado', 'Sandbox', 'Horror'];
 
 interface SystemOption {
   id: string;
@@ -15,36 +21,102 @@ interface SystemOption {
 }
 
 export const CatalogoPage = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
 
-  // STATE
+  // STATE - URL-driven filters (hook genérico)
+  const [filters, setFilters] = useCatalogFilters();
+
+  // STATE - Apenas sistemas (carregados separadamente) e drawer mobile
   const [systems, setSystems] = useState<SystemOption[]>([]);
-  const [tables, setTables] = useState<TableCard[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [totalCount, setTotalCount] = useState(0);
-  const [hasMore, setHasMore] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  const [searchInput, setSearchInput] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-
-  const [system, setSystem] = useState('');
-  const [modality, setModality] = useState('');
-  const [priceType, setPriceType] = useState('');
-  const [experience, setExperience] = useState('');
-  const [seal, setSeal] = useState<CatalogSeal>('');
-  const [styles, setStyles] = useState<string[]>([]); // NOVO: Filtro de estilos
-  const [sort, setSort] = useState('popular'); // CORREÇÃO UX-01: Padrão = popular, mas não forçar na URL
-  const [page, setPage] = useState(1);
+  // ============================================================================
+  // DATA - React Query
+  // ============================================================================
   
-  const [isFilterOpen, setIsFilterOpen] = useState(false); // Drawer mobile
+  const { tables, pagination, isLoading, isRefreshing, error } = useCatalogTables(filters, searchParams.toString());
 
-  // CACHE + DEDUP
-  const cache = useRef<Record<string, TableCard[]>>({});
-  const prevQueryRef = useRef('');
-  const requestIdRef = useRef(0);
+  const totalCount = useMemo(() => {
+    if (!pagination) return 0;
+    if (pagination.total !== undefined) return pagination.total;
+    return (filters.page - 1) * 24 + tables.length;
+  }, [pagination, filters.page, tables.length]);
 
+  const hasMore = pagination?.hasMore ?? false;
+
+  // ============================================================================
+  // HANDLERS
+  // ============================================================================
+  
+  const clearFilters = () => {
+    setFilters(() => ({
+      search: '',
+      system: '',
+      modality: '',
+      priceType: '',
+      experience: '',
+      seal: '',
+      styles: [],
+      sort: 'popular',
+      page: 1,
+      limit: 24,
+    }));
+  };
+
+  const removeFilter = (key: string, value?: string) => {
+    if (key === 'styles' && value) {
+      setFilters(prev => ({
+        ...prev,
+        styles: prev.styles.filter((s) => s !== value),
+      }));
+    } else {
+      setFilters(prev => ({
+        ...prev,
+        [key]: '',
+      }));
+    }
+  };
+
+  const toggleStyle = (style: StyleOption) => {
+    setFilters(prev => ({
+      ...prev,
+      styles: prev.styles.includes(style)
+        ? prev.styles.filter((s) => s !== style)
+        : [...prev.styles, style],
+    }));
+  };
+
+  const toggleSeal = (seal: CatalogSeal) => {
+    setFilters(prev => ({
+      ...prev,
+      seal: prev.seal === seal ? '' : seal,
+    }));
+  };
+
+  // ============================================================================
+  // COMPUTED
+  // ============================================================================
+  
+  const activeFiltersCount = useMemo(() => {
+    return [
+      filters.search,
+      filters.system,
+      filters.modality,
+      filters.priceType,
+      filters.experience,
+      filters.seal,
+      ...(filters.styles || []),
+    ].filter(Boolean).length;
+  }, [filters]);
+
+  const selectedSystemName = useMemo(() => {
+    return systems.find((s) => s.slug === filters.system)?.name;
+  }, [systems, filters.system]);
+
+  // ============================================================================
+  // EFFECTS
+  // ============================================================================
+  
   // SEO
   useEffect(() => {
     applySeo(
@@ -53,7 +125,7 @@ export const CatalogoPage = () => {
     );
   }, []);
 
-  // LOAD SYSTEMS
+  // Load systems
   useEffect(() => {
     const loadSystems = async () => {
       try {
@@ -69,275 +141,62 @@ export const CatalogoPage = () => {
     loadSystems();
   }, []);
 
-  // INIT FROM URL
+  // Scroll to top quando filtros mudam (não na paginação)
   useEffect(() => {
-    const initialSearch = searchParams.get('search') || '';
-    const initialSystem = searchParams.get('system') || '';
-    const initialModality = searchParams.get('modality') || '';
-    const initialPriceType = searchParams.get('price_type') || '';
-    const initialExperience = searchParams.get('experience_level') || '';
-    const initialSeal = (searchParams.get('seal') || '') as CatalogSeal;
-    const initialStyles = searchParams.get('styles')?.split(',').filter(Boolean) || [];
-    const initialSort = searchParams.get('sort') || 'popular';
-    const initialPage = parseInt(searchParams.get('page') || '1');
-
-    setSearchInput(initialSearch);
-    setDebouncedSearch(initialSearch);
-    setSystem(initialSystem);
-    setModality(initialModality);
-    setPriceType(initialPriceType);
-    setExperience(initialExperience);
-    setSeal(initialSeal);
-    setStyles(initialStyles);
-    setSort(initialSort);
-    setPage(initialPage);
-  }, []);
-
-  // DEBOUNCE SEARCH (400ms)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchInput.trim());
-      setPage(1); // Reset page on search
-    }, 400);
-
-    return () => clearTimeout(timer);
-  }, [searchInput]);
-
-  // BUILD QUERY STRING
-  const queryString = useMemo(() => {
-    const params = new URLSearchParams();
-    
-    params.set('limit', '24');
-    params.set('page', page.toString());
-
-    if (debouncedSearch) params.set('search', debouncedSearch);
-    if (system) params.set('system', system);
-    if (modality) params.set('modality', modality);
-    if (priceType) params.set('price_type', priceType);
-    if (experience) params.set('experience_level', experience);
-    if (seal) params.set('seal', seal);
-    // Normalizar styles para cache determinístico
-    if (styles.length > 0) params.set('styles', [...styles].sort().join(','));
-    // CORREÇÃO UX-01: Só adicionar sort na URL se for diferente do padrão
-    if (sort && sort !== 'popular') params.set('sort', sort);
-
-    return params.toString();
-  }, [debouncedSearch, system, modality, priceType, experience, seal, styles, sort, page]);
-
-  // SYNC URL (debounced to avoid excessive history pollution)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const params = new URLSearchParams();
-
-      if (debouncedSearch) params.set('search', debouncedSearch);
-      if (system) params.set('system', system);
-      if (modality) params.set('modality', modality);
-      if (priceType) params.set('price_type', priceType);
-      if (experience) params.set('experience_level', experience);
-      if (seal) params.set('seal', seal);
-      if (styles.length > 0) params.set('styles', styles.join(','));
-      if (sort) params.set('sort', sort);
-      if (page > 1) params.set('page', page.toString());
-
-      setSearchParams(params, { replace: true });
-    }, 100);
-
-    return () => clearTimeout(timer);
-  }, [debouncedSearch, system, modality, priceType, experience, seal, styles, sort, page, setSearchParams]);
-
-  // SCROLL TO TOP (only on filter change, not pagination)
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [debouncedSearch, system, modality, priceType, experience, seal, sort]);
-
-  // FETCH TABLES + CACHE
-  useEffect(() => {
-    // Dedup: avoid refetch if query hasn't changed
-    if (prevQueryRef.current === queryString) return;
-    prevQueryRef.current = queryString;
-
-    const controller = new AbortController();
-
-    const loadTables = async () => {
-      // Incrementar requestId para controle de race condition
-      const requestId = ++requestIdRef.current;
-
-      // Check cache first
-      if (cache.current[queryString]) {
-        setTables(cache.current[queryString]);
-        setIsLoading(false);
-        return;
-      }
-
-      // Separar loading inicial de refresh
-      if (tables.length > 0) {
-        setIsRefreshing(true);
-      } else {
-        setIsLoading(true);
-      }
-      setError(null);
-
-      try {
-        const res = await fetch(`/api/v1/tables?${queryString}`, {
-          signal: controller.signal,
-        });
-
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-        const json: TablesResponse = await res.json();
-        
-        // Ignorar response se não for o request mais recente
-        if (requestId !== requestIdRef.current) return;
-        
-        // Cache result
-        cache.current[queryString] = json.data ?? [];
-        setTables(json.data ?? []);
-        setHasMore(json.pagination?.hasMore ?? false);
-        
-        // Usar total do backend quando disponível, senão calcular fallback
-        const totalFromApi = json.pagination?.total;
-        if (totalFromApi !== undefined) {
-          setTotalCount(totalFromApi);
-        } else {
-          // Fallback: estimativa baseada em page, limit (sem +1 incorreto)
-          const currentCount = json.data?.length ?? 0;
-          const estimatedTotal = (page - 1) * 24 + currentCount;
-          setTotalCount(estimatedTotal);
-        }
-      } catch (err: any) {
-        if (err.name === 'AbortError') return;
-        // Ignorar erro se não for o request mais recente
-        if (requestId !== requestIdRef.current) return;
-        setError('Não foi possível carregar o catálogo no momento.');
-      } finally {
-        // Só atualizar loading se for o request mais recente
-        if (requestId === requestIdRef.current) {
-          setIsLoading(false);
-          setIsRefreshing(false);
-        }
-      }
-    };
-
-    loadTables();
-
-    return () => controller.abort();
-  }, [queryString]);
-
-  // CLEAR FILTERS
-  const clearFilters = () => {
-    setSearchInput('');
-    setDebouncedSearch('');
-    setSystem('');
-    setModality('');
-    setPriceType('');
-    setExperience('');
-    setSeal('');
-    setStyles([]);
-    setSort('popular');
-    setPage(1);
-    cache.current = {}; // Clear cache on filter reset
-  };
-
-  // REMOVE INDIVIDUAL FILTER
-  const removeFilter = (key: string, value?: string) => {
-    switch (key) {
-      case 'search':
-        setSearchInput('');
-        setDebouncedSearch('');
-        break;
-      case 'system':
-        setSystem('');
-        break;
-      case 'modality':
-        setModality('');
-        break;
-      case 'priceType':
-        setPriceType('');
-        break;
-      case 'experience':
-        setExperience('');
-        break;
-      case 'seal':
-        setSeal('');
-        break;
-      case 'styles':
-        if (value) {
-          setStyles((prev) => prev.filter((s) => s !== value));
-        }
-        break;
-      case 'sort':
-        setSort('popular');
-        break;
+    if (filters.page === 1) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-    setPage(1);
-  };
+  }, [filters.search, filters.system, filters.modality, filters.priceType, filters.experience, filters.seal, filters.sort]);
 
-  // ACTIVE FILTERS COUNT
-  const activeFiltersCount = useMemo(() => {
-    return [
-      debouncedSearch,
-      system,
-      modality,
-      priceType,
-      experience,
-      seal,
-      styles.length > 0 ? 'styles' : '',
-      sort !== 'popular' ? sort : '', // Não contar sort padrão
-    ].filter((value) => value !== '' && value !== null && value !== undefined).length;
-  }, [debouncedSearch, system, modality, priceType, experience, seal, styles, sort]);
-
-  // GET SYSTEM NAME
-  const selectedSystemName = useMemo(() => {
-    return systems.find((s) => s.slug === system)?.name;
-  }, [systems, system]);
-
-  // PAGINATION HANDLERS
-  const goToPage = (newPage: number) => {
-    if (newPage < 1) return;
-    if (newPage > page && !hasMore) return; // Não avançar se não há mais páginas
-    setPage(newPage);
-  };
-
+  // ============================================================================
+  // RENDER
+  // ============================================================================
+  
   return (
-    <main className="bg-[var(--color-artificio-blue)] text-white min-h-screen">
-      <section className="container mx-auto px-6 py-10">
-        <h1 className="text-3xl md:text-5xl font-black tracking-tight mb-2">Catálogo Público de Mesas</h1>
-        <p className="text-white/65 max-w-2xl">
-          Filtre por sistema, modalidade, nível e selos para encontrar a aventura ideal para seu grupo.
-        </p>
-      </section>
+    <main className="min-h-screen bg-gradient-to-b from-[#0a1628] to-[#13213f] text-white">
+      {/* HEADER */}
+      <div className="border-b border-white/10 bg-[#0a1628]/80 backdrop-blur-sm sticky top-0 z-30">
+        <div className="container mx-auto px-6 py-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-3xl font-black text-white mb-1">Catálogo de Mesas</h1>
+              <p className="text-sm text-white/60">Encontre a mesa perfeita para você</p>
+            </div>
+            {activeFiltersCount > 0 && (
+              <button
+                onClick={clearFilters}
+                className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm font-semibold transition-colors"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Limpar filtros
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
 
-      {/* BARRA DE FILTROS - DESKTOP */}
-      <div className="hidden md:block sticky top-16 z-30 bg-[#0d1a30]/95 backdrop-blur-md border-b border-white/10">
+      {/* FILTROS - DESKTOP */}
+      <div className="hidden md:block border-b border-white/10 bg-[#0a1628]/60 backdrop-blur-sm sticky top-[88px] z-20">
         <div className="container mx-auto px-6 py-4">
-          {/* ZONA 1: Busca + Limpar */}
-          <div className="flex items-center gap-3 mb-4">
-            <div className="relative flex-1 max-w-md">
+          {/* ZONA 1: Busca */}
+          <div className="mb-3">
+            <div className="relative max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" />
               <input
                 type="text"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
+                value={filters.search}
+                onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
                 placeholder="Buscar mesas..."
                 className="w-full rounded-lg bg-[#13213f] border border-white/10 pl-9 pr-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors"
               />
             </div>
-
-            {activeFiltersCount > 0 && (
-              <button
-                onClick={clearFilters}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 text-sm text-white font-semibold transition-colors whitespace-nowrap"
-              >
-                <RotateCcw className="w-4 h-4" /> Limpar filtros
-              </button>
-            )}
           </div>
 
-          {/* ZONA 2: Filtros principais em grid */}
-          <div className="grid grid-cols-4 gap-3 mb-4">
+          {/* ZONA 2: Dropdowns */}
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
             <select
-              value={system}
-              onChange={(e) => setSystem(e.target.value)}
+              value={filters.system}
+              onChange={(e) => setFilters(prev => ({ ...prev, system: e.target.value }))}
               className="rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
             >
               <option value="">Todos os sistemas</option>
@@ -349,8 +208,8 @@ export const CatalogoPage = () => {
             </select>
 
             <select
-              value={modality}
-              onChange={(e) => setModality(e.target.value)}
+              value={filters.modality}
+              onChange={(e) => setFilters(prev => ({ ...prev, modality: e.target.value as any }))}
               className="rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
             >
               <option value="">Modalidade</option>
@@ -360,8 +219,8 @@ export const CatalogoPage = () => {
             </select>
 
             <select
-              value={priceType}
-              onChange={(e) => setPriceType(e.target.value)}
+              value={filters.priceType}
+              onChange={(e) => setFilters(prev => ({ ...prev, priceType: e.target.value as any }))}
               className="rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
             >
               <option value="">Preço</option>
@@ -370,8 +229,8 @@ export const CatalogoPage = () => {
             </select>
 
             <select
-              value={experience}
-              onChange={(e) => setExperience(e.target.value)}
+              value={filters.experience}
+              onChange={(e) => setFilters(prev => ({ ...prev, experience: e.target.value as any }))}
               className="rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
             >
               <option value="">Nível</option>
@@ -379,15 +238,25 @@ export const CatalogoPage = () => {
               <option value="intermediario">Intermediário</option>
               <option value="veterano">Veterano</option>
             </select>
+
+            <select
+              value={filters.sort}
+              onChange={(e) => setFilters(prev => ({ ...prev, sort: e.target.value as any }))}
+              className="rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
+            >
+              <option value="popular">Mais populares</option>
+              <option value="recent">Mais recentes</option>
+              <option value="ending_soon">Encerrando em breve</option>
+            </select>
           </div>
 
           {/* ZONA 3: Selos + Estilos */}
           <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
-              onClick={() => setSeal((prev) => (prev === 'ddal' ? '' : 'ddal'))}
+              onClick={() => toggleSeal('ddal')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all whitespace-nowrap ${
-                seal === 'ddal'
+                filters.seal === 'ddal'
                   ? 'border-amber-300/50 bg-amber-500/20 text-amber-100'
                   : 'border-white/10 bg-[#13213f] text-white/70 hover:border-white/20 hover:bg-white/5'
               }`}
@@ -397,9 +266,9 @@ export const CatalogoPage = () => {
 
             <button
               type="button"
-              onClick={() => setSeal((prev) => (prev === 'covil-do-lich' ? '' : 'covil-do-lich'))}
+              onClick={() => toggleSeal('covil-do-lich')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all whitespace-nowrap ${
-                seal === 'covil-do-lich'
+                filters.seal === 'covil-do-lich'
                   ? 'border-purple-300/50 bg-purple-500/20 text-purple-100'
                   : 'border-white/10 bg-[#13213f] text-white/70 hover:border-white/20 hover:bg-white/5'
               }`}
@@ -409,18 +278,13 @@ export const CatalogoPage = () => {
 
             <div className="h-4 w-px bg-white/10 mx-1" />
 
-            {['Narrativo', 'Combate intenso', 'Investigação', 'Roleplay pesado', 'Sandbox', 'Horror'].map((style) => (
+            {VALID_STYLES.map((style) => (
               <button
                 key={style}
                 type="button"
-                onClick={() => {
-                  setStyles((prev) =>
-                    prev.includes(style) ? prev.filter((s) => s !== style) : [...prev, style]
-                  );
-                  setPage(1);
-                }}
+                onClick={() => toggleStyle(style)}
                 className={`px-3 py-1.5 rounded-lg border text-xs transition-all whitespace-nowrap ${
-                  styles.includes(style)
+                  filters.styles.includes(style)
                     ? 'border-orange-500 bg-orange-500/20 text-orange-100'
                     : 'border-white/10 bg-[#13213f] text-white/70 hover:border-white/20 hover:bg-white/5'
                 }`}
@@ -458,8 +322,8 @@ export const CatalogoPage = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" />
           <input
             type="text"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
+            value={filters.search}
+            onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
             placeholder="Buscar mesas..."
             className="w-full rounded-lg bg-[#13213f] border border-white/10 pl-9 pr-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors"
           />
@@ -468,8 +332,8 @@ export const CatalogoPage = () => {
         {/* Filtros */}
         <div className="space-y-3">
           <select
-            value={system}
-            onChange={(e) => setSystem(e.target.value)}
+            value={filters.system}
+            onChange={(e) => setFilters(prev => ({ ...prev, system: e.target.value }))}
             className="w-full rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
           >
             <option value="">Todos os sistemas</option>
@@ -481,8 +345,8 @@ export const CatalogoPage = () => {
           </select>
 
           <select
-            value={modality}
-            onChange={(e) => setModality(e.target.value)}
+            value={filters.modality}
+            onChange={(e) => setFilters(prev => ({ ...prev, modality: e.target.value as any }))}
             className="w-full rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
           >
             <option value="">Modalidade</option>
@@ -492,8 +356,8 @@ export const CatalogoPage = () => {
           </select>
 
           <select
-            value={priceType}
-            onChange={(e) => setPriceType(e.target.value)}
+            value={filters.priceType}
+            onChange={(e) => setFilters(prev => ({ ...prev, priceType: e.target.value as any }))}
             className="w-full rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
           >
             <option value="">Preço</option>
@@ -502,14 +366,24 @@ export const CatalogoPage = () => {
           </select>
 
           <select
-            value={experience}
-            onChange={(e) => setExperience(e.target.value)}
+            value={filters.experience}
+            onChange={(e) => setFilters(prev => ({ ...prev, experience: e.target.value as any }))}
             className="w-full rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
           >
             <option value="">Nível</option>
             <option value="iniciante">Iniciante</option>
             <option value="intermediario">Intermediário</option>
             <option value="veterano">Veterano</option>
+          </select>
+
+          <select
+            value={filters.sort}
+            onChange={(e) => setFilters(prev => ({ ...prev, sort: e.target.value as any }))}
+            className="w-full rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
+          >
+            <option value="popular">Mais populares</option>
+            <option value="recent">Mais recentes</option>
+            <option value="ending_soon">Encerrando em breve</option>
           </select>
         </div>
 
@@ -519,9 +393,9 @@ export const CatalogoPage = () => {
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => setSeal((prev) => (prev === 'ddal' ? '' : 'ddal'))}
+              onClick={() => toggleSeal('ddal')}
               className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-semibold transition-all ${
-                seal === 'ddal'
+                filters.seal === 'ddal'
                   ? 'border-amber-300/50 bg-amber-500/20 text-amber-100'
                   : 'border-white/10 bg-[#13213f] text-white/70'
               }`}
@@ -531,9 +405,9 @@ export const CatalogoPage = () => {
 
             <button
               type="button"
-              onClick={() => setSeal((prev) => (prev === 'covil-do-lich' ? '' : 'covil-do-lich'))}
+              onClick={() => toggleSeal('covil-do-lich')}
               className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-semibold transition-all ${
-                seal === 'covil-do-lich'
+                filters.seal === 'covil-do-lich'
                   ? 'border-purple-300/50 bg-purple-500/20 text-purple-100'
                   : 'border-white/10 bg-[#13213f] text-white/70'
               }`}
@@ -547,17 +421,13 @@ export const CatalogoPage = () => {
         <div>
           <p className="text-xs text-white/50 mb-2 font-semibold">Estilos</p>
           <div className="flex flex-wrap gap-2">
-            {['Narrativo', 'Combate intenso', 'Investigação', 'Roleplay pesado', 'Sandbox', 'Horror'].map((style) => (
+            {VALID_STYLES.map((style) => (
               <button
                 key={style}
                 type="button"
-                onClick={() => {
-                  setStyles((prev) =>
-                    prev.includes(style) ? prev.filter((s) => s !== style) : [...prev, style]
-                  );
-                }}
+                onClick={() => toggleStyle(style)}
                 className={`px-3 py-1.5 rounded-lg border text-xs transition-all ${
-                  styles.includes(style)
+                  filters.styles.includes(style)
                     ? 'border-orange-500 bg-orange-500/20 text-orange-100'
                     : 'border-white/10 bg-[#13213f] text-white/70'
                 }`}
@@ -582,8 +452,8 @@ export const CatalogoPage = () => {
           
           <ResultsHeader
             count={totalCount}
-            sort={sort}
-            onSortChange={setSort}
+            sort={filters.sort}
+            onSortChange={(newSort) => setFilters(prev => ({ ...prev, sort: newSort as any }))}
             isLoading={isLoading}
             hasMore={hasMore}
           />
@@ -591,14 +461,14 @@ export const CatalogoPage = () => {
           {/* CHIPS DE FILTROS ATIVOS */}
           <ActiveFiltersChips
             filters={{
-              search: debouncedSearch,
-              system,
-              modality,
-              priceType,
-              experience,
-              seal,
-              styles,
-              sort,
+              search: filters.search,
+              system: filters.system,
+              modality: filters.modality,
+              priceType: filters.priceType,
+              experience: filters.experience,
+              seal: filters.seal as any, // Parser garante valor válido
+              styles: filters.styles,
+              sort: filters.sort,
             }}
             systemName={selectedSystemName}
             onRemove={removeFilter}
@@ -619,7 +489,7 @@ export const CatalogoPage = () => {
         )}
 
         {/* EMPTY STATE */}
-        {!isLoading && tables.length === 0 ? (
+        {!isLoading && !isRefreshing && tables.length === 0 ? (
           <div className="rounded-2xl border border-white/10 bg-white/5 py-20 text-center">
             <div className="text-6xl mb-4 opacity-30">🔍</div>
             <p className="text-xl font-bold text-white mb-2">Nenhuma mesa encontrada</p>
@@ -638,16 +508,16 @@ export const CatalogoPage = () => {
             {/* GRID */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {isLoading
-                ? Array.from({ length: 9 }).map((_, idx) => <TableCardSkeleton key={idx} />)
+                ? Array.from({ length: 12 }).map((_, idx) => <TableCardSkeleton key={idx} />)
                 : tables.map((table) => <TableCardComponent key={table.id} table={table} />)}
             </div>
 
             {/* PAGINATION */}
-            {!isLoading && tables.length > 0 && (page > 1 || hasMore) && (
+            {!isLoading && tables.length > 0 && (filters.page > 1 || hasMore) && (
               <div className="flex items-center justify-center gap-2 mt-8">
                 <button
-                  onClick={() => goToPage(page - 1)}
-                  disabled={page === 1}
+                  onClick={() => setFilters(prev => ({ ...prev, page: prev.page - 1 }))}
+                  disabled={filters.page === 1}
                   className="p-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   title="Página anterior"
                 >
@@ -657,14 +527,14 @@ export const CatalogoPage = () => {
                 <div className="flex flex-col items-center gap-1 px-4 py-2 rounded-lg border border-white/10 bg-white/5">
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-white/70">Página</span>
-                    <span className="font-semibold text-white">{page}</span>
+                    <span className="font-semibold text-white">{filters.page}</span>
                     {hasMore && <span className="text-white/50">de muitas</span>}
                   </div>
                   <span className="text-xs text-white/50">{tables.length} resultados nesta página</span>
                 </div>
 
                 <button
-                  onClick={() => goToPage(page + 1)}
+                  onClick={() => setFilters(prev => ({ ...prev, page: prev.page + 1 }))}
                   disabled={!hasMore}
                   className="p-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   title="Próxima página"

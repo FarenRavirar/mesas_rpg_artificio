@@ -208,8 +208,24 @@ export const GestaoPage = () => {
         toast.success('Mesa deletada!');
         fetchAllTables();
       } else {
-        const data = await response.json();
-        toast.error(data.error || 'Erro ao deletar mesa');
+        // CORREÇÃO: Tratamento robusto de erro (pode retornar HTML em vez de JSON)
+        let errorMessage = 'Erro ao deletar mesa';
+        
+        try {
+          const contentType = response.headers.get('content-type');
+          
+          if (contentType?.includes('application/json')) {
+            const data = await response.json();
+            errorMessage = data.error || errorMessage;
+          } else {
+            const text = await response.text();
+            errorMessage = text.slice(0, 200) || errorMessage;
+          }
+        } catch {
+          // Se falhar ao parsear, usar mensagem padrão
+        }
+        
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error('[GestaoPage] Erro ao deletar mesa:', error);
@@ -237,8 +253,24 @@ export const GestaoPage = () => {
         toast.success(`Mesa ${action === 'ativar' ? 'ativada' : 'desativada'}!`);
         fetchAllTables();
       } else {
-        const data = await response.json();
-        toast.error(data.error || `Erro ao ${action} mesa`);
+        // CORREÇÃO: Tratamento robusto de erro (pode retornar HTML em vez de JSON)
+        let errorMessage = `Erro ao ${action} mesa`;
+        
+        try {
+          const contentType = response.headers.get('content-type');
+          
+          if (contentType?.includes('application/json')) {
+            const data = await response.json();
+            errorMessage = data.error || errorMessage;
+          } else {
+            const text = await response.text();
+            errorMessage = text.slice(0, 200) || errorMessage;
+          }
+        } catch {
+          // Se falhar ao parsear, usar mensagem padrão
+        }
+        
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error('[GestaoPage] Erro ao alterar status da mesa:', error);
