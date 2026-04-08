@@ -57,7 +57,7 @@ if (-not $SkipBuild) {
 
 # 6. Copiar build para container
 Write-Host "`n📋 Copiando build para container..." -ForegroundColor Yellow
-ssh -F C:\projetos\config faren "docker cp /opt/mesas-beta/frontend/dist/. mesas-beta-app:/usr/share/nginx/html/"
+ssh -F C:\projetos\config faren "docker cp /opt/mesas-beta/frontend/dist/. mesas-beta-frontend:/usr/share/nginx/html/"
 if ($LASTEXITCODE -ne 0) {
     Write-Host "❌ Erro ao copiar build para container" -ForegroundColor Red
     exit 1
@@ -65,14 +65,14 @@ if ($LASTEXITCODE -ne 0) {
 
 # 7. Reload do nginx
 Write-Host "`n🔄 Recarregando nginx..." -ForegroundColor Yellow
-ssh -F C:\projetos\config faren "docker exec mesas-beta-app nginx -s reload"
+ssh -F C:\projetos\config faren "docker exec mesas-beta-frontend nginx -s reload"
 if ($LASTEXITCODE -ne 0) {
     Write-Host "⚠️  Aviso: Erro ao recarregar nginx (pode não ser crítico)" -ForegroundColor Yellow
 }
 
 # 8. Validar deploy
 Write-Host "`n✅ Validando deploy..." -ForegroundColor Yellow
-$indexHtml = ssh -F C:\projetos\config faren "docker exec mesas-beta-app cat /usr/share/nginx/html/index.html"
+$indexHtml = ssh -F C:\projetos\config faren "docker exec mesas-beta-frontend cat /usr/share/nginx/html/index.html"
 if ($indexHtml -match 'index-([A-Za-z0-9]+)\.js') {
     $deployedVersion = $matches[1]
     Write-Host "   Versão deployada: index-$deployedVersion.js" -ForegroundColor Green

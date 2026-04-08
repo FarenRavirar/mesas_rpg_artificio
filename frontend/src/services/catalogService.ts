@@ -1,7 +1,7 @@
 import type { TablesResponse } from '../types/tables';
 
 // Tipos fortes para filtros
-export type SortOption = 'popular' | 'recent' | 'ending_soon';
+export type SortOption = 'popular' | 'recent' | 'price_asc' | 'price_desc';
 export type ModalityOption = 'online' | 'presencial' | 'hibrida';
 export type PriceTypeOption = 'gratuita' | 'paga';
 export type ExperienceLevelOption = 'iniciante' | 'intermediario' | 'veterano';
