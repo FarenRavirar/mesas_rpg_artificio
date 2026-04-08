@@ -93,10 +93,10 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-white w-full max-w-2xl max-h-[85vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+      <div className="bg-white w-full max-w-2xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col">
         
         {/* Header */}
-        <div className="bg-[var(--color-artificio-blue)] px-6 py-8 relative">
+        <div className="bg-[var(--color-artificio-blue)] px-6 py-6 relative flex-shrink-0">
           <button 
             onClick={onClose} 
             className="absolute top-4 right-4 text-white/70 hover:text-white transition-colors"
@@ -118,7 +118,7 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-8 bg-gray-50/30">
+        <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-8 bg-gray-50/30 min-h-0">{/* CORREÇÃO UX-02: min-h-0 garante que flex-1 respeita overflow */}
           {/* CORREÇÃO B05: Adicionar aria-live para leitores de tela */}
           {loading && (
             <div className="text-center py-8 text-gray-500" aria-live="polite">Carregando...</div>
