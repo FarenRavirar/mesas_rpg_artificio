@@ -25,10 +25,13 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY_PROD }}
           script: |
-            # CORREÇÃO WF-04: Adicionar fail-fast para evitar erros silenciosos
             set -euo pipefail
             cd /opt/mesas
             git pull origin main
+            
+            # CORREÇÃO: Remover containers órfãos antes do down para evitar conflitos de nome
+            docker ps -a --filter "name=mesas-" --format "{{.Names}}" | grep -v -E "(mesas-frontend|mesas-api|mesas-db)$" | xargs -r docker rm -f || true
+            
             docker compose -f docker-compose.prod.yml down
             docker compose -f docker-compose.prod.yml build --no-cache
             docker compose -f docker-compose.prod.yml up -d mesas-db

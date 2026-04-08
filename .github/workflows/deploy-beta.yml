@@ -27,6 +27,10 @@ jobs:
             cd /opt/mesas-beta
             git fetch https://$GH_TOKEN@github.com/FarenRavirar/mesas_rpg_artificio.git dev
             git reset --hard FETCH_HEAD
+            
+            # CORREÇÃO: Remover containers órfãos antes do down para evitar conflitos de nome
+            docker ps -a --filter "name=mesas-beta" --format "{{.Names}}" | grep -v -E "(mesas-beta-frontend|mesas-beta-api|mesas-beta-db)$" | xargs -r docker rm -f || true
+            
             docker compose -f docker-compose.beta.yml down
             docker compose -f docker-compose.beta.yml build --no-cache
             docker compose -f docker-compose.beta.yml up -d mesas-beta-db
