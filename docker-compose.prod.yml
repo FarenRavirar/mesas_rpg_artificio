@@ -2,14 +2,14 @@ services:
   # FRONTEND (Nginx servindo build estático do React/Vite)
   # Roteado via Cloudflare Tunnel existente, sem porta pública exposta no host
   # CORREÇÃO WF-02: Service name deve corresponder ao container_name para consistência
-  mesas-frontend:
+  mesas-app:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
         VITE_API_URL: https://mesas.artificiorpg.com
         VITE_ENABLE_DEVTOOLS: ${VITE_ENABLE_DEVTOOLS:-false}
-    container_name: mesas-frontend
+    container_name: mesas-app
     restart: always
     expose:
       - "80"
