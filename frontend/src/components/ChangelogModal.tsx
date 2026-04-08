@@ -173,6 +173,27 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
                     displayBody = (lastSpace > 150 ? truncated.slice(0, lastSpace) : truncated) + '...';
                   }
 
+                  // CORREÇÃO UX-03: Processar markdown básico (negrito)
+                  const processMarkdown = (text: string) => {
+                    return text
+                      .split('\n')
+                      .map((line, i) => {
+                        // Processar negrito **texto**
+                        const parts = line.split(/(\*\*.*?\*\*)/g);
+                        return (
+                          <span key={i}>
+                            {parts.map((part, j) => {
+                              if (part.startsWith('**') && part.endsWith('**')) {
+                                return <strong key={j}>{part.slice(2, -2)}</strong>;
+                              }
+                              return <span key={j}>{part}</span>;
+                            })}
+                            {i < text.split('\n').length - 1 && <br />}
+                          </span>
+                        );
+                      });
+                  };
+
                   return (
                     <div key={log.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
                       <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
@@ -185,8 +206,8 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
                       <h3 className="text-[var(--color-artificio-blue)] font-black text-base uppercase leading-tight mb-2 mt-2">
                         {log.title}
                       </h3>
-                      <div className="text-gray-600 text-sm leading-relaxed whitespace-pre-wrap max-h-[400px] overflow-y-auto">
-                        {displayBody}
+                      <div className="text-gray-600 text-sm leading-relaxed max-h-[400px] overflow-y-auto">
+                        {processMarkdown(displayBody)}
                       </div>
                       {/* CORREÇÃO B07: Adicionar aria-expanded */}
                       {shouldTruncate && (
