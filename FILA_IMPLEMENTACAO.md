@@ -53,32 +53,10 @@ Não é necessário em tarefas fora do modo lote.
 
 ---
 
-## Itens da fila — Lote: infraestrutura-base (Fase 0)
-
-| ID  | Fase | Tipo | GUT | Titulo | Descrição objetiva | Arquivos esperados | Status | Observação |
-|---|---|---|---|---|---|---|---|---|
-| 001 | 0 | infra | 5/5/5 | Criar repositório GitHub | Criar `mesas_rpg_artificio` na conta `FarenRavirar`, criar branch `dev` como padrão, proteger `main` | — | concluido | Manual pelo responsável |
-| 002 | 0 | infra | 5/5/5 | Configurar Secrets no GitHub | Adicionar `SSH_PRIVATE_KEY`, `SSH_HOST`, `SSH_USER` nos Secrets do repositório | — | concluido | Manual pelo responsável |
-| 003 | 0 | infra | 5/5/5 | Criar estrutura de pastas na Oracle | Criar `/opt/mesas-beta/` e `/opt/mesas/` com `.env` preenchido em cada uma | — | concluido | Ver variáveis obrigatórias em checklist |
-| 004 | 0 | infra | 5/5/5 | Criar docker-compose.beta.yml | Compose com serviços `mesas-beta-frontend`, `mesas-beta-api` e `mesas-beta-db`, exposto via Cloudflare para `mesas-beta-frontend:80`, sem porta pública dedicada no host | `docker-compose.beta.yml` | concluido | Alinhado ao ambiente validado |
-| 005 | 0 | infra | 4/5/5 | Criar docker-compose.prod.yml | Compose de produção sem porta pública, roteado via Cloudflare Tunnel existente | `docker-compose.prod.yml` | concluido | Nunca criar novo túnel |
-| 006 | 0 | infra | 5/5/5 | Configurar Hostname Cloudflare | Adicionar entradas no túnel existente para `mesasbeta` e `mesas` | — | concluido | Manual no painel Cloudflare |
-| 007 | 0 | infra | 5/5/5 | Criar workflows de CI/CD | Criar `deploy-beta.yml` e `deploy-production.yml` com rsync + rebuild Docker | `.github/workflows/deploy-*.yml` | concluido | — |
-
----
-
 ## Itens da fila — Lote: fundacao-schema-auth (Fase 1)
 
 | ID  | Fase | Tipo | GUT | Titulo | Descrição objetiva | Arquivos esperados | Status | Observação |
 |---|---|---|---|---|---|---|---|---|
-| 008 | 1 | banco | 5/5/5 | Schema inicial do banco | Validar aplicabilidade da migration `migration_01_base_schema.sql` em DB limpo | `database/migration_01_base_schema.sql` | concluido | Schema base rodando em beta |
-| 008B| 1 | banco | 5/5/5 | Conexão Type-Safe (Kysely) | Configurar driver `pg` + `Kysely` para introspeção de tipos TypeScript ("TypeScript ao máximo") sem modificar o DDL original. | `backend/src/db/` | concluido | Kysely configurado e operante |
-| 009 | 1 | banco | 2/3/3 | Tabela imgur_cleanup_log | Auditar deleções Imgur. Ver seção 16.5 | `database/migration_*.sql` | concluido | Tabela existe no banco beta (verificado via SSH em 05/04/2026) |
-| 010 | 1 | back  | 5/5/5 | Setup base da API Node.js | CORS, rate limit, JSON parser, handler global, router map | `backend/src/app.ts` | concluido | Express operando em /api/v1/ |
-| 011 | 1 | back  | 5/5/5 | OAuth Google Auth + JWT | Handshake, JWT generation, upsert users/profiles no primeiro login | `backend/src/routes/auth.ts` | concluido | Funcional no beta com callback canônico `/api/v1/auth/google/callback` |
-| 012 | 1 | back  | 4/4/4 | Middlewares base | Verificação de token, bloqueio por role (`player`/`gm`/`admin`) | `backend/src/middleware/auth.ts` | concluido | requireRole operante |
-| 013 | 1 | front | 5/5/5 | Setup base React+Tailwind | Setup inicial + roteador + paleta oficial Artifício | `frontend/src/` | concluido | Tailwind operante |
-| 014 | 1 | front | 5/5/5 | Login + Onboarding | Tela de login Google, callback, onboarding (3 passos) | `frontend/src/pages/Auth/` | concluido | Auth logic e onboarding UI completos e funcionais no beta |
 | 015 | 1 | back  | 3/4/4 | Serviço de Imagens Imgur | Pipeline com Sharp WebP + envio Imgur anon (Client ID restrito) | `backend/src/services/` | pendente | Depende da estabilização do núcleo já validado no beta |
 
 ---
@@ -337,6 +315,37 @@ Este arquivo controla fila de execução; não define arquitetura de produto.
 | ID | Fase | Tipo | GUT | Titulo | Descrição objetiva | Arquivos esperados | Status | Observação |
 |---|---|---|---|---|---|---|---|---|
 | 140 | Fase 3 | frontend | 2/3/3 | Corrigir importação dinâmica ineficaz de validation.ts | Warning do Vite: `validation.ts` é importado dinamicamente por `useCreateTableForm.ts` mas também estaticamente por `useStepNavigation.ts`, impedindo code splitting. Solução: remover importação estática de `useStepNavigation.ts` ou converter importação dinâmica de `useCreateTableForm.ts` para estática. Avaliar impacto no bundle size antes de decidir. | `frontend/src/features/create-table/hooks/useCreateTableForm.ts`, `frontend/src/features/create-table/hooks/useStepNavigation.ts` | pendente | Score GUT: 18 (2×3×3). Não afeta funcionalidade, apenas otimização de bundle. Prioridade baixa. |
+
+---
+
+## Histórico — Lotes Concluídos
+
+### Lote: infraestrutura-base (Fase 0) — Concluído em 31/03/2026
+Itens 001-007: Repositório, secrets, Oracle, docker-compose, Cloudflare, workflows CI/CD.
+
+### Lote: fundacao-schema-auth (Fase 1) — Concluído em 04/04/2026
+Itens 008-014: Schema inicial, Kysely, imgur_cleanup_log, API base, OAuth Google, middlewares, React+Tailwind, Login+Onboarding.
+
+### Lote: catalogo-publico (Fase 2) — Concluído em 04/04/2026
+Itens 016-021B: Endpoints públicos, landing pages, catálogo com filtros, selos oficiais, layout global.
+
+### Lote: painel-mestre (Fase 3) — Concluído em 04/04/2026
+Itens 022-024: Endpoints autenticados GM, criação de gm_profile, formulário de mesa com DDAL.
+
+### Lote: aggregatorbot (Fase 7 - Parcial) — Concluído em 05/04/2026
+Itens 033-035C: Tabelas aggregator, camada de domínio, serviços, rotas HTTP, script CLI de importação.
+
+### Lote: auditoria-ux-nielsen (REQ-17 - Parcial) — Concluído em 05/04/2026
+Itens 055-058, 094-095: Toast notifications, validação antes de aprovar, spinners, botão desfazer, logout corrigido, caixa de sistema selecionado.
+
+### Lote: painel-crud-admin (REQ-23) — Concluído em 05/04/2026
+Itens 101-106: CRUD completo de sistemas, cenários e mesas via interface web.
+
+### Lote: parser-fase-b (REQ-24) — Concluído em 05/04/2026
+Itens 107-112: Parser Python com 7 funções avançadas, migration 07, integração TypeScript, bug fixes.
+
+### Lote: importacao-inteligente (REQ-28 - Bugs Críticos) — Concluído em 05/04/2026
+Itens 137-138: Erro 500 em POST /tables corrigido, banner não preenchido corrigido.
 
 ---
 
