@@ -12,6 +12,7 @@ import { TableMaster } from '../features/table/components/TableMaster';
 import { TableSecurity } from '../features/table/components/TableSecurity';
 import { TableTechnical } from '../features/table/components/TableTechnical';
 import { useAuth } from '../contexts/AuthContext'; // CORREÇÃO DT-026: Importar useAuth
+import { handleCTA, getButtonStyle } from '../features/table/utils/uiHelpers';
 
 export const MesaPage = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -108,8 +109,10 @@ export const MesaPage = () => {
   // IMPORTANTE: Hooks devem ser chamados incondicionalmente (regra do React)
   const vm = useTableViewModel(table);
 
-  // CORREÇÃO DT-026: Calcular ownership
+  // CORREÇÃO DT-026: Calcular ownership e admin
   const isOwner = !!(user && table && (table as any).gm_user_id === user.id);
+  const isAdmin = user?.role === 'admin';
+  const canManage = isOwner || isAdmin;
 
   if (loading) {
     return (
@@ -185,10 +188,23 @@ export const MesaPage = () => {
           </div>
 
           {/* Fase 2: TableActionPanel (substituindo aside de 72 linhas) */}
-          {/* CORREÇÃO DT-026: Passar variant baseado em ownership */}
-          {vm && <TableActionPanel vm={vm} variant={isOwner ? 'owner' : 'full'} />}
+          {/* CORREÇÃO DT-026: Passar variant baseado em canManage (owner OU admin) */}
+          {vm && <TableActionPanel vm={vm} variant={canManage ? 'owner' : 'full'} />}
         </article>
       </section>
+
+      {/* Mobile: CTA Sticky (apenas modo público) */}
+      {!canManage && vm && (
+        <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 p-4 bg-gradient-to-t from-[var(--color-artificio-blue)] via-[var(--color-artificio-blue)] to-transparent">
+          <button
+            disabled={vm.cta.disabled}
+            onClick={() => handleCTA(vm.cta)}
+            className={`w-full py-3 rounded-xl font-semibold shadow-2xl ${getButtonStyle(vm.cta.variant)}`}
+          >
+            {vm.cta.label}
+          </button>
+        </div>
+      )}
     </main>
   );
 };

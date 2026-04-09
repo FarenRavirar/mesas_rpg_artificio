@@ -31,7 +31,7 @@ jobs:
             git reset --hard origin/main
             
             # CORREÇÃO: Remover containers órfãos antes do down para evitar conflitos de nome
-            docker ps -a --filter "name=mesas-" --format "{{.Names}}" | grep -v -E "(mesas-frontend|mesas-api|mesas-db)$" | xargs -r docker rm -f || true
+            docker ps -a --filter "name=mesas-" --format "{{.Names}}" | grep -v -E "(mesas-app|mesas-api|mesas-db)$" | xargs -r docker rm -f || true
             
             docker compose -f docker-compose.prod.yml down
             docker compose -f docker-compose.prod.yml build --no-cache
@@ -56,9 +56,9 @@ jobs:
             fi
             
             # CORREÇÃO INT-03: Validar se frontend buildou com sucesso
-            if ! docker compose -f docker-compose.prod.yml logs mesas-frontend 2>&1 | grep -q "build completed"; then
+            if ! docker compose -f docker-compose.prod.yml logs mesas-app 2>&1 | grep -q "build completed"; then
               echo "⚠️ Verificando logs do frontend para possíveis erros de build"
-              docker compose -f docker-compose.prod.yml logs mesas-frontend --tail=100
+              docker compose -f docker-compose.prod.yml logs mesas-app --tail=100
             fi
             
             docker compose -f docker-compose.prod.yml ps

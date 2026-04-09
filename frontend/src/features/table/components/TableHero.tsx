@@ -45,22 +45,33 @@ export function TableHero({ vm, variant = 'full' }: TableHeroProps) {
       <div className="absolute bottom-0 left-0 p-6 w-full space-y-3">
         
         {/* Badges */}
-        {badges.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {badges.map((badge) => {
-              const BadgeIcon = badge.icon;
-              return (
-                <span
-                  key={badge.id}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${getBadgeClasses(badge.color)}`}
-                >
-                  <BadgeIcon className="w-3.5 h-3.5" />
-                  {badge.label}
-                </span>
-              );
-            })}
-          </div>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {/* Badges de certificação */}
+          {badges.map((badge) => {
+            const BadgeIcon = badge.icon;
+            return (
+              <span
+                key={badge.id}
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${getBadgeClasses(badge.color)}`}
+              >
+                <BadgeIcon className="w-3.5 h-3.5" />
+                {badge.label}
+              </span>
+            );
+          })}
+
+          {/* Badge de status (desativada/encerrada) */}
+          {vm.status === 'cancelled' && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-yellow-500/20 text-yellow-300 border border-yellow-500/30">
+              ⏸️ Mesa desativada
+            </span>
+          )}
+          {vm.status === 'ended' && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-red-500/20 text-red-300 border border-red-500/30">
+              🏁 Mesa encerrada
+            </span>
+          )}
+        </div>
 
         {/* Title */}
         <h1 className="text-3xl font-black text-white">

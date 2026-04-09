@@ -1,7 +1,11 @@
-import { useState, useEffect } from 'react';
-import { useProfile, type PlayerProfile, type GmProfile } from '../hooks/useProfile';
+import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useProfileContext } from '../contexts/ProfileContext';
+import type { PlayerProfile, GmProfile } from '../hooks/useProfile';
 import { UserSystemsSelector } from '../components/UserSystemsSelector';
 import { LinksManager } from '../components/LinksManager';
+import { showSuccess, showError } from '../utils/toast';
+import { track } from '../services/analytics';
 import './ProfileEditPage.css';
 
 /**
@@ -12,31 +16,88 @@ import './ProfileEditPage.css';
 
 type TabType = 'geral' | 'jogador' | 'mestre';
 
+const VALID_TABS: TabType[] = ['geral', 'jogador', 'mestre'];
+
+const sanitizeTab = (tab: string | null): TabType => {
+  return VALID_TABS.includes(tab as TabType) ? (tab as TabType) : 'geral';
+};
+
 export default function ProfileEditPage() {
-  const { profile, loading, saving, error } = useProfile();
-  const [activeTab, setActiveTab] = useState<TabType>('geral');
+  const { profile, loading, saving, error, refetch } = useProfileContext();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = sanitizeTab(searchParams.get('tab'));
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
+  const [showSaved, setShowSaved] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+
+  // Sincronizar aba com URL
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+    track('profile_tab_changed', { from: activeTab, to: tab });
+  };
+
+  // Feedback de autosave com timeout
+  useEffect(() => {
+    if (!saving && profile) {
+      setShowSaved(true);
+      const timer = setTimeout(() => setShowSaved(false), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [saving, profile]);
 
   // Feedback de conexão Discord
-  // CORREÇÃO P09: useEffect com cleanup (embora reload force desmontagem)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const discordStatus = params.get('discord');
     const reason = params.get('reason');
     
     if (discordStatus === 'connected') {
-      alert('Discord conectado com sucesso!');
+      showSuccess('Discord conectado com sucesso!');
+      track('discord_connected');
       window.history.replaceState({}, '', '/perfil');
-      window.location.reload();
+      refetch();
     } else if (discordStatus === 'error') {
-      // CORREÇÃO P02: Mensagem específica para erro no_gm_profile
       if (reason === 'no_gm_profile') {
-        alert('⚠️ Você precisa criar um perfil de Mestre antes de conectar o Discord.\n\nVá para a aba "Mestre" e preencha seus dados primeiro.');
+        showError('Você precisa criar um perfil de Mestre antes de conectar o Discord.\n\nVá para a aba "Mestre" e preencha seus dados primeiro.', 6000);
       } else {
-        alert('Erro ao conectar Discord. Tente novamente.');
+        showError('Erro ao conectar Discord. Tente novamente.');
       }
+      track('discord_connection_failed', { error: reason });
       window.history.replaceState({}, '', '/perfil');
     }
-  }, []);
+  }, [refetch]);
+
+  // Handler para desconexão Discord
+  const handleDisconnectDiscord = useCallback(async () => {
+    if (!window.confirm('Deseja desconectar sua conta Discord?')) return;
+    
+    setDisconnecting(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+      const response = await fetch(`${apiUrl}/auth/discord/disconnect`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      
+      if (response.ok) {
+        showSuccess('Discord desconectado com sucesso!');
+        track('discord_disconnected');
+        await refetch();
+      } else {
+        showError('Erro ao desconectar Discord.');
+        track('discord_disconnection_failed');
+      }
+    } catch (error) {
+      console.error('Erro ao desconectar Discord:', error);
+      showError('Erro ao desconectar Discord.');
+      track('discord_disconnection_failed', { error: String(error) });
+    } finally {
+      setDisconnecting(false);
+    }
+  }, [refetch]);
 
   if (loading) {
     return (
@@ -83,29 +144,56 @@ export default function ProfileEditPage() {
           )}
         </div>
         <div className="profile-info">
-          <h1>{profile.profile?.display_name || 'Sem nome'}</h1>
-          <p className="profile-email">{profile.user.email}</p>
-          {profile.user.username && (
-            <p className="profile-username">@{profile.user.username}</p>
-          )}
-          {profile.gm?.slug && (
-            <a 
-              href={`/mestre/${profile.gm.slug}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="profile-public-link"
-              title="Abrir perfil público"
-            >
-              🔗 {window.location.origin}/mestre/{profile.gm.slug}
-            </a>
-          )}
-        </div>
-        {saving && (
-          <div className="autosave-indicator">
-            <span className="spinner-small"></span>
-            <span>Salvando...</span>
+          <div className="profile-main">
+            <div className="profile-name-row">
+              <h1>{profile.profile?.display_name || 'Sem nome'}</h1>
+              {profile.user.role === 'gm' && (
+                <span className="profile-role-badge badge-gm">Mestre</span>
+              )}
+              {profile.user.role === 'admin' && (
+                <span className="profile-role-badge badge-admin">Admin</span>
+              )}
+            </div>
+            <p className="profile-email">{profile.user.email}</p>
+            {profile.user.username && (
+              <p className="profile-username">@{profile.user.username}</p>
+            )}
           </div>
-        )}
+          <div className="profile-meta">
+            {profile.gm?.slug && (
+              <a 
+                href={`/mestre/${profile.gm.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-view-public-profile"
+                title="Abrir perfil público em nova aba"
+              >
+                <span>👁️</span> Ver perfil público
+              </a>
+            )}
+            {saving ? (
+              <div 
+                className="autosave-indicator saving"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+              >
+                <span className="spinner-small"></span>
+                <span>Salvando alterações...</span>
+              </div>
+            ) : showSaved ? (
+              <div 
+                className="autosave-indicator saved"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+              >
+                <span>✓</span>
+                <span>Alterações salvas</span>
+              </div>
+            ) : null}
+          </div>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -113,24 +201,33 @@ export default function ProfileEditPage() {
         <button
           role="tab"
           aria-selected={activeTab === 'geral'}
+          aria-controls="tab-panel-geral"
+          id="tab-geral"
+          tabIndex={activeTab === 'geral' ? 0 : -1}
           className={`tab ${activeTab === 'geral' ? 'active' : ''}`}
-          onClick={() => setActiveTab('geral')}
+          onClick={() => handleTabChange('geral')}
         >
           Geral
         </button>
         <button
           role="tab"
           aria-selected={activeTab === 'jogador'}
+          aria-controls="tab-panel-jogador"
+          id="tab-jogador"
+          tabIndex={activeTab === 'jogador' ? 0 : -1}
           className={`tab ${activeTab === 'jogador' ? 'active' : ''}`}
-          onClick={() => setActiveTab('jogador')}
+          onClick={() => handleTabChange('jogador')}
         >
           Jogador
         </button>
         <button
           role="tab"
           aria-selected={activeTab === 'mestre'}
+          aria-controls="tab-panel-mestre"
+          id="tab-mestre"
+          tabIndex={activeTab === 'mestre' ? 0 : -1}
           className={`tab ${activeTab === 'mestre' ? 'active' : ''}`}
-          onClick={() => setActiveTab('mestre')}
+          onClick={() => handleTabChange('mestre')}
         >
           Mestre
         </button>
@@ -138,9 +235,36 @@ export default function ProfileEditPage() {
 
       {/* Tab Content */}
       <div className="tab-content">
-        {activeTab === 'geral' && <TabGeral />}
-        {activeTab === 'jogador' && <TabJogador />}
-        {activeTab === 'mestre' && <TabMestre />}
+        {activeTab === 'geral' && (
+          <div
+            id="tab-panel-geral"
+            role="tabpanel"
+            aria-labelledby="tab-geral"
+          >
+            <TabGeral />
+          </div>
+        )}
+        {activeTab === 'jogador' && (
+          <div
+            id="tab-panel-jogador"
+            role="tabpanel"
+            aria-labelledby="tab-jogador"
+          >
+            <TabJogador />
+          </div>
+        )}
+        {activeTab === 'mestre' && (
+          <div
+            id="tab-panel-mestre"
+            role="tabpanel"
+            aria-labelledby="tab-mestre"
+          >
+            <TabMestre 
+              onDisconnectDiscord={handleDisconnectDiscord}
+              disconnecting={disconnecting}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -151,9 +275,10 @@ export default function ProfileEditPage() {
 // =============================================================================
 
 function TabGeral() {
-  const { profile, updateUser, updateProfile } = useProfile();
+  const { profile, updateUser, updateProfile } = useProfileContext();
   const [avatarPreview, setAvatarPreview] = useState<string>('');
   const [avatarError, setAvatarError] = useState(false);
+  const [showManualInput, setShowManualInput] = useState(false);
 
   if (!profile) return null;
 
@@ -167,6 +292,11 @@ function TabGeral() {
     setAvatarError(true);
   };
 
+  const handleRemoveAvatar = () => {
+    setAvatarPreview('');
+    updateProfile({ avatar_url: '' });
+  };
+
   // CORREÇÃO P12: Usar apenas profile.avatar_url (Google OAuth deve copiar para profiles)
   const currentAvatar = avatarPreview || profile.profile?.avatar_url || '';
 
@@ -176,13 +306,13 @@ function TabGeral() {
         <h2>Informações Básicas</h2>
 
         <div className="form-group">
-          <label htmlFor="avatar_url">Avatar</label>
-          <div className="avatar-upload-container">
-            <div className="avatar-preview">
+          <label>Foto de Perfil</label>
+          <div className="avatar-premium-container">
+            <div className="avatar-premium-preview">
               {currentAvatar && !avatarError ? (
                 <img 
                   src={currentAvatar} 
-                  alt="Preview do avatar" 
+                  alt="Foto de perfil" 
                   onError={handleAvatarError}
                 />
               ) : (
@@ -191,17 +321,39 @@ function TabGeral() {
                 </div>
               )}
             </div>
-            <div className="avatar-input-wrapper">
-              <input
-                type="url"
-                id="avatar_url"
-                defaultValue={profile.profile?.avatar_url || ''}
-                onChange={(e) => handleAvatarChange(e.target.value)}
-                placeholder="https://exemplo.com/avatar.jpg"
-              />
-              <small>Cole a URL de uma imagem hospedada (Imgur, Gravatar, etc.)</small>
-              {avatarError && currentAvatar && (
-                <small className="error-text">❌ Não foi possível carregar a imagem</small>
+            <div className="avatar-premium-actions">
+              <div className="avatar-button-group">
+                {currentAvatar && (
+                  <button 
+                    type="button"
+                    className="btn-avatar-action btn-remove"
+                    onClick={handleRemoveAvatar}
+                  >
+                    Remover foto
+                  </button>
+                )}
+                <button 
+                  type="button"
+                  className="btn-avatar-action btn-manual"
+                  onClick={() => setShowManualInput(!showManualInput)}
+                >
+                  {showManualInput ? '▲ Ocultar URL' : '▼ Usar URL manual'}
+                </button>
+              </div>
+              {showManualInput && (
+                <div className="avatar-manual-input">
+                  <input
+                    type="url"
+                    id="avatar_url"
+                    defaultValue={profile.profile?.avatar_url || ''}
+                    onChange={(e) => handleAvatarChange(e.target.value)}
+                    placeholder="https://exemplo.com/avatar.jpg"
+                  />
+                  <small>Cole a URL de uma imagem hospedada (Imgur, Gravatar, etc.)</small>
+                  {avatarError && currentAvatar && (
+                    <small className="error-text">❌ Não foi possível carregar a imagem</small>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -262,7 +414,7 @@ function TabGeral() {
 // =============================================================================
 
 function TabJogador() {
-  const { profile, updatePlayer, addSystem, removeSystem } = useProfile();
+  const { profile, updatePlayer, addSystem, removeSystem } = useProfileContext();
 
   if (!profile) return null;
 
@@ -295,7 +447,10 @@ function TabJogador() {
           <label>Estilo de Jogo (1-5)</label>
           <div className="playstyle-grid">
             <div className="playstyle-item">
-              <label htmlFor="combat">Combate</label>
+              <label htmlFor="combat">
+                Combate
+                <span>{playerProfile.playstyle?.combat || 3}</span>
+              </label>
               <input
                 type="range"
                 id="combat"
@@ -311,11 +466,13 @@ function TabJogador() {
                   })
                 }
               />
-              <span>{playerProfile.playstyle?.combat || 3}</span>
             </div>
 
             <div className="playstyle-item">
-              <label htmlFor="roleplay">Roleplay</label>
+              <label htmlFor="roleplay">
+                Roleplay
+                <span>{playerProfile.playstyle?.roleplay || 3}</span>
+              </label>
               <input
                 type="range"
                 id="roleplay"
@@ -331,11 +488,13 @@ function TabJogador() {
                   })
                 }
               />
-              <span>{playerProfile.playstyle?.roleplay || 3}</span>
             </div>
 
             <div className="playstyle-item">
-              <label htmlFor="exploration">Exploração</label>
+              <label htmlFor="exploration">
+                Exploração
+                <span>{playerProfile.playstyle?.exploration || 3}</span>
+              </label>
               <input
                 type="range"
                 id="exploration"
@@ -351,11 +510,13 @@ function TabJogador() {
                   })
                 }
               />
-              <span>{playerProfile.playstyle?.exploration || 3}</span>
             </div>
 
             <div className="playstyle-item">
-              <label htmlFor="strategy">Estratégia</label>
+              <label htmlFor="strategy">
+                Estratégia
+                <span>{playerProfile.playstyle?.strategy || 3}</span>
+              </label>
               <input
                 type="range"
                 id="strategy"
@@ -371,7 +532,6 @@ function TabJogador() {
                   })
                 }
               />
-              <span>{playerProfile.playstyle?.strategy || 3}</span>
             </div>
           </div>
         </div>
@@ -432,10 +592,15 @@ function TabJogador() {
 // TAB MESTRE
 // =============================================================================
 
-function TabMestre() {
-  const { profile, updateGm, addSystem, removeSystem } = useProfile();
-  const [disconnecting, setDisconnecting] = useState(false); // CORREÇÃO P14: Loading state
-  const [connecting, setConnecting] = useState(false); // CORREÇÃO P10: Loading state
+function TabMestre({ 
+  onDisconnectDiscord, 
+  disconnecting 
+}: { 
+  onDisconnectDiscord: () => void;
+  disconnecting: boolean;
+}) {
+  const { profile, updateGm, addSystem, removeSystem } = useProfileContext();
+  const [connecting, setConnecting] = useState(false);
 
   if (!profile) return null;
 
@@ -522,37 +687,7 @@ function TabMestre() {
               </div>
             )}
             <button
-              onClick={async () => {
-                if (!confirm('Deseja desconectar sua conta Discord?')) return;
-                
-                setDisconnecting(true); // CORREÇÃO P14: Mostrar loading
-                try {
-                  const apiUrl = import.meta.env.VITE_API_URL || '';
-                  const response = await fetch(`${apiUrl}/auth/discord/disconnect`, {
-                    method: 'DELETE',
-                    headers: {
-                      'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                    },
-                  });
-                  
-                  if (response.ok) {
-                    alert('Discord desconectado com sucesso!');
-                    window.location.reload();
-                  } else {
-                    alert('Erro ao desconectar Discord');
-                    setDisconnecting(false); // CORREÇÃO P14: Limpar loading em erro
-                  }
-                } catch (error) {
-                  // CORREÇÃO P08: Tratamento específico de erro de rede
-                  console.error('Erro ao desconectar Discord:', error);
-                  if (error instanceof TypeError && error.message.includes('fetch')) {
-                    alert('❌ Erro de conexão.\n\nVerifique sua internet e tente novamente.');
-                  } else {
-                    alert('Erro ao desconectar Discord');
-                  }
-                  setDisconnecting(false); // CORREÇÃO P14: Limpar loading em erro
-                }
-              }}
+              onClick={onDisconnectDiscord}
               className="btn-disconnect-discord"
               disabled={disconnecting} // CORREÇÃO P14: Desabilitar durante loading
             >
@@ -584,12 +719,12 @@ function TabMestre() {
                     window.location.href = response.url;
                   } else if (!response.ok) {
                     const data = await response.json();
-                    alert(data.error || 'Erro ao conectar Discord');
+                    showError(data.error || 'Erro ao conectar Discord');
                     setConnecting(false);
                   }
                 } catch (error) {
                   console.error('Erro ao conectar Discord:', error);
-                  alert('Erro ao conectar Discord');
+                  showError('Erro ao conectar Discord');
                   setConnecting(false);
                 }
               }}

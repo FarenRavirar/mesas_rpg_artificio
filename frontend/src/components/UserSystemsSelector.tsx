@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { SystemTreeSelector } from './SystemTreeSelector';
+import { showError } from '../utils/toast';
 import type { SystemTreeNode } from '../types/systems';
+import './UserSystemsSelector.css';
 
 interface UserSystemsSelectorProps {
   type: 'favorite' | 'gm';
@@ -13,7 +15,7 @@ interface UserSystemsSelectorProps {
  * Componente para selecionar sistemas favoritos ou sistemas que o usuário mestra
  * Usa o SystemTreeSelector existente com multi-seleção
  */
-export function UserSystemsSelector({
+export const UserSystemsSelector = React.memo(function UserSystemsSelector({
   type,
   selectedSystemIds,
   onAdd,
@@ -38,18 +40,26 @@ export function UserSystemsSelector({
       setTree(result.data || []);
     } catch (error) {
       console.error('[UserSystemsSelector] Erro ao buscar sistemas:', error);
+      showError('Erro ao carregar sistemas. Tente novamente.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleToggle = (systemId: string) => {
+  const handleToggle = useCallback((systemId: string) => {
     if (selectedSystemIds.includes(systemId)) {
       onRemove(systemId);
     } else {
       onAdd(systemId);
     }
-  };
+  }, [selectedSystemIds, onAdd, onRemove]);
+
+  // Memoizar busca de sistema para evitar re-computação
+  const findSystem = useCallback((systemId: string): SystemTreeNode | undefined => {
+    return tree.find(s => s.id === systemId) || 
+           tree.flatMap(s => s.children).find(c => c.id === systemId) ||
+           tree.flatMap(s => s.children.flatMap(c => c.children)).find(v => v.id === systemId);
+  }, [tree]);
 
   if (loading) {
     return (
@@ -72,52 +82,19 @@ export function UserSystemsSelector({
 
       {/* Lista de sistemas selecionados */}
       {selectedSystemIds.length > 0 && (
-        <div className="selected-systems-list" style={{ marginBottom: '1rem' }}>
-          <div style={{ 
-            display: 'flex', 
-            flexWrap: 'wrap', 
-            gap: '0.5rem',
-            padding: '1rem',
-            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-            borderRadius: '0.75rem',
-            border: '1px solid rgba(255, 255, 255, 0.1)'
-          }}>
+        <div className="selected-systems-list">
+          <div className="selected-systems-container">
             {selectedSystemIds.map((systemId) => {
-              const system = tree.find(s => s.id === systemId) || 
-                            tree.flatMap(s => s.children).find(c => c.id === systemId) ||
-                            tree.flatMap(s => s.children.flatMap(c => c.children)).find(v => v.id === systemId);
+              const system = findSystem(systemId);
               
               return (
-                <div
-                  key={systemId}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    padding: '0.5rem 0.75rem',
-                    backgroundColor: 'var(--color-artificio-orange)',
-                    color: 'white',
-                    borderRadius: '0.5rem',
-                    fontSize: '0.875rem',
-                    fontWeight: '500'
-                  }}
-                >
+                <div key={systemId} className="selected-system-badge">
                   <span>{system?.name || 'Sistema'}</span>
                   <button
                     type="button"
                     onClick={() => onRemove(systemId)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: 'white',
-                      cursor: 'pointer',
-                      padding: '0',
-                      fontSize: '1.25rem',
-                      lineHeight: '1',
-                      opacity: 0.8
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                    onMouseLeave={(e) => e.currentTarget.style.opacity = '0.8'}
+                    className="selected-system-remove"
+                    aria-label={`Remover ${system?.name || 'sistema'}`}
                   >
                     ×
                   </button>
@@ -139,4 +116,4 @@ export function UserSystemsSelector({
       />
     </div>
   );
-}
+});

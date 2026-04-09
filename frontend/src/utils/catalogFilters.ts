@@ -20,7 +20,7 @@ function parseEnum<T extends string>(
 }
 
 // Valores válidos para validação
-const VALID_SORT_VALUES: readonly SortOption[] = ['popular', 'recent', 'ending_soon'];
+const VALID_SORT_VALUES: readonly SortOption[] = ['popular', 'recent', 'price_asc', 'price_desc'];
 const VALID_MODALITIES: readonly ModalityOption[] = ['online', 'presencial', 'hibrida'];
 const VALID_PRICE_TYPES: readonly PriceTypeOption[] = ['gratuita', 'paga'];
 const VALID_EXPERIENCE_LEVELS: readonly ExperienceLevelOption[] = ['iniciante', 'intermediario', 'veterano'];

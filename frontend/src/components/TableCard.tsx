@@ -3,6 +3,8 @@ import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Dice1, Globe, MapPin } from 'lucide-react';
 import type { TableCard } from '../types/tables';
+import { getSlotsVisualState } from '../utils/slots';
+import { SlotsIndicator } from './SlotsIndicator';
 
 const modalityLabels: Record<string, string> = {
   online: 'Online',
@@ -45,14 +47,8 @@ export function TableCardSkeleton() {
 }
 
 export function TableCardComponent({ table }: { table: TableCard }) {
-  // Lógica de vagas com fallback seguro
-  const slotsLeft =
-    table.slots_open !== null && table.slots_open !== undefined
-      ? table.slots_open
-      : Math.max(0, (table.slots_total ?? 0) - (table.slots_filled ?? 0));
-
-  const isFull = slotsLeft <= 0;
-  const isUrgent = slotsLeft <= 2 && !isFull;
+  // Fonte única de verdade para vagas (usado apenas para lógica de CTA)
+  const { open: slotsLeft, isUrgent, isFull } = getSlotsVisualState(table);
 
   // Lógica de CTA baseada em estado (ISO 9241 – Controllability)
   // Estado A: pode entrar direto → CTA primário "Entrar" + secundário "Ver detalhes"
@@ -173,31 +169,7 @@ export function TableCardComponent({ table }: { table: TableCard }) {
 
           <div className="flex items-center justify-between gap-3">
             {/* Vagas */}
-            <div className="flex items-center gap-2">
-              <div className="flex gap-1">
-                {Array.from({ length: Math.min(5, table.slots_total ?? 0) }).map((_, i) => (
-                  <div
-                    key={i}
-                    className={`w-2 h-2 rounded-full transition-colors ${
-                      i < (table.slots_filled ?? 0)
-                        ? 'bg-orange-500'
-                        : 'bg-white/20'
-                    }`}
-                  />
-                ))}
-                {(table.slots_total ?? 0) > 5 && (
-                  <span className="text-[10px] text-white/50 ml-1">+{(table.slots_total ?? 0) - 5}</span>
-                )}
-              </div>
-              
-              {isFull ? (
-                <span className="text-xs font-bold text-red-400">Lotada</span>
-              ) : isUrgent ? (
-                <span className="text-xs font-bold text-orange-400">{slotsLeft}/{table.slots_total}</span>
-              ) : (
-                <span className="text-xs font-bold text-emerald-400">{slotsLeft}/{table.slots_total}</span>
-              )}
-            </div>
+            <SlotsIndicator table={table} />
 
             {/* Preço */}
             {table.price_type === 'gratuita' ? (
@@ -211,12 +183,14 @@ export function TableCardComponent({ table }: { table: TableCard }) {
 
           {/* BLOCO 4: ACTION (CTA primário + secundário opcional) */}
           <div className="space-y-2">
-            <div className={`w-full py-2.5 rounded-lg text-sm font-bold text-center transition-colors ${
-              primaryCTA.variant === 'primary'
-                ? 'bg-orange-600 hover:bg-orange-700 text-white'
-                : 'border-2 border-orange-600 text-orange-600 hover:bg-orange-600/10'
+            <div className={`w-full py-2.5 rounded-lg text-sm font-bold text-center transition-all ${
+              isFull
+                ? 'bg-gray-600 text-white/50 cursor-not-allowed opacity-50'
+                : primaryCTA.variant === 'primary'
+                  ? 'bg-orange-600 hover:bg-orange-700 text-white'
+                  : 'border-2 border-orange-600 text-orange-600 hover:bg-orange-600/10'
             }`}>
-              {primaryCTA.label}
+              {isFull ? 'Mesa lotada' : primaryCTA.label}
             </div>
             
             {canJoinDirectly && (

@@ -76,7 +76,7 @@ Use para localizar o erro sem varrer a tabela inteira:
 
 | ID | Sintoma | Causa provável | Diagnóstico rápido | Solução validada | Prevenção |
 |---|---|---|---|---|---|
-| E038 | Erro 502 Bad Gateway no Cloudflare Tunnel | `cloudflared` tenta acessar `localhost:30302` (ele mesmo) | Log do `cloudflared` mostrando "connection refused" ou timeout | Usar o nome do container na mesma rede Docker (`http://mesas-beta-app:80`) | Configurar túnel para apontar para nome do container + porta interna |
+| E038 | Erro 502 Bad Gateway no Cloudflare Tunnel | `cloudflared` tenta acessar `localhost:30302` (ele mesmo) | Log do `cloudflared` mostrando "connection refused" ou timeout | Usar o nome do container na mesma rede Docker (`http://mesas-beta-frontend:80`) | Configurar túnel para apontar para nome do container + porta interna |
 | E039 | `Host not found` / `Connection Refused` entre containers de projetos diferentes | Container do túnel não "enxerga" o app por isolamento de rede | `ping <container-name>` falhando de dentro do container do túnel | Adicionar a rede do túnel (ex: `gerenciador_telegram_default`) como `external` no `docker-compose.beta.yml` do projeto | Planejar rede compartilhada para serviços de infraestrutura comuns (túnel, banco, proxy) |
 | E057 | `No such container` ao tentar `docker exec` no Postgres na VM | `container_name` não definido explicitamente; Docker Compose gera nome baseado na pasta | Comando SSH falha instantaneamente com "No such container" | Executar na VM `docker ps \| grep mesas` para identificar o nome correto gerado em runtime | Documentar sempre os nomes canônicos: `mesas-beta-db` e `mesas-db` |
 | E102 | `getsockname failed: Not a socket` seguido de `Read from remote host ... Unknown error` ao executar comando SSH via `ssh -F C:\projetos\config` | **Causa raiz confirmada:** `ControlPath ~/.ssh/ssh-%r@%h:%p` no arquivo de config SSH é incompatível com Windows — o caminho `~/.ssh/` não existe ou tem permissões inadequadas, causando falha no socket de multiplexação | Qualquer comando `ssh -F C:\projetos\config faren` falha imediatamente com erro de socket; `scp` também falha | **Solução permanente:** Editar `C:\projetos\config` e alterar `ControlPath` para caminho Windows válido: `ControlPath C:/Users/%USERNAME%/.ssh/sockets/ssh-%r@%h:%p` (criar diretório `mkdir $env:USERPROFILE\.ssh\sockets` antes) **OU** desabilitar multiplexação: `ControlMaster no` (remover linha `ControlPath`) | Validar config SSH em Windows usando caminhos absolutos compatíveis ou desabilitar `ControlMaster` se multiplexação não for crítica |
@@ -482,5 +482,6 @@ const getValidUrl = (value: string): string => {
 ```
 
 **Data:** 08/04/2026
+
 
 

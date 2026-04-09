@@ -2,9 +2,28 @@ import type { TableDetail } from '../../../types/tables';
 import type { TableViewModel, TableCertifications, CTAConfig, UrgencyConfig, VisibilityConfig } from '../types/tableView.types';
 
 /**
- * Gera configuração de CTA baseado no estado da mesa
+ * Gera configuração de CTA baseado no estado da mesa e contatos disponíveis
  */
-function generateCTAConfig(slotsLeft: number): CTAConfig {
+function generateCTAConfig(table: TableDetail, slotsLeft: number, contacts: any[]): CTAConfig {
+  // CORREÇÃO: Bloquear CTA para mesas desativadas/encerradas
+  if (table.status === 'cancelled') {
+    return {
+      label: 'Mesa desativada',
+      disabled: true,
+      variant: 'disabled',
+      action: 'none',
+    };
+  }
+
+  if (table.status === 'ended') {
+    return {
+      label: 'Mesa encerrada',
+      disabled: true,
+      variant: 'disabled',
+      action: 'none',
+    };
+  }
+
   const isFull = slotsLeft <= 0;
 
   if (isFull) {
@@ -16,8 +35,36 @@ function generateCTAConfig(slotsLeft: number): CTAConfig {
     };
   }
 
+  // Ordenar contatos por sort_order (menor = maior prioridade)
+  const sortedContacts = [...contacts].sort((a, b) => (a.sort_order ?? 999) - (b.sort_order ?? 999));
+  const primaryContact = sortedContacts[0];
+
+  // Se há apenas 1 contato dominante, CTA direto
+  if (primaryContact && sortedContacts.length === 1) {
+    if (primaryContact.channel === 'discord' && primaryContact.discord_server_url) {
+      return {
+        label: '💬 Entrar no Discord',
+        disabled: false,
+        variant: 'primary',
+        action: 'external-link',
+        actionUrl: primaryContact.discord_server_url,
+      };
+    }
+    if (primaryContact.channel === 'whatsapp') {
+      const url = getWhatsAppUrl(primaryContact.value);
+      return {
+        label: '💬 Enviar WhatsApp',
+        disabled: false,
+        variant: 'primary',
+        action: 'external-link',
+        actionUrl: url,
+      };
+    }
+  }
+
+  // Múltiplos contatos ou canal não suportado: fallback para seletor
   return {
-    label: '🎲 Entrar na mesa',
+    label: '🎲 Escolher como entrar',
     disabled: false,
     variant: 'primary',
     action: 'scroll-contact',
@@ -25,9 +72,44 @@ function generateCTAConfig(slotsLeft: number): CTAConfig {
 }
 
 /**
+ * Helper: formata número WhatsApp para wa.me
+ */
+function getWhatsAppUrl(value: string): string {
+  if (value.startsWith('http://') || value.startsWith('https://')) {
+    return value;
+  }
+  if (value.startsWith('wa.me')) {
+    return `https://${value}`;
+  }
+  const cleanNumber = value.replace(/\D/g, '');
+  if (cleanNumber.length >= 10) {
+    const fullNumber = cleanNumber.startsWith('55') ? cleanNumber : `55${cleanNumber}`;
+    return `https://wa.me/${fullNumber}`;
+  }
+  return `https://${value}`;
+}
+
+/**
  * Gera configuração de urgência baseado em vagas restantes
  */
-function generateUrgencyConfig(slotsLeft: number): UrgencyConfig {
+function generateUrgencyConfig(table: TableDetail, slotsLeft: number): UrgencyConfig {
+  // CORREÇÃO: Urgência específica para status
+  if (table.status === 'cancelled') {
+    return {
+      label: '⏸️ Mesa desativada',
+      tone: 'none',
+      icon: '⏸️',
+    };
+  }
+
+  if (table.status === 'ended') {
+    return {
+      label: '🏁 Mesa encerrada',
+      tone: 'none',
+      icon: '🏁',
+    };
+  }
+
   if (slotsLeft === 0) {
     return {
       label: '❌ Mesa lotada',
@@ -109,8 +191,8 @@ export function mapTableToView(table: TableDetail): TableViewModel {
     // =============================
     // DECISION ENGINE (configs)
     // =============================
-    cta: generateCTAConfig(slotsLeft),
-    urgency: generateUrgencyConfig(slotsLeft),
+    cta: generateCTAConfig(table, slotsLeft, table.contacts ?? []),
+    urgency: generateUrgencyConfig(table, slotsLeft),
     visibility: generateVisibilityConfig(table),
 
     // =============================

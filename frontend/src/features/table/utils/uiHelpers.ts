@@ -1,4 +1,4 @@
-import type { CTAConfig, UrgencyConfig } from '../types/tableView.types';
+import type { CTAConfig } from '../types/tableView.types';
 
 /**
  * Retorna classes CSS para botões baseado no variant do CTA
@@ -17,7 +17,7 @@ export function getButtonStyle(variant: CTAConfig['variant']): string {
 /**
  * Retorna classes CSS para urgência baseado no tom
  */
-export function getUrgencyColor(tone: UrgencyConfig['tone']): string {
+export function getUrgencyColor(tone: 'critical' | 'high' | 'medium' | 'low' | 'none'): string {
   switch (tone) {
     case 'critical':
       return 'text-red-400';
@@ -36,6 +36,21 @@ export function getUrgencyColor(tone: UrgencyConfig['tone']): string {
  * Handler para ações de CTA
  */
 export function handleCTA(cta: CTAConfig): void {
+  if (cta.action === 'external-link' && cta.actionUrl) {
+    // Tracking de clique antes de abrir link
+    if (typeof window !== 'undefined') {
+      const slug = window.location.pathname.split('/').pop();
+      if (slug) {
+        fetch(`/api/v1/tables/${slug}/click`, { method: 'POST' }).catch(() => {
+          // Silencioso - tracking não deve quebrar UX
+        });
+      }
+    }
+    
+    window.open(cta.actionUrl, '_blank', 'noopener,noreferrer');
+    return;
+  }
+
   if (cta.action === 'scroll-contact') {
     const el = document.getElementById('mesa-contato');
     if (!el) return;
@@ -47,4 +62,97 @@ export function handleCTA(cta: CTAConfig): void {
       el.classList.remove('ring-2', 'ring-orange-400', 'ring-offset-2', 'ring-offset-[#091427]');
     }, 1500);
   }
+}
+
+/**
+ * Handler para alterar status da mesa
+ */
+export async function handleStatus(id: string, status: string): Promise<void> {
+  const statusLabels: Record<string, string> = {
+    active: 'ativar',
+    cancelled: 'desativar',
+    full: 'marcar como lotada',
+    ended: 'marcar como encerrada',
+  };
+
+  const label = statusLabels[status] || status;
+  
+  if (!confirm(`Tem certeza que deseja ${label} esta mesa?`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/v1/gm/tables/${id}/status`, {
+      method: 'PATCH',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+      body: JSON.stringify({ status }),
+    });
+
+    if (!res.ok) {
+      const error = await res.json();
+      alert(error.error || 'Erro ao alterar status.');
+      return;
+    }
+
+    window.location.reload();
+  } catch (error) {
+    alert('Erro ao alterar status. Tente novamente.');
+  }
+}
+
+/**
+ * Handler para deletar mesa com confirmação reforçada
+ */
+export async function handleDelete(id: string, title: string): Promise<void> {
+  // Primeira confirmação: aviso sobre irreversibilidade
+  const confirmed = confirm(
+    '⚠️ ATENÇÃO: Excluir permanentemente?\n\n' +
+    'Esta ação NÃO pode ser desfeita.\n' +
+    'Todos os dados da mesa serão perdidos.\n\n' +
+    'Se você quer apenas pausar a mesa, use "Desativar" ao invés de excluir.'
+  );
+  
+  if (!confirmed) return;
+
+  // Segunda confirmação: digitação do nome da mesa
+  const userInput = prompt(
+    `Para confirmar a exclusão PERMANENTE, digite o nome da mesa:\n\n"${title}"`
+  );
+
+  if (userInput === null) return; // Usuário cancelou
+
+  if (userInput.trim() !== title.trim()) {
+    alert('❌ Nome incorreto. Exclusão cancelada por segurança.');
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/v1/gm/tables/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
+
+    if (!res.ok) {
+      const error = await res.json();
+      alert(error.error || 'Erro ao excluir mesa.');
+      return;
+    }
+
+    alert('✅ Mesa excluída com sucesso.');
+    window.location.href = '/painel';
+  } catch (error) {
+    alert('Erro ao excluir mesa. Tente novamente.');
+  }
+}
+
+/**
+ * Handler para editar mesa
+ */
+export function handleEdit(id: string): void {
+  window.location.href = `/painel/mesas/${id}/editar`;
 }

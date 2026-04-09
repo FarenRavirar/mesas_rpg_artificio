@@ -1,7 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-
-const API_BASE = import.meta.env.VITE_API_URL || '';
+import { showError } from '../utils/toast';
+import { api } from '../services/apiClient';
+import {
+  userSchema,
+  profileSchema,
+  playerProfileSchema,
+  gmProfileSchema,
+  validateOrThrow,
+} from '../schemas/profileSchemas';
 
 /**
  * Hook para gerenciar perfil de usuário com autosave
@@ -100,14 +107,13 @@ interface UseProfileReturn {
   refetch: () => Promise<void>;
 }
 
-let debounceTimer: number | null = null;
-
 export function useProfile(): UseProfileReturn {
   const { isAuthenticated } = useAuth();
   const [profile, setProfile] = useState<FullProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const debounceRef = useRef<number | null>(null);
 
   const fetchProfile = useCallback(async () => {
     if (!isAuthenticated) {
@@ -116,19 +122,12 @@ export function useProfile(): UseProfileReturn {
     }
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/profile/me`, {
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao buscar perfil');
-      }
-
-      const result = await response.json();
+      const result = await api.get<{ data: FullProfile }>('/api/v1/profile/me');
       setProfile(result.data);
       setError(null);
     } catch (err: any) {
-      setError(err.message);
+      const message = err.message || 'Erro ao buscar perfil';
+      setError(message);
       console.error('[useProfile] Erro ao buscar perfil:', err);
     } finally {
       setLoading(false);
@@ -141,18 +140,20 @@ export function useProfile(): UseProfileReturn {
 
   const debouncedSave = useCallback(
     (fn: () => Promise<void>) => {
-      if (debounceTimer) {
-        clearTimeout(debounceTimer);
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
       }
 
       setSaving(true);
 
-      debounceTimer = setTimeout(async () => {
+      debounceRef.current = window.setTimeout(async () => {
         try {
           await fn();
           setError(null);
         } catch (err: any) {
-          setError(err.message);
+          const message = err.message || 'Erro ao salvar alterações';
+          setError(message);
+          showError(message);
           console.error('[useProfile] Erro ao salvar:', err);
         } finally {
           setSaving(false);
@@ -167,19 +168,8 @@ export function useProfile(): UseProfileReturn {
       if (!isAuthenticated) return;
 
       debouncedSave(async () => {
-        const response = await fetch(`${API_BASE}/api/v1/profile/me`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify(data),
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Erro ao atualizar usuário');
-        }
-
-        const result = await response.json();
+        const validated = validateOrThrow(userSchema, data);
+        const result = await api.patch<{ data: any }>('/api/v1/profile/me', validated);
         setProfile((prev) => (prev ? { ...prev, user: result.data } : null));
       });
     },
@@ -196,22 +186,8 @@ export function useProfile(): UseProfileReturn {
       if (!isAuthenticated) return;
 
       debouncedSave(async () => {
-        const response = await fetch(
-          `${API_BASE}/api/v1/profile/me/profile`,
-          {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify(data),
-          }
-        );
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Erro ao atualizar perfil');
-        }
-
-        const result = await response.json();
+        const validated = validateOrThrow(profileSchema, data);
+        const result = await api.patch<{ data: any }>('/api/v1/profile/me/profile', validated);
         setProfile((prev) => (prev ? { ...prev, profile: result.data } : null));
       });
     },
@@ -223,19 +199,8 @@ export function useProfile(): UseProfileReturn {
       if (!isAuthenticated) return;
 
       debouncedSave(async () => {
-        const response = await fetch(`${API_BASE}/api/v1/profile/me/player`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify(data),
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Erro ao atualizar perfil de jogador');
-        }
-
-        const result = await response.json();
+        const validated = validateOrThrow(playerProfileSchema, data);
+        const result = await api.patch<{ data: any }>('/api/v1/profile/me/player', validated);
         setProfile((prev) => (prev ? { ...prev, player: result.data } : null));
       });
     },
@@ -247,19 +212,8 @@ export function useProfile(): UseProfileReturn {
       if (!isAuthenticated) return;
 
       debouncedSave(async () => {
-        const response = await fetch(`${API_BASE}/api/v1/profile/me/gm`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify(data),
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Erro ao atualizar perfil de mestre');
-        }
-
-        const result = await response.json();
+        const validated = validateOrThrow(gmProfileSchema, data);
+        const result = await api.patch<{ data: any }>('/api/v1/profile/me/gm', validated);
         setProfile((prev) => (prev ? { ...prev, gm: result.data } : null));
       });
     },
@@ -271,19 +225,11 @@ export function useProfile(): UseProfileReturn {
       if (!isAuthenticated) return;
 
       try {
-        const response = await fetch(`${API_BASE}/api/v1/profile/me/systems`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ system_id: systemId, type }),
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Erro ao adicionar sistema');
-        }
-
-        const result = await response.json();
+        const result = await api.post<{ data: UserSystem }>(
+          '/api/v1/profile/me/systems',
+          { system_id: systemId, type }
+        );
+        
         setProfile((prev) => {
           if (!prev) return null;
           return {
@@ -295,7 +241,8 @@ export function useProfile(): UseProfileReturn {
           };
         });
       } catch (err: any) {
-        setError(err.message);
+        const message = err.message || 'Erro ao adicionar sistema';
+        setError(message);
         console.error('[useProfile] Erro ao adicionar sistema:', err);
       }
     },
@@ -307,18 +254,8 @@ export function useProfile(): UseProfileReturn {
       if (!isAuthenticated) return;
 
       try {
-        const response = await fetch(
-          `${API_BASE}/api/v1/profile/me/systems/${id}`,
-          {
-            method: 'DELETE',
-            credentials: 'include',
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error('Erro ao remover sistema');
-        }
-
+        await api.delete(`/api/v1/profile/me/systems/${id}`);
+        
         setProfile((prev) => {
           if (!prev) return null;
           return {
@@ -330,7 +267,8 @@ export function useProfile(): UseProfileReturn {
           };
         });
       } catch (err: any) {
-        setError(err.message);
+        const message = err.message || 'Erro ao remover sistema';
+        setError(message);
         console.error('[useProfile] Erro ao remover sistema:', err);
       }
     },

@@ -195,6 +195,7 @@ router.get('/', async (req: Request, res: Response) => {
         .orderBy('t.price_value', 'desc')
         .orderBy('t.created_at', 'desc');
     }
+    // TODO: ending_soon e slots requerem campos end_date e slots_available no banco
 
     // CORREÇÃO BE-03: Contagem otimizada - usar query original sem SELECT complexos
     // Isso evita duplicar lógica de filtros e mantém type-safety do Kysely

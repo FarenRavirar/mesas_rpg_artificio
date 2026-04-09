@@ -397,7 +397,7 @@ A única exceção é quando o escopo da branch for ambíguo — nesse caso, per
 
 **Comandos com alteração de estado** — exigem autorização explícita do responsável no chat.
 
-**Cloudflare Tunnel:** A VM possui túnel mestre interligado à rede Docker interna. Agentes **nunca** devem criar novos túneis, baixar containers `cloudflared` paralelos ou solicitar Tokens ao usuário para expor novos containers. Novos ambientes são expostos via Public Hostname no painel Cloudflare, referenciando o container alvo (ex: `http://mesas-beta-app:80`).
+**Cloudflare Tunnel:** A VM possui túnel mestre interligado à rede Docker interna. Agentes **nunca** devem criar novos túneis, baixar containers `cloudflared` paralelos ou solicitar Tokens ao usuário para expor novos containers. Novos ambientes são expostos via Public Hostname no painel Cloudflare, referenciando o container alvo (ex: `http://mesas-beta-frontend:80`).
 
 **Acesso SSH assistido:** Ver métodos de conexão e regras em `OPERACAO_PRODUCAO.md` §3.
 
@@ -471,3 +471,4 @@ Se o agente identificar uma tecnologia, biblioteca ou ferramenta que resolva um 
 ## Limite de Escopo
 
 Este arquivo define apenas governança de agentes. Não descreve arquitetura detalhada nem runbook operacional. Para esses fins, consultar `ARQUITETURA_PROJETO.md` e `OPERACAO_PRODUCAO.md`.
+
