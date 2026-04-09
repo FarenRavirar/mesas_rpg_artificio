@@ -1,0 +1,726 @@
+{
+  "backend": [
+    {
+      "method": "GET",
+      "path": "/users",
+      "controller": "adminProfile"
+    },
+    {
+      "method": "GET",
+      "path": "/",
+      "controller": "adminSettingSuggestions"
+    },
+    {
+      "method": "POST",
+      "path": "/",
+      "controller": "adminSettingSuggestions"
+    },
+    {
+      "method": "PUT",
+      "path": "/:id",
+      "controller": "adminSettingSuggestions"
+    },
+    {
+      "method": "DELETE",
+      "path": "/:id",
+      "controller": "adminSettingSuggestions"
+    },
+    {
+      "method": "GET",
+      "path": "/google",
+      "controller": "auth"
+    },
+    {
+      "method": "GET",
+      "path": "/google/callback",
+      "controller": "auth"
+    },
+    {
+      "method": "POST",
+      "path": "/logout",
+      "controller": "auth"
+    },
+    {
+      "method": "GET",
+      "path": "/",
+      "controller": "changelog"
+    },
+    {
+      "method": "GET",
+      "path": "/discord/connect",
+      "controller": "discord"
+    },
+    {
+      "method": "GET",
+      "path": "/discord/callback",
+      "controller": "discord"
+    },
+    {
+      "method": "DELETE",
+      "path": "/discord/disconnect",
+      "controller": "discord"
+    },
+    {
+      "method": "POST",
+      "path": "/discord/verify-covil",
+      "controller": "discord"
+    },
+    {
+      "method": "GET",
+      "path": "/:slug",
+      "controller": "gm"
+    },
+    {
+      "method": "POST",
+      "path": "/profile",
+      "controller": "gmPanel"
+    },
+    {
+      "method": "PUT",
+      "path": "/profile",
+      "controller": "gmPanel"
+    },
+    {
+      "method": "GET",
+      "path": "/me",
+      "controller": "gmPanel"
+    },
+    {
+      "method": "POST",
+      "path": "/tables",
+      "controller": "gmPanel"
+    },
+    {
+      "method": "PUT",
+      "path": "/tables/:id",
+      "controller": "gmPanel"
+    },
+    {
+      "method": "GET",
+      "path": "/tables",
+      "controller": "gmPanel"
+    },
+    {
+      "method": "PATCH",
+      "path": "/tables/:id/status",
+      "controller": "gmPanel"
+    },
+    {
+      "method": "DELETE",
+      "path": "/tables/:id",
+      "controller": "gmPanel"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin/tables/:id",
+      "controller": "gmPanel"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin/tables/:id",
+      "controller": "gmPanel"
+    },
+    {
+      "method": "POST",
+      "path": "/tables/:slug/view",
+      "controller": "gmPanel"
+    },
+    {
+      "method": "POST",
+      "path": "/tables/:id/click",
+      "controller": "gmPanel"
+    },
+    {
+      "method": "POST",
+      "path": "/tables/:id/contact",
+      "controller": "gmPanel"
+    },
+    {
+      "method": "POST",
+      "path": "/tables/:id/favorite",
+      "controller": "gmPanel"
+    },
+    {
+      "method": "GET",
+      "path": "/links",
+      "controller": "links"
+    },
+    {
+      "method": "POST",
+      "path": "/links",
+      "controller": "links"
+    },
+    {
+      "method": "DELETE",
+      "path": "/links/:id",
+      "controller": "links"
+    },
+    {
+      "method": "PATCH",
+      "path": "/links/reorder",
+      "controller": "links"
+    },
+    {
+      "method": "GET",
+      "path": "/",
+      "controller": "me"
+    },
+    {
+      "method": "GET",
+      "path": "/options",
+      "controller": "me"
+    },
+    {
+      "method": "PUT",
+      "path": "/preferences",
+      "controller": "me"
+    },
+    {
+      "method": "GET",
+      "path": "/",
+      "controller": "notifications"
+    },
+    {
+      "method": "PATCH",
+      "path": "/:id/read",
+      "controller": "notifications"
+    },
+    {
+      "method": "GET",
+      "path": "/me",
+      "controller": "profile"
+    },
+    {
+      "method": "PATCH",
+      "path": "/me",
+      "controller": "profile"
+    },
+    {
+      "method": "PATCH",
+      "path": "/me/profile",
+      "controller": "profile"
+    },
+    {
+      "method": "PATCH",
+      "path": "/me/player",
+      "controller": "profile"
+    },
+    {
+      "method": "PATCH",
+      "path": "/player",
+      "controller": "profile"
+    },
+    {
+      "method": "PATCH",
+      "path": "/me/gm",
+      "controller": "profile"
+    },
+    {
+      "method": "PATCH",
+      "path": "/gm",
+      "controller": "profile"
+    },
+    {
+      "method": "POST",
+      "path": "/me/systems",
+      "controller": "profile"
+    },
+    {
+      "method": "POST",
+      "path": "/systems",
+      "controller": "profile"
+    },
+    {
+      "method": "DELETE",
+      "path": "/me/systems/:id",
+      "controller": "profile"
+    },
+    {
+      "method": "DELETE",
+      "path": "/systems/:id",
+      "controller": "profile"
+    },
+    {
+      "method": "GET",
+      "path": "/me/discord",
+      "controller": "profile"
+    },
+    {
+      "method": "POST",
+      "path": "/me/connect/discord",
+      "controller": "profile"
+    },
+    {
+      "method": "DELETE",
+      "path": "/me/connect/discord",
+      "controller": "profile"
+    },
+    {
+      "method": "GET",
+      "path": "/",
+      "controller": "scenarios"
+    },
+    {
+      "method": "GET",
+      "path": "/:id",
+      "controller": "scenarios"
+    },
+    {
+      "method": "POST",
+      "path": "/admin",
+      "controller": "scenarios"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin/:id",
+      "controller": "scenarios"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin/:id",
+      "controller": "scenarios"
+    },
+    {
+      "method": "GET",
+      "path": "/suggest-styles",
+      "controller": "settings"
+    },
+    {
+      "method": "GET",
+      "path": "/",
+      "controller": "systems"
+    },
+    {
+      "method": "POST",
+      "path": "/admin",
+      "controller": "systems"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin/:id",
+      "controller": "systems"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin/:id",
+      "controller": "systems"
+    },
+    {
+      "method": "POST",
+      "path": "/",
+      "controller": "systemSuggestions"
+    },
+    {
+      "method": "GET",
+      "path": "/mine",
+      "controller": "systemSuggestions"
+    },
+    {
+      "method": "GET",
+      "path": "/system-suggestions",
+      "controller": "systemSuggestionsAdmin"
+    },
+    {
+      "method": "PATCH",
+      "path": "/system-suggestions/:id/approve",
+      "controller": "systemSuggestionsAdmin"
+    },
+    {
+      "method": "PATCH",
+      "path": "/system-suggestions/:id/reject",
+      "controller": "systemSuggestionsAdmin"
+    },
+    {
+      "method": "GET",
+      "path": "/",
+      "controller": "tables"
+    },
+    {
+      "method": "GET",
+      "path": "/:slug",
+      "controller": "tables"
+    },
+    {
+      "method": "POST",
+      "path": "/:slug/view",
+      "controller": "tables"
+    },
+    {
+      "method": "POST",
+      "path": "/:slug/click",
+      "controller": "tables"
+    },
+    {
+      "method": "GET",
+      "path": "/:tableId/schedules",
+      "controller": "tableSchedules"
+    },
+    {
+      "method": "POST",
+      "path": "/:tableId/schedules",
+      "controller": "tableSchedules"
+    },
+    {
+      "method": "PUT",
+      "path": "/:tableId/schedules/:id",
+      "controller": "tableSchedules"
+    },
+    {
+      "method": "DELETE",
+      "path": "/:tableId/schedules/:id",
+      "controller": "tableSchedules"
+    },
+    {
+      "method": "GET",
+      "path": "/",
+      "controller": "vttPlatforms"
+    },
+    {
+      "method": "POST",
+      "path": "/suggest",
+      "controller": "vttPlatforms"
+    }
+  ],
+  "frontend": [
+    {
+      "path": "/api/v1/health",
+      "file": "App.tsx"
+    },
+    {
+      "path": "/api/v1/changelog",
+      "file": "ChangelogModal.tsx"
+    },
+    {
+      "path": "/api/v1/changelog",
+      "file": "ChangelogModal.tsx"
+    },
+    {
+      "path": "/api/v1/notifications",
+      "file": "NotificationBell.tsx"
+    },
+    {
+      "path": "/api/v1/notifications/${id}/read",
+      "file": "NotificationBell.tsx"
+    },
+    {
+      "path": "/api/v1/scenarios/admin/${scenario.id}",
+      "file": "ScenarioEditModal.tsx"
+    },
+    {
+      "path": "/api/v1/scenarios/admin",
+      "file": "ScenarioEditModal.tsx"
+    },
+    {
+      "path": "/api/v1/scenarios",
+      "file": "ScenarioSelector.tsx"
+    },
+    {
+      "path": "/api/v1/settings/suggest-styles",
+      "file": "SettingStylesField.tsx"
+    },
+    {
+      "path": "/api/v1/auth/google",
+      "file": "SiteHeader.tsx"
+    },
+    {
+      "path": "/api/v1/systems/admin/${system.id}",
+      "file": "SystemEditModal.tsx"
+    },
+    {
+      "path": "/api/v1/systems/admin",
+      "file": "SystemEditModal.tsx"
+    },
+    {
+      "path": "/api/v1/system-suggestions",
+      "file": "SystemSuggestionModal.tsx"
+    },
+    {
+      "path": "/api/v1/tables/${table.slug}",
+      "file": "TableCard.tsx"
+    },
+    {
+      "path": "/api/v1/tables/${table.slug}/click",
+      "file": "TableCard.tsx"
+    },
+    {
+      "path": "/api/v1/systems",
+      "file": "UserSystemsSelector.tsx"
+    },
+    {
+      "path": "/api/v1/me",
+      "file": "AuthContext.tsx"
+    },
+    {
+      "path": "/api/v1/auth/logout",
+      "file": "AuthContext.tsx"
+    },
+    {
+      "path": "/api/v1/systems",
+      "file": "CreateTableForm.tsx"
+    },
+    {
+      "path": "/api/v1/scenarios/${formHook.selectedScenarioId}",
+      "file": "CreateTableForm.tsx"
+    },
+    {
+      "path": "/api/v1/gm/tables/${(initialData as any).id}",
+      "file": "useCreateTableForm.ts"
+    },
+    {
+      "path": "/api/v1/gm/tables",
+      "file": "useCreateTableForm.ts"
+    },
+    {
+      "path": "/api/v1/masters/${masterId}",
+      "file": "MasterProfilePage.tsx"
+    },
+    {
+      "path": "/api/v1/masters/me/avatar",
+      "file": "MasterProfilePage.tsx"
+    },
+    {
+      "path": "/api/v1/masters/:id\r",
+      "file": "masterView.types.ts"
+    },
+    {
+      "path": "/api/v1/tables/${slug}/click",
+      "file": "uiHelpers.ts"
+    },
+    {
+      "path": "/api/v1/gm/tables/${id}/status",
+      "file": "uiHelpers.ts"
+    },
+    {
+      "path": "/api/v1/gm/tables/${id}",
+      "file": "uiHelpers.ts"
+    },
+    {
+      "path": "/api/v1/tables",
+      "file": "useFetchTables.ts"
+    },
+    {
+      "path": "/api/v1/profile/links",
+      "file": "useLinks.ts"
+    },
+    {
+      "path": "/api/v1/profile/links",
+      "file": "useLinks.ts"
+    },
+    {
+      "path": "/api/v1/profile/links/${linkId}",
+      "file": "useLinks.ts"
+    },
+    {
+      "path": "/api/v1/profile/links/reorder",
+      "file": "useLinks.ts"
+    },
+    {
+      "path": "/api/v1/profile/me",
+      "file": "useProfile.ts"
+    },
+    {
+      "path": "/api/v1/profile/me",
+      "file": "useProfile.ts"
+    },
+    {
+      "path": "/api/v1/profile/me/profile",
+      "file": "useProfile.ts"
+    },
+    {
+      "path": "/api/v1/profile/me/player",
+      "file": "useProfile.ts"
+    },
+    {
+      "path": "/api/v1/profile/me/gm",
+      "file": "useProfile.ts"
+    },
+    {
+      "path": "/api/v1/profile/me/systems",
+      "file": "useProfile.ts"
+    },
+    {
+      "path": "/api/v1/profile/me/systems/${id}",
+      "file": "useProfile.ts"
+    },
+    {
+      "path": "/api/v1/profile/me",
+      "file": "useProfileQuery.ts"
+    },
+    {
+      "path": "/api/v1/profile/me",
+      "file": "useProfileQuery.ts"
+    },
+    {
+      "path": "/api/v1/profile/me",
+      "file": "useProfileQuery.ts"
+    },
+    {
+      "path": "/api/v1/profile/player",
+      "file": "useProfileQuery.ts"
+    },
+    {
+      "path": "/api/v1/profile/gm",
+      "file": "useProfileQuery.ts"
+    },
+    {
+      "path": "/api/v1/profile/systems",
+      "file": "useProfileQuery.ts"
+    },
+    {
+      "path": "/api/v1/profile/systems/${systemId}",
+      "file": "useProfileQuery.ts"
+    },
+    {
+      "path": "/api/v1/vtt-platforms",
+      "file": "useVttPlatforms.ts"
+    },
+    {
+      "path": "/api/v1/systems",
+      "file": "SystemsPage.tsx"
+    },
+    {
+      "path": "/api/v1/systems/admin/${id}",
+      "file": "SystemsPage.tsx"
+    },
+    {
+      "path": "/api/v1/systems/admin/${editingId}",
+      "file": "SystemsTree.tsx"
+    },
+    {
+      "path": "/api/v1/systems",
+      "file": "useSystems.ts"
+    },
+    {
+      "path": "/api/v1/systems/admin/${id}",
+      "file": "useSystems.ts"
+    },
+    {
+      "path": "/api/v1/systems",
+      "file": "CatalogoPage.tsx"
+    },
+    {
+      "path": "/api/v1/admin/system-suggestions",
+      "file": "GestaoPage.tsx"
+    },
+    {
+      "path": "/api/v1/admin/system-suggestions",
+      "file": "GestaoPage.tsx"
+    },
+    {
+      "path": "/api/v1/scenarios",
+      "file": "GestaoPage.tsx"
+    },
+    {
+      "path": "/api/v1/tables",
+      "file": "GestaoPage.tsx"
+    },
+    {
+      "path": "/api/v1/admin/system-suggestions/${id}/approve",
+      "file": "GestaoPage.tsx"
+    },
+    {
+      "path": "/api/v1/admin/system-suggestions/${id}/reject",
+      "file": "GestaoPage.tsx"
+    },
+    {
+      "path": "/api/v1/scenarios/admin/${id}",
+      "file": "GestaoPage.tsx"
+    },
+    {
+      "path": "/api/v1/admin/tables/:id\r",
+      "file": "GestaoPage.tsx"
+    },
+    {
+      "path": "/api/v1/admin/tables/${id}",
+      "file": "GestaoPage.tsx"
+    },
+    {
+      "path": "/api/v1/admin/tables/:id\r",
+      "file": "GestaoPage.tsx"
+    },
+    {
+      "path": "/api/v1/admin/tables/${id}",
+      "file": "GestaoPage.tsx"
+    },
+    {
+      "path": "/api/v1/admin/tables/${table.id}",
+      "file": "GestaoPage.tsx"
+    },
+    {
+      "path": "/api/v1/auth/google",
+      "file": "LoginPage.tsx"
+    },
+    {
+      "path": "/api/v1/tables/${slug}",
+      "file": "MesaPage.tsx"
+    },
+    {
+      "path": "/api/v1/tables/${slug}/view",
+      "file": "MesaPage.tsx"
+    },
+    {
+      "path": "/api/v1/gm/${slug}",
+      "file": "MestrePage.tsx"
+    },
+    {
+      "path": "/api/v1/me",
+      "file": "OnboardingPage.tsx"
+    },
+    {
+      "path": "/api/v1/me/options",
+      "file": "OnboardingPage.tsx"
+    },
+    {
+      "path": "/api/v1/me/preferences",
+      "file": "OnboardingPage.tsx"
+    },
+    {
+      "path": "/api/v1/gm/profile",
+      "file": "PainelMestrePage.tsx"
+    },
+    {
+      "path": "/api/v1/gm/me",
+      "file": "PainelMestrePage.tsx"
+    },
+    {
+      "path": "/api/v1/gm/tables",
+      "file": "PainelMestrePage.tsx"
+    },
+    {
+      "path": "/api/v1/tables/${editId}",
+      "file": "PainelMestrePage.tsx"
+    },
+    {
+      "path": "/api/v1/gm/me",
+      "file": "PainelMestrePage.tsx"
+    },
+    {
+      "path": "/api/v1/gm/tables",
+      "file": "PainelMestrePage.tsx"
+    },
+    {
+      "path": "/api/v1/admin/tables/${tableId}",
+      "file": "PainelMestrePage.tsx"
+    },
+    {
+      "path": "/api/v1/gm/tables/${tableId}",
+      "file": "PainelMestrePage.tsx"
+    },
+    {
+      "path": "/api/v1/admin/tables/${tableId}",
+      "file": "PainelMestrePage.tsx"
+    },
+    {
+      "path": "/api/v1/gm/tables/${tableId}",
+      "file": "PainelMestrePage.tsx"
+    },
+    {
+      "path": "/api/v1/profile/${username}",
+      "file": "PlayerPage.tsx"
+    },
+    {
+      "path": "/api/v1/tables",
+      "file": "catalogService.ts"
+    }
+  ]
+}
