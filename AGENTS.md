@@ -42,9 +42,10 @@ Governança de agentes de IA neste repositório — **Anúncios de Mesas RPG (Po
 
 ### 3 — Por situação específica
 - [ ] **Erro encontrado?** → `ERRORS_SOLUTIONS.md` — imediatamente, antes de tentar corrigir
-- [ ] **Planejando feature?** → `TODO_OPERACIONAL.md`
+- [ ] **Planejando feature ou verificando rotas em falta no front?** → `TODO_OPERACIONAL.md` e `MAPA_DE_API.md`
 - [ ] **Executando lote?** → `FILA_IMPLEMENTACAO.md`
-- [ ] **Deploy ou produção?** → `OPERACAO_PRODUCAO.md`
+- [ ] **Deploy ou produção?** → `PRE_DEPLOY_CHECKLIST.md` — **OBRIGATÓRIO ANTES DE QUALQUER DEPLOY**
+- [ ] **Operação em produção ou beta?** → `OPERACAO_PRODUCAO.md`
 - [ ] **Falha de ambiente, encoding ou template?** → `PRE-FLIGHT_CHECKLIST.md`
 
 ### 4 — Durante execução
@@ -53,6 +54,7 @@ Governança de agentes de IA neste repositório — **Anúncios de Mesas RPG (Po
 
 ### 5 — Ao finalizar a sessão
 - [ ] Atualizar documentos afetados pela task (TODO, FILA, ERRORS_SOLUTIONS, GUIA_RAPIDO_OPERACIONAL)
+- [ ] **Modificou rotas da API?** → OBRIGATÓRIO atualizar o `MAPA_DE_API.md` mapeando a adição, remoção ou link com o Front.
 
 ---
 
@@ -109,6 +111,7 @@ Consulte o arquivo correto para a situação. Não leia documentos que não seja
 | Falhas recorrentes e soluções validadas | `ERRORS_SOLUTIONS.md` |
 | Backlog de requisitos de produto (REQ-xx, score GUT) | `TODO_OPERACIONAL.md` |
 | Fila técnica de execução por lote/fase | `FILA_IMPLEMENTACAO.md` |
+| Mapeamento de quais rotas do backend existem e quem as consome | `MAPA_DE_API.md` |
 | Roteamento rápido por situação e checklists de tarefa | `GUIA_RAPIDO_OPERACIONAL.md` |
 | Registro histórico de sessões de trabalho | `/sessoes/` |
 
@@ -148,11 +151,24 @@ Nunca produzir código sem:
 
 ### Assertividade Operacional
 
+> [!CAUTION]
+> **REGRA ANTI-TRAVAMENTO:** Agentes que entram em loops de re-análise causam travamento da sessão.
+> Ver `sessoes/resumo_09-04_diagnostico-travamento.md` para análise completa do problema.
+
 Quando o plano está claro e aprovado:
 - **Executar diretamente** — sem loops de investigação desnecessários
-- **Consultar documentação canônica uma vez**, não repetidamente
+- **Consultar documentação canônica UMA VEZ**, não repetidamente
 - **Aplicar mudanças incrementais** sem re-análise completa a cada passo
 - **Reportar progresso** de forma concisa, sem restatement excessivo
+- **Nunca re-ler arquivos já lidos na mesma sessão** a menos que tenham sido modificados
+
+**Checklist mental antes de cada ação:**
+```
+[ ] Já li este arquivo nesta sessão?
+[ ] O plano está claro?
+[ ] Esta ação é de execução ou investigação?
+[ ] Estou prestes a re-analisar algo que já analisei?
+```
 
 **Parar para perguntar quando:**
 - Conflito entre requisito e arquitetura
@@ -165,6 +181,13 @@ Quando o plano está claro e aprovado:
 - Ajuste de UX dentro do padrão estabelecido
 - Correção de bug com solução conhecida em `ERRORS_SOLUTIONS.md`
 - Atualização de documentação por delta
+
+**Comportamento proibido que causa travamento:**
+- ❌ Re-ler o mesmo arquivo múltiplas vezes na mesma sessão
+- ❌ Consultar ARQUITETURA_PROJETO.md repetidamente
+- ❌ Pedir confirmação para cada linha de código
+- ❌ Entrar em loop de "vou analisar X para entender Y"
+- ❌ Reformular o mesmo plano múltiplas vezes sem executar
 
 ---
 
@@ -179,6 +202,23 @@ Ao deparar com qualquer erro (`stderr`, falha de execução, crash de script ou 
 2. Consultar `ERRORS_SOLUTIONS.md`
 3. Se o erro constar lá: aplicar a solução documentada
 4. Se não constar: descobrir a solução e **registrar no arquivo antes de seguir para a próxima task**
+
+### Migrations e Alterações de Schema (A REGRA ANTI-FRANKENSTEIN)
+
+> [!CAUTION]
+> **REGRA ABSOLUTA DE INTEGRIDADE DO BANCO DE PRODUÇÃO:**
+> O Banco de Dados de Produção não é um ambiente de testes e não suporta "remendos" manuais para consertar features caídas.
+
+**Antes de aplicar QUALQUER migration no Deploy:**
+1. **Obrigatório Dump Prévio:** Se o deploy que você está realizando enviar migrations que contém `TRUNCATE`, `DROP`, ou `DELETE` ou mexem em colunas (ex via Prisma/Typeorm ou raw SQL), você OBRIGATORIAMENTE deve executar um backup/dump em Produção através da instrução no `PRE_DEPLOY_CHECKLIST.md`. Nunca assuma segurança implícita.
+2. **Schema Alignment (Paridade Obrigatória):** Nenhuma alteração estrutural ocorre em Produção antes de ter rodado por script contínuo e testado exaustivamente no banco Beta primeiro. O deploy será falho ou rejeitado caso tente pular a vida em Dev.
+
+**Quando a Produção Quebra Após Deploys (Falta de Coluna / Relation does not exist):**
+- ❌ **O QUE VOCÊ NÃO DEVE FAZER:** Você não está autorizado a iniciar investigações abrindo o `psql` na Produção e emitindo `ALTER TABLE tables ADD COLUMN...`. Isso cria um Schema "Frankenstein" desassociado do código gerador real. O que causou o maior trauma de governança no dia 09/04/2026 foi tentar consertar Produção quebrando com patches avulsos pelo terminal ao invés de buscar a raiz.
+- ✅ **O QUE VOCÊ DEVE FAZER (Rollback):** Sua primeira ação imediata deve ser desfazer o código da Aplicação, retornando os containers ao Commit / Snapshot anterior que dialogava nativamente com aquela exata forma do Banco (ver seção **PROTOCOLO GERAL DE EMERGÊNCIA (ROLLBACK)** do `PRE_DEPLOY_CHECKLIST.md`). Diagnosticaremos do Beta de forma perfeitamente assíncrona após restabelecer a paz da via mestre.
+
+**Migrations antigas (criadas há mais de 1 semana):**
+- **NUNCA DEIXE MIGRATIONS REPETIREM.** Os arquivos em `database/*.sql` não são ferramentas de debugging; não reexecute e não tente reler `.sql` antigos na Produção. Isso causa falhas silenciosas que expurgam dados inteiros (E136 catalogado em `ERRORS_SOLUTIONS.md`).
 
 ### Contenção de Agentes — Ações Destrutivas Proibidas
 
@@ -418,7 +458,7 @@ A única exceção é quando o escopo da branch for ambíguo — nesse caso, per
 
 **Cloudflare Tunnel:** A VM possui túnel mestre interligado à rede Docker interna. Agentes **nunca** devem criar novos túneis, baixar containers `cloudflared` paralelos ou solicitar Tokens ao usuário para expor novos containers. Novos ambientes são expostos via Public Hostname no painel Cloudflare, referenciando o container alvo (ex: `http://mesas-beta-frontend:80`).
 
-**Acesso SSH assistido:** Ver métodos de conexão e regras em `OPERACAO_PRODUCAO.md` §3.
+**Acesso SSH:** A VM Oracle está acessível via SSH. Métodos de conexão, credenciais e regras de uso estão documentados em `OPERACAO_PRODUCAO.md` §3. **Não pergunte como se conectar — a documentação já existe.** Use comandos read-only para diagnóstico (`docker ps`, `docker logs`, `cat`, `grep`) e solicite aprovação antes de qualquer comando destrutivo.
 
 **Credenciais do PostgreSQL:**
 ```bash

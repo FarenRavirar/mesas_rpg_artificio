@@ -44,8 +44,8 @@ Use para localizar o erro sem varrer a tabela inteira:
 | Git / Versionamento | E036, E071, E072, E101 |
 | TypeScript / Frontend / Build | E041, E042, E046, E067, E074 |
 | React / Frontend / Performance | E104, E111, E117, E135 |
-| Banco de Dados / SQL / PostgreSQL | E043, E049, E054, E059, E064, E065, E068, E075, E086, E088, E108, E119 |
-| SSH / Migrations / ALTER TABLE remoto | E108, E119 |
+| Banco de Dados / SQL / PostgreSQL | E043, E049, E054, E059, E064, E065, E068, E075, E086, E088, E108, E119, E136, E137 |
+| SSH / Migrations / ALTER TABLE remoto | E108, E119, E137 |
 | Ferramentas automatizadas / Agentes | E045, E050, E051, E052, E053, E058, E060, E061, E062, E063, E066, E070, E073, E076, E085, E091, E094, E095, E096, E097, E099, E100 |
 | PowerShell — comandos Unix inexistentes / software externo | E085, E094 |
 | Backend / API / Rotas | E118 |
