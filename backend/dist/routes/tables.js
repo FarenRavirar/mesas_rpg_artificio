@@ -84,14 +84,7 @@ router.get('/', async (req, res) => {
             't.game_platform_custom', // CORREÇÃO A-HIGH-01: Retornar custom VTT para cards
         ])
             .where('t.status', '=', 'active')
-            .where((eb) => eb.and([
-            eb('t.title', 'not ilike', '%teste%'),
-            eb('t.title', 'not ilike', '%asdf%'),
-            eb('t.title', '!=', '')
-        ]))
-            .orderBy('t.created_at', 'desc')
-            .limit(limitNum)
-            .offset(offset);
+            .orderBy('t.created_at', 'desc');
         if (system)
             query = query.where('s.slug', '=', system);
         if (modality)
@@ -180,6 +173,17 @@ router.get('/', async (req, res) => {
                 .orderBy('t.price_value', 'desc')
                 .orderBy('t.created_at', 'desc');
         }
+        // TODO: ending_soon e slots requerem campos end_date e slots_available no banco
+        // CORREÇÃO BE-03: Contagem otimizada - usar query original sem SELECT complexos
+        // Isso evita duplicar lógica de filtros e mantém type-safety do Kysely
+        const countResult = await query
+            .clearSelect()
+            .clearOrderBy()
+            .select((0, kysely_1.sql) `COUNT(DISTINCT t.id)`.as('count'))
+            .executeTakeFirst();
+        const totalCount = Number(countResult?.count ?? 0);
+        // Aplicar limit/offset DEPOIS da contagem
+        query = query.limit(limitNum).offset(offset);
         const tables = await query.execute();
         let tablesWithContacts = tables;
         if (tables.length > 0) {
@@ -208,22 +212,13 @@ router.get('/', async (req, res) => {
                 contacts: contactsByTable.get(table.id) ?? [],
             }));
         }
-        // CORREÇÃO HP-02: Contar total de mesas ativas COM OS MESMOS FILTROS da query principal
-        // Clonar query antes de aplicar limit/offset para contar resultados filtrados
-        const countQuery = query
-            .clearSelect()
-            .clearLimit()
-            .clearOffset()
-            .clearOrderBy()
-            .select((0, kysely_1.sql) `COUNT(*)`.as('count'));
-        const totalCount = await countQuery.executeTakeFirst();
         res.json({
             data: tablesWithContacts,
             pagination: {
                 page: pageNum,
                 limit: limitNum,
                 hasMore: tables.length === limitNum,
-                total: Number(totalCount?.count ?? 0), // CORREÇÃO DT-05
+                total: totalCount, // CORREÇÃO BE-03: totalCount já é número
             },
         });
     }
@@ -338,6 +333,7 @@ router.get('/:slug', async (req, res) => {
             'gm.slug as gm_slug',
             'gm.avatar_url as gm_avatar_url',
             'gm.badges as gm_badges',
+            'u.id as gm_user_id', // CORREÇÃO DT-025: Adicionar user_id para verificação de ownership
             (0, kysely_1.sql) `COALESCE(gm.nickname, p.display_name)`.as('gm_display_name'),
             'gm.bio_long as gm_bio_long', // CORREÇÃO REG-13: Renomeado para evitar conflito com t.gm_bio
         ])

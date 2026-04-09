@@ -288,10 +288,13 @@ router.post('/tables', auth_1.authMiddleware, async (req, res) => {
         settingName: req.body.setting_name,
         settingStyles: req.body.setting_styles,
     }, null, 2));
-    const { title, description, system_id, type, audience, modality, price_type, price_value, price_frequency, slots_total, slots_open, // REQ-02: Vagas abertas para recrutamento
-    language, experience_level, starts_at, city, state, content_warnings, safety_tools, publisher_role, actual_gm_name, contacts, is_ddal, ddal_code, ddal_name, ddal_tier, ddal_season, ddal_duration, ddal_format, ddal_org_code, ddal_setting, ddal_rules_notes, frequency, frequency_custom, 
+    const { title, description, system_id, scenario_id, // CORREÇÃO DT-002: Adicionar scenario_id ao destructuring
+    type, audience, modality, price_type, price_value, price_frequency, slots_total, slots_open, // REQ-02: Vagas abertas para recrutamento
+    language, experience_level, starts_at, city, state, content_warnings, safety_tools, publisher_role, actual_gm_name, contacts, is_ddal, ddal_code, ddal_name, ddal_tier, ddal_season, ddal_duration, ddal_format, ddal_org_code, ddal_setting, ddal_rules_notes, frequency, // CORREÇÃO DT-004: Já estava no destructuring
+    frequency_custom, // CORREÇÃO DT-004: Já estava no destructuring
     // VTT Platform (Migration 006)
-    vtt_platform_id, game_platform_custom, communication_platform, rules_notes, banner_url, is_covil, 
+    vtt_platform_id, // CORREÇÃO DT-001: Já estava no destructuring, mas não era persistido
+    game_platform_custom, communication_platform, rules_notes, banner_url, is_covil, 
     // CORREÇÃO: Adicionar campos avançados (REQ-26)
     master_display_name, campaign_length, level_range, billing_text, session_zero_free, synopsis, style_text, listing_excerpt, technical_requirements, requires_pc, requires_camera, requires_microphone, 
     // CORREÇÃO: Adicionar schedules (REQ-27)
@@ -632,8 +635,13 @@ router.post('/tables', auth_1.authMiddleware, async (req, res) => {
 router.put('/tables/:id', auth_1.authMiddleware, async (req, res) => {
     const userId = req.user.userId;
     const { id } = req.params;
-    const { title, description, system_id, type, audience, modality, price_type, price_value, price_frequency, slots_total, slots_filled, slots_open, // REQ-02: Vagas abertas para recrutamento
+    const { title, description, system_id, scenario_id, // CORREÇÃO DT-003: Adicionar scenario_id ao PUT
+    type, audience, modality, price_type, price_value, price_frequency, slots_total, slots_filled, slots_open, // REQ-02: Vagas abertas para recrutamento
     language, experience_level, starts_at, city, state, content_warnings, safety_tools, publisher_role, actual_gm_name, contacts, is_ddal, ddal_code, ddal_name, ddal_tier, ddal_season, ddal_duration, ddal_format, ddal_org_code, ddal_setting, ddal_rules_notes, 
+    // CORREÇÃO DT-004: Adicionar frequency ao PUT
+    frequency, frequency_custom, 
+    // CORREÇÃO DT-001: Adicionar vtt_platform_id ao PUT
+    vtt_platform_id, game_platform_custom, communication_platform, 
     // CORREÇÃO: Adicionar campos avançados (REQ-26)
     master_display_name, campaign_length, level_range, billing_text, session_zero_free, synopsis, style_text, listing_excerpt, technical_requirements, requires_pc, requires_camera, requires_microphone, 
     // CORREÇÃO: Adicionar schedules (REQ-27)
@@ -746,6 +754,7 @@ router.put('/tables/:id', auth_1.authMiddleware, async (req, res) => {
                 title: title ?? undefined,
                 description: description ?? undefined,
                 system_id: hasOwn('system_id') ? (system_id ?? null) : undefined,
+                scenario_id: hasOwn('scenario_id') ? (scenario_id ?? null) : undefined, // CORREÇÃO DT-003
                 type: type ?? undefined,
                 audience: audience ?? undefined,
                 modality: modality ?? undefined,
@@ -774,6 +783,13 @@ router.put('/tables/:id', auth_1.authMiddleware, async (req, res) => {
                 ddal_org_code: nextIsDdal ? nextDdalOrgCode : null,
                 ddal_setting: nextIsDdal ? nextDdalSetting : null,
                 ddal_rules_notes: nextIsDdal ? nextDdalRulesNotes : null,
+                // CORREÇÃO DT-004: Adicionar frequency ao update
+                frequency: hasOwn('frequency') ? (frequency ?? null) : undefined,
+                frequency_custom: hasOwn('frequency_custom') ? (frequency_custom ?? null) : undefined,
+                // CORREÇÃO DT-001: Adicionar vtt_platform_id ao update
+                vtt_platform_id: hasOwn('vtt_platform_id') ? (vtt_platform_id ?? null) : undefined,
+                game_platform_custom: hasOwn('game_platform_custom') ? sanitizeOptionalText(game_platform_custom) : undefined,
+                communication_platform: hasOwn('communication_platform') ? sanitizeOptionalText(communication_platform) : undefined,
                 // CORREÇÃO: Persistir campos avançados (REQ-26)
                 master_display_name: hasOwn('master_display_name') ? sanitizeOptionalText(master_display_name) : undefined,
                 campaign_length: hasOwn('campaign_length') ? sanitizeOptionalText(campaign_length) : undefined,
@@ -914,6 +930,7 @@ router.get('/tables', auth_1.authMiddleware, async (req, res) => {
             't.price_frequency',
             't.slots_total',
             't.slots_filled',
+            't.slots_open', // CORREÇÃO DT-005: Adicionar vagas abertas ao painel
             't.language',
             't.experience_level',
             't.starts_at',
@@ -945,6 +962,17 @@ router.get('/tables', auth_1.authMiddleware, async (req, res) => {
             // CORREÇÃO DT-18: Retornar campos de cenário e estilos (REQ-28)
             't.setting_name',
             't.setting_styles',
+            // CORREÇÃO DT-006: Retornar campos editoriais Fase 6 (REQ-28)
+            't.synopsis_narrative',
+            't.benefits_text',
+            't.table_gm_bio',
+            // CORREÇÃO DT-004: Retornar frequency para edição
+            't.frequency',
+            't.frequency_custom',
+            // CORREÇÃO DT-001: Retornar vtt_platform_id para edição
+            't.vtt_platform_id',
+            't.game_platform_custom',
+            't.communication_platform',
             's.name as system_name',
             // Métricas de engajamento
             (0, kysely_1.sql) `COALESCE(tm.views_count, 0)`.as('metrics_views'),
@@ -1007,6 +1035,7 @@ router.get('/tables', auth_1.authMiddleware, async (req, res) => {
 // PATCH /api/v1/gm/tables/:id/status — Altera status da mesa
 router.patch('/tables/:id/status', auth_1.authMiddleware, async (req, res) => {
     const userId = req.user.userId;
+    const userRole = req.user.role;
     const { id } = req.params;
     const { status } = req.body;
     const validStatuses = ['active', 'full', 'cancelled', 'ended'];
@@ -1014,24 +1043,44 @@ router.patch('/tables/:id/status', auth_1.authMiddleware, async (req, res) => {
         return res.status(400).json({ error: `Status inválido. Valores permitidos: ${validStatuses.join(', ')}` });
     }
     try {
+        // Verificar se mesa existe
+        const table = await db_1.db
+            .selectFrom('tables')
+            .select(['id', 'gm_id', 'title'])
+            .where('id', '=', id)
+            .executeTakeFirst();
+        if (!table) {
+            return res.status(404).json({ error: 'Mesa não encontrada.' });
+        }
+        // Admin pode alterar qualquer mesa
+        if (userRole === 'admin') {
+            const result = await db_1.db
+                .updateTable('tables')
+                .set({ status })
+                .where('id', '=', id)
+                .returning(['id', 'slug', 'title', 'status'])
+                .executeTakeFirst();
+            return res.json({ data: result });
+        }
+        // GM só pode alterar própria mesa
         const gmProfile = await db_1.db
             .selectFrom('gm_profiles')
             .select('id')
             .where('user_id', '=', userId)
             .executeTakeFirst();
-        if (!gmProfile)
+        if (!gmProfile) {
             return res.status(403).json({ error: 'Acesso negado.' });
+        }
+        if (table.gm_id !== gmProfile.id) {
+            return res.status(403).json({ error: 'Sem permissão para alterar esta mesa.' });
+        }
         const result = await db_1.db
             .updateTable('tables')
             .set({ status })
             .where('id', '=', id)
-            .where('gm_id', '=', gmProfile.id)
             .returning(['id', 'slug', 'title', 'status'])
-            .execute();
-        if (result.length === 0) {
-            return res.status(404).json({ error: 'Mesa não encontrada ou sem permissão.' });
-        }
-        return res.json({ data: result[0] });
+            .executeTakeFirst();
+        return res.json({ data: result });
     }
     catch (error) {
         console.error('[PATCH /gm/tables/:id/status]', error);

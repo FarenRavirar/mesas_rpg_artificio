@@ -7,6 +7,25 @@ Governança de agentes de IA neste repositório — **Anúncios de Mesas RPG (Po
 
 ---
 
+## 🚨 LEIA ISTO PRIMEIRO — PROTOCOLO OBRIGATÓRIO DE INÍCIO DE SESSÃO
+
+> [!CAUTION]
+> **PARE AGORA. NÃO FAÇA NADA ANTES DE LER ESTE ARQUIVO COMPLETO.**
+>
+> Se você é um agente de IA iniciando uma nova sessão neste projeto:
+> 1. **LEIA ESTE ARQUIVO (`AGENTS.md`) NA ÍNTEGRA AGORA** — não pule para a checklist
+> 2. **LEIA `RESUMO_EXECUCAO.md`** — estado atual do projeto
+> 3. **SOMENTE ENTÃO** comece a trabalhar seguindo a checklist abaixo
+>
+> **Por quê?** Agentes que pulam esta etapa causam:
+> - Aplicação de migrations antigas que apagam dados (E136)
+> - Retrabalho por não consultar `ERRORS_SOLUTIONS.md` (5+ horas perdidas)
+> - Violação de regras pétreas (commit sem autorização, instalação de software)
+>
+> **Você foi avisado.** Se você pular esta leitura e causar problemas, a responsabilidade é sua.
+
+---
+
 ## ⚠️ CHECKLIST OBRIGATÓRIA — EXECUTAR NO INÍCIO DE QUALQUER SESSÃO
 
 > [!CAUTION]

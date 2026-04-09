@@ -65,7 +65,7 @@ services:
       - ./logs:/app/logs
     # CORREÇÃO: Adicionar healthcheck na API
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/v1/health || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/v1/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

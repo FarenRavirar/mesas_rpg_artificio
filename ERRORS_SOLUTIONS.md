@@ -483,5 +483,72 @@ const getValidUrl = (value: string): string => {
 
 **Data:** 08/04/2026
 
+---
+
+## E136 — Aplicação de migration antiga apaga dados estruturados (sistemas, taxonomias, etc.)
+
+**Sintoma:**
+API retorna erro `42P01: relation "system_aliases" does not exist` ou similar para tabelas de dados estruturados. Tentativa de aplicar migration antiga resulta em perda massiva de dados (ex: 600+ sistemas reduzidos a 15).
+
+**Causa raiz confirmada (09/04/2026):**
+Quando há erro de tabela faltando em sistema com dados estruturados (sistemas de RPG, taxonomias, catálogos), o primeiro instinto é aplicar a migration que cria a tabela. **ERRO CRÍTICO:** Migrations antigas podem conter comandos destrutivos (`TRUNCATE`, `UPDATE` com valores default, `DELETE`) que sobrescrevem dados em produção.
+
+**Diagnóstico correto:**
+1. ❌ **NUNCA fazer:** Aplicar migration antiga imediatamente
+2. ✅ **SEMPRE fazer primeiro:** Procurar arquivo fonte de dados (`.json`, `.csv`, `.sql`) e script de importação (`.ts`, `.js`, `.py`)
+3. ✅ Verificar se há comando de importação documentado no README ou em `backend/src/scripts/`
+
+**Solução validada (09/04/2026):**
+
+**Passo 1 - Procurar arquivo fonte:**
+```powershell
+Get-ChildItem -Recurse -Filter "sistemas.json"
+Get-ChildItem -Recurse -Filter "*.json" | Where-Object { $_.Name -match "sistema|system|taxonomy" }
+```
+
+**Passo 2 - Procurar script de importação:**
+```powershell
+Get-ChildItem -Recurse -Filter "import*.ts"
+Get-ChildItem -Recurse -Filter "import*.js"
+```
+
+**Passo 3 - Executar importação (dentro do container):**
+```bash
+docker exec mesas-api node dist/scripts/importSistemas.js
+```
+
+**Passo 4 - Verificar resultado:**
+```bash
+docker exec mesas-db psql -U admin -d mesas_rpg -c 'SELECT COUNT(*) FROM systems;'
+```
+
+**Exemplo real:**
+- Erro: `relation "system_aliases" does not exist`
+- ❌ Aplicou `migration_02` → `UPDATE 15` → apagou 600+ sistemas
+- ✅ Deveria ter procurado `backend/sistemas.json` (682 sistemas) + `backend/src/scripts/importSistemas.ts`
+- ✅ Executar `docker exec mesas-api node dist/scripts/importSistemas.js` → restaurou 1.344 sistemas
+
+**Prevenção obrigatória:**
+1. **NUNCA aplicar migration antiga sem ler o conteúdo completo primeiro**
+2. **SEMPRE procurar arquivo fonte de dados ANTES de aplicar migration**
+3. **SEMPRE verificar se migration contém comandos destrutivos:** `TRUNCATE`, `DELETE`, `UPDATE` com valores default
+4. **SEMPRE fazer backup antes de aplicar migration em produção:** `pg_dump -U admin -d mesas_rpg -t <tabela> > backup_<tabela>_$(date +%Y%m%d_%H%M%S).sql`
+5. **Documentar localização de arquivos fonte e scripts de importação em `ARQUITETURA_PROJETO.md`**
+
+**Comandos destrutivos comuns em migrations:**
+- `TRUNCATE TABLE systems CASCADE;` ← **CRÍTICO: apaga todos os dados**
+- `UPDATE systems SET field = 'default' WHERE field IS NULL;` ← **pode sobrescrever dados válidos**
+- `DELETE FROM systems WHERE condition;` ← **pode apagar dados importantes**
+
+**Checklist obrigatória antes de aplicar migration:**
+- [ ] Li o conteúdo completo da migration
+- [ ] Verifiquei se há comandos `TRUNCATE`, `DELETE` ou `UPDATE`
+- [ ] Procurei arquivo fonte de dados (`.json`, `.csv`, `.sql`)
+- [ ] Procurei script de importação (`.ts`, `.js`, `.py`)
+- [ ] Fiz backup da tabela afetada
+- [ ] Testei em ambiente local primeiro
+
+**Data:** 09/04/2026
+
 
 
