@@ -161,6 +161,60 @@ Ao deparar com qualquer erro (`stderr`, falha de execução, crash de script ou 
 3. Se o erro constar lá: aplicar a solução documentada
 4. Se não constar: descobrir a solução e **registrar no arquivo antes de seguir para a próxima task**
 
+### Contenção de Agentes — Ações Destrutivas Proibidas
+
+> [!CAUTION]
+> **PARE ANTES DE EXECUTAR. LEIA ESTA SEÇÃO A CADA VEZ QUE FOR EXECUTAR UM COMANDO.**
+
+**Definição de ação destrutiva:**
+Qualquer comando que: escreva em disco no servidor, reinicie processo/container, delete arquivo, modifique configuração em produção, copie arquivos para servidor, ou afete outros usuários.
+
+**Proibido sem aprovação explícita do usuário:**
+- ❌ Reiniciar containers ou serviços (`docker restart`, `systemctl restart`)
+- ❌ Copiar ou sobrescrever arquivos em produção (`scp`, `docker cp` para servidor)
+- ❌ Executar builds e deployar artefatos no servidor
+- ❌ Modificar arquivos fora do escopo da tarefa descrita
+- ❌ Investigar bugs não mencionados na tarefa atual
+- ❌ "Corrigir" problemas encontrados durante investigação sem autorização
+
+**Comportamento obrigatório:**
+1. ✅ **"Investigar" significa:** ler arquivos, executar comandos read-only (`ls`, `cat`, `grep`, `docker logs`, `curl -s`), relatar findings
+2. ✅ **"Investigar" NÃO significa:** modificar, copiar, reiniciar, ou deployar
+3. ✅ Ao encontrar um problema durante investigação: **PARE e descreva o que encontrou**
+4. ✅ Apresente o plano completo antes de executar qualquer comando destrutivo
+5. ✅ Execute uma ação por vez, aguarde confirmação
+6. ✅ Se o escopo da tarefa não estiver claro, pergunte antes de agir
+7. ✅ Nunca assuma que "reiniciar vai resolver" — pergunte primeiro
+
+**Comandos read-only permitidos sem aprovação:**
+- `docker ps`, `docker logs`, `docker stats`, `docker inspect`
+- `ls`, `cat`, `grep`, `find`, `head`, `tail`
+- `curl -s` (GET requests)
+- `psql` com `SELECT` (nunca `INSERT`, `UPDATE`, `DELETE` sem aprovação)
+
+**Comandos que SEMPRE exigem aprovação:**
+- `docker restart`, `docker stop`, `docker start`
+- `scp`, `rsync`, `docker cp` (para servidor)
+- `npm run build` (no servidor)
+- `git commit`, `git push`
+- `psql` com `INSERT`, `UPDATE`, `DELETE`, `DROP`, `ALTER`
+
+**Formato de solicitação de aprovação:**
+```
+## 🛑 APROVAÇÃO NECESSÁRIA
+
+**Ação:** [descrever o que será feito]
+**Motivo:** [por que é necessário]
+**Risco:** [o que pode dar errado]
+**Rollback:** [como desfazer se necessário]
+
+**Comandos que serão executados:**
+1. comando1
+2. comando2
+
+Posso prosseguir?
+```
+
 ### Git — Commit e Push
 `git commit` e `git push` são **proibidos sem autorização explícita do responsável no chat**. O agente realiza as edições locais e para, aguardando revisão e aprovação antes de commitar.
 
@@ -194,6 +248,63 @@ Antes de implementar requisito complexo ou ambíguo, o agente deve:
 
 Isso está correto? Posso prosseguir?
 ```
+
+### Changelog — Linguagem e Formato Obrigatórios
+**Toda mudança visível ao usuário final DEVE ter entrada no changelog (`database/changelogs.json`) antes do deploy.** Não há exceções.
+
+**Regras obrigatórias:**
+1. **Data/hora explícita** — usar formato ISO 8601 com timezone (`YYYY-MM-DDTHH:MM:SS-03:00`)
+2. **Rodapé com data/hora** — incluir linha `_Atualização publicada em DD/MM/YYYY às HH:MM_` no final do body
+3. **Linguagem 100% leiga** — sem jargão técnico, explicar benefícios para o usuário final
+4. **Arquivo JSON versionado** — adicionar entrada em `database/changelogs.json` e commitar junto com o código
+
+**Formato obrigatório:**
+```json
+{
+  "id": "YYYY-MM-DD-descricao-curta",
+  "title": "Título Curto e Descritivo",
+  "body": "Descrição em linguagem familiar e leiga com bullets:\n\n• **Primeira mudança** - Explicação do benefício para o usuário\n• **Segunda mudança** - O que melhorou na experiência\n• **Terceira mudança** - Como isso ajuda o usuário\n\nFrase de encerramento convidativa! 🎲\n\n_Atualização publicada em DD/MM/YYYY às HH:MM_",
+  "type": "app",
+  "published": true,
+  "created_at": "YYYY-MM-DDTHH:MM:SS-03:00"
+}
+```
+
+**Como adicionar novo changelog:**
+1. Abrir `database/changelogs.json`
+2. Adicionar novo objeto no início do array (mais recente primeiro)
+3. Commitar junto com o código da feature
+
+**Linguagem obrigatória: familiar, leiga e acessível.**
+- ❌ **NUNCA** usar jargão técnico: "sidebar vertical", "overflow-x", "placeholder visual", "migration", "refactor"
+- ✅ **SEMPRE** explicar o benefício: "filtros no topo", "mais espaço para ver as mesas", "dado bonitinho"
+- ❌ **NUNCA** descrever implementação: "Implementado fallback de imagem com gradient"
+- ✅ **SEMPRE** descrever resultado: "Mesas sem foto agora mostram um dado 🎲"
+
+**Exemplos corretos:**
+- "Agora os filtros ficam no topo da página, deixando mais espaço para você ver as mesas"
+- "Mesas sem foto agora mostram um dado 🎲 bonitinho"
+- "Os botões de WhatsApp e Discord agora abrem direitinho"
+- "Você vê o link real embaixo do botão para copiar se quiser"
+
+**Exemplos PROIBIDOS:**
+- "Migração de sidebar vertical para barra horizontal sticky"
+- "Implementado placeholder visual com fallback"
+- "Refatoração do componente TableCard"
+- "Correção de bug no handler de click"
+
+**Quando criar changelog:**
+- Mudança de UI/UX visível
+- Nova funcionalidade acessível ao usuário
+- Correção de bug que o usuário percebe
+- Melhoria de performance perceptível
+- Mudança de comportamento existente
+
+**Quando NÃO criar changelog:**
+- Refactor interno sem impacto visível
+- Mudança de dependência sem efeito perceptível
+- Correção de bug que nunca chegou em produção
+- Melhoria de código sem mudança de comportamento
 
 ---
 

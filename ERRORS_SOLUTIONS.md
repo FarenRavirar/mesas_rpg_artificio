@@ -43,7 +43,7 @@ Use para localizar o erro sem varrer a tabela inteira:
 | Docker / Containers / Rede | E038, E039, E057, E109 |
 | Git / Versionamento | E036, E071, E072, E101 |
 | TypeScript / Frontend / Build | E041, E042, E046, E067, E074 |
-| React / Frontend / Performance | E104, E111, E117 |
+| React / Frontend / Performance | E104, E111, E117, E135 |
 | Banco de Dados / SQL / PostgreSQL | E043, E049, E054, E059, E064, E065, E068, E075, E086, E088, E108, E119 |
 | SSH / Migrations / ALTER TABLE remoto | E108, E119 |
 | Ferramentas automatizadas / Agentes | E045, E050, E051, E052, E053, E058, E060, E061, E062, E063, E066, E070, E073, E076, E085, E091, E094, E095, E096, E097, E099, E100 |
@@ -295,3 +295,192 @@ Sempre que criar uma migration que adiciona campos à tabela `tables`, atualizar
 Migration 13 adicionou 6 novos campos (age_rating, table_level, game_platform, communication_platform, custom_scenario, style_tags) mas a interface TypeScript não foi atualizada simultaneamente.
 
 **Data:** 07/04/2026
+
+---
+
+## E134 — Sistema de Logging de Rotas para Debug
+
+**Implementado em:** 07/04/2026
+
+**Objetivo:**
+Sistema completo de logging de requisições HTTP para diagnóstico de problemas de rotas, erros de banco de dados e comportamento inesperado da API.
+
+**Localização dos logs:**
+- **Arquivo principal (container):** `/app/logs/routes.log`
+- **Arquivo principal (servidor):** `/opt/mesas-beta/logs/routes.log`
+- **Arquivos rotacionados:** `routes-<timestamp>.log`
+- **Rotação automática:** A cada 6 horas ou quando arquivo atingir 10MB
+- **Retenção:** Últimos 5 arquivos rotacionados
+- **Persistência:** ✅ Logs sobrevivem a deploys e recriações de container
+
+**Como acessar os logs:**
+
+```powershell
+# Ver últimas 50 linhas (via container)
+ssh -F C:\projetos\config faren "docker exec mesas-beta-api tail -50 /app/logs/routes.log"
+
+# Ver últimas 50 linhas (diretamente no servidor)
+ssh -F C:\projetos\config faren "tail -50 /opt/mesas-beta/logs/routes.log"
+
+# Ver logs em tempo real (follow)
+ssh -F C:\projetos\config faren "docker exec mesas-beta-api tail -f /app/logs/routes.log"
+
+# Buscar por slug específico
+ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep 'a-voz-nas-cartas' /app/logs/routes.log"
+
+# Buscar por erro específico
+ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep 'ERROR' /app/logs/routes.log | tail -20"
+
+# Buscar por código de erro PostgreSQL
+ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep '22P02' /app/logs/routes.log"
+
+# Buscar por Request ID específico
+ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep 'ReqID: 1712520000000-abc123' /app/logs/routes.log"
+
+# Copiar log completo para análise local
+scp -F C:\projetos\config faren:/opt/mesas-beta/logs/routes.log C:\projetos\mesas_rpg_artificio\testes\routes.log
+```
+
+**Formato do log:**
+
+**Requisição normal:**
+```
+[2026-04-07T20:10:00.000Z] GET /api/v1/tables/slug-da-mesa | ReqID: 1712520000000-abc123 | Params: {"slug":"slug-da-mesa"} | Query: {} | IP: 192.168.1.1
+```
+
+**Erro de aplicação:**
+```
+[2026-04-07T20:10:00.500Z] GET /api/v1/tables/slug-da-mesa | ReqID: 1712520000000-abc123 | ERROR: Erro ao buscar mesa. | Code: 500 | Duration: 500ms | Params: {"slug":"slug-da-mesa"} | Query: {}
+```
+
+**Erro de banco de dados:**
+```
+[2026-04-07T20:10:00.500Z] DB_ERROR in GET /api/v1/tables/:slug (fetch_table_details) | ReqID: 1712520000000-abc123 | Error: invalid input syntax for type uuid: "slug-da-mesa" | PG Code: 22P02 | Params: {"slug":"slug-da-mesa"}
+```
+
+**Campos do log:**
+- `timestamp`: ISO 8601 com timezone UTC
+- `method`: GET, POST, PUT, DELETE, PATCH
+- `path`: Caminho da rota (ex: `/api/v1/tables/slug-da-mesa`)
+- `ReqID`: ID único da requisição para rastreamento
+- `Params`: Parâmetros de rota (ex: `{slug: "..."}`)
+- `Query`: Query string (ex: `{page: "1", limit: "10"}`)
+- `IP`: Endereço IP do cliente
+- `ERROR`: Mensagem de erro (apenas em falhas)
+- `Code`: Status HTTP (apenas em falhas)
+- `Duration`: Tempo de resposta em ms (apenas em falhas)
+- `PG Code`: Código de erro PostgreSQL (apenas em erros de banco)
+
+**Uso no código:**
+
+```typescript
+// Middleware já está ativo globalmente - não precisa adicionar em rotas individuais
+
+// Para logar erros de banco de dados em rotas específicas:
+import { logDatabaseError } from '../middleware/requestLogger';
+
+try {
+  const result = await db.selectFrom('tables').where('slug', '=', slug).executeTakeFirst();
+} catch (error: any) {
+  logDatabaseError(req, error, {
+    route: 'GET /api/v1/tables/:slug',
+    operation: 'fetch_table_details'
+  });
+  throw error;
+}
+```
+
+**Diagnóstico de problemas comuns:**
+
+1. **Erro 500 em rota específica:**
+   ```powershell
+   ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep 'GET /api/v1/tables' /app/logs/routes.log | grep ERROR | tail -10"
+   ```
+
+2. **Rastrear requisição específica por Request ID:**
+   ```powershell
+   ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep 'ReqID: <id>' /app/logs/routes.log"
+   ```
+
+3. **Ver todos os erros de UUID:**
+   ```powershell
+   ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep '22P02' /app/logs/routes.log"
+   ```
+
+4. **Ver requisições lentas (> 1000ms):**
+   ```powershell
+   ssh -F C:\projetos\config faren "docker exec mesas-beta-api grep -E 'Duration: [0-9]{4,}ms' /app/logs/routes.log"
+   ```
+
+**Manutenção:**
+- Rotação automática a cada 6 horas ou 10MB
+- Mantém últimos 5 arquivos rotacionados
+- Logs antigos são deletados automaticamente
+- Não requer intervenção manual
+
+**Prevenção:**
+- Sempre consultar logs antes de fazer debug manual
+- Usar Request ID para rastrear requisições específicas
+- Verificar logs após deploy para detectar regressões
+- Monitorar erros 500 e códigos PostgreSQL recorrentes
+
+**Contexto:**
+Sistema implementado em 07/04/2026 após 3 horas de debug do erro 500 em `GET /api/v1/tables/:slug`. O sistema de logging teria reduzido o tempo de diagnóstico de 3 horas para ~15 minutos.
+
+---
+
+## E135 — Links de WhatsApp não funcionam quando backend retorna apenas número
+
+**Sintoma:**
+Botão "Enviar mensagem no WhatsApp" na página de detalhes da mesa não abre conversa. Link gerado é inválido (ex: `https://99985199454` ao invés de `https://wa.me/5599985199454`).
+
+**Causa raiz confirmada (08/04/2026):**
+Backend retorna contatos de WhatsApp com `value` contendo apenas o número (ex: `"99985199454"`), sem formatação de URL. A função `getValidUrl` no `TableContactsBlock.tsx` (linhas 100-112) só formatava corretamente se o valor começasse com `wa.me`, mas não tratava números puros.
+
+**Diagnóstico:**
+1. Inspecionar resposta da API: `curl -s "https://mesasbeta.artificiorpg.com/api/v1/tables/<slug>" | grep -A 5 "whatsapp"`
+2. Se `value` for apenas dígitos (ex: `"99985199454"`), o problema está confirmado
+3. Testar link gerado no navegador — deve retornar erro de DNS ou página não encontrada
+
+**Solução validada (08/04/2026):**
+Corrigir função `getValidUrl` em `frontend/src/features/table/components/TableContactsBlock.tsx` (linhas 100-125) para detectar números puros e formatar como URL `wa.me`:
+
+```typescript
+const getValidUrl = (value: string): string => {
+  if (value.startsWith('http://') || value.startsWith('https://')) {
+    return value;
+  }
+  
+  if (contact.channel === 'whatsapp') {
+    if (value.startsWith('wa.me')) {
+      return `https://${value}`;
+    }
+    // Detectar número puro e formatar
+    const cleanNumber = value.replace(/\D/g, '');
+    if (cleanNumber.length >= 10) {
+      const fullNumber = cleanNumber.startsWith('55') ? cleanNumber : `55${cleanNumber}`;
+      return `https://wa.me/${fullNumber}`;
+    }
+  }
+  
+  return `https://${value}`;
+};
+```
+
+**Prevenção:**
+1. **Solução ideal (backend):** Formatar URLs de WhatsApp no backend antes de retornar na API — adicionar helper `formatWhatsAppUrl()` em `backend/src/utils/contacts.ts`
+2. **Solução atual (frontend):** Manter formatação defensiva no frontend para lidar com dados legados
+3. **Validação:** Adicionar teste E2E que verifica se links de WhatsApp abrem corretamente
+4. **Deploy:** Sempre usar script `scripts/deploy-beta.ps1` ao invés de deploy manual para evitar erros de cache
+
+**Script de deploy criado:**
+`scripts/deploy-beta.ps1` — automatiza: validação de branch, push, pull no servidor, build, cópia para container, reload nginx e validação.
+
+**Uso:**
+```powershell
+.\scripts\deploy-beta.ps1
+```
+
+**Data:** 08/04/2026
+
+

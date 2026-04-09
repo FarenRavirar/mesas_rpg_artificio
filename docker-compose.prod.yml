@@ -1,6 +1,7 @@
 services:
   # FRONTEND (Nginx servindo build estático do React/Vite)
   # Roteado via Cloudflare Tunnel existente, sem porta pública exposta no host
+  # CORREÇÃO WF-02: Service name deve corresponder ao container_name para consistência
   mesas-app:
     build:
       context: ./frontend
@@ -59,6 +60,23 @@ services:
     depends_on:
       mesas-db:
         condition: service_healthy
+    # CORREÇÃO: Adicionar volume de logs (estava ausente no prod)
+    volumes:
+      - ./logs:/app/logs
+    # CORREÇÃO: Adicionar healthcheck na API
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/v1/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # CORREÇÃO: Limitar recursos para evitar OOM
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+        reservations:
+          memory: 256m
 
   # DATABASE (PostgreSQL)
   mesas-db:
@@ -75,6 +93,8 @@ services:
       - pgdata_mesas_prod:/var/lib/postgresql/data
       - ./database/init.sql:/docker-entrypoint-initdb.d/00_init.sql
       - ./database/migration_01_base_schema.sql:/docker-entrypoint-initdb.d/01_base_schema.sql
+      # CORREÇÃO: Adicionar volume de logs para diagnóstico
+      - ./logs/db:/var/log/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d mesas_rpg"]
       interval: 10s
@@ -87,4 +107,3 @@ volumes:
 networks:
   gerenciador_telegram_default:
     external: true
-

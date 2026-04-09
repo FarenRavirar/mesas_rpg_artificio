@@ -4,11 +4,7 @@ import type { SessionSchedule } from '../../../components/SessionRepeater';
 import type { ContactFormEntry } from '../../../components/ContactsFormBlock';
 import { formStateToPayload } from '../utils/mapper';
 
-const API_BASE = import.meta.env.VITE_API_URL;
-
-if (!API_BASE) {
-  throw new Error('VITE_API_URL não configurada');
-}
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 interface UseCreateTableFormOptions {
   initialData?: Partial<FormState>;
@@ -406,11 +402,11 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
     
     // Campos editoriais Fase 6 (REQ-28)
     synopsisNarrative,
-    setSynopsisNarrative,
+    setSynopsisNarrative, // CORREÇÃO DT-010: Adicionar setter
     benefitsText,
-    setBenefitsText,
+    setBenefitsText, // CORREÇÃO DT-010: Adicionar setter
     tableGmBio,
-    setTableGmBio,
+    setTableGmBio, // CORREÇÃO DT-010: Adicionar setter
     
     // Estado completo (para hooks)
     formState,

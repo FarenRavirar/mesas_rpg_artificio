@@ -13,9 +13,9 @@ RUN npm ci
 
 COPY backend/tsconfig.json ./
 COPY backend/src/ ./src/
-COPY docs/taxonomia/arvores_de_sistemas.md ./arvores_de_sistemas.md
 COPY backend/sistemas.json ./sistemas.json
 COPY backend/cenarios.json ./cenarios.json
+COPY database/changelogs.json ./database/changelogs.json
 
 RUN npm run build
 
@@ -37,6 +37,7 @@ COPY --from=builder /app/dist ./dist
 # Copiar arquivos de dados de sistemas e cenários (JSON)
 COPY --from=builder /app/sistemas.json ./sistemas.json
 COPY --from=builder /app/cenarios.json ./cenarios.json
+COPY --from=builder /app/database/changelogs.json ./database/changelogs.json
 
 EXPOSE 3000
 

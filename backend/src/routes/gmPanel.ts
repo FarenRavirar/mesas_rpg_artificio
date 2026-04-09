@@ -346,6 +346,7 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
     title,
     description,
     system_id,
+    scenario_id, // CORREÇÃO DT-002: Adicionar scenario_id ao destructuring
     type,
     audience,
     modality,
@@ -374,10 +375,10 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
     ddal_org_code,
     ddal_setting,
     ddal_rules_notes,
-    frequency,
-    frequency_custom,
+    frequency, // CORREÇÃO DT-004: Já estava no destructuring
+    frequency_custom, // CORREÇÃO DT-004: Já estava no destructuring
     // VTT Platform (Migration 006)
-    vtt_platform_id,
+    vtt_platform_id, // CORREÇÃO DT-001: Já estava no destructuring, mas não era persistido
     game_platform_custom,
     communication_platform,
     rules_notes,
@@ -794,6 +795,7 @@ router.put('/tables/:id', authMiddleware, async (req: Request, res: Response) =>
     title,
     description,
     system_id,
+    scenario_id, // CORREÇÃO DT-003: Adicionar scenario_id ao PUT
     type,
     audience,
     modality,
@@ -823,6 +825,13 @@ router.put('/tables/:id', authMiddleware, async (req: Request, res: Response) =>
     ddal_org_code,
     ddal_setting,
     ddal_rules_notes,
+    // CORREÇÃO DT-004: Adicionar frequency ao PUT
+    frequency,
+    frequency_custom,
+    // CORREÇÃO DT-001: Adicionar vtt_platform_id ao PUT
+    vtt_platform_id,
+    game_platform_custom,
+    communication_platform,
     // CORREÇÃO: Adicionar campos avançados (REQ-26)
     master_display_name,
     campaign_length,
@@ -974,6 +983,7 @@ router.put('/tables/:id', authMiddleware, async (req: Request, res: Response) =>
           title: title ?? undefined,
           description: description ?? undefined,
           system_id: hasOwn('system_id') ? (system_id ?? null) : undefined,
+          scenario_id: hasOwn('scenario_id') ? (scenario_id ?? null) : undefined, // CORREÇÃO DT-003
           type: type ?? undefined,
           audience: audience ?? undefined,
           modality: modality ?? undefined,
@@ -1002,6 +1012,13 @@ router.put('/tables/:id', authMiddleware, async (req: Request, res: Response) =>
           ddal_org_code: nextIsDdal ? nextDdalOrgCode : null,
           ddal_setting: nextIsDdal ? nextDdalSetting : null,
           ddal_rules_notes: nextIsDdal ? nextDdalRulesNotes : null,
+          // CORREÇÃO DT-004: Adicionar frequency ao update
+          frequency: hasOwn('frequency') ? (frequency ?? null) : undefined,
+          frequency_custom: hasOwn('frequency_custom') ? (frequency_custom ?? null) : undefined,
+          // CORREÇÃO DT-001: Adicionar vtt_platform_id ao update
+          vtt_platform_id: hasOwn('vtt_platform_id') ? (vtt_platform_id ?? null) : undefined,
+          game_platform_custom: hasOwn('game_platform_custom') ? sanitizeOptionalText(game_platform_custom) : undefined,
+          communication_platform: hasOwn('communication_platform') ? sanitizeOptionalText(communication_platform) : undefined,
           // CORREÇÃO: Persistir campos avançados (REQ-26)
           master_display_name: hasOwn('master_display_name') ? sanitizeOptionalText(master_display_name) : undefined,
           campaign_length: hasOwn('campaign_length') ? sanitizeOptionalText(campaign_length) : undefined,
@@ -1157,6 +1174,7 @@ router.get('/tables', authMiddleware, async (req: Request, res: Response) => {
         't.price_frequency',
         't.slots_total',
         't.slots_filled',
+        't.slots_open', // CORREÇÃO DT-005: Adicionar vagas abertas ao painel
         't.language',
         't.experience_level',
         't.starts_at',
@@ -1188,6 +1206,17 @@ router.get('/tables', authMiddleware, async (req: Request, res: Response) => {
         // CORREÇÃO DT-18: Retornar campos de cenário e estilos (REQ-28)
         't.setting_name',
         't.setting_styles',
+        // CORREÇÃO DT-006: Retornar campos editoriais Fase 6 (REQ-28)
+        't.synopsis_narrative',
+        't.benefits_text',
+        't.table_gm_bio',
+        // CORREÇÃO DT-004: Retornar frequency para edição
+        't.frequency',
+        't.frequency_custom',
+        // CORREÇÃO DT-001: Retornar vtt_platform_id para edição
+        't.vtt_platform_id',
+        't.game_platform_custom',
+        't.communication_platform',
         's.name as system_name',
         // Métricas de engajamento
         sql<number>`COALESCE(tm.views_count, 0)`.as('metrics_views'),

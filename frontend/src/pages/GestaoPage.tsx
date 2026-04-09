@@ -6,11 +6,7 @@ import { ScenarioEditModal } from '../components/ScenarioEditModal';
 import { Edit, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const API_BASE = import.meta.env.VITE_API_URL;
-
-if (!API_BASE) {
-  throw new Error('VITE_API_URL não configurada');
-}
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 interface SystemSuggestion {
   id: string;
@@ -202,7 +198,8 @@ export const GestaoPage = () => {
     if (!confirm(`Deletar mesa "${title}"? Esta ação não pode ser desfeita.`)) return;
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/gm/admin/tables/${id}`, {
+      // CORREÇÃO DT-013: Rota correta é /api/v1/admin/tables/:id
+      const response = await fetch(`${API_BASE}/api/v1/admin/tables/${id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -211,8 +208,24 @@ export const GestaoPage = () => {
         toast.success('Mesa deletada!');
         fetchAllTables();
       } else {
-        const data = await response.json();
-        toast.error(data.error || 'Erro ao deletar mesa');
+        // CORREÇÃO: Tratamento robusto de erro (pode retornar HTML em vez de JSON)
+        let errorMessage = 'Erro ao deletar mesa';
+        
+        try {
+          const contentType = response.headers.get('content-type');
+          
+          if (contentType?.includes('application/json')) {
+            const data = await response.json();
+            errorMessage = data.error || errorMessage;
+          } else {
+            const text = await response.text();
+            errorMessage = text.slice(0, 200) || errorMessage;
+          }
+        } catch {
+          // Se falhar ao parsear, usar mensagem padrão
+        }
+        
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error('[GestaoPage] Erro ao deletar mesa:', error);
@@ -228,7 +241,8 @@ export const GestaoPage = () => {
     if (!confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} mesa "${title}"?`)) return;
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/gm/admin/tables/${id}`, {
+      // CORREÇÃO DT-013: Rota correta é /api/v1/admin/tables/:id
+      const response = await fetch(`${API_BASE}/api/v1/admin/tables/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -239,8 +253,24 @@ export const GestaoPage = () => {
         toast.success(`Mesa ${action === 'ativar' ? 'ativada' : 'desativada'}!`);
         fetchAllTables();
       } else {
-        const data = await response.json();
-        toast.error(data.error || `Erro ao ${action} mesa`);
+        // CORREÇÃO: Tratamento robusto de erro (pode retornar HTML em vez de JSON)
+        let errorMessage = `Erro ao ${action} mesa`;
+        
+        try {
+          const contentType = response.headers.get('content-type');
+          
+          if (contentType?.includes('application/json')) {
+            const data = await response.json();
+            errorMessage = data.error || errorMessage;
+          } else {
+            const text = await response.text();
+            errorMessage = text.slice(0, 200) || errorMessage;
+          }
+        } catch {
+          // Se falhar ao parsear, usar mensagem padrão
+        }
+        
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error('[GestaoPage] Erro ao alterar status da mesa:', error);

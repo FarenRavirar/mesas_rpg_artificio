@@ -1,8 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Filter, RotateCcw, Search, ShieldCheck, Star } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { RotateCcw, Search, ShieldCheck, Star, ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react';
 import { TableCardComponent, TableCardSkeleton } from '../components/TableCard';
-import type { CatalogSeal, TableCard, TablesResponse } from '../types/tables';
+import { FilterDrawer } from '../components/FilterDrawer';
+import { ActiveFiltersChips } from '../components/ActiveFiltersChips';
+import { ResultsHeader } from '../components/ResultsHeader';
+import type { CatalogSeal } from '../types/tables';
 import { applySeo } from '../utils/seo';
+import { useCatalogTables } from '../hooks/useCatalogTables';
+import { useCatalogFilters } from '../hooks/useCatalogFilters';
+import type { StyleOption } from '../services/catalogService';
+
+// Constantes de validação (compartilhadas com parser)
+const VALID_STYLES: StyleOption[] = ['Narrativo', 'Combate intenso', 'Investigação', 'Roleplay pesado', 'Sandbox', 'Horror'];
 
 interface SystemOption {
   id: string;
@@ -11,19 +21,103 @@ interface SystemOption {
 }
 
 export const CatalogoPage = () => {
+  const [searchParams] = useSearchParams();
+
+  // STATE - URL-driven filters (hook genérico)
+  const [filters, setFilters] = useCatalogFilters();
+
+  // STATE - Apenas sistemas (carregados separadamente) e drawer mobile
   const [systems, setSystems] = useState<SystemOption[]>([]);
-  const [tables, setTables] = useState<TableCard[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
-  const [system, setSystem] = useState('');
-  const [modality, setModality] = useState('');
-  const [priceType, setPriceType] = useState('');
-  const [experience, setExperience] = useState('');
-  const [seal, setSeal] = useState<CatalogSeal>('');
+  // ============================================================================
+  // DATA - React Query
+  // ============================================================================
+  
+  const { tables, pagination, isLoading, isRefreshing, error } = useCatalogTables(filters, searchParams.toString());
 
+  const totalCount = useMemo(() => {
+    if (!pagination) return 0;
+    if (pagination.total !== undefined) return pagination.total;
+    return (filters.page - 1) * 24 + tables.length;
+  }, [pagination, filters.page, tables.length]);
+
+  const hasMore = pagination?.hasMore ?? false;
+
+  // ============================================================================
+  // HANDLERS
+  // ============================================================================
+  
+  const clearFilters = () => {
+    setFilters(() => ({
+      search: '',
+      system: '',
+      modality: '',
+      priceType: '',
+      experience: '',
+      seal: '',
+      styles: [],
+      sort: 'popular',
+      page: 1,
+      limit: 24,
+    }));
+  };
+
+  const removeFilter = (key: string, value?: string) => {
+    if (key === 'styles' && value) {
+      setFilters(prev => ({
+        ...prev,
+        styles: prev.styles.filter((s) => s !== value),
+      }));
+    } else {
+      setFilters(prev => ({
+        ...prev,
+        [key]: '',
+      }));
+    }
+  };
+
+  const toggleStyle = (style: StyleOption) => {
+    setFilters(prev => ({
+      ...prev,
+      styles: prev.styles.includes(style)
+        ? prev.styles.filter((s) => s !== style)
+        : [...prev.styles, style],
+    }));
+  };
+
+  const toggleSeal = (seal: CatalogSeal) => {
+    setFilters(prev => ({
+      ...prev,
+      seal: prev.seal === seal ? '' : seal,
+    }));
+  };
+
+  // ============================================================================
+  // COMPUTED
+  // ============================================================================
+  
+  const activeFiltersCount = useMemo(() => {
+    return [
+      filters.search,
+      filters.system,
+      filters.modality,
+      filters.priceType,
+      filters.experience,
+      filters.seal,
+      ...(filters.styles || []),
+    ].filter(Boolean).length;
+  }, [filters]);
+
+  const selectedSystemName = useMemo(() => {
+    return systems.find((s) => s.slug === filters.system)?.name;
+  }, [systems, filters.system]);
+
+  // ============================================================================
+  // EFFECTS
+  // ============================================================================
+  
+  // SEO
   useEffect(() => {
     applySeo(
       'Catálogo de Mesas | Artifício Mesas',
@@ -31,6 +125,7 @@ export const CatalogoPage = () => {
     );
   }, []);
 
+  // Load systems
   useEffect(() => {
     const loadSystems = async () => {
       try {
@@ -46,212 +141,410 @@ export const CatalogoPage = () => {
     loadSystems();
   }, []);
 
-  const queryString = useMemo(() => {
-    const params = new URLSearchParams();
-    params.set('limit', '24');
-
-    if (search) params.set('search', search);
-    if (system) params.set('system', system);
-    if (modality) params.set('modality', modality);
-    if (priceType) params.set('price_type', priceType);
-    if (experience) params.set('experience_level', experience);
-    if (seal) params.set('seal', seal);
-
-    return params.toString();
-  }, [experience, modality, priceType, search, seal, system]);
-
+  // Scroll to top quando filtros mudam (não na paginação)
   useEffect(() => {
-    const controller = new AbortController();
+    if (filters.page === 1) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [filters.search, filters.system, filters.modality, filters.priceType, filters.experience, filters.seal, filters.sort]);
 
-    const loadTables = async () => {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const res = await fetch(`/api/v1/tables?${queryString}`, {
-          signal: controller.signal,
-        });
-
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-        const json: TablesResponse = await res.json();
-        setTables(json.data ?? []);
-      } catch (err: any) {
-        if (err.name === 'AbortError') return;
-        setError('Não foi possível carregar o catálogo no momento.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadTables();
-    return () => controller.abort();
-  }, [queryString]);
-
-  const clearFilters = () => {
-    setSearchInput('');
-    setSearch('');
-    setSystem('');
-    setModality('');
-    setPriceType('');
-    setExperience('');
-    setSeal('');
-  };
-
+  // ============================================================================
+  // RENDER
+  // ============================================================================
+  
   return (
-    <main className="bg-[var(--color-artificio-blue)] text-white">
-      <section className="container mx-auto px-6 py-10">
-        <h1 className="text-3xl md:text-5xl font-black tracking-tight mb-2">Catálogo Público de Mesas</h1>
-        <p className="text-white/65 max-w-2xl">Filtre por sistema, modalidade, nível e selos para encontrar a aventura ideal para seu grupo.</p>
-      </section>
-
-      <section className="container mx-auto px-6 pb-16 grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 items-start">
-        <aside className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-5 lg:sticky lg:top-24">
+    <main className="min-h-screen bg-gradient-to-b from-[#0a1628] to-[#13213f] text-white">
+      {/* HEADER */}
+      <div className="border-b border-white/10 bg-[#0a1628]/80 backdrop-blur-sm sticky top-0 z-30">
+        <div className="container mx-auto px-6 py-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-white/70 flex items-center gap-2">
-              <Filter className="w-4 h-4 text-[var(--color-artificio-orange)]" />
-              Filtros
-            </h2>
-            <button
-              id="catalogo-clear-filters"
-              onClick={clearFilters}
-              className="text-xs text-white/60 hover:text-white transition-colors flex items-center gap-1"
-            >
-              <RotateCcw className="w-3 h-3" /> Limpar
-            </button>
-          </div>
-
-          <div className="space-y-4">
             <div>
-              <label htmlFor="catalogo-search" className="block text-xs uppercase tracking-wider text-white/60 mb-1">Busca</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
-                <input
-                  id="catalogo-search"
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && setSearch(searchInput.trim())}
-                  placeholder="Título, sistema ou mestre"
-                  className="w-full rounded-xl bg-[#13213f] border border-white/10 pl-9 pr-3 py-2.5 outline-none focus:border-[var(--color-artificio-orange)]"
-                />
-              </div>
+              <h1 className="text-3xl font-black text-white mb-1">Catálogo de Mesas</h1>
+              <p className="text-sm text-white/60">Encontre a mesa perfeita para você</p>
+            </div>
+            {activeFiltersCount > 0 && (
               <button
-                id="catalogo-search-submit"
-                onClick={() => setSearch(searchInput.trim())}
-                className="mt-2 w-full py-2 rounded-lg bg-[var(--color-artificio-orange)] hover:bg-[var(--color-artificio-orange-hover)] transition-colors text-sm font-semibold"
+                onClick={clearFilters}
+                className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm font-semibold transition-colors"
               >
-                Buscar
+                <RotateCcw className="w-4 h-4" />
+                Limpar filtros
               </button>
-            </div>
-
-            <div>
-              <p className="block text-xs uppercase tracking-wider text-white/60 mb-1">Selos</p>
-              <div className="grid grid-cols-1 gap-2">
-                <button
-                  id="catalogo-seal-ddal"
-                  type="button"
-                  onClick={() => setSeal((prev) => (prev === 'ddal' ? '' : 'ddal'))}
-                  className={`rounded-xl border px-3 py-2 text-left text-sm transition-colors ${seal === 'ddal' ? 'border-amber-300/50 bg-amber-500/20 text-amber-100' : 'border-white/10 bg-[#13213f] text-white/80 hover:border-white/20'}`}
-                >
-                  <span className="inline-flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4" /> DDAL
-                  </span>
-                </button>
-
-                <button
-                  id="catalogo-seal-covil"
-                  type="button"
-                  onClick={() => setSeal((prev) => (prev === 'covil-do-lich' ? '' : 'covil-do-lich'))}
-                  className={`rounded-xl border px-3 py-2 text-left text-sm transition-colors ${seal === 'covil-do-lich' ? 'border-purple-300/50 bg-purple-500/20 text-purple-100' : 'border-white/10 bg-[#13213f] text-white/80 hover:border-white/20'}`}
-                >
-                  <span className="inline-flex items-center gap-2">
-                    <Star className="w-4 h-4" /> Covil do Lich
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="catalogo-system" className="block text-xs uppercase tracking-wider text-white/60 mb-1">Sistema</label>
-              <select
-                id="catalogo-system"
-                value={system}
-                onChange={(e) => setSystem(e.target.value)}
-                className="w-full rounded-xl bg-[#13213f] border border-white/10 px-3 py-2.5 outline-none focus:border-[var(--color-artificio-orange)]"
-              >
-                <option value="">Todos</option>
-                {systems.map((item) => (
-                  <option key={item.id} value={item.slug}>{item.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label htmlFor="catalogo-modality" className="block text-xs uppercase tracking-wider text-white/60 mb-1">Modalidade</label>
-              <select
-                id="catalogo-modality"
-                value={modality}
-                onChange={(e) => setModality(e.target.value)}
-                className="w-full rounded-xl bg-[#13213f] border border-white/10 px-3 py-2.5 outline-none focus:border-[var(--color-artificio-orange)]"
-              >
-                <option value="">Todas</option>
-                <option value="online">Online</option>
-                <option value="presencial">Presencial</option>
-                <option value="hibrida">Híbrida</option>
-              </select>
-            </div>
-
-            <div>
-              <label htmlFor="catalogo-price" className="block text-xs uppercase tracking-wider text-white/60 mb-1">Preço</label>
-              <select
-                id="catalogo-price"
-                value={priceType}
-                onChange={(e) => setPriceType(e.target.value)}
-                className="w-full rounded-xl bg-[#13213f] border border-white/10 px-3 py-2.5 outline-none focus:border-[var(--color-artificio-orange)]"
-              >
-                <option value="">Todos</option>
-                <option value="gratuita">Gratuita</option>
-                <option value="paga">Paga</option>
-              </select>
-            </div>
-
-            <div>
-              <label htmlFor="catalogo-experience" className="block text-xs uppercase tracking-wider text-white/60 mb-1">Nível</label>
-              <select
-                id="catalogo-experience"
-                value={experience}
-                onChange={(e) => setExperience(e.target.value)}
-                className="w-full rounded-xl bg-[#13213f] border border-white/10 px-3 py-2.5 outline-none focus:border-[var(--color-artificio-orange)]"
-              >
-                <option value="">Todos</option>
-                {/* CORREÇÃO DT-06: Removida opção duplicada "Todos" */}
-                <option value="iniciante">Iniciante</option>
-                <option value="intermediario">Intermediário</option>
-                <option value="veterano">Veterano</option>
-              </select>
-            </div>
-          </div>
-        </aside>
-
-        <div>
-          {error && (
-            <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-red-200" id="catalogo-error">
-              {error}
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-            {isLoading
-              ? Array.from({ length: 9 }).map((_, idx) => <TableCardSkeleton key={idx} />)
-              : tables.length > 0
-                ? tables.map((table) => <TableCardComponent key={table.id} table={table} />)
-                : (
-                  <div className="col-span-full rounded-2xl border border-white/10 bg-white/5 py-14 text-center text-white/60">
-                    Nenhuma mesa encontrada com os filtros atuais.
-                  </div>
-                )}
+            )}
           </div>
         </div>
+      </div>
+
+      {/* FILTROS - DESKTOP */}
+      <div className="hidden md:block border-b border-white/10 bg-[#0a1628]/60 backdrop-blur-sm sticky top-[88px] z-20">
+        <div className="container mx-auto px-6 py-4">
+          {/* ZONA 1: Busca */}
+          <div className="mb-3">
+            <div className="relative max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" />
+              <input
+                type="text"
+                value={filters.search}
+                onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                placeholder="Buscar mesas..."
+                className="w-full rounded-lg bg-[#13213f] border border-white/10 pl-9 pr-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors"
+              />
+            </div>
+          </div>
+
+          {/* ZONA 2: Dropdowns */}
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <select
+              value={filters.system}
+              onChange={(e) => setFilters(prev => ({ ...prev, system: e.target.value }))}
+              className="rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
+            >
+              <option value="">Todos os sistemas</option>
+              {systems.map((item) => (
+                <option key={item.id} value={item.slug}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={filters.modality}
+              onChange={(e) => setFilters(prev => ({ ...prev, modality: e.target.value as any }))}
+              className="rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
+            >
+              <option value="">Modalidade</option>
+              <option value="online">Online</option>
+              <option value="presencial">Presencial</option>
+              <option value="hibrida">Híbrida</option>
+            </select>
+
+            <select
+              value={filters.priceType}
+              onChange={(e) => setFilters(prev => ({ ...prev, priceType: e.target.value as any }))}
+              className="rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
+            >
+              <option value="">Preço</option>
+              <option value="gratuita">Gratuita</option>
+              <option value="paga">Paga</option>
+            </select>
+
+            <select
+              value={filters.experience}
+              onChange={(e) => setFilters(prev => ({ ...prev, experience: e.target.value as any }))}
+              className="rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
+            >
+              <option value="">Nível</option>
+              <option value="iniciante">Iniciante</option>
+              <option value="intermediario">Intermediário</option>
+              <option value="veterano">Veterano</option>
+            </select>
+
+            <select
+              value={filters.sort}
+              onChange={(e) => setFilters(prev => ({ ...prev, sort: e.target.value as any }))}
+              className="rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
+            >
+              <option value="popular">Mais populares</option>
+              <option value="recent">Mais recentes</option>
+              <option value="ending_soon">Encerrando em breve</option>
+            </select>
+          </div>
+
+          {/* ZONA 3: Selos + Estilos */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => toggleSeal('ddal')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all whitespace-nowrap ${
+                filters.seal === 'ddal'
+                  ? 'border-amber-300/50 bg-amber-500/20 text-amber-100'
+                  : 'border-white/10 bg-[#13213f] text-white/70 hover:border-white/20 hover:bg-white/5'
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5" /> DDAL
+            </button>
+
+            <button
+              type="button"
+              onClick={() => toggleSeal('covil-do-lich')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all whitespace-nowrap ${
+                filters.seal === 'covil-do-lich'
+                  ? 'border-purple-300/50 bg-purple-500/20 text-purple-100'
+                  : 'border-white/10 bg-[#13213f] text-white/70 hover:border-white/20 hover:bg-white/5'
+              }`}
+            >
+              <Star className="w-3.5 h-3.5" /> Covil do Lich
+            </button>
+
+            <div className="h-4 w-px bg-white/10 mx-1" />
+
+            {VALID_STYLES.map((style) => (
+              <button
+                key={style}
+                type="button"
+                onClick={() => toggleStyle(style)}
+                className={`px-3 py-1.5 rounded-lg border text-xs transition-all whitespace-nowrap ${
+                  filters.styles.includes(style)
+                    ? 'border-orange-500 bg-orange-500/20 text-orange-100'
+                    : 'border-white/10 bg-[#13213f] text-white/70 hover:border-white/20 hover:bg-white/5'
+                }`}
+              >
+                {style}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* BOTÃO FILTROS - MOBILE */}
+      <button
+        onClick={() => setIsFilterOpen(true)}
+        className="md:hidden fixed bottom-6 right-6 z-40 flex items-center gap-2 px-5 py-3 rounded-full bg-[var(--color-artificio-orange)] hover:bg-[var(--color-artificio-orange-hover)] text-white font-bold shadow-lg transition-colors"
+      >
+        <SlidersHorizontal className="w-5 h-5" />
+        Filtros
+        {activeFiltersCount > 0 && (
+          <span className="bg-white text-[var(--color-artificio-orange)] rounded-full w-6 h-6 flex items-center justify-center text-xs font-black">
+            {activeFiltersCount}
+          </span>
+        )}
+      </button>
+
+      {/* DRAWER MOBILE */}
+      <FilterDrawer
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        onClear={clearFilters}
+        isApplying={isRefreshing}
+      >
+        {/* Busca */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" />
+          <input
+            type="text"
+            value={filters.search}
+            onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+            placeholder="Buscar mesas..."
+            className="w-full rounded-lg bg-[#13213f] border border-white/10 pl-9 pr-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors"
+          />
+        </div>
+
+        {/* Filtros */}
+        <div className="space-y-3">
+          <select
+            value={filters.system}
+            onChange={(e) => setFilters(prev => ({ ...prev, system: e.target.value }))}
+            className="w-full rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
+          >
+            <option value="">Todos os sistemas</option>
+            {systems.map((item) => (
+              <option key={item.id} value={item.slug}>
+                {item.name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={filters.modality}
+            onChange={(e) => setFilters(prev => ({ ...prev, modality: e.target.value as any }))}
+            className="w-full rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
+          >
+            <option value="">Modalidade</option>
+            <option value="online">Online</option>
+            <option value="presencial">Presencial</option>
+            <option value="hibrida">Híbrida</option>
+          </select>
+
+          <select
+            value={filters.priceType}
+            onChange={(e) => setFilters(prev => ({ ...prev, priceType: e.target.value as any }))}
+            className="w-full rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
+          >
+            <option value="">Preço</option>
+            <option value="gratuita">Gratuita</option>
+            <option value="paga">Paga</option>
+          </select>
+
+          <select
+            value={filters.experience}
+            onChange={(e) => setFilters(prev => ({ ...prev, experience: e.target.value as any }))}
+            className="w-full rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
+          >
+            <option value="">Nível</option>
+            <option value="iniciante">Iniciante</option>
+            <option value="intermediario">Intermediário</option>
+            <option value="veterano">Veterano</option>
+          </select>
+
+          <select
+            value={filters.sort}
+            onChange={(e) => setFilters(prev => ({ ...prev, sort: e.target.value as any }))}
+            className="w-full rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
+          >
+            <option value="popular">Mais populares</option>
+            <option value="recent">Mais recentes</option>
+            <option value="ending_soon">Encerrando em breve</option>
+          </select>
+        </div>
+
+        {/* Selos */}
+        <div>
+          <p className="text-xs text-white/50 mb-2 font-semibold">Selos</p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => toggleSeal('ddal')}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-semibold transition-all ${
+                filters.seal === 'ddal'
+                  ? 'border-amber-300/50 bg-amber-500/20 text-amber-100'
+                  : 'border-white/10 bg-[#13213f] text-white/70'
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5" /> DDAL
+            </button>
+
+            <button
+              type="button"
+              onClick={() => toggleSeal('covil-do-lich')}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-semibold transition-all ${
+                filters.seal === 'covil-do-lich'
+                  ? 'border-purple-300/50 bg-purple-500/20 text-purple-100'
+                  : 'border-white/10 bg-[#13213f] text-white/70'
+              }`}
+            >
+              <Star className="w-3.5 h-3.5" /> Covil
+            </button>
+          </div>
+        </div>
+
+        {/* Estilos */}
+        <div>
+          <p className="text-xs text-white/50 mb-2 font-semibold">Estilos</p>
+          <div className="flex flex-wrap gap-2">
+            {VALID_STYLES.map((style) => (
+              <button
+                key={style}
+                type="button"
+                onClick={() => toggleStyle(style)}
+                className={`px-3 py-1.5 rounded-lg border text-xs transition-all ${
+                  filters.styles.includes(style)
+                    ? 'border-orange-500 bg-orange-500/20 text-orange-100'
+                    : 'border-white/10 bg-[#13213f] text-white/70'
+                }`}
+              >
+                {style}
+              </button>
+            ))}
+          </div>
+        </div>
+      </FilterDrawer>
+
+      {/* CONTEÚDO */}
+      <section className="container mx-auto px-6 py-8">
+        {/* LINHA DE CONTEXTO */}
+        <div className="mb-6 space-y-4">
+          {isRefreshing && (
+            <div className="rounded-lg border border-orange-500/40 bg-orange-500/10 px-4 py-2 text-orange-200 text-sm flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+              Atualizando resultados...
+            </div>
+          )}
+          
+          <ResultsHeader
+            count={totalCount}
+            sort={filters.sort}
+            onSortChange={(newSort) => setFilters(prev => ({ ...prev, sort: newSort as any }))}
+            isLoading={isLoading}
+            hasMore={hasMore}
+          />
+
+          {/* CHIPS DE FILTROS ATIVOS */}
+          <ActiveFiltersChips
+            filters={{
+              search: filters.search,
+              system: filters.system,
+              modality: filters.modality,
+              priceType: filters.priceType,
+              experience: filters.experience,
+              seal: filters.seal as any, // Parser garante valor válido
+              styles: filters.styles,
+              sort: filters.sort,
+            }}
+            systemName={selectedSystemName}
+            onRemove={removeFilter}
+          />
+        </div>
+
+        {/* ERROR */}
+        {error && (
+          <div className="mb-6 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-red-200 flex items-center justify-between">
+            <span>{error}</span>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-3 py-1 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-sm font-semibold transition-colors"
+            >
+              Tentar novamente
+            </button>
+          </div>
+        )}
+
+        {/* EMPTY STATE */}
+        {!isLoading && !isRefreshing && tables.length === 0 ? (
+          <div className="rounded-2xl border border-white/10 bg-white/5 py-20 text-center">
+            <div className="text-6xl mb-4 opacity-30">🔍</div>
+            <p className="text-xl font-bold text-white mb-2">Nenhuma mesa encontrada</p>
+            <p className="text-sm text-white/50 mb-6">Tente ajustar os filtros ou fazer uma nova busca</p>
+            {activeFiltersCount > 0 && (
+              <button
+                onClick={clearFilters}
+                className="bg-[var(--color-artificio-orange)] hover:bg-[var(--color-artificio-orange-hover)] px-6 py-3 rounded-lg font-semibold transition-colors"
+              >
+                Limpar todos os filtros
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* GRID */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {isLoading
+                ? Array.from({ length: 12 }).map((_, idx) => <TableCardSkeleton key={idx} />)
+                : tables.map((table) => <TableCardComponent key={table.id} table={table} />)}
+            </div>
+
+            {/* PAGINATION */}
+            {!isLoading && tables.length > 0 && (filters.page > 1 || hasMore) && (
+              <div className="flex items-center justify-center gap-2 mt-8">
+                <button
+                  onClick={() => setFilters(prev => ({ ...prev, page: prev.page - 1 }))}
+                  disabled={filters.page === 1}
+                  className="p-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  title="Página anterior"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+
+                <div className="flex flex-col items-center gap-1 px-4 py-2 rounded-lg border border-white/10 bg-white/5">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-white/70">Página</span>
+                    <span className="font-semibold text-white">{filters.page}</span>
+                    {hasMore && <span className="text-white/50">de muitas</span>}
+                  </div>
+                  <span className="text-xs text-white/50">{tables.length} resultados nesta página</span>
+                </div>
+
+                <button
+                  onClick={() => setFilters(prev => ({ ...prev, page: prev.page + 1 }))}
+                  disabled={!hasMore}
+                  className="p-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  title="Próxima página"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </section>
     </main>
   );

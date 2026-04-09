@@ -73,6 +73,15 @@ export interface TableCard {
   // CORREÇÃO REG-09: Adicionar campos de cenário e estilos
   setting_name?: string | null;
   setting_styles?: string[] | null;
+  // CORREÇÃO C-HIGH-02: Mover vtt_platform para TableCard para exibição em catálogo
+  vtt_platform?: {
+    id: string;
+    name: string;
+    slug: string;
+    logo_filename: string | null;
+    website_url: string | null;
+  } | null;
+  game_platform_custom?: string | null; // Quando mestre escolhe "Personalizado"
 }
 
 export interface TableDetail extends TableCard {

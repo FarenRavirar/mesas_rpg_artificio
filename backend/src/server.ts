@@ -4,7 +4,6 @@ import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import tablesRoutes from './routes/tables';
-import tableSchedulesRoutes from './routes/tableSchedules';
 import gmRoutes from './routes/gm';
 import gmPanelRoutes from './routes/gmPanel';
 import systemsRoutes from './routes/systems';
@@ -20,8 +19,10 @@ import discordRoutes from './routes/discord';
 import settingsRoutes from './routes/settings';
 import adminSettingSuggestionsRoutes from './routes/adminSettingSuggestions';
 import vttPlatformsRoutes from './routes/vttPlatforms';
+import changelogRoutes from './routes/changelog';
 import 'express-async-errors';
 import { db } from './db';
+import { requestLogger } from './middleware/requestLogger';
 
 dotenv.config();
 
@@ -46,6 +47,9 @@ app.use(cors({
 
 app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
+
+// Middleware de logging de todas as requisições
+app.use(requestLogger);
 
 app.get('/api/v1/health', async (req, res) => {
   try {
@@ -73,7 +77,6 @@ app.use('/api/v1/profile', profileRoutes);
 app.use('/api/v1/profile', linksRoutes);
 app.use('/api/v1/admin', adminProfileRoutes);
 app.use('/api/v1/tables', tablesRoutes);
-app.use('/api/v1/tables', tableSchedulesRoutes);
 app.use('/api/v1/systems', systemsRoutes);
 app.use('/api/v1/scenarios', scenariosRoutes);
 app.use('/api/v1/system-suggestions', systemSuggestionsRoutes);
@@ -84,6 +87,7 @@ app.use('/api/v1/gm', gmRoutes);
 app.use('/api/v1/settings', settingsRoutes);
 app.use('/api/v1/admin/setting-suggestions', adminSettingSuggestionsRoutes);
 app.use('/api/v1/vtt-platforms', vttPlatformsRoutes);
+app.use('/api/v1/changelog', changelogRoutes);
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('[Global Error]', err);

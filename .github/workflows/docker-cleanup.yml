@@ -2,65 +2,38 @@ name: Docker Cleanup
 
 on:
   schedule:
-    # Roda todo domingo às 3h da manhã (UTC)
     - cron: '0 3 * * 0'
-  workflow_dispatch: # Permite executar manualmente
+  workflow_dispatch:
 
 jobs:
   cleanup:
     runs-on: ubuntu-latest
-    
+
     steps:
-      - name: Cleanup Docker Images on Server
+      - name: Cleanup Docker on Server
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY_PROD }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            echo "🧹 Iniciando limpeza de imagens Docker..."
-            
-            # Remover imagens dangling (sem tag)
             docker image prune -f
-            
-            # Remover containers parados
             docker container prune -f
-            
-            # Remover volumes não utilizados
-            docker volume prune -f
-            
-            # Remover networks não utilizadas
-            docker network prune -f
-            
-            # Remover build cache
             docker builder prune -f
-            
-            # Manter apenas as 3 últimas versões de cada imagem
-            echo "🗑️ Removendo imagens antigas (mantendo 3 mais recentes)..."
-            
-            # Para cada repositório de imagem, manter apenas as 3 mais recentes
+            docker network prune -f
             docker images --format "{{.Repository}}" | sort -u | while read repo; do
               if [ "$repo" != "<none>" ]; then
                 docker images "$repo" --format "{{.ID}} {{.CreatedAt}}" | \
-                  sort -k2 -r | \
-                  tail -n +4 | \
-                  awk '{print $1}' | \
+                  sort -k2 -r | tail -n +4 | awk '{print $1}' | \
                   xargs -r docker rmi -f 2>/dev/null || true
               fi
             done
-            
-            echo "✅ Limpeza concluída!"
-            echo ""
-            echo "📊 Espaço em disco após limpeza:"
             df -h /var/lib/docker
-            echo ""
-            echo "🐳 Imagens restantes:"
-            docker images
-      
+
       - name: Notify Success
         if: success()
-        run: echo "✅ Limpeza de Docker concluída com sucesso!"
-      
+        run: echo "✅ Limpeza concluída!"
+
       - name: Notify Failure
         if: failure()
-        run: echo "❌ Falha na limpeza de Docker!"
+        run: echo "❌ Limpeza falhou!"

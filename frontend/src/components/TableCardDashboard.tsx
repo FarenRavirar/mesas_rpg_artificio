@@ -45,7 +45,7 @@ export function TableCardDashboard({
     <div className="rounded-2xl border border-white/10 bg-[#13213f] p-4 flex flex-col gap-3 hover:scale-[1.01] transition-all">
       {/* IMAGE */}
       <a 
-        href={`/mesa/${table.slug}`}
+        href={`/mesas/${table.slug}`}
         className="block h-32 rounded-lg overflow-hidden bg-white/10 hover:opacity-90 transition-opacity cursor-pointer"
       >
         {table.image_url ? (
@@ -60,7 +60,7 @@ export function TableCardDashboard({
       {/* TITLE */}
       <div>
         <a 
-          href={`/mesa/${table.slug}`}
+          href={`/mesas/${table.slug}`}
           className="font-semibold text-white line-clamp-2 hover:text-[var(--color-artificio-orange)] transition-colors cursor-pointer"
         >
           {table.title}

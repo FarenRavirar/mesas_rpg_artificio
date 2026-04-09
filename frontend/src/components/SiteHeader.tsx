@@ -1,16 +1,31 @@
 import { Link } from 'react-router-dom';
-import { Compass, LogIn, LogOut } from 'lucide-react';
+import { Compass, LogIn, LogOut, Zap } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { NotificationBell } from './NotificationBell';
+import { ChangelogModal } from './ChangelogModal';
+import { useState, useEffect } from 'react';
 
-const API_BASE = import.meta.env.VITE_API_URL;
-
-if (!API_BASE) {
-  throw new Error('VITE_API_URL não configurada');
-}
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export const SiteHeader = () => {
   const { user, logout } = useAuth();
+  const [isChangelogOpen, setIsChangelogOpen] = useState(false);
+  const [hasNewUpdate, setHasNewUpdate] = useState(false);
+
+  // Verificar se há atualizações não lidas
+  useEffect(() => {
+    const lastSeenUpdate = localStorage.getItem('mesas_last_seen_update');
+    // Marcador versionado para sinalizar novas notas
+    if (!lastSeenUpdate || lastSeenUpdate !== '2026-04-08-ux-improvements') {
+      setHasNewUpdate(true);
+    }
+  }, []);
+
+  const handleOpenChangelog = () => {
+    setIsChangelogOpen(true);
+    setHasNewUpdate(false);
+    localStorage.setItem('mesas_last_seen_update', '2026-04-08-ux-improvements');
+  };
 
   const handleLoginClick = () => {
     window.location.assign(`${API_BASE}/api/v1/auth/google`);
@@ -30,6 +45,23 @@ export const SiteHeader = () => {
         </nav>
 
         <div className="flex items-center space-x-3">
+          {/* Botão de Changelog (Público) */}
+          <button 
+            onClick={handleOpenChangelog}
+            className="relative p-2 text-white hover:bg-white/10 rounded-full transition-all group"
+            title="Notas de Atualização"
+            aria-label={hasNewUpdate ? "Notas de Atualização - Nova atualização disponível" : "Notas de Atualização"}
+          >
+            <Zap size={20} className="flex-shrink-0 group-hover:text-[var(--color-artificio-orange)] transition-colors" />
+            {/* CORREÇÃO B06: Adicionar aria-label no badge */}
+            {hasNewUpdate && (
+              <span 
+                className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 border-2 border-[#1B2A4A] rounded-full animate-bounce"
+                aria-label="Nova atualização disponível"
+              ></span>
+            )}
+          </button>
+
           {user ? (
             <>
               <NotificationBell />
@@ -87,6 +119,11 @@ export const SiteHeader = () => {
           )}
         </div>
       </div>
+
+      <ChangelogModal 
+        isOpen={isChangelogOpen} 
+        onClose={() => setIsChangelogOpen(false)} 
+      />
     </header>
   );
 };

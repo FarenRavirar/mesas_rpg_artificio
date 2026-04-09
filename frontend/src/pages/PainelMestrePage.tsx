@@ -79,11 +79,7 @@ function InputField({ label, id, ...props }: InputHTMLAttributes<HTMLInputElemen
   );
 }
 
-const API_BASE = import.meta.env.VITE_API_URL;
-
-if (!API_BASE) {
-  throw new Error('VITE_API_URL não configurada');
-}
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 function CreateGmProfileForm({ onSuccess }: { onSuccess: () => void }) {
   const [loading, setLoading] = useState(false);
@@ -392,12 +388,13 @@ export const PainelMestrePage = () => {
 
     setTogglingTableId(tableId);
     try {
+      // CORREÇÃO: Usar PUT /tables/:id em vez de PATCH /tables/:id/status
       const endpoint = user?.role === 'admin'
-        ? `${API_BASE}/api/v1/admin/tables/${tableId}/status`
-        : `${API_BASE}/api/v1/gm/tables/${tableId}/status`;
+        ? `${API_BASE}/api/v1/admin/tables/${tableId}`
+        : `${API_BASE}/api/v1/gm/tables/${tableId}`;
 
       const response = await fetch(endpoint, {
-        method: 'PATCH',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ status: newStatus }),
@@ -407,8 +404,24 @@ export const PainelMestrePage = () => {
         toast.success(`Mesa ${action === 'ativar' ? 'ativada' : 'desativada'}!`);
         refreshData();
       } else {
-        const data = await response.json();
-        toast.error(data.error || `Erro ao ${action} mesa`);
+        // CORREÇÃO: Tratamento robusto de erro (pode retornar HTML em vez de JSON)
+        let errorMessage = `Erro ao ${action} mesa`;
+        
+        try {
+          const contentType = response.headers.get('content-type');
+          
+          if (contentType?.includes('application/json')) {
+            const data = await response.json();
+            errorMessage = data.error || errorMessage;
+          } else {
+            const text = await response.text();
+            errorMessage = text.slice(0, 200) || errorMessage;
+          }
+        } catch {
+          // Se falhar ao parsear, usar mensagem padrão
+        }
+        
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error('[PainelMestrePage] Erro ao alterar status da mesa:', error);
@@ -437,8 +450,24 @@ export const PainelMestrePage = () => {
         toast.success('Mesa deletada!');
         refreshData();
       } else {
-        const data = await response.json();
-        toast.error(data.error || 'Erro ao deletar mesa');
+        // CORREÇÃO: Tratamento robusto de erro (pode retornar HTML em vez de JSON)
+        let errorMessage = 'Erro ao deletar mesa';
+        
+        try {
+          const contentType = response.headers.get('content-type');
+          
+          if (contentType?.includes('application/json')) {
+            const data = await response.json();
+            errorMessage = data.error || errorMessage;
+          } else {
+            const text = await response.text();
+            errorMessage = text.slice(0, 200) || errorMessage;
+          }
+        } catch {
+          // Se falhar ao parsear, usar mensagem padrão
+        }
+        
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error('[PainelMestrePage] Erro ao deletar mesa:', error);

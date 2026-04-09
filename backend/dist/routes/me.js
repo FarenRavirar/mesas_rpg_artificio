@@ -41,11 +41,11 @@ const sanitizeNumberArray = (value) => {
 const getOnboardingCompleted = (preferences) => {
     return Array.isArray(preferences?.systems) && preferences.systems.length > 0;
 };
-// GET /api/v1/me — Perfil + preferências do usuário logado
-router.get('/', auth_1.authMiddleware, async (req, res) => {
+// GET /api/v1/me — Perfil + preferências do usuário logado (ou null se anônimo)
+router.get('/', auth_1.optionalAuth, async (req, res) => {
     const userId = req.user?.userId;
     if (!userId) {
-        return res.status(401).json({ error: 'Não autenticado.' });
+        return res.json({ data: null }); // Usuário anônimo
     }
     try {
         const user = await db_1.db

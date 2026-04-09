@@ -11,9 +11,11 @@ import { TableContent } from '../features/table/components/TableContent';
 import { TableMaster } from '../features/table/components/TableMaster';
 import { TableSecurity } from '../features/table/components/TableSecurity';
 import { TableTechnical } from '../features/table/components/TableTechnical';
+import { useAuth } from '../contexts/AuthContext'; // CORREÇÃO DT-026: Importar useAuth
 
 export const MesaPage = () => {
   const { slug } = useParams<{ slug: string }>();
+  const { user } = useAuth(); // CORREÇÃO DT-026: Obter usuário autenticado
   const [table, setTable] = useState<TableDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +38,21 @@ export const MesaPage = () => {
 
         if (res.status === 404) {
           setError('Mesa não encontrada.');
+          setTable(null);
+          setLoading(false);
+          return;
+        }
+
+        // CORREÇÃO B-CRIT-01: Tratamento específico para erros de servidor
+        if (res.status === 500) {
+          setError('Serviço temporariamente indisponível. Nossa equipe já foi notificada. Tente novamente em alguns minutos.');
+          setTable(null);
+          setLoading(false);
+          return;
+        }
+
+        if (res.status === 503) {
+          setError('Sistema em manutenção. Voltaremos em breve.');
           setTable(null);
           setLoading(false);
           return;
@@ -75,7 +92,8 @@ export const MesaPage = () => {
 
     const trackView = async () => {
       try {
-        // CORREÇÃO DT-10: Usar slug ao invés de id
+        // NOTA: Backend usa POST /tables/:slug/view (não :id)
+        // Ver backend/src/routes/gmPanel.ts linha 1620
         await fetch(`/api/v1/tables/${slug}/view`, { method: 'POST' });
       } catch {
         // Silencioso - tracking não deve quebrar a UX
@@ -89,6 +107,9 @@ export const MesaPage = () => {
   // Fase 1: ViewModel (isola lógica, UI ainda usa table)
   // IMPORTANTE: Hooks devem ser chamados incondicionalmente (regra do React)
   const vm = useTableViewModel(table);
+
+  // CORREÇÃO DT-026: Calcular ownership
+  const isOwner = !!(user && table && (table as any).gm_user_id === user.id);
 
   if (loading) {
     return (
@@ -164,7 +185,8 @@ export const MesaPage = () => {
           </div>
 
           {/* Fase 2: TableActionPanel (substituindo aside de 72 linhas) */}
-          {vm && <TableActionPanel vm={vm} />}
+          {/* CORREÇÃO DT-026: Passar variant baseado em ownership */}
+          {vm && <TableActionPanel vm={vm} variant={isOwner ? 'owner' : 'full'} />}
         </article>
       </section>
     </main>

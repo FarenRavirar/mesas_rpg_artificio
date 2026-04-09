@@ -58,6 +58,11 @@ export function StepSessions({
             <option value="mensal">Mensal</option>
             <option value="outros">Outros</option>
           </select>
+          {(form.type === 'campanha' || form.type === 'oneshot-serie') && (
+            <p className="text-xs text-white/50 mt-1">
+              💡 Este campo define a frequência geral da mesa e é obrigatório para campanhas e one-shots em série
+            </p>
+          )}
         </div>
 
         {frequency === 'outros' && (

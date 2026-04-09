@@ -1,13 +1,14 @@
 services:
   # FRONTEND (Nginx servindo build estático do React/Vite)
   # Roteado via Cloudflare Tunnel existente, sem porta pública exposta no host
-  mesas-beta-app:
+  # CORREÇÃO WF-01: Service name deve corresponder ao container_name para consistência
+  mesas-beta-frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
         VITE_ENABLE_DEVTOOLS: ${VITE_ENABLE_DEVTOOLS:-true}
-    container_name: mesas-beta-app
+    container_name: mesas-beta-frontend
     restart: always
     expose:
       - "80"
@@ -58,6 +59,22 @@ services:
     depends_on:
       mesas-beta-db:
         condition: service_healthy
+    volumes:
+      - ./logs:/app/logs  # Logs persistentes fora do container
+    # CORREÇÃO: Adicionar healthcheck na API
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/v1/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # CORREÇÃO: Limitar recursos para evitar OOM
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+        reservations:
+          memory: 256m
 
   # DATABASE (PostgreSQL)
   mesas-beta-db:
@@ -74,6 +91,8 @@ services:
       - pgdata_mesas_beta:/var/lib/postgresql/data
       - ./database/init.sql:/docker-entrypoint-initdb.d/00_init.sql
       - ./database/migration_01_base_schema.sql:/docker-entrypoint-initdb.d/01_base_schema.sql
+      # CORREÇÃO: Adicionar volume de logs para diagnóstico
+      - ./logs/db:/var/log/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d mesas_rpg"]
       interval: 10s

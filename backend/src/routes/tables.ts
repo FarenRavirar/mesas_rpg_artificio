@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { sql } from 'kysely';
 import { db } from '../db';
+import { logDatabaseError } from '../middleware/requestLogger';
 
 const router = Router();
 
@@ -26,6 +27,7 @@ router.get('/', async (req: Request, res: Response) => {
     featured,
     search,
     seal,
+    sort,
     page = '1',
     limit = '12',
   } = req.query as Record<string, string>;
@@ -42,6 +44,8 @@ router.get('/', async (req: Request, res: Response) => {
       .leftJoin('users as u', 'u.id', 'gm.user_id')
       .leftJoin('profiles as p', 'p.user_id', 'u.id')
       .leftJoin('systems as s', 's.id', 't.system_id')
+      // CORREÇÃO A-HIGH-01: JOIN com vtt_platforms para consistência com rota de detalhes
+      .leftJoin('vtt_platforms as vtt', 'vtt.id', 't.vtt_platform_id')
       .select([
         't.id',
         't.slug',
@@ -89,11 +93,23 @@ router.get('/', async (req: Request, res: Response) => {
         'gm.avatar_url as gm_avatar_url',
         'gm.badges as gm_badges',
         sql<string>`COALESCE(gm.nickname, p.display_name)`.as('gm_display_name'),
+        // CORREÇÃO A-HIGH-01: Retornar objeto vtt_platform para cards de catálogo
+        sql<any>`
+          CASE WHEN vtt.id IS NOT NULL THEN
+            json_build_object(
+              'id', vtt.id,
+              'name', vtt.name,
+              'slug', vtt.slug,
+              'logo_filename', vtt.logo_filename,
+              'website_url', vtt.website_url
+            )
+          ELSE NULL
+          END
+        `.as('vtt_platform'),
+        't.game_platform_custom', // CORREÇÃO A-HIGH-01: Retornar custom VTT para cards
       ])
       .where('t.status', '=', 'active')
-      .orderBy('t.created_at', 'desc')
-      .limit(limitNum)
-      .offset(offset);
+      .orderBy('t.created_at', 'desc');
 
     if (system) query = query.where('s.slug', '=', system);
     if (modality) query = query.where('t.modality', '=', modality as any);
@@ -123,6 +139,75 @@ router.get('/', async (req: Request, res: Response) => {
         OR COALESCE(gm.nickname, p.display_name) ILIKE ${safeSearch}
       )`);
     }
+
+    // NOVO: Filtro de estilos de jogo
+    const styles = req.query.styles as string | undefined;
+    if (styles) {
+      const styleArray = styles.split(',').filter(Boolean);
+      if (styleArray.length > 0) {
+        // Filtrar mesas que contenham QUALQUER um dos estilos selecionados
+        query = query.where(sql<boolean>`t.setting_styles && ARRAY[${sql.join(styleArray.map(s => sql.lit(s)))}]::text[]`);
+      }
+    }
+
+    // Aplicar ordenação
+    if (sort === 'popular') {
+      // CORREÇÃO UX-SENIOR-01: Ranking inteligente com score composto
+      // Score = urgência (20pts) + featured (20pts) + frescor (decay) + engajamento
+      query = query
+        .clearOrderBy()
+        .leftJoin('table_metrics as tm', 'tm.table_id', 't.id')
+        .orderBy(
+          sql<number>`(
+            -- Urgência: mesas com poucas vagas sobem
+            (CASE 
+              WHEN t.slots_open <= 2 AND t.slots_open > 0 THEN 20
+              WHEN t.slots_open <= 5 THEN 10
+              ELSE 0
+            END) +
+            
+            -- Featured: destaque manual
+            (CASE WHEN t.featured THEN 20 ELSE 0 END) +
+            
+            -- Frescor: mesas recentes sobem (decay exponencial, max 20pts)
+            (20 * EXP(-EXTRACT(EPOCH FROM (NOW() - t.created_at)) / 86400.0)) +
+            
+            -- Engajamento: contatos e visualizações
+            (COALESCE(tm.contacts_count, 0) * 2) +
+            (COALESCE(tm.views_count, 0) * 0.1)
+          )`,
+          'desc'
+        )
+        .orderBy('t.created_at', 'desc'); // Desempate por recência
+    } else if (sort === 'recent') {
+      // NOVO: Ordenação por mesas mais recentes
+      query = query
+        .clearOrderBy()
+        .orderBy('t.created_at', 'desc');
+    } else if (sort === 'price_asc') {
+      query = query
+        .clearOrderBy()
+        .orderBy('t.price_value', 'asc')
+        .orderBy('t.created_at', 'desc');
+    } else if (sort === 'price_desc') {
+      query = query
+        .clearOrderBy()
+        .orderBy('t.price_value', 'desc')
+        .orderBy('t.created_at', 'desc');
+    }
+
+    // CORREÇÃO BE-03: Contagem otimizada - usar query original sem SELECT complexos
+    // Isso evita duplicar lógica de filtros e mantém type-safety do Kysely
+    const countResult = await query
+      .clearSelect()
+      .clearOrderBy()
+      .select(sql<number>`COUNT(DISTINCT t.id)`.as('count'))
+      .executeTakeFirst();
+    
+    const totalCount = Number(countResult?.count ?? 0);
+
+    // Aplicar limit/offset DEPOIS da contagem
+    query = query.limit(limitNum).offset(offset);
 
     const tables = await query.execute();
 
@@ -159,30 +244,19 @@ router.get('/', async (req: Request, res: Response) => {
       }));
     }
 
-    // CORREÇÃO HP-02: Contar total de mesas ativas COM OS MESMOS FILTROS da query principal
-    // Clonar query antes de aplicar limit/offset para contar resultados filtrados
-    const countQuery = query
-      .clearSelect()
-      .clearLimit()
-      .clearOffset()
-      .clearOrderBy()
-      .select(sql<number>`COUNT(*)`.as('count'));
-    
-    const totalCount = await countQuery.executeTakeFirst();
-
     res.json({
       data: tablesWithContacts,
       pagination: {
         page: pageNum,
         limit: limitNum,
         hasMore: tables.length === limitNum,
-        total: Number(totalCount?.count ?? 0), // CORREÇÃO DT-05
+        total: totalCount, // CORREÇÃO BE-03: totalCount já é número
       },
     });
   } catch (error: any) {
     // CORREÇÃO HP-03: Log com contexto de query params
     console.error('[GET /tables]', error, { 
-      params: { system, modality, type, audience, price_type, experience_level, state, city, featured, search, seal, page, limit }
+      params: { system, modality, type, audience, price_type, experience_level, state, city, featured, search, seal, sort, page, limit }
     });
     res.status(500).json({ error: 'Erro ao buscar mesas.' });
   }
@@ -192,7 +266,13 @@ router.get('/', async (req: Request, res: Response) => {
 router.get('/:slug', async (req: Request, res: Response) => {
   const { slug } = req.params;
 
+  // CORREÇÃO A-HIGH-02: Validar formato do slug antes de usar em query
+  if (!slug || slug.length > 200 || !/^[a-z0-9-]+$/i.test(slug)) {
+    return res.status(400).json({ error: 'Slug inválido.' });
+  }
+
   try {
+    console.log('[DEBUG] GET /tables/:slug - Starting query with slug:', slug);
     const table = await db
       .selectFrom('tables as t')
       .leftJoin('gm_profiles as gm', 'gm.id', 't.gm_id')
@@ -287,15 +367,11 @@ router.get('/:slug', async (req: Request, res: Response) => {
         'gm.slug as gm_slug',
         'gm.avatar_url as gm_avatar_url',
         'gm.badges as gm_badges',
+        'u.id as gm_user_id', // CORREÇÃO DT-025: Adicionar user_id para verificação de ownership
         sql<string>`COALESCE(gm.nickname, p.display_name)`.as('gm_display_name'),
         'gm.bio_long as gm_bio_long', // CORREÇÃO REG-13: Renomeado para evitar conflito com t.gm_bio
       ])
-      .where((eb) => 
-        eb.or([
-          eb('t.slug', '=', slug),
-          eb('t.id', '=', slug) // Aceita UUID também
-        ])
-      )
+      .where('t.slug', '=', slug)
       .executeTakeFirst();
 
     if (!table) {
@@ -332,8 +408,124 @@ router.get('/:slug', async (req: Request, res: Response) => {
 
     res.json({ data: { ...table, contacts, schedules } });
   } catch (error: any) {
-    console.error('[GET /tables/:slug]', error);
+    // Log detalhado de erro de banco de dados
+    logDatabaseError(req, error, {
+      route: 'GET /api/v1/tables/:slug',
+      operation: 'fetch_table_details'
+    });
+    
+    // CORREÇÃO A-CRIT-02: Detectar erro de migration pendente
+    console.error('[GET /tables/:slug]', error, { 
+      slug, 
+      errorMessage: error.message,
+      pgCode: error.code,
+      stack: error.stack 
+    });
+    
+    // Detectar erro de tabela inexistente (migration não executada)
+    if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
+      console.error('[MIGRATION PENDING] Database table does not exist. Check if migrations were executed.');
+      return res.status(503).json({ 
+        error: 'Serviço temporariamente indisponível. Tente novamente em alguns minutos.' 
+      });
+    }
+    
     res.status(500).json({ error: 'Erro ao buscar mesa.' });
+  }
+});
+
+// POST /api/v1/tables/:slug/view — Registrar visualização
+router.post('/:slug/view', async (req: Request, res: Response) => {
+  const { slug } = req.params;
+
+  try {
+    // Buscar mesa pelo slug
+    const table = await db
+      .selectFrom('tables as t')
+      .select(['t.id'])
+      .where('t.slug', '=', slug)
+      .where('t.status', '=', 'active')
+      .executeTakeFirst();
+
+    if (!table) {
+      return res.status(404).json({ error: 'Mesa não encontrada.' });
+    }
+
+    // Incrementar contador de visualizações
+    await db
+      .insertInto('table_metrics')
+      .values({
+        table_id: table.id,
+        views_count: 1,
+      })
+      .onConflict((oc) =>
+        oc.column('table_id').doUpdateSet({
+          views_count: sql`table_metrics.views_count + 1`,
+          updated_at: sql`NOW()`,
+        })
+      )
+      .execute();
+
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('[POST /tables/:slug/view]', error);
+    res.status(500).json({ error: 'Erro ao registrar visualização.' });
+  }
+});
+
+// POST /api/v1/tables/:slug/click — Registrar clique (para CTR tracking e A/B test)
+router.post('/:slug/click', async (req: Request, res: Response) => {
+  const { slug } = req.params;
+  const { variant } = req.body as { variant?: string };
+
+  // CORREÇÃO UX-SENIOR-02: Validar formato do slug
+  if (!slug || slug.length > 200 || !/^[a-z0-9-]+$/i.test(slug)) {
+    return res.status(400).json({ error: 'Slug inválido.' });
+  }
+
+  try {
+    // Buscar mesa pelo slug
+    const table = await db
+      .selectFrom('tables as t')
+      .select(['t.id'])
+      .where('t.slug', '=', slug)
+      .where('t.status', '=', 'active')
+      .executeTakeFirst();
+
+    if (!table) {
+      return res.status(404).json({ error: 'Mesa não encontrada.' });
+    }
+
+    // Incrementar contador de cliques em table_metrics
+    await db
+      .insertInto('table_metrics')
+      .values({
+        table_id: table.id,
+        clicks_count: 1,
+      })
+      .onConflict((oc) =>
+        oc.column('table_id').doUpdateSet({
+          clicks_count: sql`table_metrics.clicks_count + 1`,
+          updated_at: sql`NOW()`,
+        })
+      )
+      .execute();
+
+    // Registrar evento de clique para A/B test (se variant fornecida)
+    if (variant && (variant === 'with_metrics' || variant === 'without_metrics')) {
+      await db
+        .insertInto('table_click_events')
+        .values({
+          table_id: table.id,
+          variant,
+        })
+        .execute();
+    }
+
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('[POST /tables/:slug/click]', error);
+    res.status(500).json({ error: 'Erro ao registrar clique.' });
   }
 });
 

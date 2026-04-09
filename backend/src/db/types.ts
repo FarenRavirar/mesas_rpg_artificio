@@ -437,10 +437,14 @@ export interface Database {
   user_links: UserLinksTable;
   table_metrics: TableMetricsTable;
   table_metric_events: TableMetricEventsTable;
+  table_click_events: TableClickEventsTable; // Migration 007: A/B testing
   
   // VTT Platforms (Migration 006)
   vtt_platforms: VttPlatformsTable;
   vtt_platform_suggestions: VttPlatformSuggestionsTable;
+  
+  // Migration 17: Sistema de Changelog/Atualizações
+  update_log: UpdateLogTable;
 }
 
 // Migration 16: Métricas de engajamento de mesas
@@ -474,4 +478,32 @@ export type TableMetricEvent = Selectable<TableMetricEventsTable>;
 export type NewTableMetricEvent = Insertable<TableMetricEventsTable>;
 export type TableMetricEventUpdate = Updateable<TableMetricEventsTable>;
 
+// Migration 007: Click events para A/B testing
+export interface TableClickEventsTable {
+  id: Generated<string>;
+  table_id: string;
+  variant: string | null; // 'with_metrics' ou 'without_metrics'
+  clicked_at: Generated<Date>;
+}
 
+export type TableClickEvent = Selectable<TableClickEventsTable>;
+export type NewTableClickEvent = Insertable<TableClickEventsTable>;
+export type TableClickEventUpdate = Updateable<TableClickEventsTable>;
+
+// Migration 17: Sistema de Changelog/Atualizações
+export type UpdateLogType = 'app' | 'dados';
+
+export interface UpdateLogTable {
+  id: Generated<string>;
+  title: string;
+  body: string;
+  type: UpdateLogType;
+  published: Generated<boolean>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export type UpdateLog = Selectable<UpdateLogTable>;
+export type NewUpdateLog = Insertable<UpdateLogTable>;
+export type UpdateLogUpdate = Updateable<UpdateLogTable>;
