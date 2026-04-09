@@ -1,6 +1,9 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ProfileProvider } from './contexts/ProfileContext';
+import { ConfirmProvider } from './components/ui/ConfirmDialog';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { AppShell } from './components/AppShell';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { HomePage } from './pages/HomePage';
@@ -18,6 +21,8 @@ import { GestaoPage } from './pages/GestaoPage';
 // REMOVIDO: Sistema de ingestão automática desacoplado
 // import { AdminDevToolsPage } from './pages/AdminDevToolsPage';
 import { Toaster } from 'react-hot-toast';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from './lib/queryClient';
 import './index.css';
 
 function AppRoutes() {
@@ -35,7 +40,15 @@ function AppRoutes() {
       <Route path="/mestres/:masterId" element={<MasterProfilePage />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
-      <Route path="/perfil" element={<ProtectedRoute><ProfileEditPage /></ProtectedRoute>} />
+      <Route path="/perfil" element={
+        <ProtectedRoute>
+          <ErrorBoundary>
+            <ProfileProvider>
+              <ProfileEditPage />
+            </ProfileProvider>
+          </ErrorBoundary>
+        </ProtectedRoute>
+      } />
       <Route path="/painel" element={<ProtectedRoute><PainelMestrePage /></ProtectedRoute>} />
       {!isLoading && isAdmin && (
         <>
@@ -100,24 +113,28 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <AppShell>
-          <AppRoutes />
-        </AppShell>
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            duration: 4000,
-            style: {
-              background: '#1f2937',
-              color: '#fff',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-            },
-          }}
-        />
-      </AuthProvider>
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AuthProvider>
+          <ConfirmProvider>
+            <AppShell>
+              <AppRoutes />
+            </AppShell>
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                duration: 4000,
+                style: {
+                  background: '#1f2937',
+                  color: '#fff',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                },
+              }}
+            />
+          </ConfirmProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 }
 

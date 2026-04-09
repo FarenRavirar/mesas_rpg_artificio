@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Trash2, Video, Music, Radio, MessageCircle, FileText, Globe, Plus, Loader, Camera, Share2, Briefcase } from 'lucide-react';
 import { useLinks, type UserLink } from '../hooks/useLinks';
+import { useConfirm } from './ui/ConfirmDialog';
 import './LinksManager.css';
 
 const LINK_TYPE_ICONS = {
@@ -28,6 +29,7 @@ const LINK_TYPE_LABELS = {
 
 export function LinksManager() {
   const { links, loading, error, addLink, removeLink } = useLinks();
+  const { confirm } = useConfirm();
   const [newUrl, setNewUrl] = useState('');
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
@@ -52,8 +54,17 @@ export function LinksManager() {
   };
 
   const handleRemoveLink = async (linkId: string) => {
-    if (!confirm('Remover este link?')) return;
-    await removeLink(linkId);
+    const confirmed = await confirm({
+      title: 'Remover link?',
+      message: 'Esta ação não pode ser desfeita.',
+      variant: 'danger',
+      confirmText: 'Remover',
+      cancelText: 'Cancelar',
+    });
+    
+    if (confirmed) {
+      await removeLink(linkId);
+    }
   };
 
   if (loading) {
