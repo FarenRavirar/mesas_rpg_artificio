@@ -144,52 +144,56 @@ export default function ProfileEditPage() {
           )}
         </div>
         <div className="profile-info">
-          <div className="profile-name-row">
-            <h1>{profile.profile?.display_name || 'Sem nome'}</h1>
-            {profile.user.role === 'gm' && (
-              <span className="profile-role-badge badge-gm">Mestre</span>
-            )}
-            {profile.user.role === 'admin' && (
-              <span className="profile-role-badge badge-admin">Admin</span>
+          <div className="profile-main">
+            <div className="profile-name-row">
+              <h1>{profile.profile?.display_name || 'Sem nome'}</h1>
+              {profile.user.role === 'gm' && (
+                <span className="profile-role-badge badge-gm">Mestre</span>
+              )}
+              {profile.user.role === 'admin' && (
+                <span className="profile-role-badge badge-admin">Admin</span>
+              )}
+            </div>
+            <p className="profile-email">{profile.user.email}</p>
+            {profile.user.username && (
+              <p className="profile-username">@{profile.user.username}</p>
             )}
           </div>
-          <p className="profile-email">{profile.user.email}</p>
-          {profile.user.username && (
-            <p className="profile-username">@{profile.user.username}</p>
-          )}
-          {profile.gm?.slug && (
-            <a 
-              href={`/mestre/${profile.gm.slug}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-view-public-profile"
-              title="Abrir perfil público em nova aba"
-            >
-              <span>👁️</span> Ver perfil público
-            </a>
-          )}
+          <div className="profile-meta">
+            {profile.gm?.slug && (
+              <a 
+                href={`/mestre/${profile.gm.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-view-public-profile"
+                title="Abrir perfil público em nova aba"
+              >
+                <span>👁️</span> Ver perfil público
+              </a>
+            )}
+            {saving ? (
+              <div 
+                className="autosave-indicator saving"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+              >
+                <span className="spinner-small"></span>
+                <span>Salvando alterações...</span>
+              </div>
+            ) : showSaved ? (
+              <div 
+                className="autosave-indicator saved"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+              >
+                <span>✓</span>
+                <span>Alterações salvas</span>
+              </div>
+            ) : null}
+          </div>
         </div>
-        {saving ? (
-          <div 
-            className="autosave-indicator saving"
-            role="status"
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            <span className="spinner-small"></span>
-            <span>Salvando alterações...</span>
-          </div>
-        ) : showSaved ? (
-          <div 
-            className="autosave-indicator saved"
-            role="status"
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            <span>✓</span>
-            <span>Alterações salvas</span>
-          </div>
-        ) : null}
       </div>
 
       {/* Tabs */}
