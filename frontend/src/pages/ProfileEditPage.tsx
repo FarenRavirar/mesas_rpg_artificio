@@ -144,7 +144,15 @@ export default function ProfileEditPage() {
           )}
         </div>
         <div className="profile-info">
-          <h1>{profile.profile?.display_name || 'Sem nome'}</h1>
+          <div className="profile-name-row">
+            <h1>{profile.profile?.display_name || 'Sem nome'}</h1>
+            {profile.user.role === 'gm' && (
+              <span className="profile-role-badge badge-gm">Mestre</span>
+            )}
+            {profile.user.role === 'admin' && (
+              <span className="profile-role-badge badge-admin">Admin</span>
+            )}
+          </div>
           <p className="profile-email">{profile.user.email}</p>
           {profile.user.username && (
             <p className="profile-username">@{profile.user.username}</p>
@@ -154,10 +162,10 @@ export default function ProfileEditPage() {
               href={`/mestre/${profile.gm.slug}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="profile-public-link"
-              title="Abrir perfil público"
+              className="btn-view-public-profile"
+              title="Abrir perfil público em nova aba"
             >
-              🔗 {window.location.origin}/mestre/{profile.gm.slug}
+              <span>👁️</span> Ver perfil público
             </a>
           )}
         </div>
@@ -266,6 +274,7 @@ function TabGeral() {
   const { profile, updateUser, updateProfile } = useProfileContext();
   const [avatarPreview, setAvatarPreview] = useState<string>('');
   const [avatarError, setAvatarError] = useState(false);
+  const [showManualInput, setShowManualInput] = useState(false);
 
   if (!profile) return null;
 
@@ -279,6 +288,11 @@ function TabGeral() {
     setAvatarError(true);
   };
 
+  const handleRemoveAvatar = () => {
+    setAvatarPreview('');
+    updateProfile({ avatar_url: '' });
+  };
+
   // CORREÇÃO P12: Usar apenas profile.avatar_url (Google OAuth deve copiar para profiles)
   const currentAvatar = avatarPreview || profile.profile?.avatar_url || '';
 
@@ -288,13 +302,13 @@ function TabGeral() {
         <h2>Informações Básicas</h2>
 
         <div className="form-group">
-          <label htmlFor="avatar_url">Avatar</label>
-          <div className="avatar-upload-container">
-            <div className="avatar-preview">
+          <label>Foto de Perfil</label>
+          <div className="avatar-premium-container">
+            <div className="avatar-premium-preview">
               {currentAvatar && !avatarError ? (
                 <img 
                   src={currentAvatar} 
-                  alt="Preview do avatar" 
+                  alt="Foto de perfil" 
                   onError={handleAvatarError}
                 />
               ) : (
@@ -303,17 +317,39 @@ function TabGeral() {
                 </div>
               )}
             </div>
-            <div className="avatar-input-wrapper">
-              <input
-                type="url"
-                id="avatar_url"
-                defaultValue={profile.profile?.avatar_url || ''}
-                onChange={(e) => handleAvatarChange(e.target.value)}
-                placeholder="https://exemplo.com/avatar.jpg"
-              />
-              <small>Cole a URL de uma imagem hospedada (Imgur, Gravatar, etc.)</small>
-              {avatarError && currentAvatar && (
-                <small className="error-text">❌ Não foi possível carregar a imagem</small>
+            <div className="avatar-premium-actions">
+              <div className="avatar-button-group">
+                {currentAvatar && (
+                  <button 
+                    type="button"
+                    className="btn-avatar-action btn-remove"
+                    onClick={handleRemoveAvatar}
+                  >
+                    Remover foto
+                  </button>
+                )}
+                <button 
+                  type="button"
+                  className="btn-avatar-action btn-manual"
+                  onClick={() => setShowManualInput(!showManualInput)}
+                >
+                  {showManualInput ? '▲ Ocultar URL' : '▼ Usar URL manual'}
+                </button>
+              </div>
+              {showManualInput && (
+                <div className="avatar-manual-input">
+                  <input
+                    type="url"
+                    id="avatar_url"
+                    defaultValue={profile.profile?.avatar_url || ''}
+                    onChange={(e) => handleAvatarChange(e.target.value)}
+                    placeholder="https://exemplo.com/avatar.jpg"
+                  />
+                  <small>Cole a URL de uma imagem hospedada (Imgur, Gravatar, etc.)</small>
+                  {avatarError && currentAvatar && (
+                    <small className="error-text">❌ Não foi possível carregar a imagem</small>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -407,7 +443,10 @@ function TabJogador() {
           <label>Estilo de Jogo (1-5)</label>
           <div className="playstyle-grid">
             <div className="playstyle-item">
-              <label htmlFor="combat">Combate</label>
+              <label htmlFor="combat">
+                Combate
+                <span>{playerProfile.playstyle?.combat || 3}</span>
+              </label>
               <input
                 type="range"
                 id="combat"
@@ -423,11 +462,13 @@ function TabJogador() {
                   })
                 }
               />
-              <span>{playerProfile.playstyle?.combat || 3}</span>
             </div>
 
             <div className="playstyle-item">
-              <label htmlFor="roleplay">Roleplay</label>
+              <label htmlFor="roleplay">
+                Roleplay
+                <span>{playerProfile.playstyle?.roleplay || 3}</span>
+              </label>
               <input
                 type="range"
                 id="roleplay"
@@ -443,11 +484,13 @@ function TabJogador() {
                   })
                 }
               />
-              <span>{playerProfile.playstyle?.roleplay || 3}</span>
             </div>
 
             <div className="playstyle-item">
-              <label htmlFor="exploration">Exploração</label>
+              <label htmlFor="exploration">
+                Exploração
+                <span>{playerProfile.playstyle?.exploration || 3}</span>
+              </label>
               <input
                 type="range"
                 id="exploration"
@@ -463,11 +506,13 @@ function TabJogador() {
                   })
                 }
               />
-              <span>{playerProfile.playstyle?.exploration || 3}</span>
             </div>
 
             <div className="playstyle-item">
-              <label htmlFor="strategy">Estratégia</label>
+              <label htmlFor="strategy">
+                Estratégia
+                <span>{playerProfile.playstyle?.strategy || 3}</span>
+              </label>
               <input
                 type="range"
                 id="strategy"
@@ -483,7 +528,6 @@ function TabJogador() {
                   })
                 }
               />
-              <span>{playerProfile.playstyle?.strategy || 3}</span>
             </div>
           </div>
         </div>
