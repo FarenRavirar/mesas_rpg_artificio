@@ -38,7 +38,7 @@ Execute nesta ordem a cada sessão:
    - Se não: o código já mudou novamente — descartar patch
    - Mover arquivo processado para docs/sync-patches/aplicados/
 3. Commit: "docs: aplica patches de arquitetura [data]"
-4. Push e abrir PR para dev
+4. **Solicitar autorização explícita no chat antes de push/PR**
 
 ### Tarefa 2 — Limpar FILA_IMPLEMENTACAO.md
 
@@ -100,9 +100,19 @@ Execute nesta ordem a cada sessão:
 - Modificar qualquer arquivo que não seja .md
 - Criar ou modificar workflows
 - Criar ou modificar migrations
-- Executar npm, git além de status/log/diff/push
+- Executar npm ou comandos de build
 - Acessar a VM via SSH
 - Modificar ARQUITETURA_PROJETO.md além dos patches aprovados
+- Fazer push ou abrir PR sem autorização explícita no chat
+
+## Comandos Git permitidos
+
+- `git status` — verificar estado
+- `git log` — ver histórico
+- `git diff` — ver mudanças
+- `git add` — preparar arquivos .md
+- `git commit` — criar commits de documentação
+- `git push` — **SOMENTE com autorização explícita**
 
 ---
 
