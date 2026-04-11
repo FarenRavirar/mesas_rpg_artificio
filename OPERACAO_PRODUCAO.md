@@ -536,22 +536,7 @@ ssh ubuntu@137.131.250.231
    docker compose -f /opt/mesas-beta/docker-compose.beta.yml logs --tail=50 mesas-beta-frontend
    docker compose -f /opt/mesas-beta/docker-compose.beta.yml logs --tail=50 mesas-beta-api
    ```
-7. **Aggregator Discord (migration_05 aplicada no beta em 04/04/2026):**
-   - Verificar tabelas no banco:
-     ```bash
-     docker exec mesas-beta-db psql -U admin -d mesas_rpg -t -c '\dt aggregator*'
-     ```
-   - Fluxo operacional de ingestão:
-     1. Criar source: `POST /api/v1/aggregator/sources` (requer JWT admin)
-     2. Importar export JSON local: `npm run aggregator:import -- <arquivo.json> --source-id=<uuid>`
-     3. Revisar candidatos: `GET /api/v1/aggregator/candidates?status=awaiting_review`
-     4. Aceitar/rejeitar: `PATCH /api/v1/aggregator/candidates/:id/accept` ou `/reject`
-   - Para dry-run sem persistir: `npm run aggregator:import -- <arquivo.json> --source-id=<uuid> --dry-run`
-   - Logs de erros de ingestão:
-     ```bash
-     docker logs mesas-beta-api --tail 30 | grep -E "aggregator|cleanup|cron"
-     ```
-8. **Parser Python e mídia Discord (REQ-20 — migration_10 pendente):**
+7. **Parser Python e mídia Discord (REQ-20 — migration_10 pendente):**
    - Verificar se migration_10 foi aplicada:
      ```bash
      docker exec mesas-beta-db psql -U admin -d mesas_rpg -t -c "SELECT column_name FROM information_schema.columns WHERE table_name='tables' AND column_name IN ('is_covil','imported_expires_at');"
@@ -651,8 +636,6 @@ gh run list --repo FarenRavirar/mesas_rpg_artificio -L 5 --json databaseId,name,
 Logs do servidor seguem UTC.
 
 Para correlação operacional, considerar `America/Araguaina` como referência local do projeto.
-
-Quando houver workers futuros efetivamente ativos, o agendamento seguirá `AGGREGATOR_CRON_SCHEDULE` definido no ambiente.
 
 ---
 

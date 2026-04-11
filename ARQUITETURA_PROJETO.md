@@ -34,7 +34,6 @@ Os recursos principais arquitetados incluem:
 - **Módulo de Perguntas e Avaliações:** Comunicação pública entre jogadores interessados e mestres.
 - **Painel Administrativo:** Moderação de anúncios, curadoria de fontes externas, gestão de taxonomias.
 - **Exportação Formatada:** Geração de texto pronto para colar no WhatsApp ou Discord, com formatação otimizada para cada canal. (será uma feature só depois que as partes de cima tiverem rodando.)
-- **Ingestão Automática (AggregatorBot):** Coleta diária de anúncios de fontes externas (Facebook, Reddit, grupos Discord, WhatsApp público), com deduplicação e vínculo opcional a perfis locais. (será uma feature só depois que as partes de cima tiverem rodando.)
 
 
 ---
@@ -50,7 +49,6 @@ Os recursos principais arquitetados incluem:
 | **Banco de Dados** | PostgreSQL (Container isolado via Docker on-premise) |
 | **Autenticação** | Google OAuth 2.0 (primário) + JWT customizado para sessão |
 | **Servidor Web** | Nginx (Docker) servindo build Vite |
-| **Agendamento (AggregatorBot)** | Node-cron ou worker dedicado rodando no mesmo compose |
 
 ---
 
@@ -314,9 +312,6 @@ Se configurar ambiente local for complexo, testar diretamente em:
 - `answers` — Respostas do mestre a perguntas.
 - `reviews` — Avaliações de jogadores após participação.
 - `bookmarks` — Mesas salvas por usuários.
-- `sources` — Registro de fontes externas para o AggregatorBot.
-- `imported_tables` — Anúncios coletados automaticamente antes de deduplicação.
-- `aggregator_import_candidates` — Candidatos de importação aguardando revisão editorial. Contém campos enriquecidos pelo parser Python (migration_07): múltiplos horários estruturados (`sessions[]`), vagas detalhadas, classificação de sistema/pagamento/tipo, separação mestre vs anunciante. Status: `awaiting_review`, `accepted`, `rejected`. Suporta filtros avançados (data, mestre) e operações em lote (rejeição, deleção permanente com limite de 150 IDs).
 - `system_suggestions` — Sugestões colaborativas de novos sistemas enviadas por usuários (migration_06).
 - `notifications` — Notificações in-app para usuários (migration_07).
 - `imgur_cleanup_log` — Registro de tentativas de limpeza de imagens hospedadas externamente.
@@ -352,8 +347,6 @@ Se configurar ambiente local for complexo, testar diretamente em:
 | `starts_at` | Data/hora de início |
 | `experience_level` | `todos`, `iniciante`, `intermediario`, `veterano` |
 | `slug` | Gerado automaticamente via `slugify.ts` |
-| `is_covil` *(migration_10 — pendente)* | BOOLEAN — indica que a mesa pertence ao programa Covil do Lich; detectado automaticamente via parser Python, editável pelo admin |
-| `imported_expires_at` *(migration_10 — pendente)* | TIMESTAMPTZ — data de expiração configurável para mesas importadas via JSON do Discord; política gerenciável pelo AdminDevTools |
 | `billing_text` *(migration_11 — pendente)* | TEXT — Detalhamento de cobrança (ex: "R$ 30 por sessão", "R$ 75 por mês") |
 | `session_zero_free` *(migration_11 — pendente)* | BOOLEAN — Sessão zero gratuita |
 | `synopsis` *(migration_11 — pendente)* | TEXT — Sinopse curta separada de description (max 300 chars) |
@@ -369,7 +362,6 @@ Se configurar ambiente local for complexo, testar diretamente em:
 | `setting_name` *(migration_13 — pendente)* | TEXT — Nome do cenário (ex: "Forgotten Realms") |
 | `setting_styles` *(migration_13 — pendente)* | TEXT[] — Array de estilos (ex: ["Alta Fantasia", "Aventura Épica"]) |
 
-> **Nota sobre `gm_avatar_url` (Decisão Arquitetural — 05/04/2026):** O campo de avatar do mestre importado via Discord **NÃO é persistido** no banco de dados. A URL extraída pelo parser Python (`enrichedFields.avatar_url`) é usada apenas para pré-preencher visualmente o formulário de revisão. O mestre real será vinculado à mesa via `gm_id` quando reivindicar o anúncio importado.
 
 
 ### 4.3 Automação de Integridade (Slugs)
@@ -380,13 +372,6 @@ Todas as entidades estruturais (`systems`, `gm_profiles`, `tables`) possuem gera
 
 Alterações de status e campos críticos em `tables` são registradas em `table_history` com `changed_by`, `field`, `old_value`, `new_value` e `changed_at`, permitindo auditoria completa de moderação e importações.
 
-### 4.5 Deduplicação no AggregatorBot
-
-A resolução de anúncios duplicados usa prioridade determinística:
-1. Correspondência exata por `source_url`
-2. Correspondência por `title` + `gm_name` + `starts_at`
-3. Anúncio manual local prevalece sobre importado
-4. Entre duplicados importados: mais recente (`updated_at`) vence
 
 ### 4.6 Agenda Estruturada (table_schedules)
 
@@ -410,8 +395,6 @@ A tabela `table_schedules` armazena múltiplos horários de sessão para uma mes
 - `sort_order` SMALLINT (ordem de exibição)
 - `created_at` TIMESTAMPTZ
 
-**Integração com Parser Python:**
-O parser extrai `sessions[]` com interface `SessionSchedule` (REQ-24, migration_07). Ao aceitar candidato, o backend mapeia automaticamente cada objeto do array para um registro em `table_schedules` vinculado à mesa criada.
 
 **Exemplo de uso:**
 Uma mesa pode ter:
@@ -525,94 +508,15 @@ Preferências alimentam: recomendações na home, filtros pré-salvos, notifica�
 ### 7.7 Painel Administrativo
 
 - **Moderação de Mesas Pendentes:** Aprovação/rejeição de anúncios com registro em `table_history`.
-- **Gestão de Fontes Externas:** Cadastro e monitoramento de fontes para o AggregatorBot (URL, tipo, frequência, status), previstos para fase posterior.
-- **Preview de Importação (Dry Run):** Antes de persistir lote importado, exibe preview com detecção de duplicatas, previsto para fase posterior.
 - **CRUD Completo de Taxonomias (REQ-23 - Implementado Abril/2026):**
   - **Sistemas:** Criação, edição e deleção com suporte a hierarquia (sistema > edição > variante). Cálculo automático de `depth` e `path_slug`. Gerenciamento de aliases (array de strings). Busca em tempo real por nome/alias.
   - **Cenários:** Criação, edição e deleção com suporte a subgêneros (array de tags). Slug gerado automaticamente.
   - **Mesas:** Funcionalidade de deleção administrativa (hard delete com cascade de contatos e relacionamentos).
   - **UX Administrativa:** Modais de edição (`SystemEditModal`, `ScenarioEditModal`), confirmação de deleção, feedback via `react-hot-toast`, estados de carregamento (spinners).
 - **Notificações In-App (REQ-15 - Implementado Abril/2026):** Sino no header com contador de não lidas. Notificações de sugestões de sistemas aprovadas/rejeitadas.
-- **Revisão de Candidatos (Aggregator - REQ-25 - Implementado 05/04/2026):** 
-  - **Fluxo de Revisão:** Aceitação/rejeição de anúncios importados com validação de campos obrigatórios, botão "Desfazer Rejeição" e rejeição em lote.
-  - **Filtros Avançados Combinados:** Filtro por data (range início/fim), busca por nome do mestre e filtro de status (pending/approved/rejected). Filtros aplicáveis simultaneamente (AND lógico). Persistência automática no localStorage com badge visual "X filtros ativos".
-  - **Seleção Múltipla e Ações em Lote:** Checkbox "Selecionar Todos" (respeita limite configurável: 50/100/150), checkboxes individuais por candidato, contador "X de Y selecionados". Sincronização automática: IDs invisíveis após aplicar filtros são removidos da seleção. Limpeza automática ao trocar de aba de status.
-  - **Deleção em Lote:** Botão "Deletar Selecionados" (vermelho, só aparece quando há seleção). Modal de confirmação dupla com lista de candidatos, checkbox "Confirmo que quero deletar permanentemente" e feedback diferenciado (sucesso total/parcial/falha). Rota backend `DELETE /api/v1/aggregator/candidates/bulk` com validação de array, limite de 150 IDs e retorno de contagem.
-  - **Heurísticas de Nielsen:** Implementação completa das 10 heurísticas de usabilidade (visibilidade de status, prevenção de erros, controle e liberdade, feedback constante).
 - **Destaques da Home:** Curadoria manual das mesas exibidas no hero.
 - **Workflow de Continuidade:** Modal de moderação suporta estado `stayOpen` para processar múltiplos itens em sequência.
 
-### 7.8 AggregatorBot (Ingestão Automática)
-
-**Status Atual (Abril/2026):** Implementado e operacional no ambiente beta. Migration_05 e Migration_07 aplicadas.
-
-- Serviço Node.js rodando via node-cron no mesmo compose do Backend.
-- Coleta diária configurável por fonte.
-- **Parser Python Inteligente (REQ-18 + REQ-24 - Fase B Implementada em 05/04/2026):** Utiliza `spaCy` (modelo `pt_core_news_lg`) para extração automática de campos estruturados de mensagens do Discord:
-  
-  **Fase A (Campos Básicos):**
-  - Sistema de RPG (com fallback para parser TypeScript no frontend)
-  - Data/horário de início
-  - Vagas (total e preenchidas)
-  - Modalidade (online/presencial)
-  - Banner/avatar (extração de URLs de imagens dos attachments)
-  - Detecção automática de badge "Covil do Lich" via análise de conteúdo
-  
-  **Fase B (Campos Avançados - 05/04/2026):**
-  - **Múltiplos horários estruturados:** Array `sessions[]` com objetos `SessionSchedule` contendo dia da semana, horário inicial/final, frequência (semanal/quinzenal/mensal) e vagas por sessão
-  - **Vagas detalhadas:** `slots_total`, `slots_available`, `slots_filled` extraídos de padrões como "2/4 vagas", "Restam 3 vagas"
-  - **Classificação de sistema:** Detecta homebrew, sistemas próprios e experimentais. Normaliza sistema base (ex: "D&D 5e Homebrew" → "D&D 5e"). Retorna `system_raw`, `system_normalized`, `system_classification` (válido/inválido/revisável), `is_homebrew`, `is_custom`
-  - **Classificação de pagamento:** Analisa contexto completo para classificar como gratuita/paga/ambígua (`payment_classification`)
-  - **Classificação de tipo:** Diferencia mesa individual, grupo/servidor, anúncio múltiplo ou inválido (`candidate_kind`)
-  - **Separação mestre vs anunciante:** Extrai "Mestre: Nome" do conteúdo e compara com autor do post. Retorna `master_display_name`, `publisher_role` (mestre/anunciante), `is_same_person`
-  - **Cenário e estilos (REQ-28 - 05/04/2026):** Extrai `setting_name` (texto livre) e `setting_styles` (array) quando explícitos no anúncio. Não infere cenário a partir do sistema.
-  
-  **Armazenamento (Migration_07):** 15 novos campos na tabela `import_candidates` com 9 índices para performance (GIN para JSONB, B-tree para classificações). Interface `SessionSchedule` compartilhada entre Python (Pydantic) e TypeScript.
-
-- **Reparo Automático de JSON:** O sistema detecta e repara automaticamente arquivos JSON truncados do DiscordChatExporter via `repairTruncatedJson()` (6 estratégias de correção).
-- Parseia anúncios para o schema de `imported_tables`.
-- Executa deduplicação automática (ver 4.5).
-- Quando a origem monitorada for Discord e a postagem já trouxer imagem de campanha com URL pública reutilizável, o bot deverá reaproveitar essa imagem como `cover_url` da mesa importada, sem reupload obrigatório para Imgur.
-- Anúncios não vinculados a perfis locais ficam como `origin=imported`, sem `gm_id`.
-- Mestres podem "reivindicar" um anúncio importado, vinculando ao próprio perfil.
-- Todos os logs de ingestão registrados com timestamp, fonte e resultado (novo/duplicado/erro).
-
-### 7.9 Fluxo de Importação Inteligente (REQ-28 - Em Desenvolvimento)
-
-**Arquitetura do Pipeline de Importação:**
-
-O fluxo de importação inteligente transforma anúncios brutos do Discord em mesas publicáveis com mínima intervenção manual, seguindo 5 camadas de processamento:
-
-**Camada 1 — Parser Python (Enriquecimento):**
-- Extrai campos estruturados do JSON bruto via NLP (spaCy)
-- Retorna `enrichedFields` com dados validados e classificados
-- Campos extraídos: `setting_name`, `setting_styles`, `banner_url`, `avatar_url`, `external_links`, `is_paid`, `priceText`, `signupText`, `requires_pc/camera/microphone`, `is_ongoing`, `reviewFlags`, `candidate_kind`
-- Regra: não inferir cenário a partir do sistema; não inferir estilos por semântica solta; deixar vazio quando não houver dado claro
-
-**Camada 2 — Normalização Backend (`normalizeExporterPayload.ts`):**
-- Unifica payload cru do DiscordChatExporter com `enrichedFields` do parser
-- Prioriza `enrichedFields` quando existirem; mantém fallback TypeScript apenas quando campo estiver ausente
-- Preserva `attachments`, `embeds`, `mentions`, `author` e todos os campos enriquecidos
-- Loga quais campos vieram do parser e quais ficaram vazios
-- Regra: não há perda silenciosa de campos; `parsed_json` final contém tudo que o parser devolveu
-
-**Camada 3 — Mapeamento para Formulário (`candidateToFormData.ts`):**
-- Converte candidato importado em `CandidateFormData` já preenchido
-- Auto-preenchimento inteligente:
-  - Sistema pré-selecionado via `system_path_slug`
-  - Cobrança marcada quando `is_paid=true`, valor preenchido via `priceText`
-  - Canal Discord criado automaticamente quando origem for Discord
-  - Formulário/WhatsApp adicionados quando detectados em `external_links`/`signupText`
-  - Banner importado via `banner_url`, avatar do autor via `avatar_url`
-  - Requisitos técnicos marcados (`requires_pc/camera/microphone`)
-  - Mesa em andamento marcada (`is_ongoing`)
-  - Cenário e estilos preenchidos (`setting_name`, `setting_styles`)
-  - Agenda aproveitada (texto bruto ou estruturada via `sessions[]`)
-- Regra: priorizar `enrichedFields`; fallback para parsing secundário só quando necessário
-
-**Camada 4 — Revisão Manual com Abertura Automática de Blocos:**
-- Formulário de revisão abre automaticamente blocos relevantes:
-  - Bloco de valor quando `is_paid=true`
   - Preview de banner quando `banner_url` existir
   - Canais de recrutamento quando detectados
   - Requisitos técnicos quando marcados
@@ -621,17 +525,6 @@ O fluxo de importação inteligente transforma anúncios brutos do Discord em me
   - Repetidor de agenda (se suportado) ou texto bruto
 - Admin pode editar qualquer campo antes de aprovar
 - Regra: sistema não exige redigitação do que já estava no JSON
-
-**Camada 5 — Persistência com Overrides (`candidateService.acceptCandidate()`):**
-- Endpoint `PATCH /api/v1/aggregator/candidates/:id/accept` aceita payload revisado opcional
-- Backend persiste dados revisados (não apenas brutos extraídos)
-- Campos persistidos: `setting_name`, `setting_styles`, `banner_url`, `billing_text`, `publisher_role`, `master_display_name`, canais de recrutamento, requisitos técnicos, status de andamento
-- Regra: cenário/estilos/banner/cobrança/recrutamento/requisitos chegam até a tabela `tables` final; mesa importada publicada fica indistinguível de mesa manual
-
-**Separação de Responsabilidades:**
-- **Parser Python:** Extração e classificação (NLP)
-- **Backend TypeScript:** Normalização, validação, persistência e lógica de negócio
-- **Frontend:** Apresentação, edição e confirmação (nunca decide segurança ou lógica de domínio)
 
 **Regra Arquitetural:** A lógica de negócio fica no backend. O frontend nunca decide segurança, elevação de role ou persistência direta.
 
@@ -706,7 +599,6 @@ O contêiner de API Node.js só inicializa se conseguir bater porta e sincroniza
 
 1. Verifique o `docker compose logs` e consulte `ERRORS_SOLUTIONS.md` urgentemente.
 2. Use SSH assistido se e somente se métricas do repositório GitHub e os Actions falharem primeiro.
-3. Quando o AggregatorBot for implementado, deverá possuir circuit breaker próprio: em caso de falha de conexão com o banco, deverá abortar o ciclo de ingestão e registrar o erro em log, sem tentar novamente até o próximo ciclo agendado.
 
 ### Política de Migrations
 
@@ -773,30 +665,6 @@ Referência rápida das rotas estruturais da API. Todas as rotas mutáveis exige
 | `GET` | `/api/v1/notifications` | `player` | Listar notificações do usuário |
 | `PATCH` | `/api/v1/notifications/:id/read` | `player` | Marcar notificação como lida |
 
-### Aggregator Discord (Fase 7 — implementado, migration_05 aplicada no beta)
-| Método | Rota | Auth | Descrição |
-|---|---|---|---|
-| `GET` | `/api/v1/aggregator/sources` | `admin` | Listar fontes cadastradas |
-| `POST` | `/api/v1/aggregator/sources` | `admin` | Cadastrar nova fonte Discord |
-| `PUT` | `/api/v1/aggregator/sources/:id` | `admin` | Editar fonte |
-| `PATCH` | `/api/v1/aggregator/sources/:id/toggle` | `admin` | Habilitar/desabilitar fonte |
-| `POST` | `/api/v1/aggregator/import/file` | `admin` | Importar JSON de export Discord (body JSON, suporta `dry_run`) |
-| `POST` | `/api/v1/aggregator/import/source/:id/run` | `admin` | Re-processar mensagens brutas de uma source |
-| `GET` | `/api/v1/aggregator/exports/day` | `admin` | Exportação diária JSON de candidatos aceitos |
-| `GET` | `/api/v1/aggregator/exports/day.txt` | `admin` | Exportação diária TXT de candidatos aceitos |
-
-### Revisão Editorial (Aggregator)
-| Método | Rota | Auth | Descrição |
-|---|---|---|---|
-| `GET` | `/api/v1/aggregator/candidates` | `admin` | Listar candidatos (filtros: `status`, `source_id`, paginação) |
-| `GET` | `/api/v1/aggregator/candidates/:id` | `admin` | Detalhe de um candidato |
-| `PATCH` | `/api/v1/aggregator/candidates/:id/accept` | `admin` | Aceitar candidato para publicação |
-| `PATCH` | `/api/v1/aggregator/candidates/:id/reject` | `admin` | Rejeitar candidato |
-| `PATCH` | `/api/v1/aggregator/candidates/:id/review` | `admin` | Marcar candidato para revisão manual |
-| `PATCH` | `/api/v1/aggregator/candidates/reject-all` | `admin` | Rejeição em lote de candidatos (REQ-19 - Abril/2026) |
-| `PATCH` | `/api/v1/aggregator/candidates/:id/undo-rejection` | `admin` | Desfazer rejeição (REQ-19 - Abril/2026) |
-| `DELETE` | `/api/v1/aggregator/candidates/bulk` | `admin` | Deletar múltiplos candidatos permanentemente. Body: `{ ids: string[] }`. Validações: array não-vazio, todos IDs strings, limite 150 por request. Retorna: `{ data: { deleted: number, requested: number } }` (REQ-25 - 05/04/2026) |
-
 
 ---
 
@@ -827,13 +695,6 @@ O projeto é desenvolvido em fases incrementais, priorizando o núcleo funcional
 - Notificações básicas (novas respostas, status de mesa)
 - Filtros salvos por usuário
 
-### Fase 4 — AggregatorBot
-- Serviço de ingestão automática (node-cron)
-- Cadastro e monitoramento de fontes externas
-- Dry run + commit de importação em lote
-- Mecanismo de reivindicação de anúncios importados por mestres locais
-- Logs de ingestão no painel admin
-
 ### Fase 5 — Crescimento e Estabilização
 - Recomendações baseadas em preferências do usuário
 - Integração com sistema de notificações por email (vazamentos de vaga, início próximo)
@@ -850,15 +711,11 @@ Este bloco documenta decisões tomadas com justificativa, para evitar que sejam 
 |---|---|
 | **Google OAuth como único método de login** | Elimina gerenciamento de senha local, reduz superfície de ataque e simplifica onboarding. Alinha com a proposta de mínima coleta de dados. |
 | **Discord como vínculo opcional de perfil, não como login principal** | Preserva a simplicidade e o estado já validado da autenticação via Google, enquanto abre espaço para selos públicos, validação comunitária e leitura futura de cargos públicos em servidores autorizados, sem acoplar o acesso principal da plataforma ao Discord. |
-| **AggregatorBot no mesmo compose** | Simplifica deploy e compartilha variáveis de ambiente e rede interna com a API. Worker separado seria custo operacional desnecessário na escala atual. |
 | **Fuse.js client-side para busca** | Consistente com o Glossário, mantém zero latência de busca para o usuário. Para volume de mesas esperado na fase inicial, busca client-side é suficiente. Revisitar se ultrapassar 10k registros ativos. |
 | **Slug como identificador de URL** | URLs amigáveis e estáveis são essenciais para SEO e compartilhamento social. Slugs são gerados no backend, nunca no frontend. |
 | **Separação entre `profiles` e `gm_profiles`** | Nem todo usuário é mestre. Forçar campos de mestre em todos os perfis polui o modelo. A elevação de role é um evento explícito, não automático. |
 | **`table_history` desde a fase 1** | Moderação sem rastreabilidade é inauditável. O custo de implementar auditoria depois é sempre maior que implementar desde o início. |
-| **Deduplicação determinística no bot** | Evita seleção aleatória de "vencedor" entre duplicatas, garantindo que anúncios manuais do próprio Artifício sempre prevaleçam sobre importados. |
-| **Parser Python no backend (REQ-18 - Abril/2026)** | Extração de campos estruturados de mensagens Discord requer NLP avançado. spaCy em Python oferece precisão superior ao parser TypeScript. Execução no backend garante consistência e segurança. |
 | **Toast notifications modernas (REQ-19 - Abril/2026)** | Substituição de `alert()` por `react-hot-toast` melhora UX significativamente. Feedback visual não-bloqueante alinhado com heurísticas de Nielsen (H1, H9). |
-| **Validação antes de aprovar candidatos (REQ-19 - Abril/2026)** | Previne publicação de mesas com dados incompletos. Validação de campos obrigatórios (título, sistema, contatos) antes de aceitar candidato garante qualidade do catálogo. |
 | **Migração para sistemas.json e cenarios.json (Abril/2026)** | Substituição de `arvores_de_sistemas.md` por JSON estruturado facilita parsing, validação e manutenção. Suporte a aliases e subgêneros em formato programático. |
 
 ---
@@ -1013,8 +870,6 @@ Ver `CatalogoPage.tsx` (refatorado em Abril/2026) como referência de uso corret
 | **Mesa** | Anúncio de uma sessão ou campanha de RPG, publicada por um mestre ou importada de fonte externa. Entidade central do produto. |
 | **Mestre (GM)** | Usuário com role `gm`, responsável por narrar a mesa. Possui `gm_profile` público. |
 | **Jogador** | Usuário com role `player`. Pode buscar, salvar e avaliar mesas, mas não publicar. |
-| **AggregatorBot** | Serviço interno de coleta automática de anúncios de fontes externas. |
-| **Fonte** | URL ou canal externo monitorado pelo AggregatorBot (ex: grupo do Facebook, subreddit). |
 | **Reivindicação** | Ação de um mestre local que vincula um anúncio importado ao próprio `gm_profile`. |
 | **Dry Run** | Simulação de importação em lote sem persistir dados, usada para preview e detecção de duplicatas. |
 | **Slug** | Identificador textual único gerado a partir do nome da entidade, usado em URLs. |
@@ -1056,7 +911,7 @@ Imagens do ecossistema do projeto são divididas em três categorias com tratame
 **Fluxo B — Reaproveitamento de imagem externa vinda do Discord**
 
 ```
-[AggregatorBot encontra anúncio no Discord]
+[Sistema encontra anúncio no Discord]
     → Extrai a imagem de campanha já publicada na postagem
     → Valida se a URL é pública e reutilizável externamente
     → Grava a URL em cover_url
@@ -1105,33 +960,6 @@ Quando o status de uma mesa transitar para `ended` ou `cancelled`, um job de lim
 
 **Imagens de mestres** (avatar e banner do `gm_profile`) **não possuem expiração automática**. Só são excluídas do Imgur quando o mestre faz upload de uma nova imagem (substituição) — neste caso, a imagem anterior é deletada do Imgur antes de persistir a nova — ou quando a conta do mestre é encerrada por um administrador.
 
-### 16.5 Job de Limpeza (CleanupWorker)
-
-Rodando via node-cron junto ao AggregatorBot, o `CleanupWorker` executa diariamente:
-
-```
-1. Busca no banco todas as mesas com status = 'ended' OR 'cancelled'
-   onde cover_source_type = 'imgur_upload'
-   e cover_deletehash IS NOT NULL
-2. Para cada mesa: chama DELETE /image/{deletehash} na API do Imgur
-3. Se resposta 200: zera cover_url, cover_source_type, cover_origin_url, cover_deletehash e cover_imgur_id no banco
-4. Se resposta 404 (já deletada): zera os campos no banco sem erro
-5. Se falha de rede: registra em log e tenta novamente no próximo ciclo
-6. Imagens com cover_source_type = `discord_reused` são ignoradas pelo job de exclusão externa
-7. Registra resultado de cada operação em tabela imgur_cleanup_log
-```
-
-**Tabela `imgur_cleanup_log`:**
-| Campo | Tipo | Descrição |
-|---|---|---|
-| `id` | `UUID` | PK |
-| `entity_type` | `TEXT` | `table` ou `gm_profile` |
-| `entity_id` | `UUID` | FK da entidade |
-| `imgur_id` | `TEXT` | ID da imagem deletada |
-| `status` | `TEXT` | `success`, `not_found`, `error` |
-| `attempted_at` | `TIMESTAMPTZ` | Timestamp da tentativa |
-| `error_detail` | `TEXT` | Mensagem de erro se houver |
-
 ### 16.6 Limites e Regras de Upload
 
 - **Tamanho máximo aceito pelo Backend:** 10MB por arquivo (antes da conversão WebP)
@@ -1149,242 +977,15 @@ Rodando via node-cron junto ao AggregatorBot, o `CleanupWorker` executa diariame
 - Uploads são processados apenas por usuários autenticados com role `gm` (para imagens de mesa e perfil de mestre) ou `admin`.
 
 
-## 18. CreateTableForm — Estrutura e Lógica de Abertura Automática de Blocos
-
-### 18.1 Visão Geral
-
-O `CreateTableForm` é o componente central de criação e edição de mesas, localizado em `frontend/src/pages/PainelMestrePage.tsx` (1413 linhas). Ele gerencia **todos os campos de uma mesa**, incluindo campos básicos, avançados (REQ-26) e campos de importação inteligente (REQ-28).
-
-**Modos de operação:**
-- `mode='create'` — Criação de nova mesa (formulário vazio)
-- `mode='edit'` — Edição de mesa existente (pré-preenchido com `initialData`)
-- `mode='review'` — Revisão de candidato importado (pré-preenchido com dados do parser Python)
-
-### 18.2 Estrutura de Estados
-
-O formulário gerencia **40+ estados** organizados em grupos lógicos:
-
-#### Estados Básicos (linhas 186-198)
-```typescript
-const [form, setForm] = useState({
-  title: initialData?.title || '',
-  description: initialData?.description || '',
-  type: initialData?.type || 'campanha',
-  audience: 'livre',
-  modality: initialData?.modality || 'online',
-  price_type: initialData?.price_type || 'gratuita',
-  price_value: '',
-  slots_total: initialData?.slots_total || '4',
-  experience_level: 'todos',
-  starts_at: '',
-  language: initialData?.language || 'Português',
-});
-```
-
-#### Estados de Campos Avançados (linhas 246-261)
-```typescript
-// REQ-26: Campos avançados
-const [masterDisplayName, setMasterDisplayName] = useState(initialData?.master_display_name || '');
-const [campaignLength, setCampaignLength] = useState(initialData?.campaign_length || '');
-const [levelRange, setLevelRange] = useState(initialData?.level_range || '');
-const [billingText, setBillingText] = useState(initialData?.billing_text || '');
-const [sessionZeroFree, setSessionZeroFree] = useState(initialData?.session_zero_free || false);
-const [synopsis, setSynopsis] = useState(initialData?.synopsis || '');
-const [styleText, setStyleText] = useState(initialData?.style_text || '');
-const [listingExcerpt, setListingExcerpt] = useState(initialData?.listing_excerpt || '');
-const [technicalRequirements, setTechnicalRequirements] = useState(initialData?.technical_requirements || '');
-const [requiresPc, setRequiresPc] = useState(initialData?.requires_pc || false);
-const [requiresCamera, setRequiresCamera] = useState(initialData?.requires_camera || false);
-const [requiresMicrophone, setRequiresMicrophone] = useState(initialData?.requires_microphone || false);
-
-// REQ-28: Cenário e estilos
-const [settingName, setSettingName] = useState(initialData?.setting_name || '');
-const [settingStyles, setSettingStyles] = useState<string[]>(initialData?.setting_styles || []);
-```
-
-#### Estados de Imagens (linhas 240-244)
-```typescript
-const [bannerUrl, setBannerUrl] = useState(initialData?.banner_url || '');
-const [gmAvatarUrl] = useState(initialData?.gm_avatar_url || ''); // readonly, apenas visual
-const [isCovilMesa, setIsCovilMesa] = useState(initialData?.is_covil ?? false);
-const [bannerError, setBannerError] = useState(false);
-const [avatarError, setAvatarError] = useState(false);
-```
-
-### 18.3 Estrutura de Seções do Formulário
-
-O formulário é dividido em **7 seções principais**:
-
-| Seção | Linhas | Descrição | Sempre Visível? |
-|-------|--------|-----------|-----------------|
-| **Informações Básicas** | ~400-550 | Título, descrição, tipo, modalidade, sistema | ✅ Sim |
-| **Contatos** | ~550-650 | Canais de recrutamento (WhatsApp, Discord, etc.) | ✅ Sim |
-| **Horários** | ~650-720 | Repetidor de sessões (dia, hora, frequência) | ✅ Sim |
-| **Campos Avançados** | 729-895 | Campos opcionais (REQ-26 e REQ-28) | ✅ Sim |
-| **DDAL** | 897-1050 | Metadados de Adventurers League | ⚠️ Condicional (`isDdalEligibleSelection`) |
-| **Regras e Notas** | ~1050-1060 | Texto livre de regras da mesa | ✅ Sim |
-| **Ações** | ~1060-1070 | Botões de salvar/cancelar | ✅ Sim |
-
-### 18.4 Design Atual: Sem Blocos Colapsáveis
-
-**Estado atual (Abril/2026):** O formulário **não possui blocos colapsáveis**. Todos os campos avançados estão sempre visíveis na seção "Campos Avançados (Opcional)" (linha 729-895).
-
-**Implicação para REQ-28:** A Fase 5 (Abertura de Blocos) foi marcada como concluída porque o design atual já atende ao requisito de visibilidade — não há blocos para abrir.
-
-### 18.5 Implementação Futura: Lógica de Abertura Automática de Blocos
-
-Se no futuro o design for alterado para incluir blocos colapsáveis (ex: usando `<details>` ou estado `useState`), a lógica de abertura automática deve seguir estas regras:
-
-#### Regras de Abertura Automática
-
-| Condição | Bloco a Abrir | Justificativa |
-|----------|---------------|---------------|
-| `initialData.setting_name` existe | **Cenário e Estilos** | Parser Python extraiu cenário |
-| `initialData.setting_styles?.length > 0` | **Cenário e Estilos** | Parser Python extraiu estilos |
-| `initialData.banner_url` existe | **Preview de Banner** | Parser Python extraiu banner |
-| `initialData.price_type === 'paga'` | **Detalhes de Cobrança** | Mesa é paga |
-| `initialData.billing_text` existe | **Detalhes de Cobrança** | Parser Python extraiu texto de cobrança |
-| `initialData.requires_camera === true` | **Requisitos Técnicos** | Parser Python detectou requisito |
-| `initialData.requires_microphone === true` | **Requisitos Técnicos** | Parser Python detectou requisito |
-| `initialData.requires_pc === true` | **Requisitos Técnicos** | Parser Python detectou requisito |
-| `initialData.technical_requirements` existe | **Requisitos Técnicos** | Texto descritivo de requisitos |
-
-#### Exemplo de Implementação com `useState`
-
-```typescript
-// Estados de blocos colapsáveis (adicionar após linha 261)
-const [showScenarioBlock, setShowScenarioBlock] = useState(
-  !!(initialData?.setting_name || initialData?.setting_styles?.length)
-);
-const [showBannerPreview, setShowBannerPreview] = useState(!!initialData?.banner_url);
-const [showBillingBlock, setShowBillingBlock] = useState(
-  initialData?.price_type === 'paga' || !!initialData?.billing_text
-);
-const [showTechnicalRequirements, setShowTechnicalRequirements] = useState(
-  !!(initialData?.requires_camera || initialData?.requires_microphone || 
-     initialData?.requires_pc || initialData?.technical_requirements)
-);
-```
-
-#### Exemplo de Implementação com `<details>`
-
-```tsx
-{/* Bloco G: Cenário e Estilos (REQ-28) */}
-<details open={!!(initialData?.setting_name || initialData?.setting_styles?.length)}>
-  <summary className="text-sm font-semibold text-white/80 cursor-pointer">
-    Cenário e Estilos
-  </summary>
-  <div className="space-y-3 mt-3">
-    <SettingStylesField
-      settingName={settingName}
-      settingStyles={settingStyles}
-      onSettingNameChange={setSettingName}
-      onSettingStylesChange={setSettingStyles}
-    />
-  </div>
-</details>
-```
-
-### 18.6 Fluxo de Dados: initialData → Estados → Persistência
-
-```mermaid
-graph LR
-    A[candidateToFormData] --> B[initialData]
-    B --> C[CreateTableForm]
-    C --> D[Estados useState]
-    D --> E[Formulário Renderizado]
-    E --> F[Admin Edita]
-    F --> G[handleSubmit]
-    G --> H[PATCH /accept com overrides]
-    H --> I[candidateService.accept]
-    I --> J[Merge: parsedJson + overrides]
-    J --> K[INSERT tables]
-```
-
-**Pontos críticos:**
-1. `candidateToFormData.ts` mapeia `parsed_json` → `initialData`
-2. `CreateTableForm` inicializa estados com `initialData`
-3. Admin pode editar qualquer campo
-4. `handleSubmit` envia apenas campos modificados como `overrides`
-5. `candidateService.accept()` faz merge: `{ ...parsedJson, ...overrides }`
-
-### 18.7 Campos Sempre Pré-preenchidos (REQ-28)
-
-Quando `mode='review'` (revisão de candidato importado), os seguintes campos são **sempre pré-preenchidos** se o parser Python extraiu dados:
-
-| Campo | Estado | Origem |
-|-------|--------|--------|
-| Título | `form.title` | `enrichedFields.title` ou `parsed_json.title` |
-| Descrição | `form.description` | `enrichedFields.synopsis` ou `parsed_json.synopsis` |
-| Tipo de Cobrança | `form.price_type` | `enrichedFields.is_paid` |
-| Texto de Cobrança | `billingText` | `enrichedFields.priceText` |
-| Banner | `bannerUrl` | `enrichedFields.banner_url` |
-| Avatar do Mestre | `gmAvatarUrl` | `enrichedFields.avatar_url` (readonly) |
-| Cenário | `settingName` | `enrichedFields.setting_name` |
-| Estilos | `settingStyles` | `enrichedFields.setting_styles` |
-| Requer Câmera | `requiresCamera` | `enrichedFields.requires_camera` |
-| Requer Microfone | `requiresMicrophone` | `enrichedFields.requires_microphone` |
-| Mesa em Andamento | `sessions[].is_ongoing` | `enrichedFields.sessions[].is_ongoing` |
-
-### 18.8 Validação e Submissão
-
-**Validações obrigatórias:**
-- Título não vazio
-- Pelo menos 1 contato válido
-- Se `price_type === 'paga'`, `price_value` deve ser numérico
-- Se `is_ddal === true`, campos DDAL obrigatórios devem estar preenchidos
-
-**Fluxo de submissão:**
-1. `handleSubmit()` coleta todos os estados
-2. Monta payload completo
-3. Se `mode='review'`, envia para `PATCH /api/v1/aggregator/candidates/:id/accept` com overrides
-4. Se `mode='create'`, envia para `POST /api/v1/tables`
-5. Se `mode='edit'`, envia para `PATCH /api/v1/tables/:id`
-
-### 18.9 Integração com GestaoPage (Revisão de Candidatos)
-
-Quando o admin clica em "Revisar" na `GestaoPage.tsx`, o fluxo é:
-
-```typescript
-// GestaoPage.tsx (linha ~840-1639)
-const formData = mapCandidateToFormData(candidate);
-
-<CreateTableForm
-  token={token}
-  mode="review"
-  candidateId={candidate.id}
-  initialData={formData}
-  onSuccess={() => {
-    setEditingCandidate(null);
-    loadCandidates();
-  }}
-/>
-```
-
-**Resultado:** Formulário abre pré-preenchido com todos os dados extraídos pelo parser Python, permitindo edição antes de aprovar.
-
-### 18.10 Referências de Código
-
-| Arquivo | Linhas | Descrição |
-|---------|--------|-----------|
-| [PainelMestrePage.tsx](file:///c:/projetos/mesas_rpg_artificio/frontend/src/pages/PainelMestrePage.tsx) | 174-1070 | Componente CreateTableForm completo |
-| [candidateToFormData.ts](file:///c:/projetos/mesas_rpg_artificio/frontend/src/utils/candidateToFormData.ts) | 1-503 | Mapeamento parsed_json → initialData |
-| [GestaoPage.tsx](file:///c:/projetos/mesas_rpg_artificio/frontend/src/pages/GestaoPage.tsx) | 840-1639 | Integração com revisão de candidatos |
-| [aggregatorReview.ts](file:///c:/projetos/mesas_rpg_artificio/backend/src/routes/aggregatorReview.ts) | 72-88 | Endpoint PATCH /accept com overrides |
-| [candidateService.ts](file:///c:/projetos/mesas_rpg_artificio/backend/src/services/aggregator/candidateService.ts) | 64-221 | Lógica de merge de overrides |
-
----
-
-
-## 19. Referências e Documentos Relacionados
+## 18. Referências e Documentos Relacionados
 
 | Documento | Finalidade |
 |---|---|
 | `AGENTS.md` | Instruções de comportamento para agentes de IA no projeto |
 | `ERRORS_SOLUTIONS.md` | Registro de erros conhecidos e suas soluções (E001-E111 catalogados até Abril/2026) |
 | `CHANGELOG.md` | Histórico de versões e mudanças relevantes |
-| `docker-compose.yml` | Definição dos serviços: API, PostgreSQL, Nginx, AggregatorBot |
-| `sistemas.json` e `cenarios.json` | **Migração concluída (Abril/2026):** Substituição de `arvores_de_sistemas.md` por `sistemas.json` (taxonomia de sistemas com `name`, `aliases`, `editions`, `variants`, `depth`, `path_slug`) e `cenarios.json` (cenários com campo `subgenero` como array de tags). Dockerfile atualizado para copiar ambos automaticamente no build. Scripts de importação (`systemsTreeImport.ts`) processam JSON. Parser Python (`discord_message_parser.py`) utiliza `sistemas.json` para detecção automática de sistemas em mensagens do Discord. |
+| `docker-compose.yml` | Definição dos serviços: API, PostgreSQL, Nginx |
+| `sistemas.json` e `cenarios.json` | **Migração concluída (Abril/2026):** Substituição de `arvores_de_sistemas.md` por `sistemas.json` (taxonomia de sistemas com `name`, `aliases`, `editions`, `variants`, `depth`, `path_slug`) e `cenarios.json` (cenários com campo `subgenero` como array de tags). Dockerfile atualizado para copiar ambos automaticamente no build. Scripts de importação (`systemsTreeImport.ts`) processam JSON. |
 ---
 
 > **Lembre-se:** Este é um presente do Artifício RPG para a comunidade brasileira de RPG.
