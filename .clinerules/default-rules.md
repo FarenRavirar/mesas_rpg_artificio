@@ -52,8 +52,28 @@ Nunca leia ARQUITETURA_PROJETO.md na íntegra — consulte apenas a seção rele
 10. Atualizar MAPA_DE_API.md se rotas foram adicionadas ou removidas
 11. Registrar erros novos em ERRORS_SOLUTIONS.md
 12. Atualizar RESUMO_EXECUCAO.md com estado atual
-13. Abrir PR para dev com descrição do que foi feito
-14. PARAR — aguardar aprovação do PR antes de qualquer push ou merge
+13. Commit + push + abrir PR para dev com descrição do que foi feito
+
+## Critério de conclusão da tarefa
+
+A tarefa está 100% concluída quando:
+- npm run build passou sem erros
+- FILA_IMPLEMENTACAO.md marcado como concluido
+- PR aberto no GitHub
+
+Quando esses 3 pontos estiverem feitos: PARAR essa tarefa imediatamente.
+Não tentar validar novamente. Não repetir passos anteriores.
+Não aguardar resposta. Não entrar em loop.
+
+## Transição entre tarefas
+
+Após concluir uma tarefa:
+1. Registrar no arquivo de sessão em /sessoes/ que a tarefa foi concluída
+2. Ler FILA_IMPLEMENTACAO.md e identificar o próximo item com status pendente
+3. Se houver próximo item → iniciar nova tarefa do zero pelo passo 1 do fluxo
+4. Se não houver mais itens pendentes → encerrar sessão com mensagem: "Fila vazia. Nenhum item pendente encontrado."
+
+Nunca voltar a um item já marcado como concluido.
 
 ---
 
@@ -74,8 +94,9 @@ Nunca leia ARQUITETURA_PROJETO.md na íntegra — consulte apenas a seção rele
 - Nunca commitar direto em dev ou main
 - npm run build deve passar antes de qualquer commit
 - PR sempre para dev, nunca para main
-- PARAR após abrir PR — não fazer merge
-- git commit e git push exigem autorização explícita no chat
+- git push para feature/* é permitido sem autorização
+- git push para dev ou main exige autorização explícita no chat
+- Após abrir PR: tarefa concluída — não aguardar resposta, partir para próximo item
 
 ## Exceções de auto-aprovação
 
