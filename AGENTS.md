@@ -60,7 +60,7 @@ Governança de agentes de IA neste repositório — **Anúncios de Mesas RPG (Po
 
 ## Contexto do Projeto
 
-**O que é:** Aplicação fullstack 100% tipada — React/TypeScript (Frontend) + Node.js/TypeScript (Backend) + PostgreSQL — para descoberta e publicação de mesas de RPG no Brasil. Inclui autenticação via Google OAuth, autopublicação por mestres e pipeline de ingestão automática de anúncios externos via parser Python + spaCy.
+**O que é:** Aplicação fullstack 100% tipada — React/TypeScript (Frontend) + Node.js/TypeScript (Backend) + PostgreSQL — para descoberta e publicação de mesas de RPG no Brasil. Inclui autenticação via Google OAuth e autopublicação por mestres.
 
 **Ecossistema:** Projeto coirmão do Grande Glossário de RPG. Compartilha infraestrutura Oracle on-premise, identidade visual Artifício e filosofia comunitária. Repositórios e containers independentes.
 
@@ -84,7 +84,6 @@ Consulte o arquivo correto para a situação. Não leia documentos que não seja
 |---|---|
 | Banco de dados, modelo de dados, rotas de API | `ARQUITETURA_PROJETO.md` §4 e §12 |
 | Imagens, upload, Imgur | `ARQUITETURA_PROJETO.md` §16 |
-| Pipeline de ingestão, parser Python, AggregatorBot | `ARQUITETURA_PROJETO.md` §7 |
 | Roles, permissões, autenticação | `ARQUITETURA_PROJETO.md` §5 e §6 |
 | Decisões arquiteturais e justificativas | `ARQUITETURA_PROJETO.md` §14 |
 | Git, branch, merge, deploy | `GIT_WORKFLOW.md` |
@@ -188,6 +187,80 @@ Quando o plano está claro e aprovado:
 - ❌ Pedir confirmação para cada linha de código
 - ❌ Entrar em loop de "vou analisar X para entender Y"
 - ❌ Reformular o mesmo plano múltiplas vezes sem executar
+- ❌ **NUNCA usar "arquivo muito grande" como desculpa para não terminar tarefa. Se o arquivo tem 10.000 linhas, limpe linha por linha se necessário. Tamanho do arquivo NÃO é motivo válido para parar.**
+
+---
+
+## REGRA ANTI-CONCLUSÃO PREMATURA
+
+> [!CAUTION]
+> **REGRA CRÍTICA:** Agentes que usam `attempt_completion` antes de terminar COMPLETAMENTE a tarefa causam retrabalho massivo e frustração do usuário.
+
+### Protocolo Obrigatório Antes de attempt_completion
+
+**1. Executar Busca Final Completa:**
+```bash
+# OBRIGATÓRIO executar ANTES de attempt_completion:
+busca_final = buscar_em_todos_arquivos(padrão_da_tarefa)
+if busca_final.count > 0:
+    continuar_trabalhando()  # Tarefa NÃO está completa
+else:
+    attempt_completion()  # Tarefa está completa
+```
+
+**2. Verificar Checklist Completa:**
+- Toda tarefa DEVE ter checklist criada no início
+- TODOS os itens devem estar marcados [x]
+- Se houver 1 item [ ] pendente = tarefa NÃO está completa
+
+**3. Critério de Conclusão EXPLÍCITO:**
+
+Tarefa só está completa quando:
+- ✅ Busca final retorna **ZERO** resultados
+- ✅ **TODOS** os itens da checklist estão [x] marcados
+- ✅ **Nenhum** arquivo parcialmente modificado
+- ✅ **Nenhuma** palavra como "parcial", "restante", "70%", "alguns" na conclusão
+
+**4. PROIBIDO attempt_completion se:**
+- ❌ Busca ainda retorna resultados (mesmo que "só 1 arquivo")
+- ❌ Checklist tem itens [ ] pendentes
+- ❌ Você usou palavras: "parcial", "restante", "alguns", "maioria", "principais"
+- ❌ Você disse: "documentação técnica não foi limpa"
+- ❌ Você disse: "X de Y arquivos" onde X < Y
+- ❌ Você disse: "70% limpo" ou qualquer porcentagem < 100%
+
+### Exemplos de ERRO (Conclusão Prematura)
+
+❌ **ERRADO:** "9 de 10 arquivos limpos" → NÃO ESTÁ COMPLETO
+❌ **ERRADO:** "70% limpo" → NÃO ESTÁ COMPLETO  
+❌ **ERRADO:** "documentação técnica não foi limpa" → NÃO ESTÁ COMPLETO
+❌ **ERRADO:** "referências restantes são contextuais" → NÃO ESTÁ COMPLETO
+❌ **ERRADO:** "principais arquivos limpos" → NÃO ESTÁ COMPLETO
+
+### Exemplo CORRETO
+
+✅ **CORRETO:**
+```
+Busca final executada: 0 resultados encontrados
+Checklist: 30/30 itens marcados [x]
+Nenhum arquivo pendente
+Tarefa 100% completa
+```
+
+### Fluxo Obrigatório
+
+```
+1. Receber tarefa
+2. Criar checklist COMPLETA de TODOS os arquivos/passos
+3. Executar cada item da checklist
+4. Marcar [x] cada item concluído
+5. Quando achar que terminou:
+   a. Executar busca final
+   b. Se busca retornar > 0: voltar ao passo 3
+   c. Se busca retornar 0: verificar checklist
+   d. Se checklist tem [ ]: voltar ao passo 3
+   e. Se checklist 100% [x] E busca = 0: attempt_completion
+```
 
 ---
 
@@ -381,11 +454,7 @@ Isso está correto? Posso prosseguir?
 
 ## Regras Específicas do Projeto
 
-**AggregatorBot:** Qualquer alteração no serviço de ingestão automática deve ser validada em beta antes de ir para produção. O bot tem circuit breaker próprio — falhas de ingestão não devem derrubar a API principal.
-
 **Imgur:** `IMGUR_CLIENT_ID` é variável de ambiente obrigatória. Nunca hardcodar, nunca expor no Frontend, nunca versionar com valor real. Usar `.env.example` com placeholder.
-
-**CleanupWorker:** Job de limpeza de imagens de mesas encerradas roda via node-cron. Alterações no critério de exclusão exigem autorização explícita — deleção no Imgur é irreversível.
 
 **Google OAuth:** Único método de autenticação. Não implementar login por e-mail/senha local sem autorização explícita do responsável.
 
@@ -408,7 +477,7 @@ Isso está correto? Posso prosseguir?
 
 **Nome:** `resumo_[dia-mes]_[task-curta].md`  
 **Localização:** `/sessoes/`  
-**Exemplo:** `sessoes/resumo_05-04_aggregator-bulk-delete.md`
+**Exemplo:** `sessoes/resumo_11-04_limpeza-documentacao.md`
 
 **Conteúdo mínimo obrigatório:**
 1. **Objetivo da sessão** — o que será feito (1-2 frases)

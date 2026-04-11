@@ -135,8 +135,6 @@ python -c "import psycopg2, pandas, openpyxl"
 docker exec mesas-beta-api python3 -c "import re, json, datetime"
 ```
 
-Se o parser falhar dentro do container, verificar se `python3` está instalado via alpine packages no `Dockerfile` do backend. Ver `ERRORS_SOLUTIONS.md` E107.
-
 ### 9. Verificação dos containers no beta
 
 ```bash
@@ -214,16 +212,6 @@ Usar esta checagem para:
 - falha de OAuth
 - falha de inicialização da API
 - falha futura de workers
-
-### 17. Verificação de workers futuros
-
-Somente quando houver implementação efetiva em beta:
-
-```bash
-docker logs mesas-beta-api --tail 50 | grep -E "aggregator|cleanup|cron"
-```
-
-Não usar `mesas-beta-app` para essa validação.
 
 ### 18. Comandos Unix no PowerShell — equivalentes nativos e software externo
 

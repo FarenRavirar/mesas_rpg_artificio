@@ -393,7 +393,6 @@ prod_domain: mesas.artificiorpg.com -> http://mesas-app:80
 - deploy_beta_workflow_hardened_and_validated: true
 - deploy_production_workflow_hardened_but_not_published: true
 - docker_build_cache_reduced_from_13_36GB_to_258MB_after_workflow_change: true
-- migration_05_aggregator_applied_to_beta: true  # 2026-04-04
 - migration_06_system_suggestions_applied_to_beta: true  # 2026-04-04
 - migration_07_notifications_applied_to_beta: true  # 2026-04-04
 - migration_09_table_fields_applied_to_beta: true  # 2026-04-04 (frequency, rules_notes, banner_url)
@@ -403,11 +402,9 @@ prod_domain: mesas.artificiorpg.com -> http://mesas-app:80
 - auth_context_intelligent_validation_implemented: true  # 2026-04-04
 - req_18_fluxo_revisao_candidatos_implemented: true  # 2026-04-05 (em_validacao)
 - req_19_melhorias_ux_nielsen_phase_1_4_implemented: true  # 2026-04-05 (em_validacao)
-- req_20_parser_python_banner_avatar_implemented: true  # 2026-04-05 (parser extrai banner_url de attachments e avatar_url de author)
-- req_20_candidateToFormData_banner_gm_avatar_mapped: true  # 2026-04-05 (mapeamento frontend implementado)
+- req_20_banner_gm_avatar_mapped: true  # 2026-04-05 (mapeamento frontend implementado)
 - req_20_migration_10_covil_expiration_pending: true  # 2026-04-05 (is_covil + imported_expires_at — a aplicar no beta)
 - python_runtime_available_in_backend_container: true  # python3 instalado via Dockerfile alpine packages
-- jsonrepair_library_installed_frontend: true  # para normalização de JSON corrompido do DiscordChatExporter
 ```
 
 ## database_tables_beta
@@ -426,12 +423,6 @@ core_tables:
 collaborative_features:
   - system_suggestions  # migration_06 (2026-04-04)
   - notifications       # migration_07 (2026-04-04)
-
-aggregator_tables:
-  - aggregator_sources  # migration_05 (2026-04-04)
-  - aggregator_imported_raw_messages
-  - aggregator_import_candidates
-  - aggregator_settings
 
 pending_migrations:
   - migration_10: "is_covil BOOLEAN DEFAULT FALSE, imported_expires_at TIMESTAMPTZ"

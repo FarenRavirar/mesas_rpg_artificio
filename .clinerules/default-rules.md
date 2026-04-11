@@ -151,6 +151,83 @@ Tarefas de documentação são identificadas quando:
 - Obrigatório atualizar ao final de qualquer task que adicione, remova ou altere rota
 - Rotas marcadas `❌ Pendente/Front` que forem implementadas → atualizar para `✅ Em Uso`
 
+
+Obrigatorio: 
+- ❌ **NUNCA usar "arquivo muito grande" como desculpa para não terminar tarefa. Se o arquivo tem 10.000 linhas, limpe linha por linha se necessário. Tamanho do arquivo NÃO é motivo válido para parar.**
+
+---
+
+## REGRA ANTI-CONCLUSÃO PREMATURA
+
+> [!CAUTION]
+> **REGRA CRÍTICA:** Agentes que usam `attempt_completion` antes de terminar COMPLETAMENTE a tarefa causam retrabalho massivo e frustração do usuário.
+
+### Protocolo Obrigatório Antes de attempt_completion
+
+**1. Executar Busca Final Completa:**
+```bash
+# OBRIGATÓRIO executar ANTES de attempt_completion:
+busca_final = buscar_em_todos_arquivos(padrão_da_tarefa)
+if busca_final.count > 0:
+    continuar_trabalhando()  # Tarefa NÃO está completa
+else:
+    attempt_completion()  # Tarefa está completa
+```
+
+**2. Verificar Checklist Completa:**
+- Toda tarefa DEVE ter checklist criada no início
+- TODOS os itens devem estar marcados [x]
+- Se houver 1 item [ ] pendente = tarefa NÃO está completa
+
+**3. Critério de Conclusão EXPLÍCITO:**
+
+Tarefa só está completa quando:
+- ✅ Busca final retorna **ZERO** resultados
+- ✅ **TODOS** os itens da checklist estão [x] marcados
+- ✅ **Nenhum** arquivo parcialmente modificado
+- ✅ **Nenhuma** palavra como "parcial", "restante", "70%", "alguns" na conclusão
+
+**4. PROIBIDO attempt_completion se:**
+- ❌ Busca ainda retorna resultados (mesmo que "só 1 arquivo")
+- ❌ Checklist tem itens [ ] pendentes
+- ❌ Você usou palavras: "parcial", "restante", "alguns", "maioria", "principais"
+- ❌ Você disse: "documentação técnica não foi limpa"
+- ❌ Você disse: "X de Y arquivos" onde X < Y
+- ❌ Você disse: "70% limpo" ou qualquer porcentagem < 100%
+
+### Exemplos de ERRO (Conclusão Prematura)
+
+❌ **ERRADO:** "9 de 10 arquivos limpos" → NÃO ESTÁ COMPLETO
+❌ **ERRADO:** "70% limpo" → NÃO ESTÁ COMPLETO  
+❌ **ERRADO:** "documentação técnica não foi limpa" → NÃO ESTÁ COMPLETO
+❌ **ERRADO:** "referências restantes são contextuais" → NÃO ESTÁ COMPLETO
+❌ **ERRADO:** "principais arquivos limpos" → NÃO ESTÁ COMPLETO
+
+### Exemplo CORRETO
+
+✅ **CORRETO:**
+```
+Busca final executada: 0 resultados encontrados
+Checklist: 30/30 itens marcados [x]
+Nenhum arquivo pendente
+Tarefa 100% completa
+```
+
+### Fluxo Obrigatório
+
+```
+1. Receber tarefa
+2. Criar checklist COMPLETA de TODOS os arquivos/passos
+3. Executar cada item da checklist
+4. Marcar [x] cada item concluído
+5. Quando achar que terminou:
+   a. Executar busca final
+   b. Se busca retornar > 0: voltar ao passo 3
+   c. Se busca retornar 0: verificar checklist
+   d. Se checklist tem [ ]: voltar ao passo 3
+   e. Se checklist 100% [x] E busca = 0: attempt_completion
+```
+
 ---
 
 ## Idioma

@@ -182,6 +182,47 @@ via PR separado para revisão humana.
 
 ---
 
+## REGRA ANTI-CONCLUSÃO PREMATURA
+
+Antes de usar attempt_completion, o agente DEVE:
+
+1. **Executar busca final completa:**
+   ```bash
+   busca_final = buscar_em_todos_arquivos(padrão_da_tarefa)
+   if busca_final.count > 0:
+       continuar_trabalhando()
+   else:
+       attempt_completion()
+   ```
+
+2. **Verificar checklist completa:**
+   - TODOS os itens devem estar [x] marcados
+   - Se houver 1 item [ ] pendente = tarefa NÃO está completa
+
+3. **Critério de conclusão:**
+   - ✅ Busca final retorna ZERO resultados
+   - ✅ TODOS os itens da checklist [x] marcados
+   - ✅ Nenhum arquivo parcialmente modificado
+   - ✅ Nenhuma palavra "parcial", "restante", "70%", "alguns"
+
+4. **PROIBIDO attempt_completion se:**
+   - ❌ Busca retorna resultados
+   - ❌ Checklist tem [ ] pendentes
+   - ❌ Você disse "X de Y arquivos" onde X < Y
+   - ❌ Você disse "70% limpo" ou porcentagem < 100%
+
+**Exemplos de ERRO:**
+- ❌ "9 de 10 arquivos limpos" → NÃO COMPLETO
+- ❌ "70% limpo" → NÃO COMPLETO
+- ❌ "documentação técnica não foi limpa" → NÃO COMPLETO
+
+**Exemplo CORRETO:**
+- ✅ Busca final: 0 resultados
+- ✅ Checklist: 30/30 [x] marcados
+- ✅ Tarefa 100% completa
+
+---
+
 ## Idioma
 
 Toda comunicação em português.

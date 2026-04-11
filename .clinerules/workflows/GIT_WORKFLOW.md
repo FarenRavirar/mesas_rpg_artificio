@@ -185,16 +185,6 @@ Após o deploy, o agente deve validar:
    docker compose -f /opt/mesas/docker-compose.prod.yml logs --tail=50 mesas-api
    ```
 
-5. Validação específica de workers futuros:
-   Quando houver fase posterior com `AggregatorBot` e `CleanupWorker` efetivamente ativos, validar pelos logs da API, não do frontend:
-   ```bash
-   # Beta
-   docker logs mesas-beta-api --tail 30 | grep -E "aggregator|cleanup|cron"
-
-   # Produção
-   docker logs mesas-api --tail 30 | grep -E "aggregator|cleanup|cron"
-   ```
-
 ---
 
 ## 8. Limitações conhecidas do ambiente
