@@ -90,6 +90,10 @@ A Produção (`mesas.artificiorpg.com`) reflete os arquivos em `/opt/mesas/` ser
    - [ ] `docker inspect mesas-app --format '{{.State.Health.Status}}'` retorna `healthy`
    - [ ] `docker inspect mesas-beta-frontend --format '{{.State.Health.Status}}'` retorna `healthy`
    - [ ] Se algum frontend estiver `unhealthy`, deploy deve ser tratado como falho mesmo com HTTP 200 externo
+8. **Verificação anti-corrida de deploy beta (E146):**
+   - [ ] Confirmar no GitHub Actions que não há dois runs `Deploy Beta` ativos ao mesmo tempo para `dev`
+   - [ ] `deploy-beta.yml` deve conter `concurrency` com `cancel-in-progress: false`
+   - [ ] Script remoto do deploy beta deve adquirir lock exclusivo (`flock /tmp/mesas-beta-deploy.lock`)
 
 ## 🚨 PROTOCOLO GERAL DE EMERGÊNCIA (ROLLBACK)
 

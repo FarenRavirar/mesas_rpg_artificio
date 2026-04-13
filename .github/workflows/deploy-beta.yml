@@ -5,6 +5,10 @@ on:
     branches:
       - dev
 
+concurrency:
+  group: deploy-beta-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   deploy-beta:
     runs-on: ubuntu-latest
@@ -23,6 +27,18 @@ jobs:
           script: |
             # CORREÇÃO WF-03: Adicionar fail-fast para evitar erros silenciosos
             set -euo pipefail
+
+            # CORREÇÃO E146: lock de deploy para evitar corrida entre workflows simultâneos
+            if ! command -v flock >/dev/null 2>&1; then
+              echo "❌ flock não disponível no host; impossível garantir exclusão mútua do deploy beta"
+              exit 1
+            fi
+            exec 9>/tmp/mesas-beta-deploy.lock
+            if ! flock -w 600 9; then
+              echo "❌ Timeout aguardando lock de deploy beta (E146)"
+              exit 1
+            fi
+
             export GH_TOKEN="${{ secrets.GH_TOKEN }}"
             cd /opt/mesas-beta
             git fetch https://$GH_TOKEN@github.com/FarenRavirar/mesas_rpg_artificio.git dev
