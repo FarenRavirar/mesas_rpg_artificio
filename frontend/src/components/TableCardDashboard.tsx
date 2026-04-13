@@ -43,13 +43,29 @@ export function TableCardDashboard({
 
   // Feedback inteligente: muitas views mas zero contatos
   const hasPerformanceIssue = metrics.views > 50 && metrics.contacts === 0;
+  
+  // UX: Identificar mesas desativadas
+  const isInactive = table.status === 'cancelled' || table.status === 'ended';
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-[#13213f] p-4 flex flex-col gap-3 hover:scale-[1.01] transition-all">
+    <div className={`relative rounded-2xl border p-4 flex flex-col gap-3 hover:scale-[1.01] transition-all ${
+      isInactive 
+        ? 'border-white/5 bg-[#13213f]/40 opacity-60' // Desativada: borda sutil, fundo escurecido, opacidade reduzida
+        : 'border-white/10 bg-[#13213f]' // Ativa: estilo normal
+    }`}>
+      {/* BADGE DE STATUS - Apenas para mesas desativadas */}
+      {isInactive && (
+        <div className="absolute top-2 right-2 bg-gray-500/80 text-white text-xs px-2 py-1 rounded-md font-medium z-10">
+          {table.status === 'cancelled' ? '⏸️ Desativada' : '🏁 Encerrada'}
+        </div>
+      )}
+
       {/* IMAGE */}
       <a 
         href={`/mesas/${table.slug}`}
-        className="block h-32 rounded-lg overflow-hidden bg-white/10 hover:opacity-90 transition-opacity cursor-pointer"
+        className={`block h-32 rounded-lg overflow-hidden bg-white/10 hover:opacity-90 transition-opacity cursor-pointer ${
+          isInactive ? 'grayscale' : '' // Desativada: imagem em escala de cinza
+        }`}
       >
         {table.image_url ? (
           <img src={table.image_url} alt={table.title} className="w-full h-full object-cover" />
@@ -64,7 +80,9 @@ export function TableCardDashboard({
       <div>
         <a 
           href={`/mesas/${table.slug}`}
-          className="font-semibold text-white line-clamp-2 hover:text-[var(--color-artificio-orange)] transition-colors cursor-pointer"
+          className={`font-semibold line-clamp-2 hover:text-[var(--color-artificio-orange)] transition-colors cursor-pointer ${
+            isInactive ? 'text-white/50' : 'text-white' // Desativada: texto mais apagado
+          }`}
         >
           {table.title}
         </a>
@@ -75,7 +93,11 @@ export function TableCardDashboard({
 
       {/* STATUS HUMANO */}
       <div className="text-sm">
-        {openSlots === 0 ? (
+        {isInactive ? (
+          <span className="text-gray-400">
+            {table.status === 'cancelled' ? '⏸️ Mesa pausada' : '🏁 Mesa encerrada'}
+          </span>
+        ) : openSlots === 0 ? (
           <span className="text-red-400">🔥 Mesa cheia</span>
         ) : openSlots <= 2 ? (
           <span className="text-yellow-400">⚡ Últimas vagas ({openSlots})</span>
@@ -92,7 +114,7 @@ export function TableCardDashboard({
       </div>
 
       {/* INSIGHT AUTOMÁTICO */}
-      {hasPerformanceIssue && (
+      {hasPerformanceIssue && !isInactive && (
         <div className="text-xs bg-yellow-500/10 border border-yellow-500/20 p-2 rounded-lg text-yellow-300">
           💡 Muitas visualizações, poucos contatos. Tente melhorar título ou imagem.
         </div>
