@@ -720,7 +720,64 @@ Este bloco documenta decisões tomadas com justificativa, para evitar que sejam 
 
 ---
 
+## 14.1 Divisão de Camadas para Operações Administrativas de Mesa
+
+Novo sistema de operações administrativas para mesas implementado com separação clara de responsabilidades entre diferentes camadas de execução.
+
+### Controlador: adminTables.ts
+
+Controlador responsável pelas rotas administrativas de mesas sob o namespace `/api/v1/admin/tables/:id`. Centraliza as operações:
+
+- `PUT /api/v1/admin/tables/:id` para atualizar campos administrativos (status, is_covil)
+- `DELETE /api/v1/admin/tables/:id` para exclusão completa da mesa via soft/hard-delete
+
+Implementa verificação de permissão exigindo role `admin` via middleware de autenticação JWT.
+
+### Camada de Serviço: tableService.ts
+
+Agrupa as regras de negócio relacionadas a mesas, separando a lógica reutilizável da camada de controle. Responsável por:
+
+- Validação de regras de negócio antes de persistência (ex: não permitir downgrade de mesa " Covil do Lich" sem justificativa apropriada)
+- Coordenação da lógica entre diferentes camadas
+- Interface de dados padronizados para uso nos controladores
+
+### Camada de Persistência: tableRepository.ts
+
+Camada de acesso ao banco de dados para operações relacionadas a mesas, centralizando:
+
+- CRUD operações na tabela `tables`
+- Manipulação de relações com entidades dependentes (`table_schedules`, `reviews`, `questions`, etc.)
+- Aplicação de regras de exclusão em cascata
+- Prevenção de injeção SQL através de queries parametrizadas
+
+### Camada de Validação: tableValidators.ts
+
+Define schemas de validação Zod para dados relacionados a mesas, assegurando:
+
+- Tipagem forte no Runtime
+- Validação consistente entre diferentes endpoints
+- Reutilização de schemas na composição de validações complexas
+- Segurança contra ataques baseados em payload malicioso
+
+### Integração com o sistema existente
+
+Os novos componentes se integram perfeitamente com o modelo de autenticação e permissões existente:
+
+- Usam o middleware JWT existente para verificação de permissão
+- Reutilizam estruturas de modelo e tipagem existentes nas camadas inferiores
+- Integram-se ao schema de histórico e auditoria (`table_history`)
+
+### Princípios de Camadas Aplicados
+
+- **Separation of Concerns**: Cada componente tem responsabilidade única e bem definida
+- **Reusabilidade**: Serviços e repositórios podem ser usados por diferentes controladores
+- **Manutenibilidade**: Mudanças de implementação ocorrem em camadas específicas
+- **Testabilidade**: Cada camada pode ser testada isoladamente
+
+---
+
 ## 14.5. Princípios de UX/UI
+
 
 ### 14.5.1. As 10 Heurísticas de Nielsen
 
