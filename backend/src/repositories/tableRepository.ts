@@ -17,6 +17,7 @@ export class TableRepository {
         sql<string | null>`s.name`.as('system_name'),
         sql<string | null>`s.path_slug`.as('system_path'),
         sql<string | null>`sc.name`.as('scenario_name'),
+        sql<string | null>`sc.slug`.as('scenario_path'),
       ])
       .where('t.id', '=', tableId)
       .where('t.gm_id', '=', gmProfileId)
