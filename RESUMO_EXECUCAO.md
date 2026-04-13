@@ -26,11 +26,11 @@
 
 ## Última Sessão
 
-**Data:** 12/04/2026  
-**Tipo:** Correção de bug crítico — Item 141  
-**O que foi feito:** Corrigido bug que abria página vazia ao editar mesa. Criado `mapTableApiToInitialData.ts` (mapper API→form), corrigido `handleEdit` em `uiHelpers.ts`, aplicado em `PainelMestrePage.tsx`. Build ✓.  
-**Branch:** `feature/fix-edit-mesa-vazia`  
-**Arquivo:** `sessoes/resumo_12-04_fix-edit-mesa-vazia.md`
+**Data:** 13/04/2026  
+**Tipo:** Correção de bug crítico — Loop 404 ao editar mesa  
+**O que foi feito:** Corrigido loop infinito de GET `/api/v1/tables/{UUID}` 404 em `PainelMestrePage.tsx`: (1) rota pública → rota GM (`/api/v1/gm/tables/:tableId`), (2) variável `editId` não definida no escopo → `editingTableId`, (3) dependência de objeto `searchParams` → string `editIdFromUrl`, (4) `useMemo` com setState → `useEffect`, (5) `removeLink` corrigido, (6) imports corrigidos. Build ✓.  
+**Branch:** `feature/fix-loop-404-edit-mesa`  
+**Arquivo:** `sessoes/resumo_13-04_fix-loop-404-edit-mesa.md`
 
 ---
 
