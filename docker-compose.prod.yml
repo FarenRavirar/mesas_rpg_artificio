@@ -1,13 +1,9 @@
 services:
-  # FRONTEND (Nginx servindo build estático do React/Vite)
-  # Roteado via Cloudflare Tunnel existente, sem porta pública exposta no host
-  # CORREÇÃO WF-02: Service name deve corresponder ao container_name para consistência
   mesas-app:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: https://mesas.artificiorpg.com
         VITE_ENABLE_DEVTOOLS: ${VITE_ENABLE_DEVTOOLS:-false}
     container_name: mesas-app
     restart: always
@@ -22,8 +18,6 @@ services:
     depends_on:
       - mesas-api
 
-  # BACKEND (Node.js API)
-  # Variáveis de workers futuras ficam reservadas para fases posteriores
   mesas-api:
     build:
       context: .
@@ -38,13 +32,11 @@ services:
       - NODE_ENV=production
       - APP_ENV=production
       - PORT=3000
-      # Banco de dados
       - DB_HOST=mesas-db
       - POSTGRES_USER=${POSTGRES_USER:-admin}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=mesas_rpg
       - DATABASE_URL=${DATABASE_URL}
-      # Autenticação
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - GOOGLE_CALLBACK_URL=https://mesas.artificiorpg.com/api/v1/auth/google/callback
@@ -52,25 +44,19 @@ services:
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
       - JWT_REFRESH_EXPIRES_IN=7d
-      # App
       - FRONTEND_URL=https://mesas.artificiorpg.com
-      # Imgur
       - IMGUR_CLIENT_ID=${IMGUR_CLIENT_ID}
-
     depends_on:
       mesas-db:
         condition: service_healthy
-    # CORREÇÃO: Adicionar volume de logs (estava ausente no prod)
     volumes:
       - ./logs:/app/logs
-    # CORREÇÃO: Adicionar healthcheck na API
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/v1/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
-    # CORREÇÃO: Limitar recursos para evitar OOM
     deploy:
       resources:
         limits:
@@ -78,7 +64,6 @@ services:
         reservations:
           memory: 256m
 
-  # DATABASE (PostgreSQL)
   mesas-db:
     image: postgres:16-alpine
     container_name: mesas-db
@@ -93,8 +78,6 @@ services:
       - pgdata_mesas_prod:/var/lib/postgresql/data
       - ./database/init.sql:/docker-entrypoint-initdb.d/00_init.sql
       - ./database/migration_01_base_schema.sql:/docker-entrypoint-initdb.d/01_base_schema.sql
-      # CORREÇÃO: Adicionar volume de logs para diagnóstico
-      - ./logs/db:/var/log/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d mesas_rpg"]
       interval: 10s
