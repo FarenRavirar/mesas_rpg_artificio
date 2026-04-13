@@ -98,6 +98,7 @@ jobs:
             
             docker compose -f docker-compose.beta.yml ps
             docker image prune -f
+            docker builder prune -f --filter "until=168h"
 
       - name: Notify Success
         if: success()
