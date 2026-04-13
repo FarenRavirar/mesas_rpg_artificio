@@ -39,3 +39,4 @@ frontend/vite.config.local.ts
 /sessoes
 docker-compose.prod - backup2.yml
 docker-compose.beta - backup 2.yml
+/.gemini

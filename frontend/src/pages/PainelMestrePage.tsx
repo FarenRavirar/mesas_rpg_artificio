@@ -269,7 +269,11 @@ export const PainelMestrePage = () => {
           setMyTables([]);
         }
 
-        setView('dashboard');
+        // Não forçar dashboard se há parâmetro edit na URL
+        const urlParams = new URLSearchParams(window.location.search);
+        if (!urlParams.has('edit')) {
+          setView('dashboard');
+        }
       } catch {
         setGmProfile(null);
         setMyTables([]);
