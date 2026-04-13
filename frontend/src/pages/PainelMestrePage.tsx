@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import type { FormEvent, InputHTMLAttributes } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PlusCircle, ChevronRight, MapPin, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
@@ -281,16 +281,16 @@ export const PainelMestrePage = () => {
     loadPanelData();
   }, [navigate, isAuthenticated, user]);
 
-  useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const editId = searchParams.get('edit');
+  const [searchParams] = useSearchParams();
+  const editIdFromUrl = searchParams.get('edit');
 
-    if (editId && isAuthenticated) {
-      setEditingTableId(editId);
+  useEffect(() => {
+    if (editIdFromUrl && isAuthenticated) {
+      setEditingTableId(editIdFromUrl);
 
       const loadTableData = async () => {
         try {
-          const response = await fetch(`${API_BASE}/api/v1/tables/${editId}`, {
+          const response = await fetch(`${API_BASE}/api/v1/gm/tables/${editIdFromUrl}`, {
             credentials: 'include',
           });
 
@@ -312,7 +312,7 @@ export const PainelMestrePage = () => {
 
       loadTableData();
     }
-  }, [isAuthenticated, editingTableId]);
+  }, [isAuthenticated, editIdFromUrl]);
 
   const refreshData = () => {
     if (!isAuthenticated) {
