@@ -386,7 +386,7 @@ export const PainelMestrePage = () => {
 
   const handleToggleTableStatus = async (tableId: string, currentStatus: string, title: string) => {
     if (!isAuthenticated) return;
-    const newStatus = currentStatus === 'active' ? 'draft' : 'active';
+    const newStatus = currentStatus === 'active' ? 'cancelled' : 'active';
     const action = newStatus === 'active' ? 'ativar' : 'desativar';
 
     if (!confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} mesa "${title}"?`)) return;
@@ -395,6 +395,7 @@ export const PainelMestrePage = () => {
     try {
       // CORREÇÃO BUG 2 (REQ-30): Usar PATCH /tables/:id/status em vez de PUT /tables/:id
       // PUT exige todos os campos obrigatórios, PATCH /status só altera o status
+      // Backend aceita: 'active', 'full', 'cancelled', 'ended'
       const endpoint = `${API_BASE}/api/v1/gm/tables/${tableId}/status`;
 
       const response = await fetch(endpoint, {

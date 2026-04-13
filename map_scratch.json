@@ -721,6 +721,12 @@
     {
       "path": "/api/v1/tables",
       "file": "catalogService.ts"
+    },
+    {
+      "path": "/api/v1/gm/tables/${tableId}/status",
+      "file": "PainelMestrePage.tsx",
+      "method": "PATCH",
+      "note": "Aceita apenas: 'active', 'full', 'cancelled', 'ended'"
     }
   ]
 }

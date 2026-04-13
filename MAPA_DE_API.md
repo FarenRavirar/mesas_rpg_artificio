@@ -50,7 +50,7 @@
 | **POST** | `/tables` | ✅ Em Uso | useCreateTableForm.ts, PainelMestrePage.tsx |
 | **PUT** | `/tables/:id` | ✅ Em Uso | useCreateTableForm.ts, PainelMestrePage.tsx |
 | **GET** | `/tables` | ✅ Em Uso | PainelMestrePage.tsx |
-| **PATCH** | `/tables/:id/status` | ✅ Em Uso | uiHelpers.ts |
+| **PATCH** | `/tables/:id/status` | ✅ Em Uso | PainelMestrePage.tsx (handleToggleTableStatus) - **Aceita apenas:** 'active', 'full', 'cancelled', 'ended' |
 | **DELETE** | `/tables/:id` | ✅ Em Uso | uiHelpers.ts, PainelMestrePage.tsx |
 | **POST** | `/tables/:slug/view` | ❌ Pendente/Front | - |
 | **POST** | `/tables/:id/click` | ❌ Pendente/Front | - |
