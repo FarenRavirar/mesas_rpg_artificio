@@ -37,4 +37,3 @@ logs/
 frontend/vite.config.local.ts
 /.clinerules
 /sessoes
-/.github

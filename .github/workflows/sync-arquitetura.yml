@@ -64,8 +64,8 @@ jobs:
         if: steps.check.outputs.relevant == 'true' && steps.check_output.outputs.has_updates == 'true'
         uses: peter-evans/create-pull-request@v5
         with:
-        token: ${{ secrets.PAT_TOKEN }}
-        branch: docs/sync-arquitetura-${{ github.sha }}
+          token: ${{ secrets.PAT_TOKEN }}
+          branch: docs/sync-arquitetura-${{ github.sha }}
           title: "docs: sync ARQUITETURA_PROJETO.md após merge"
           body: |
             ## Sync automático de documentação
