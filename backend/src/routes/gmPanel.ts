@@ -584,6 +584,17 @@ router.patch('/tables/:id/status', authMiddleware, async (req: Request, res: Res
   const { id } = req.params;
   const { status } = req.body;
 
+  // LOG TEMPORÁRIO: Diagnóstico do erro 401
+  console.log('[PATCH /tables/:id/status] Requisição recebida:', {
+    userId,
+    userRole,
+    tableId: id,
+    statusRequested: status,
+    hasAuthHeader: !!req.headers.authorization,
+    hasCookie: !!req.cookies?.am_session,
+    timestamp: new Date().toISOString()
+  });
+
   const validStatuses = ['active', 'full', 'cancelled', 'ended'];
   if (!validStatuses.includes(status)) {
     return res.status(400).json({ error: `Status inválido. Valores: ${validStatuses.join(', ')}` });
