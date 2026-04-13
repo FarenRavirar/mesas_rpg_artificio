@@ -67,6 +67,12 @@ prod:
   expected_remote_path: /opt/mesas/
   expected_cloudflare_upstream: http://mesas-app:80
   deployed: false
+
+# Auditoria 2026-04-13: Docker Compose
+compose_issues_identified:
+  - vite_api_url_arg_unused: "VITE_API_URL não é necessária — frontend usa URLs relativas + proxy Nginx"
+  - db_logs_volume_invalid: "./logs/db:/var/log/postgresql não funciona no PostgreSQL Alpine"
+  - healthcheck_wget_validated: "wget está disponível no Node Alpine — healthcheck atual funciona"
 ```
 
 ## build_model
@@ -102,6 +108,14 @@ spa_fallback: true
 legacy_oauth_proxy_paths:
   - /auth/google
   - /auth/google/callback
+
+# Auditoria 2026-04-13: Frontend não precisa de VITE_API_URL
+vite_api_url_behavior:
+  defined_in_code: "const API_BASE = import.meta.env.VITE_API_URL || ''"
+  when_empty: "URLs relativas (/api/v1/...) são roteadas pelo Nginx para mesas-beta-api:3000"
+  current_state: "VITE_API_URL não está definida em nenhum docker-compose"
+  runtime_behavior: "Funciona corretamente com URLs relativas"
+  recommendation: "Remover ARG VITE_API_URL do Dockerfile (código morto)"
 ```
 
 ## backend_runtime
@@ -393,7 +407,6 @@ prod_domain: mesas.artificiorpg.com -> http://mesas-app:80
 - deploy_beta_workflow_hardened_and_validated: true
 - deploy_production_workflow_hardened_but_not_published: true
 - docker_build_cache_reduced_from_13_36GB_to_258MB_after_workflow_change: true
-- migration_05_aggregator_applied_to_beta: true  # 2026-04-04
 - migration_06_system_suggestions_applied_to_beta: true  # 2026-04-04
 - migration_07_notifications_applied_to_beta: true  # 2026-04-04
 - migration_09_table_fields_applied_to_beta: true  # 2026-04-04 (frequency, rules_notes, banner_url)
@@ -403,11 +416,16 @@ prod_domain: mesas.artificiorpg.com -> http://mesas-app:80
 - auth_context_intelligent_validation_implemented: true  # 2026-04-04
 - req_18_fluxo_revisao_candidatos_implemented: true  # 2026-04-05 (em_validacao)
 - req_19_melhorias_ux_nielsen_phase_1_4_implemented: true  # 2026-04-05 (em_validacao)
-- req_20_parser_python_banner_avatar_implemented: true  # 2026-04-05 (parser extrai banner_url de attachments e avatar_url de author)
-- req_20_candidateToFormData_banner_gm_avatar_mapped: true  # 2026-04-05 (mapeamento frontend implementado)
+- req_20_banner_gm_avatar_mapped: true  # 2026-04-05 (mapeamento frontend implementado)
 - req_20_migration_10_covil_expiration_pending: true  # 2026-04-05 (is_covil + imported_expires_at — a aplicar no beta)
 - python_runtime_available_in_backend_container: true  # python3 instalado via Dockerfile alpine packages
-- jsonrepair_library_installed_frontend: true  # para normalização de JSON corrompido do DiscordChatExporter
+# Auditoria Docker Compose 2026-04-13:
+- frontend_uses_relative_urls_proxied_by_nginx: true
+- vite_api_url_arg_not_required: true
+- wget_available_in_node_alpine_image: true
+- healthcheck_with_wget_works: true
+- postgres_alpine_ignores_var_log_postgresql_mount: true
+- db_logs_volume_should_be_removed: true
 ```
 
 ## database_tables_beta
@@ -427,12 +445,6 @@ collaborative_features:
   - system_suggestions  # migration_06 (2026-04-04)
   - notifications       # migration_07 (2026-04-04)
 
-aggregator_tables:
-  - aggregator_sources  # migration_05 (2026-04-04)
-  - aggregator_imported_raw_messages
-  - aggregator_import_candidates
-  - aggregator_settings
-
 pending_migrations:
   - migration_10: "is_covil BOOLEAN DEFAULT FALSE, imported_expires_at TIMESTAMPTZ"
 ```
@@ -451,6 +463,36 @@ oauth_validated: false
 db_volume_validated: false
 logs_validated: false
 ```
+## docker_compose_audit_2026_04_13
+
+issues_identified:
+  1_db_logs_volume:
+    file: docker-compose.beta.yml + docker-compose.prod.yml
+    line: "- ./logs/db:/var/log/postgresql"
+    problem: "PostgreSQL Alpine não escreve logs em /var/log/postgresql"
+    action: "Remover essa linha (volume inútil)"
+    severity: low
+
+  2_vite_api_url_unused:
+    file: docker-compose.beta.yml + docker-compose.prod.yml
+    problem: "ARG VITE_API_URL nunca é passada nos build args"
+    current_behavior: "Frontend usa URLs relativas que são roteadas pelo Nginx"
+    action: "Remover ARG do Dockerfile ou documentar como não-necessário"
+    severity: cleanup_only
+
+  3_healthcheck_validated:
+    file: docker-compose.beta.yml + docker-compose.prod.yml
+    current: "wget --no-verbose --tries=1 --spider http://localhost:3000/api/v1/health"
+    validation: "wget está instalado no Node Alpine — funciona corretamente"
+    action: "Nenhuma mudança necessária"
+    severity: none
+
+architecture_validated:
+  frontend_to_api_flow: "Browser → Cloudflare → mesas-beta-frontend:80 (nginx) → proxy /api/ → mesas-beta-api:3000"
+  api_url_resolution: "Frontend usa '' (vazio) para API_BASE → URLs relativas /api/v1/... → roteadas pelo Nginx"
+  nginx_proxy_config: "location /api/ { proxy_pass http://${API_UPSTREAM}:3000; }"
+  working_correctly: true
+
 
 ## not_audited_yet
 

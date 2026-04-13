@@ -1,0 +1,86 @@
+name: Sync ARQUITETURA_PROJETO.md
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  sync-arquitetura:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Gerar diff do último merge
+        run: git diff HEAD~1 HEAD > /tmp/last_merge.diff
+
+      - name: Verificar se diff é relevante
+        id: check
+        run: |
+          if grep -qE '\.(ts|tsx|py|yml|yaml|sql)$' /tmp/last_merge.diff; then
+            echo "relevant=true" >> $GITHUB_OUTPUT
+          else
+            echo "relevant=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Rodar sync de arquitetura
+        if: steps.check.outputs.relevant == 'true'
+        env:
+          ROUTER_URL: ${{ secrets.ROUTER_URL }}
+          ROUTER_API_KEY: ${{ secrets.ROUTER_API_KEY }}
+          ROUTER_MODEL: if/kimi-k2-thinking
+        run: node scripts/sync-arquitetura.js
+
+      - name: Verificar se há atualizações propostas
+        if: steps.check.outputs.relevant == 'true'
+        id: check_output
+        run: |
+          if [ ! -f /tmp/arquitetura_patch.md ]; then
+            echo "has_updates=false" >> $GITHUB_OUTPUT
+          elif grep -q "Nenhuma atualização necessária" /tmp/arquitetura_patch.md; then
+            echo "has_updates=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_updates=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Copiar patch para o repositório
+        if: steps.check.outputs.relevant == 'true' && steps.check_output.outputs.has_updates == 'true'
+        run: |
+          mkdir -p docs/sync-patches
+          cp /tmp/arquitetura_patch.md docs/sync-patches/patch-$(date +%Y%m%d-%H%M%S).md
+
+      - name: Abrir PR com patch proposto
+        if: steps.check.outputs.relevant == 'true' && steps.check_output.outputs.has_updates == 'true'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+          branch: docs/sync-arquitetura-${{ github.sha }}
+          title: "docs: sync ARQUITETURA_PROJETO.md após merge"
+          body: |
+            ## Sync automático de documentação
+
+            Este PR foi gerado automaticamente após merge em `dev`.
+
+            O script `scripts/sync-arquitetura.js` analisou o diff e identificou
+            seções do `ARQUITETURA_PROJETO.md` que podem estar desatualizadas.
+
+            **O que fazer:**
+            1. Revisar os patches propostos em `docs/sync-patches/`
+            2. Aplicar manualmente as atualizações pertinentes no `ARQUITETURA_PROJETO.md`
+            3. Fechar este PR após aplicar (ou fechar sem aplicar se não for necessário)
+
+            > Este PR contém apenas sugestões — não modifica o
+            > `ARQUITETURA_PROJETO.md` diretamente. A decisão final é sempre humana.
+          base: dev
+          labels: documentation

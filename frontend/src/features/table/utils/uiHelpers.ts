@@ -86,8 +86,8 @@ export async function handleStatus(id: string, status: string): Promise<void> {
       method: 'PATCH',
       headers: { 
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
       },
+      credentials: 'include', // Usa cookie HTTP-only ao invés de Bearer token
       body: JSON.stringify({ status }),
     });
 
@@ -133,8 +133,9 @@ export async function handleDelete(id: string, title: string): Promise<void> {
     const res = await fetch(`/api/v1/gm/tables/${id}`, {
       method: 'DELETE',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json',
       },
+      credentials: 'include', // Usa cookie HTTP-only ao invés de Bearer token
     });
 
     if (!res.ok) {
@@ -152,7 +153,8 @@ export async function handleDelete(id: string, title: string): Promise<void> {
 
 /**
  * Handler para editar mesa
+ * Navega para /painel?edit=<id> — rota tratada por PainelMestrePage via searchParams
  */
 export function handleEdit(id: string): void {
-  window.location.href = `/painel/mesas/${id}/editar`;
+  window.location.href = `/painel?edit=${id}`;
 }

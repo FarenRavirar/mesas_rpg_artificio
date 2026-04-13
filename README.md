@@ -215,13 +215,7 @@ Para desenvolvedores que querem entender a arquitetura do projeto:
 - [ ] Notificações de novas respostas
 - [ ] Filtros salvos por usuário
 
-### 🤖 Fase 4 — AggregatorBot (Planejado)
-- [ ] Ingestão automática de anúncios externos
-- [ ] Parser inteligente com NLP (spaCy)
-- [ ] Deduplicação automática
-- [ ] Reivindicação de anúncios por mestres
-
-### 🌱 Fase 5 — Crescimento (Futuro)
+### 🌱 Fase 4 — Crescimento (Futuro)
 - [ ] Recomendações baseadas em preferências
 - [ ] Notificações por email
 - [ ] SEO estruturado

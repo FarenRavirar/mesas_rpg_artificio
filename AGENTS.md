@@ -7,39 +7,90 @@ Governança de agentes de IA neste repositório — **Anúncios de Mesas RPG (Po
 
 ---
 
+## 🚨 LEIA ISTO PRIMEIRO — PROTOCOLO OBRIGATÓRIO DE INÍCIO DE SESSÃO
+
+> [!CAUTION]
+> **PARE AGORA. NÃO FAÇA NADA ANTES DE LER ESTE ARQUIVO COMPLETO.**
+>
+> Se você é um agente de IA iniciando uma nova sessão neste projeto:
+> 1. **LEIA ESTE ARQUIVO (`AGENTS.md`) NA ÍNTEGRA AGORA** — não pule para a checklist
+> 2. **LEIA `RESUMO_EXECUCAO.md`** — estado atual do projeto
+> 3. **SOMENTE ENTÃO** comece a trabalhar seguindo a checklist abaixo
+>
+> **Por quê?** Agentes que pulam esta etapa causam:
+> - Aplicação de migrations antigas que apagam dados (E136)
+> - Retrabalho por não consultar `ERRORS_SOLUTIONS.md` (5+ horas perdidas)
+> - Violação de regras pétreas (commit sem autorização, instalação de software)
+>
+> **Você foi avisado.** Se você pular esta leitura e causar problemas, a responsabilidade é sua.
+
+---
+
 ## ⚠️ CHECKLIST OBRIGATÓRIA — EXECUTAR NO INÍCIO DE QUALQUER SESSÃO
 
 > [!CAUTION]
 > Não pular nenhum item. A checklist existe para evitar retrabalho, não como formalidade.
 
 ### 1 — Ao iniciar a sessão (imediatamente)
-- [ ] Ler `RESUMO_EXECUCAO.md` — estado atual e próxima ação do projeto
+- [ ] Ler `RESUMO_EXECUCAO.md` — estado atual e próxima ação do projeto (arquivo completo, é curto)
 - [ ] Ler este arquivo (`AGENTS.md`) na íntegra
+- [ ] Criar arquivo de sessão em `/sessoes/resumo_[dia-mes]_[escopo].md` com plano e checklist
 
 ### 2 — Antes de modificar código
 - [ ] Consultar `GUIA_RAPIDO_OPERACIONAL.md` — índice de roteamento rápido por situação
-- [ ] Ler **apenas a seção relevante** de `ARQUITETURA_PROJETO.md` (nunca na íntegra)
+- [ ] Ler **apenas a seção relevante** de `ARQUITETURA_PROJETO.md` (nunca na íntegra — use grep para localizar §X)
 - [ ] Consultar `GIT_WORKFLOW.md` se a tarefa envolver Git, branch ou deploy
 
 ### 3 — Por situação específica
-- [ ] **Erro encontrado?** → `ERRORS_SOLUTIONS.md` — imediatamente, antes de tentar corrigir
-- [ ] **Planejando feature?** → `TODO_OPERACIONAL.md`
-- [ ] **Executando lote?** → `FILA_IMPLEMENTACAO.md`
-- [ ] **Deploy ou produção?** → `OPERACAO_PRODUCAO.md`
+- [ ] **Erro encontrado?** → `ERRORS_SOLUTIONS.md` — grep pelo ID antes de tentar corrigir
+- [ ] **Planejando feature ou verificando rotas?** → `TODO_OPERACIONAL.md` e `MAPA_DE_API.md` (grep pela rota)
+- [ ] **Executando lote?** → `FILA_IMPLEMENTACAO.md` (grep por "pendente", ler só o item)
+- [ ] **Deploy ou produção?** → `PRE_DEPLOY_CHECKLIST.md` — **OBRIGATÓRIO ANTES DE QUALQUER DEPLOY**
+- [ ] **Operação em produção ou beta?** → `OPERACAO_PRODUCAO.md`
 - [ ] **Falha de ambiente, encoding ou template?** → `PRE-FLIGHT_CHECKLIST.md`
 
 ### 4 — Durante execução
 - [ ] Validar qualquer mudança de interface contra as 10 Heurísticas de Nielsen (ver §Regras Específicas)
-- [ ] [!CAUTION] **Nunca** executar `git commit` ou `git push` sem autorização explícita do responsável
+- [ ] Nunca executar `git commit` ou `git push` em `dev` ou `main` sem autorização explícita do responsável
+- [ ] `git push origin feature/*` é permitido sem autorização
 
 ### 5 — Ao finalizar a sessão
+- [ ] Executar busca final por pendências antes de encerrar (ver §REGRA ANTI-CONCLUSÃO PREMATURA)
+- [ ] Verificar checklist do arquivo de sessão — todos os itens devem estar [x]
 - [ ] Atualizar documentos afetados pela task (TODO, FILA, ERRORS_SOLUTIONS, GUIA_RAPIDO_OPERACIONAL)
+- [ ] **Modificou rotas da API?** → OBRIGATÓRIO atualizar o `MAPA_DE_API.md`
+- [ ] Atualizar `RESUMO_EXECUCAO.md` com estado final e arquivo de sessão mais recente
+
+---
+
+## Gestão de Contexto — Regra Crítica
+
+NUNCA abrir arquivos grandes por completo sem necessidade.
+Usar grep/search primeiro para confirmar que o arquivo contém o que se busca.
+
+**Arquivos proibidos de abrir na íntegra:**
+- `ARQUITETURA_PROJETO.md` (1396+ linhas) → só por seção §X via grep
+- `FILA_IMPLEMENTACAO.md` → só o item atual via `grep -n "pendente"`
+- `TODO_OPERACIONAL.md` → só o REQ específico via grep
+- `ERRORS_SOLUTIONS.md` → só pelo ID do erro via grep
+- Qualquer arquivo de código com mais de 200 linhas → grep primeiro
+
+**Sequência obrigatória antes de abrir qualquer arquivo grande:**
+1. `grep -n "padrão" arquivo` → confirmar localização
+2. Abrir só as linhas necessárias via `view_range`
+3. Nunca rolar o arquivo inteiro
+
+**Hierarquia de leitura — do menor para o maior:**
+- Nível 1 (sempre): `RESUMO_EXECUCAO.md` + item específico da FILA via grep
+- Nível 2 (só a seção): `ARQUITETURA_PROJETO.md` §X + seção relevante do `AGENTS.md`
+- Nível 3 (só se afetado pela tarefa): arquivo de código alvo + `MAPA_DE_API.md`
+- Nível 4 (nunca por padrão): arquivos inteiros de qualquer documento > 100 linhas
 
 ---
 
 ## Contexto do Projeto
 
-**O que é:** Aplicação fullstack 100% tipada — React/TypeScript (Frontend) + Node.js/TypeScript (Backend) + PostgreSQL — para descoberta e publicação de mesas de RPG no Brasil. Inclui autenticação via Google OAuth, autopublicação por mestres e pipeline de ingestão automática de anúncios externos via parser Python + spaCy.
+**O que é:** Aplicação fullstack 100% tipada — React/TypeScript (Frontend) + Node.js/TypeScript (Backend) + PostgreSQL — para descoberta e publicação de mesas de RPG no Brasil. Inclui autenticação via Google OAuth e autopublicação por mestres.
 
 **Ecossistema:** Projeto coirmão do Grande Glossário de RPG. Compartilha infraestrutura Oracle on-premise, identidade visual Artifício e filosofia comunitária. Repositórios e containers independentes.
 
@@ -59,22 +110,21 @@ A produção ainda não foi publicada operacionalmente nesta rodada. O desenvolv
 
 Consulte o arquivo correto para a situação. Não leia documentos que não sejam relevantes para a task atual.
 
-| Situação | Arquivo |
-|---|---|
-| Banco de dados, modelo de dados, rotas de API | `ARQUITETURA_PROJETO.md` §4 e §12 |
-| Imagens, upload, Imgur | `ARQUITETURA_PROJETO.md` §16 |
-| Pipeline de ingestão, parser Python, AggregatorBot | `ARQUITETURA_PROJETO.md` §7 |
-| Roles, permissões, autenticação | `ARQUITETURA_PROJETO.md` §5 e §6 |
-| Decisões arquiteturais e justificativas | `ARQUITETURA_PROJETO.md` §14 |
-| Git, branch, merge, deploy | `GIT_WORKFLOW.md` |
-| Operação em produção ou beta | `OPERACAO_PRODUCAO.md` |
-| Falha de ambiente, encoding ou template | `PRE-FLIGHT_CHECKLIST.md` |
-| Erro recorrente com solução validada | `ERRORS_SOLUTIONS.md` |
-| Backlog de requisitos (visão de produto, score GUT) | `TODO_OPERACIONAL.md` |
-| Fila de execução técnica por lote/fase | `FILA_IMPLEMENTACAO.md` |
-| Índice rápido e checklists de fechamento | `GUIA_RAPIDO_OPERACIONAL.md` |
-| Estado atual e próxima ação | `RESUMO_EXECUCAO.md` |
-| Histórico de sessões anteriores | `/sessoes/` |
+| Situação | Arquivo | Como acessar |
+|---|---|---|
+| Banco de dados, modelo de dados, rotas de API | `ARQUITETURA_PROJETO.md` §4 e §12 | grep pelo §, ler só a seção |
+| Imagens, upload, Imgur | `ARQUITETURA_PROJETO.md` §16 | grep pelo §, ler só a seção |
+| Roles, permissões, autenticação | `ARQUITETURA_PROJETO.md` §5 e §6 | grep pelo §, ler só a seção |
+| Decisões arquiteturais e justificativas | `ARQUITETURA_PROJETO.md` §14 | grep pelo §, ler só a seção |
+| Git, branch, merge, deploy | `GIT_WORKFLOW.md` | seção relevante |
+| Operação em produção ou beta | `OPERACAO_PRODUCAO.md` | seção relevante |
+| Falha de ambiente, encoding ou template | `PRE-FLIGHT_CHECKLIST.md` | arquivo completo |
+| Erro recorrente com solução validada | `ERRORS_SOLUTIONS.md` | grep pelo ID E### |
+| Backlog de requisitos (visão de produto, score GUT) | `TODO_OPERACIONAL.md` | grep pelo REQ |
+| Fila de execução técnica por lote/fase | `FILA_IMPLEMENTACAO.md` | grep por "pendente" |
+| Índice rápido e checklists de fechamento | `GUIA_RAPIDO_OPERACIONAL.md` | arquivo completo |
+| Estado atual e próxima ação | `RESUMO_EXECUCAO.md` | arquivo completo |
+| Histórico de sessões anteriores | `/sessoes/` | só o mais recente |
 
 ---
 
@@ -90,6 +140,7 @@ Consulte o arquivo correto para a situação. Não leia documentos que não seja
 | Falhas recorrentes e soluções validadas | `ERRORS_SOLUTIONS.md` |
 | Backlog de requisitos de produto (REQ-xx, score GUT) | `TODO_OPERACIONAL.md` |
 | Fila técnica de execução por lote/fase | `FILA_IMPLEMENTACAO.md` |
+| Mapeamento de quais rotas do backend existem e quem as consome | `MAPA_DE_API.md` |
 | Roteamento rápido por situação e checklists de tarefa | `GUIA_RAPIDO_OPERACIONAL.md` |
 | Registro histórico de sessões de trabalho | `/sessoes/` |
 
@@ -122,18 +173,30 @@ Exemplo: REQ-06 (Painel do mestre) → itens 022, 023, 024 na FILA.
 
 Nunca produzir código sem:
 1. Entender o contexto da task
-2. Consultar a seção de arquitetura aplicável
+2. Consultar a seção de arquitetura aplicável (via grep, não na íntegra)
 3. Propor plano curto e aguardar confirmação (se escopo for ambíguo)
 4. Executar mudança mínima
 5. Comunicar em português
 
 ### Assertividade Operacional
 
+> [!CAUTION]
+> **REGRA ANTI-TRAVAMENTO:** Agentes que entram em loops de re-análise causam travamento da sessão.
+
 Quando o plano está claro e aprovado:
 - **Executar diretamente** — sem loops de investigação desnecessários
-- **Consultar documentação canônica uma vez**, não repetidamente
+- **Consultar documentação canônica UMA VEZ**, não repetidamente
 - **Aplicar mudanças incrementais** sem re-análise completa a cada passo
 - **Reportar progresso** de forma concisa, sem restatement excessivo
+- **Nunca re-ler arquivos já lidos na mesma sessão** a menos que tenham sido modificados
+
+**Checklist mental antes de cada ação:**
+```
+[ ] Já li este arquivo nesta sessão?
+[ ] O plano está claro?
+[ ] Esta ação é de execução ou investigação?
+[ ] Estou prestes a re-analisar algo que já analisei?
+```
 
 **Parar para perguntar quando:**
 - Conflito entre requisito e arquitetura
@@ -147,6 +210,98 @@ Quando o plano está claro e aprovado:
 - Correção de bug com solução conhecida em `ERRORS_SOLUTIONS.md`
 - Atualização de documentação por delta
 
+**Comportamento proibido que causa travamento:**
+- ❌ Re-ler o mesmo arquivo múltiplas vezes na mesma sessão
+- ❌ Consultar `ARQUITETURA_PROJETO.md` repetidamente ou na íntegra
+- ❌ Pedir confirmação para cada linha de código
+- ❌ Entrar em loop de "vou analisar X para entender Y"
+- ❌ Reformular o mesmo plano múltiplas vezes sem executar
+- ❌ Usar "arquivo muito grande" como desculpa para não terminar tarefa
+- ❌ Parar no meio de uma tarefa por qualquer motivo que não seja erro irresolvível
+
+---
+
+## REGRA ANTI-CONCLUSÃO PREMATURA
+
+> [!CAUTION]
+> **REGRA CRÍTICA:** Agentes que usam `attempt_completion` antes de terminar COMPLETAMENTE a tarefa causam retrabalho massivo e frustração do usuário.
+
+### Protocolo Obrigatório Antes de attempt_completion
+
+**1. Executar Busca Final Completa:**
+```bash
+# OBRIGATÓRIO executar ANTES de attempt_completion:
+busca_final = buscar_em_todos_arquivos(padrão_da_tarefa)
+if busca_final.count > 0:
+    continuar_trabalhando()  # Tarefa NÃO está completa
+else:
+    attempt_completion()  # Tarefa está completa
+```
+
+**2. Verificar Checklist Completa:**
+- Toda tarefa DEVE ter checklist criada no início
+- TODOS os itens devem estar marcados [x]
+- Se houver 1 item [ ] pendente = tarefa NÃO está completa
+
+**3. Critério de Conclusão EXPLÍCITO:**
+
+Tarefa só está completa quando:
+- ✅ Busca final retorna **ZERO** resultados
+- ✅ **TODOS** os itens da checklist estão [x] marcados
+- ✅ **Nenhum** arquivo parcialmente modificado
+- ✅ `RESUMO_EXECUCAO.md` atualizado com sessão mais recente
+- ✅ **Nenhuma** palavra como "parcial", "restante", "70%", "alguns" na conclusão
+
+**4. PROIBIDO attempt_completion se:**
+- ❌ Busca ainda retorna resultados (mesmo que "só 1 arquivo")
+- ❌ Checklist tem itens [ ] pendentes
+- ❌ Você usou palavras: "parcial", "restante", "alguns", "maioria", "principais"
+- ❌ Você disse: "documentação técnica não foi limpa"
+- ❌ Você disse: "X de Y arquivos" onde X < Y
+- ❌ Você disse: "70% limpo" ou qualquer porcentagem < 100%
+- ❌ `RESUMO_EXECUCAO.md` ainda aponta para sessão anterior
+
+### Proibição Absoluta — Tamanho de Arquivo
+❌ **NUNCA usar "arquivo muito grande" como desculpa para não terminar tarefa.**
+Se o arquivo tem 10.000 linhas, processe linha por linha se necessário.
+Tamanho do arquivo NÃO é motivo válido para parar.
+
+### Exemplos de ERRO (Conclusão Prematura)
+
+❌ **ERRADO:** "9 de 10 arquivos limpos" → NÃO ESTÁ COMPLETO
+❌ **ERRADO:** "70% limpo" → NÃO ESTÁ COMPLETO
+❌ **ERRADO:** "documentação técnica não foi limpa" → NÃO ESTÁ COMPLETO
+❌ **ERRADO:** "referências restantes são contextuais" → NÃO ESTÁ COMPLETO
+❌ **ERRADO:** "principais arquivos limpos" → NÃO ESTÁ COMPLETO
+❌ **ERRADO:** RESUMO_EXECUCAO.md aponta para sessão anterior → NÃO ESTÁ COMPLETO
+
+### Exemplo CORRETO
+
+✅ **CORRETO:**
+```
+Busca final executada: 0 resultados encontrados
+Checklist: 30/30 itens marcados [x]
+RESUMO_EXECUCAO.md atualizado com sessão atual
+Nenhum arquivo pendente
+Tarefa 100% completa
+```
+
+### Fluxo Obrigatório
+
+```
+1. Receber tarefa
+2. Criar checklist COMPLETA de TODOS os arquivos/passos
+3. Executar cada item da checklist
+4. Marcar [x] cada item concluído
+5. Quando achar que terminou:
+   a. Executar busca final
+   b. Se busca retornar > 0: voltar ao passo 3
+   c. Se busca retornar 0: verificar checklist
+   d. Se checklist tem [ ]: voltar ao passo 3
+   e. Verificar se RESUMO_EXECUCAO.md aponta para sessão atual
+   f. Se checklist 100% [x] E busca = 0 E RESUMO atualizado: attempt_completion
+```
+
 ---
 
 ## Regras Pétreas (Inegociáveis)
@@ -155,48 +310,52 @@ Quando o plano está claro e aprovado:
 > As regras abaixo não têm exceção. Violá-las causa retrabalho, perda de dados ou quebra de confiança.
 
 ### Resolução de Erros
-Ao deparar com qualquer erro (`stderr`, falha de execução, crash de script ou falha na pipeline):
+Ao deparar com qualquer erro:
 1. **Interromper tentativas imediatamente**
-2. Consultar `ERRORS_SOLUTIONS.md`
+2. Consultar `ERRORS_SOLUTIONS.md` via grep pelo ID ou palavra-chave
 3. Se o erro constar lá: aplicar a solução documentada
-4. Se não constar: descobrir a solução e **registrar no arquivo antes de seguir para a próxima task**
+4. Se não constar: descobrir a solução e **registrar no arquivo antes de seguir**
+
+### Migrations e Alterações de Schema (A REGRA ANTI-FRANKENSTEIN)
+
+> [!CAUTION]
+> **REGRA ABSOLUTA DE INTEGRIDADE DO BANCO DE PRODUÇÃO:**
+> O Banco de Dados de Produção não é um ambiente de testes.
+
+**Antes de aplicar QUALQUER migration no Deploy:**
+1. **Obrigatório Dump Prévio:** Se o deploy enviar migrations com `TRUNCATE`, `DROP`, `DELETE` ou ALTER em colunas, executar backup via `PRE_DEPLOY_CHECKLIST.md` antes.
+2. **Schema Alignment:** Nenhuma alteração estrutural ocorre em Produção antes de testar exaustivamente no banco Beta.
+
+**Quando a Produção Quebrar Após Deploy:**
+- ❌ **NÃO FAZER:** Abrir `psql` na Produção e emitir `ALTER TABLE` avulso. Isso cria Schema "Frankenstein".
+- ✅ **FAZER:** Reverter o código da Aplicação para o commit anterior via rollback documentado em `PRE_DEPLOY_CHECKLIST.md`.
+
+**Migrations antigas (criadas há mais de 1 semana):**
+- **NUNCA DEIXE MIGRATIONS REPETIREM.** Os arquivos em `database/*.sql` não são ferramentas de debugging.
 
 ### Contenção de Agentes — Ações Destrutivas Proibidas
 
 > [!CAUTION]
 > **PARE ANTES DE EXECUTAR. LEIA ESTA SEÇÃO A CADA VEZ QUE FOR EXECUTAR UM COMANDO.**
 
-**Definição de ação destrutiva:**
-Qualquer comando que: escreva em disco no servidor, reinicie processo/container, delete arquivo, modifique configuração em produção, copie arquivos para servidor, ou afete outros usuários.
-
 **Proibido sem aprovação explícita do usuário:**
-- ❌ Reiniciar containers ou serviços (`docker restart`, `systemctl restart`)
-- ❌ Copiar ou sobrescrever arquivos em produção (`scp`, `docker cp` para servidor)
+- ❌ Reiniciar containers ou serviços
+- ❌ Copiar ou sobrescrever arquivos em produção
 - ❌ Executar builds e deployar artefatos no servidor
 - ❌ Modificar arquivos fora do escopo da tarefa descrita
 - ❌ Investigar bugs não mencionados na tarefa atual
-- ❌ "Corrigir" problemas encontrados durante investigação sem autorização
-
-**Comportamento obrigatório:**
-1. ✅ **"Investigar" significa:** ler arquivos, executar comandos read-only (`ls`, `cat`, `grep`, `docker logs`, `curl -s`), relatar findings
-2. ✅ **"Investigar" NÃO significa:** modificar, copiar, reiniciar, ou deployar
-3. ✅ Ao encontrar um problema durante investigação: **PARE e descreva o que encontrou**
-4. ✅ Apresente o plano completo antes de executar qualquer comando destrutivo
-5. ✅ Execute uma ação por vez, aguarde confirmação
-6. ✅ Se o escopo da tarefa não estiver claro, pergunte antes de agir
-7. ✅ Nunca assuma que "reiniciar vai resolver" — pergunte primeiro
 
 **Comandos read-only permitidos sem aprovação:**
 - `docker ps`, `docker logs`, `docker stats`, `docker inspect`
 - `ls`, `cat`, `grep`, `find`, `head`, `tail`
 - `curl -s` (GET requests)
-- `psql` com `SELECT` (nunca `INSERT`, `UPDATE`, `DELETE` sem aprovação)
+- `psql` com `SELECT`
 
 **Comandos que SEMPRE exigem aprovação:**
 - `docker restart`, `docker stop`, `docker start`
-- `scp`, `rsync`, `docker cp` (para servidor)
+- `scp`, `rsync`, `docker cp`
 - `npm run build` (no servidor)
-- `git commit`, `git push`
+- `git commit`, `git push` para `dev` ou `main`
 - `psql` com `INSERT`, `UPDATE`, `DELETE`, `DROP`, `ALTER`
 
 **Formato de solicitação de aprovação:**
@@ -216,23 +375,26 @@ Posso prosseguir?
 ```
 
 ### Git — Commit e Push
-`git commit` e `git push` são **proibidos sem autorização explícita do responsável no chat**. O agente realiza as edições locais e para, aguardando revisão e aprovação antes de commitar.
+
+| Operação | Autorização necessária |
+|---|---|
+| `git push origin feature/*` | Não — permitido sempre |
+| `git push origin dev` | Sim — autorização explícita no chat |
+| `git push origin main` | Sim — autorização explícita no chat |
+| `git commit` | Sim — autorização explícita no chat |
+| Abrir PR para dev | Não — permitido sempre |
+| Fazer merge de PR | Nunca — exclusivo do responsável |
 
 ### Documentação — Onde Registrar
-Antes de adicionar ou mover qualquer informação em arquivos de documentação:
-1. Perguntar: "Esta informação é de produto (feature) ou técnica (tarefa/arquivo específico)?"
+Antes de adicionar qualquer informação em documentação:
+1. Pergunta: "É requisito de produto ou tarefa técnica?"
 2. Se **requisito de produto** → `TODO_OPERACIONAL.md`
 3. Se **tarefa técnica** → `FILA_IMPLEMENTACAO.md`
 4. Se **erro com solução validada** → `ERRORS_SOLUTIONS.md`
-5. **Nunca registrar no lugar errado.** Isso gera confusão e retrabalho.
+5. **Nunca registrar no lugar errado.**
 
 ### Confirmação de Interpretação
-Antes de implementar requisito complexo ou ambíguo, o agente deve:
-1. Reformular o requisito em suas próprias palavras
-2. Apresentar a interpretação de forma estruturada
-3. Aguardar confirmação explícita antes de prosseguir
-
-**Formato de confirmação:**
+Antes de implementar requisito complexo ou ambíguo:
 ```
 ## Entendi o requisito como:
 
@@ -250,61 +412,29 @@ Isso está correto? Posso prosseguir?
 ```
 
 ### Changelog — Linguagem e Formato Obrigatórios
-**Toda mudança visível ao usuário final DEVE ter entrada no changelog (`database/changelogs.json`) antes do deploy.** Não há exceções.
+**Toda mudança visível ao usuário final DEVE ter entrada no changelog (`database/changelogs.json`) antes do deploy.**
 
 **Regras obrigatórias:**
-1. **Data/hora explícita** — usar formato ISO 8601 com timezone (`YYYY-MM-DDTHH:MM:SS-03:00`)
-2. **Rodapé com data/hora** — incluir linha `_Atualização publicada em DD/MM/YYYY às HH:MM_` no final do body
-3. **Linguagem 100% leiga** — sem jargão técnico, explicar benefícios para o usuário final
-4. **Arquivo JSON versionado** — adicionar entrada em `database/changelogs.json` e commitar junto com o código
+1. Data/hora explícita em ISO 8601 com timezone
+2. Rodapé com data/hora no final do body
+3. Linguagem 100% leiga — sem jargão técnico
+4. Arquivo JSON versionado — commitar junto com o código
 
 **Formato obrigatório:**
 ```json
 {
   "id": "YYYY-MM-DD-descricao-curta",
   "title": "Título Curto e Descritivo",
-  "body": "Descrição em linguagem familiar e leiga com bullets:\n\n• **Primeira mudança** - Explicação do benefício para o usuário\n• **Segunda mudança** - O que melhorou na experiência\n• **Terceira mudança** - Como isso ajuda o usuário\n\nFrase de encerramento convidativa! 🎲\n\n_Atualização publicada em DD/MM/YYYY às HH:MM_",
+  "body": "Descrição em linguagem familiar:\n\n• **Mudança** - Benefício para o usuário\n\n_Atualização publicada em DD/MM/YYYY às HH:MM_",
   "type": "app",
   "published": true,
   "created_at": "YYYY-MM-DDTHH:MM:SS-03:00"
 }
 ```
 
-**Como adicionar novo changelog:**
-1. Abrir `database/changelogs.json`
-2. Adicionar novo objeto no início do array (mais recente primeiro)
-3. Commitar junto com o código da feature
-
-**Linguagem obrigatória: familiar, leiga e acessível.**
-- ❌ **NUNCA** usar jargão técnico: "sidebar vertical", "overflow-x", "placeholder visual", "migration", "refactor"
-- ✅ **SEMPRE** explicar o benefício: "filtros no topo", "mais espaço para ver as mesas", "dado bonitinho"
-- ❌ **NUNCA** descrever implementação: "Implementado fallback de imagem com gradient"
-- ✅ **SEMPRE** descrever resultado: "Mesas sem foto agora mostram um dado 🎲"
-
-**Exemplos corretos:**
-- "Agora os filtros ficam no topo da página, deixando mais espaço para você ver as mesas"
-- "Mesas sem foto agora mostram um dado 🎲 bonitinho"
-- "Os botões de WhatsApp e Discord agora abrem direitinho"
-- "Você vê o link real embaixo do botão para copiar se quiser"
-
-**Exemplos PROIBIDOS:**
-- "Migração de sidebar vertical para barra horizontal sticky"
-- "Implementado placeholder visual com fallback"
-- "Refatoração do componente TableCard"
-- "Correção de bug no handler de click"
-
-**Quando criar changelog:**
-- Mudança de UI/UX visível
-- Nova funcionalidade acessível ao usuário
-- Correção de bug que o usuário percebe
-- Melhoria de performance perceptível
-- Mudança de comportamento existente
-
-**Quando NÃO criar changelog:**
-- Refactor interno sem impacto visível
-- Mudança de dependência sem efeito perceptível
-- Correção de bug que nunca chegou em produção
-- Melhoria de código sem mudança de comportamento
+**Linguagem obrigatória:**
+- ❌ NUNCA: "sidebar vertical", "migration", "refactor", "placeholder"
+- ✅ SEMPRE: benefício para o usuário em linguagem familiar
 
 ---
 
@@ -313,43 +443,36 @@ Isso está correto? Posso prosseguir?
 - **Mudança mínima** — sem refactor massivo, sem quebrar contratos existentes
 - **Mudança reversível** — preferir abordagens que possam ser desfeitas
 - **Lógica de interface, busca e filtros** → Frontend (React/TypeScript)
-- **Lógica de autenticação e permissões** → Backend (Node.js/TypeScript via JWT). O frontend nunca decide segurança.
-- **Python** → exclusivamente para scripts de infraestrutura, conversão e importação de dados fora do runtime da API principal (ex: `discord_message_parser.py`)
-- **Upload e processamento de imagens** (conversão WebP, envio ao Imgur) → sempre no Backend, nunca no Frontend
-- **`cover_deletehash`, `avatar_deletehash`, `banner_deletehash`** → campos internos, **nunca retornados por rotas públicas da API**
+- **Lógica de autenticação e permissões** → Backend (Node.js/TypeScript via JWT)
+- **Python** → exclusivamente para scripts fora do runtime da API principal
+- **Upload e processamento de imagens** → sempre no Backend, nunca no Frontend
+- **`cover_deletehash`, `avatar_deletehash`, `banner_deletehash`** → nunca retornados por rotas públicas
 
 ---
 
 ## Regras Específicas do Projeto
 
-**AggregatorBot:** Qualquer alteração no serviço de ingestão automática deve ser validada em beta antes de ir para produção. O bot tem circuit breaker próprio — falhas de ingestão não devem derrubar a API principal.
+**Imgur:** `IMGUR_CLIENT_ID` é variável de ambiente obrigatória. Nunca hardcodar, nunca expor no Frontend.
 
-**Imgur:** `IMGUR_CLIENT_ID` é variável de ambiente obrigatória. Nunca hardcodar, nunca expor no Frontend, nunca versionar com valor real. Usar `.env.example` com placeholder.
+**Google OAuth:** Único método de autenticação. Não implementar login por e-mail/senha sem autorização.
 
-**CleanupWorker:** Job de limpeza de imagens de mesas encerradas roda via node-cron. Alterações no critério de exclusão exigem autorização explícita — deleção no Imgur é irreversível.
+**Discord:** Vínculo opcional de perfil. Não substitui Google OAuth como autenticação principal.
 
-**Google OAuth:** Único método de autenticação. Não implementar login por e-mail/senha local sem autorização explícita do responsável.
+**Elevação de role:** Um `player` torna-se `gm` ao criar o primeiro `gm_profile`. Lógica exclusiva do Backend.
 
-**Discord:** Quando implementado, será vínculo opcional de perfil para contexto comunitário e selos. Não substitui o Google OAuth como autenticação principal.
+**Compromissos inegociáveis:** gratuidade, sem anúncios, sem coleta desnecessária de dados. Nenhuma feature viola esses compromissos.
 
-**Elevação de role:** Um `player` torna-se `gm` ao criar o primeiro `gm_profile`. Lógica exclusiva do Backend — o Frontend não decide elevação de role.
+**Heurísticas de Nielsen (UX obrigatória):** Toda mudança de interface valida contra as 10 heurísticas antes do merge: (1) Visibilidade do status, (2) Compatibilidade com o mundo real, (3) Controle e liberdade, (4) Consistência, (5) Prevenção de erros, (6) Reconhecimento vs memorização, (7) Eficiência e flexibilidade, (8) Design minimalista, (9) Recuperação de erros, (10) Ajuda e documentação.
 
-**Compromissos públicos inegociáveis** (ver `ARQUITETURA_PROJETO.md` §10): gratuidade, sem anúncios e sem coleta desnecessária de dados são restrições de produto. Nenhuma feature pode violar esses compromissos.
-
-**Heurísticas de Nielsen (UX obrigatória):** Toda mudança de interface deve respeitar as 10 heurísticas desde o design. Ao propor ou implementar qualquer componente, modal, formulário ou fluxo, validar contra: (1) Visibilidade do status, (2) Compatibilidade com o mundo real, (3) Controle e liberdade, (4) Consistência, (5) Prevenção de erros, (6) Reconhecimento vs memorização, (7) Eficiência e flexibilidade, (8) Design minimalista, (9) Recuperação de erros, (10) Ajuda e documentação. Interfaces que violam essas heurísticas devem ser corrigidas antes do merge.
-
-**Nome do banco:** O banco PostgreSQL se chama `mesas_rpg`, não `mesas`. Ver `ERRORS_SOLUTIONS.md` E059.
+**Nome do banco:** `mesas_rpg`, não `mesas`. Ver `ERRORS_SOLUTIONS.md` E059.
 
 ---
 
 ## Protocolo de Sessão
 
-> [!IMPORTANT]
-> Ao iniciar qualquer nova sessão (nova conversa ou retomada após interrupção), criar imediatamente um arquivo de resumo.
-
-**Nome:** `resumo_[dia-mes]_[task-curta].md`  
-**Localização:** `/sessoes/`  
-**Exemplo:** `sessoes/resumo_05-04_aggregator-bulk-delete.md`
+**Nome:** `resumo_[dia-mes]_[task-curta].md`
+**Localização:** `/sessoes/`
+**Exemplo:** `sessoes/resumo_11-04_limpeza-documentacao.md`
 
 **Conteúdo mínimo obrigatório:**
 1. **Objetivo da sessão** — o que será feito (1-2 frases)
@@ -357,62 +480,61 @@ Isso está correto? Posso prosseguir?
 3. **Task list embutida** — checklist `[ ]` / `[x]` de cada item do plano
 4. **Arquivos-alvo** — lista de arquivos que serão modificados
 5. **Critério de conclusão** — como saber que a task está completa
-6. **Último item obrigatório:** `[ ] Atualizar documentos relevantes`
+6. **Último item obrigatório:** `[ ] Atualizar RESUMO_EXECUCAO.md apontando para esta sessão`
 
-O resumo deve ser atualizado conforme o progresso, marcando `[x]` e registrando decisões importantes inline. Ao final, o arquivo em `/sessoes/` serve de registro histórico para qualquer agente retomar o trabalho sem perda de contexto.
+O arquivo de sessão deve ser atualizado conforme o progresso. Ao final, serve de registro histórico para continuidade sem perda de contexto.
+
+**Após concluir a sessão, obrigatório:**
+- Atualizar `RESUMO_EXECUCAO.md` campo "Última Sessão" para apontar para o arquivo desta sessão
+- Não encerrar sem que o RESUMO aponte para a sessão mais recente
 
 ---
 
 ## Protocolo de Git
 
-Consultar e seguir `GIT_WORKFLOW.md` antes de qualquer alteração versionável.
+Consultar `GIT_WORKFLOW.md` antes de qualquer alteração versionável.
 
 **Branches:**
 - `feature/<escopo>` → criada a partir de `dev`
-- `dev` → deploy automático em beta (`mesasbeta.artificiorpg.com`)
-- `main` → deploy em produção (quando publicação operacional estiver ativa)
+- `dev` → deploy automático em beta
+- `main` → deploy em produção
 
-**Decisões automáticas em tarefas com fluxo Git ativo:**
+**Permissões:**
 
-| Pergunta | Resposta automática |
+| Operação | Autorização |
 |---|---|
-| Criar branch `feature/<escopo>` a partir de `dev`? | Sim, por padrão |
-| PR para `dev` com squash and merge? | Sim, por padrão |
-| Haverá release após o merge? | Não — só se o responsável solicitar explicitamente |
-
-A única exceção é quando o escopo da branch for ambíguo — nesse caso, perguntar apenas o nome do escopo.
-
-> [!CAUTION]
-> `git commit` e `git push` são proibidos sem autorização explícita no chat. Ver regra pétrea acima.
+| Criar branch `feature/<escopo>` | Automático — sem perguntar |
+| `git push origin feature/*` | Automático — sem perguntar |
+| Abrir PR para dev | Automático — sem perguntar |
+| `git push origin dev` | Exige autorização explícita no chat |
+| `git push origin main` | Exige autorização explícita no chat |
+| Merge de PR | Exclusivo do responsável — nunca pelo agente |
 
 ---
 
 ## Infraestrutura e Diagnóstico
 
-**VM Oracle:** Possui `gh` autenticado para a conta mantenedora. Para limitações do `gh` na VM, ver `GIT_WORKFLOW.md` §8 e `ERRORS_SOLUTIONS.md` E055/E056.
+**VM Oracle:** `gh` autenticado para a conta mantenedora. Ver `GIT_WORKFLOW.md` §8 e `ERRORS_SOLUTIONS.md` E055/E056.
 
 **Token/PAT:** Nunca registrar, expor ou versionar em chat, logs, commits ou arquivos do repositório.
 
 **Diagnóstico read-only** — permitido sempre, sem autorização: `docker ps`, `docker logs`, `docker stats`
 
-**Comandos com alteração de estado** — exigem autorização explícita do responsável no chat.
+**Comandos com alteração de estado** — exigem autorização explícita.
 
-**Cloudflare Tunnel:** A VM possui túnel mestre interligado à rede Docker interna. Agentes **nunca** devem criar novos túneis, baixar containers `cloudflared` paralelos ou solicitar Tokens ao usuário para expor novos containers. Novos ambientes são expostos via Public Hostname no painel Cloudflare, referenciando o container alvo (ex: `http://mesas-beta-frontend:80`).
+**Cloudflare Tunnel:** Agentes **nunca** devem criar novos túneis ou baixar containers `cloudflared` paralelos. Novos ambientes são expostos via Public Hostname no painel Cloudflare.
 
-**Acesso SSH assistido:** Ver métodos de conexão e regras em `OPERACAO_PRODUCAO.md` §3.
+**SSH:** Métodos de conexão em `OPERACAO_PRODUCAO.md` §3. Use read-only para diagnóstico e solicite aprovação antes de qualquer comando destrutivo.
 
 **Credenciais do PostgreSQL:**
 ```bash
-# Acesso padrão ao banco no beta:
 docker exec mesas-beta-db psql -U admin -d mesas_rpg
-
-# Confirmar credenciais em runtime:
 docker exec mesas-beta-db env | grep POSTGRES
 ```
 
-**PowerShell:** Scripts rodam no PowerShell 7.6.0 (ou compatível com `pwsh`).
+**PowerShell:** Scripts rodam no PowerShell 7.6.0.
 
-**Arquivos temporários e de teste:** Devem ser alocados em `/testes/`. É proibido criar scripts de diagnóstico na raiz do projeto.
+**Arquivos temporários e de teste:** Alocar em `/testes/`. Proibido criar scripts de diagnóstico na raiz.
 
 ---
 
@@ -422,24 +544,19 @@ docker exec mesas-beta-db env | grep POSTGRES
 - Decisões operacionais referenciam arquivo canônico correto
 - Fluxo de Git segue `GIT_WORKFLOW.md`
 - Comunicação com o usuário está em português
-- Mudanças em backlog mantêm `Score GUT` e `status real` consistentes em `TODO_OPERACIONAL.md`
-- Mudanças em execução mantêm status consistente em `FILA_IMPLEMENTACAO.md`
+- `TODO_OPERACIONAL.md` com Score GUT e status consistentes
+- `FILA_IMPLEMENTACAO.md` com status consistente
+- `RESUMO_EXECUCAO.md` aponta para a sessão mais recente
 - Toda interação com dados passa pela API Backend com JWT válido
-- Toda operação de imagem (upload, substituição, exclusão) é registrável via `imgur_cleanup_log`
-- `GUIA_RAPIDO_OPERACIONAL.md` atualizado por delta se houver mudança de contrato, checklist ou fluxo operacional recorrente
+- `GUIA_RAPIDO_OPERACIONAL.md` atualizado se houver mudança de contrato ou fluxo
 
-**Em caso de conflito de interpretação:**
-1. Usar apenas `AGENTS.md` + `ARQUITETURA_PROJETO.md`
-2. Registrar lacuna em `TODO_OPERACIONAL.md`
-3. Aplicar ajuste mínimo de documentação
-
-**Em caso de conflito entre arquivos:** `ARQUITETURA_PROJETO.md` prevalece sobre qualquer outro documento de arquitetura. `AGENTS.md` prevalece sobre qualquer outro documento de governança de agentes.
+**Em caso de conflito entre arquivos:** `ARQUITETURA_PROJETO.md` prevalece sobre qualquer outro de arquitetura. `AGENTS.md` prevalece sobre qualquer outro de governança.
 
 ---
 
 ## Idioma
 
-Toda comunicação produzida por agentes deve ser em **português**:
+Toda comunicação em **português**:
 - Respostas em chat
 - Mensagens de erro na UI
 - Logs visíveis ao usuário
@@ -464,11 +581,10 @@ Rollback         — como desfazer se necessário
 
 ## Sugestão de Tecnologia
 
-Se o agente identificar uma tecnologia, biblioteca ou ferramenta que resolva um problema crônico de forma mais profissional, **pode e deve sugerir ativamente**, sempre priorizando a solução correta sobre a gambiarra. A sugestão não é autorização para implementar — aguardar aprovação do responsável.
+Se o agente identificar uma tecnologia que resolva um problema crônico de forma mais profissional, pode e deve sugerir ativamente. A sugestão não é autorização para implementar — aguardar aprovação do responsável.
 
 ---
 
 ## Limite de Escopo
 
 Este arquivo define apenas governança de agentes. Não descreve arquitetura detalhada nem runbook operacional. Para esses fins, consultar `ARQUITETURA_PROJETO.md` e `OPERACAO_PRODUCAO.md`.
-

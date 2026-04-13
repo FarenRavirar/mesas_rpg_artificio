@@ -86,9 +86,9 @@ export function ProfileProvider({ children }: ProfileProviderProps) {
         if (updateGmMutation.isPending) return;
         await updateGmMutation.mutateAsync(data);
       },
-      addSystem: async (systemId) => {
+      addSystem: async (systemId, type = 'favorite') => {
         if (addSystemMutation.isPending) return;
-        await addSystemMutation.mutateAsync(systemId);
+        await addSystemMutation.mutateAsync({ systemId, type });
       },
       removeSystem: async (systemId) => {
         if (removeSystemMutation.isPending) return;

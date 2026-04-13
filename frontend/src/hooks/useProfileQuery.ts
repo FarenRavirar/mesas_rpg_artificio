@@ -269,9 +269,10 @@ export function useUpdateGm() {
  */
 export function useAddSystem() {
   return useMutation({
-    mutationFn: async (systemId: string) => {
+    mutationFn: async ({ systemId, type }: { systemId: string; type: 'favorite' | 'gm' }) => {
       const result = await api.post<{ data: any }>('/api/v1/profile/systems', {
         system_id: systemId,
+        type: type,
       });
       return result.data;
     },

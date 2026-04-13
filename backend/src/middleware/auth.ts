@@ -29,18 +29,32 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
   const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
   const cookieToken = req.cookies?.am_session ?? null;
 
+  // LOG TEMPORÁRIO: Diagnóstico do erro 401
+  console.log('[authMiddleware] Verificando autenticação:', {
+    path: req.path,
+    method: req.method,
+    hasAuthHeader: !!authHeader,
+    hasBearerToken: !!bearerToken,
+    hasCookie: !!cookieToken,
+    cookieLength: cookieToken?.length,
+    timestamp: new Date().toISOString()
+  });
+
   // Prioridade: Bearer token (APIs) → Cookie (web app)
   const token = bearerToken || cookieToken;
 
   if (!token) {
+    console.log('[authMiddleware] Token não fornecido - retornando 401');
     return res.status(401).json({ error: 'Token não fornecido.' });
   }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET) as AuthDecoded;
     req.user = decoded;
+    console.log('[authMiddleware] Token válido:', { userId: decoded.userId, role: decoded.role });
     next();
   } catch (error) {
+    console.log('[authMiddleware] Token inválido ou expirado:', error);
     return res.status(401).json({ error: 'Token inválido ou expirado.' });
   }
 };

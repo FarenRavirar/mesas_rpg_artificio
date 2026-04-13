@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import type { FormEvent, InputHTMLAttributes } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PlusCircle, ChevronRight, MapPin, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
@@ -269,7 +269,11 @@ export const PainelMestrePage = () => {
           setMyTables([]);
         }
 
-        setView('dashboard');
+        // Não forçar dashboard se há parâmetro edit na URL
+        const urlParams = new URLSearchParams(window.location.search);
+        if (!urlParams.has('edit')) {
+          setView('dashboard');
+        }
       } catch {
         setGmProfile(null);
         setMyTables([]);
@@ -281,22 +285,23 @@ export const PainelMestrePage = () => {
     loadPanelData();
   }, [navigate, isAuthenticated, user]);
 
-  useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const editId = searchParams.get('edit');
+  const [searchParams] = useSearchParams();
+  const editIdFromUrl = searchParams.get('edit');
 
-    if (editId && isAuthenticated) {
-      setEditingTableId(editId);
+  useEffect(() => {
+    if (editIdFromUrl && isAuthenticated) {
+      setEditingTableId(editIdFromUrl);
 
       const loadTableData = async () => {
         try {
-          const response = await fetch(`${API_BASE}/api/v1/tables/${editId}`, {
+          const response = await fetch(`${API_BASE}/api/v1/gm/tables/${editIdFromUrl}`, {
             credentials: 'include',
           });
 
           if (response.ok) {
             const data = await response.json();
-            setEditingTableData(data.data);
+            const { mapTableApiToInitialData } = await import('../features/create-table/utils/mapTableApiToInitialData');
+            setEditingTableData(mapTableApiToInitialData(data.data));
             setView('create-table');
           } else {
             toast.error('Mesa não encontrada');
@@ -311,7 +316,7 @@ export const PainelMestrePage = () => {
 
       loadTableData();
     }
-  }, [isAuthenticated, editingTableId]);
+  }, [isAuthenticated, editIdFromUrl]);
 
   const refreshData = () => {
     if (!isAuthenticated) {
@@ -381,20 +386,20 @@ export const PainelMestrePage = () => {
 
   const handleToggleTableStatus = async (tableId: string, currentStatus: string, title: string) => {
     if (!isAuthenticated) return;
-    const newStatus = currentStatus === 'active' ? 'draft' : 'active';
+    const newStatus = currentStatus === 'active' ? 'cancelled' : 'active';
     const action = newStatus === 'active' ? 'ativar' : 'desativar';
 
     if (!confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} mesa "${title}"?`)) return;
 
     setTogglingTableId(tableId);
     try {
-      // CORREÇÃO: Usar PUT /tables/:id em vez de PATCH /tables/:id/status
-      const endpoint = user?.role === 'admin'
-        ? `${API_BASE}/api/v1/admin/tables/${tableId}`
-        : `${API_BASE}/api/v1/gm/tables/${tableId}`;
+      // CORREÇÃO BUG 2 (REQ-30): Usar PATCH /tables/:id/status em vez de PUT /tables/:id
+      // PUT exige todos os campos obrigatórios, PATCH /status só altera o status
+      // Backend aceita: 'active', 'full', 'cancelled', 'ended'
+      const endpoint = `${API_BASE}/api/v1/gm/tables/${tableId}/status`;
 
       const response = await fetch(endpoint, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ status: newStatus }),

@@ -127,6 +127,32 @@ router.patch('/me/player', authMiddleware, async (req: Request, res: Response) =
   }
 });
 
+// Alias para compatibilidade com frontend
+router.patch('/player', authMiddleware, async (req: Request, res: Response) => {
+  const userId = req.user?.userId;
+
+  if (!userId) {
+    return res.status(401).json({ error: 'Não autenticado' });
+  }
+
+  const { experience_level, playstyle, preferred_days, preferred_time, pricing_preference } =
+    req.body;
+
+  try {
+    const player = await profileService.updatePlayerProfile(userId, {
+      experience_level,
+      playstyle,
+      preferred_days,
+      preferred_time,
+      pricing_preference,
+    });
+    return res.json({ data: player });
+  } catch (error: any) {
+    console.error('[PATCH /profile/player]', error);
+    return res.status(500).json({ error: 'Erro ao atualizar perfil de jogador' });
+  }
+});
+
 // =============================================================================
 // PATCH /api/v1/profile/me/gm — Atualizar perfil de mestre
 // =============================================================================
@@ -173,6 +199,49 @@ router.patch('/me/gm', authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
+// Alias para compatibilidade com frontend
+router.patch('/gm', authMiddleware, async (req: Request, res: Response) => {
+  const userId = req.user?.userId;
+
+  if (!userId) {
+    return res.status(401).json({ error: 'Não autenticado' });
+  }
+
+  const {
+    nickname,
+    bio_long,
+    avatar_url,
+    banner_url,
+    languages,
+    specialties,
+    experience_years,
+    average_price,
+    gm_style,
+    tools,
+    game_format,
+  } = req.body;
+
+  try {
+    const gm = await profileService.updateGmProfile(userId, {
+      nickname,
+      bio_long,
+      avatar_url,
+      banner_url,
+      languages,
+      specialties,
+      experience_years,
+      average_price,
+      gm_style,
+      tools,
+      game_format,
+    });
+    return res.json({ data: gm });
+  } catch (error: any) {
+    console.error('[PATCH /profile/gm]', error);
+    return res.status(500).json({ error: 'Erro ao atualizar perfil de mestre' });
+  }
+});
+
 // =============================================================================
 // POST /api/v1/profile/me/systems — Adicionar sistema favorito/gm
 // =============================================================================
@@ -203,6 +272,33 @@ router.post('/me/systems', authMiddleware, async (req: Request, res: Response) =
   }
 });
 
+// Alias para compatibilidade com frontend
+router.post('/systems', authMiddleware, async (req: Request, res: Response) => {
+  const userId = req.user?.userId;
+
+  if (!userId) {
+    return res.status(401).json({ error: 'Não autenticado' });
+  }
+
+  const { system_id, type } = req.body;
+
+  if (!system_id || !type) {
+    return res.status(400).json({ error: 'system_id e type são obrigatórios' });
+  }
+
+  if (type !== 'favorite' && type !== 'gm') {
+    return res.status(400).json({ error: 'type deve ser "favorite" ou "gm"' });
+  }
+
+  try {
+    const userSystem = await profileService.addUserSystem(userId, system_id, type);
+    return res.json({ data: userSystem });
+  } catch (error: any) {
+    console.error('[POST /profile/systems]', error);
+    return res.status(500).json({ error: error.message || 'Erro ao adicionar sistema' });
+  }
+});
+
 // =============================================================================
 // DELETE /api/v1/profile/me/systems/:id — Remover sistema
 // =============================================================================
@@ -221,6 +317,25 @@ router.delete('/me/systems/:id', authMiddleware, async (req: Request, res: Respo
     return res.status(204).send();
   } catch (error: any) {
     console.error('[DELETE /profile/me/systems/:id]', error);
+    return res.status(500).json({ error: 'Erro ao remover sistema' });
+  }
+});
+
+// Alias para compatibilidade com frontend
+router.delete('/systems/:id', authMiddleware, async (req: Request, res: Response) => {
+  const userId = req.user?.userId;
+
+  if (!userId) {
+    return res.status(401).json({ error: 'Não autenticado' });
+  }
+
+  const { id } = req.params;
+
+  try {
+    await profileService.removeUserSystem(id, userId);
+    return res.status(204).send();
+  } catch (error: any) {
+    console.error('[DELETE /profile/systems/:id]', error);
     return res.status(500).json({ error: 'Erro ao remover sistema' });
   }
 });
