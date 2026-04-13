@@ -385,6 +385,37 @@ Posso prosseguir?
 | Abrir PR para dev | Não — permitido sempre |
 | Fazer merge de PR | Nunca — exclusivo do responsável |
 
+### Git — Proibição Absoluta de Checkout Entre Branches
+
+> [!CAUTION]
+> **REGRA PÉTREA — NUNCA USAR `git checkout` ENTRE BRANCHES DURANTE DEPLOY**
+
+**Proibido sem exceção:**
+- ❌ `git checkout main` (quando em `dev`)
+- ❌ `git checkout dev` (quando em `main`)
+- ❌ `git merge dev` (merge local)
+- ❌ Qualquer operação local de merge entre `dev` e `main`
+
+**Motivo:** `git checkout` entre branches remove temporariamente arquivos que existem em uma branch mas não em outra (comportamento normal do Git). Isso causa pânico no usuário que vê arquivos importantes desaparecendo (ex: `MAPA_DE_API.md`, `map_scratch.json`, `RESUMO_EXECUCAO.md`, `generateMap.js`).
+
+**Método obrigatório para deploy:**
+```bash
+# ✅ CORRETO: Criar PR via GitHub CLI
+gh pr create --base main --head dev --title "chore: merge dev to main - descrição" --body "Detalhes"
+
+# ✅ CORRETO: Fazer merge via GitHub
+gh pr merge <número> --merge --delete-branch=false
+```
+
+**Para verificar divergência SEM fazer checkout:**
+```bash
+# ✅ CORRETO: Ver commits sem trocar de branch
+git log origin/main..origin/dev --oneline
+git rev-list --left-right --count origin/main...origin/dev
+```
+
+**Ver:** `ERRORS_SOLUTIONS.md` E143 (arquivos desaparecem) e E101 (locks no Windows)
+
 ### Documentação — Onde Registrar
 Antes de adicionar qualquer informação em documentação:
 1. Pergunta: "É requisito de produto ou tarefa técnica?"

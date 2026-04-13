@@ -3,6 +3,7 @@ import type { FormState, DdalFormState } from '../types/createTable.types';
 import type { SessionSchedule } from '../../../components/SessionRepeater';
 import type { ContactFormEntry } from '../../../components/ContactsFormBlock';
 import { formStateToPayload } from '../utils/mapper';
+import { validateAll } from '../utils/validation';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -303,7 +304,6 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
       setSubmitState('validating');
       
       // Validação completa usando validators
-      const { validateAll } = await import('../utils/validation');
       const errors = validateAll(formState);
       
       if (errors.length > 0) {

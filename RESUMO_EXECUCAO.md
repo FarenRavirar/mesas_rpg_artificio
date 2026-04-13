@@ -1,57 +1,47 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 13/04/2026 16:24 BRT
+**Última atualização:** 13/04/2026 19:08 BRT
 
 ---
 
 ## Estado Atual do Projeto
 
-**Ambiente Beta:** `mesasbeta.artificiorpg.com` — operacional  
-**Ambiente Produção:** `mesas.artificiorpg.com` — não publicado operacionalmente  
+**Ambiente Beta:** `mesasbeta.artificiorpg.com` — operacional (E144 mitigado + frontend healthy)  
+**Ambiente Produção:** `mesas.artificiorpg.com` — operacional (frontend healthy)  
 **Branch ativa:** `dev` (deploy automático em beta)
 
 ---
 
 ## Próxima Ação
 
-**Item 143 (REQ-30, GUT 80)** — Adicionar campo `name_pt` em sistemas e cenários para versão em português
-- **Problema:** BUG 3 — Campo de frequência duplicado na Etapa 3 do onboarding
-- **Escopo:** Investigar steps do formulário multi-etapas e remover duplicata
-- **Prioridade:** 2 — Bug UX que confunde o mestre durante publicação
+**Status operacional atual:**
+- ✅ Produção online (`https://mesas.artificiorpg.com`) com HTTP 200
+- ✅ Beta online (`https://mesasbeta.artificiorpg.com`) com HTTP 200
+- ✅ Healthcheck beta: `{"status":"ok","environment":"beta","db":"connected","usersSampled":true}`
+- ✅ Healthcheck produção: `{"status":"ok","environment":"production","db":"connected","usersSampled":true}`
+- ✅ Frontends `mesas-app` e `mesas-beta-frontend` em `healthy`
 
-**Lote ativo:** `revisao-onboarding-mesas` — itens 142–149 (141 e 142 concluídos)  
-**Lote paralelo:** `auditoria-cobertura-apis` — itens 150–151 (auditoria + implementação de APIs órfãs)
+**Pendências críticas resolvidas nesta sessão:**
+- ✅ Workflow de produção corrigido para não remover containers do beta (`E144`)
+- ✅ Workflow de promoção corrigido com mesma proteção
+- ✅ Workflow beta e produção agora falham deploy se frontend não atingir `healthy` (`E145`)
+- ✅ Documentação operacional atualizada sem duplicação (delta em tópicos existentes)
+- ✅ Warning de build `[INEFFECTIVE_DYNAMIC_IMPORT]` removido no frontend
 
 ---
 
 ## Última Sessão
 
-**Data:** 13/04/2026 16:30 BRT  
-**Tipo:** Correção de bug — Erro "token inválido ou expirado" ao desativar mesa  
-**O que foi feito:** Corrigido bug crítico (REQ-30 BUG 2) onde o frontend usava `PUT /api/v1/gm/tables/:id` para alterar status da mesa, mas esse endpoint exige todos os campos obrigatórios. Solução: alterar para `PATCH /api/v1/gm/tables/:id/status` que aceita apenas o campo `status`. Causa raiz: confusão entre endpoint de atualização completa (PUT) e endpoint de alteração parcial (PATCH).  
-**Status:** Implementado e validado localmente (build ✓). Erro E142 documentado. Pendente deploy em beta para validação E2E.  
-**Arquivo:** `sessoes/resumo_13-04_bug_token_desativar_mesa.md`
+**Data:** 13/04/2026 19:08 BRT  
+**Tipo:** Mitigação de incidentes E144 + E145 com endurecimento de workflow  
+**O que foi feito:** Confirmado beta OFF (502) e restaurado ambiente beta no Oracle; corrigidos workflows de produção para remover limpeza destrutiva global por prefixo (`name=mesas-`); identificado falso `unhealthy` de frontend por healthcheck em `localhost:80` resolvendo para IPv6 `::1`; ajustado para `127.0.0.1:80` em `docker-compose.prod.yml` e `docker-compose.beta.yml`; recriados frontends; adicionados gates de falha por healthcheck frontend em `.github/workflows/deploy-prod.yml` e `.github/workflows/deploy-beta.yml`; documentação atualizada por delta em `ERRORS_SOLUTIONS.md` (E145), `PRE_DEPLOY_CHECKLIST.md` e `OPERACAO_PRODUCAO.md`.  
+**Status:** Produção e beta operacionais, APIs conectadas e frontends saudáveis. Causa raiz de E144 e E145 documentada com prevenção ativa nos workflows.  
+**Arquivo:** `sessoes/resumo_13-04_mitigacao-e144-beta-off.md`
 
 ---
 
 ## Observações
 
-- Arquivo criado em 09/04/2026 durante inicialização de nova sessão
-- Protocolo de leitura obrigatória em andamento
-
-### Problema de Travamento Identificado (09/04/2026)
-
-Agentes estavam travando por violação do princípio de **Assertividade Operacional**:
-- Loop de re-análise excessiva (ler o mesmo arquivo múltiplas vezes)
-- Investigação desnecessária quando o plano já estava claro
-- Falta de execução direta em features especificadas
-
-**Solução aplicada:** Regras anti-travamento adicionadas ao `AGENTS.md` §Assertividade Operacional.
-
-**Documentação completa:** `sessoes/resumo_09-04_diagnostico-travamento.md`
-
-**Comportamento obrigatório a partir de agora:**
-1. ✅ Ler cada arquivo UMA VEZ por sessão
-2. ✅ Executar diretamente quando o plano está claro
-3. ✅ Reportar progresso real, não intenções
-4. ✅ Parar APENAS quando houver ambiguidade crítica
+- Regra pétrea E143 continua ativa: deploy somente via GitHub PR.
+- E144 mitigado: workflow de produção não remove mais containers do beta.
+- E145 mitigado: deploy agora falha se frontend não atingir `healthy`, evitando falso sucesso com HTTP 200 externo.

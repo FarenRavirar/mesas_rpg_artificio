@@ -30,10 +30,10 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
             
-            # CORREÇÃO: Remover containers órfãos antes do down para evitar conflitos de nome
-            docker ps -a --filter "name=mesas-" --format "{{.Names}}" | grep -v -E "(mesas-app|mesas-api|mesas-db)$" | xargs -r docker rm -f || true
-            
-            docker compose -f docker-compose.prod.yml down
+            # CORREÇÃO E144: NUNCA remover containers por prefixo global (name=mesas-)
+            # Isso derruba beta (mesas-beta-*) por colisão de prefixo.
+            # Limpeza de órfãos deve ser restrita ao projeto compose de produção.
+            docker compose -f docker-compose.prod.yml down --remove-orphans
             docker compose -f docker-compose.prod.yml build --no-cache
             docker compose -f docker-compose.prod.yml up -d mesas-db
             MAX_RETRIES=30
@@ -54,6 +54,21 @@ jobs:
               docker compose -f docker-compose.prod.yml logs mesas-api --tail=50
               exit 1
             fi
+
+            # CORREÇÃO E145: falhar deploy se frontend não atingir health=healthy
+            FRONTEND_CONTAINER="mesas-app"
+            MAX_FRONTEND_RETRIES=20
+            FRONTEND_RETRIES=0
+            until [ "$(docker inspect --format '{{.State.Health.Status}}' "$FRONTEND_CONTAINER" 2>/dev/null || echo 'missing')" = "healthy" ]; do
+              FRONTEND_RETRIES=$((FRONTEND_RETRIES+1))
+              if [ $FRONTEND_RETRIES -ge $MAX_FRONTEND_RETRIES ]; then
+                echo "❌ Frontend não ficou healthy (E145)"
+                docker inspect "$FRONTEND_CONTAINER" --format '{{json .State.Health}}' || true
+                docker compose -f docker-compose.prod.yml logs mesas-app --tail=100
+                exit 1
+              fi
+              sleep 3
+            done
             
             # CORREÇÃO INT-03: Validar se frontend buildou com sucesso
             if ! docker compose -f docker-compose.prod.yml logs mesas-app 2>&1 | grep -q "build completed"; then

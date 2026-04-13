@@ -53,6 +53,21 @@ jobs:
               docker compose -f docker-compose.beta.yml logs mesas-beta-api --tail=50
               exit 1
             fi
+
+            # CORREÇÃO E145: falhar deploy se frontend não atingir health=healthy
+            FRONTEND_CONTAINER="mesas-beta-frontend"
+            MAX_FRONTEND_RETRIES=20
+            FRONTEND_RETRIES=0
+            until [ "$(docker inspect --format '{{.State.Health.Status}}' "$FRONTEND_CONTAINER" 2>/dev/null || echo 'missing')" = "healthy" ]; do
+              FRONTEND_RETRIES=$((FRONTEND_RETRIES+1))
+              if [ $FRONTEND_RETRIES -ge $MAX_FRONTEND_RETRIES ]; then
+                echo "❌ Frontend beta não ficou healthy (E145)"
+                docker inspect "$FRONTEND_CONTAINER" --format '{{json .State.Health}}' || true
+                docker compose -f docker-compose.beta.yml logs mesas-beta-frontend --tail=100
+                exit 1
+              fi
+              sleep 3
+            done
             
             # CORREÇÃO INT-03: Validar se frontend buildou com sucesso
             if ! docker compose -f docker-compose.beta.yml logs mesas-beta-frontend 2>&1 | grep -q "build completed"; then

@@ -656,6 +656,24 @@ Para correlação operacional, considerar `America/Araguaina` como referência l
 
 ## 10. Playbook canônico de promoção `dev` -> `main`
 
+> [!CAUTION]
+> **AVISO CRÍTICO — NUNCA USAR `git checkout` ENTRE BRANCHES DURANTE DEPLOY**
+>
+> **Problema:** Ao executar `git checkout main` vindo de `dev`, o Git remove temporariamente arquivos que existem em `dev` mas não em `main` (comportamento normal). Isso causa pânico no usuário que vê arquivos importantes desaparecendo (ex: `MAPA_DE_API.md`, `map_scratch.json`, `RESUMO_EXECUCAO.md`).
+>
+> **Regra obrigatória para agentes:**
+> - ❌ **NUNCA** executar `git checkout <outra-branch>` durante deploy
+> - ❌ **NUNCA** fazer merge local (`git merge dev`)
+> - ✅ **SEMPRE** usar GitHub PR: `gh pr create --base main --head dev`
+> - ✅ **SEMPRE** fazer merge via GitHub: `gh pr merge <número>`
+>
+> **Justificativa:** Merge via GitHub evita:
+> 1. Deleção temporária de arquivos (E143)
+> 2. Locks de diretório no Windows (E101)
+> 3. Problemas de permissão e conflitos locais
+>
+> **Ver:** `ERRORS_SOLUTIONS.md` E143 e E101
+
 > Sempre seguir este playbook antes de qualquer push para `main`.
 > Autorização explícita do responsável é obrigatória antes de iniciar.
 
@@ -674,12 +692,19 @@ Para correlação operacional, considerar `America/Araguaina` como referência l
 5. Confirmar que não haverá sobrescrita indevida de `.env` remoto
 6. Confirmar que a validação do beta foi concluída
 
-### 10.3 Comandos de referência
+### 10.3 Comandos de referência (SEM checkout)
 
 ```bash
+# Verificar divergência SEM fazer checkout
 git rev-parse --abbrev-ref HEAD
 git rev-list --left-right --count origin/main...origin/dev
-git worktree list
+git log origin/main..origin/dev --oneline
+
+# Criar PR via GitHub CLI (método correto)
+gh pr create --base main --head dev --title "chore: merge dev to main - descrição" --body "Detalhes do deploy"
+
+# Fazer merge via GitHub (evita problemas locais)
+gh pr merge <número> --merge --delete-branch=false
 ```
 
 ### 10.4 Regra final
@@ -687,6 +712,45 @@ git worktree list
 - Sem autorização explícita, não promover
 - Sem validação do beta, não promover
 - Sem consistência documental mínima, não promover
+- **Sem GitHub PR, não promover** — NUNCA fazer merge local
+- **Sem validação de isolamento beta, não promover** — obrigatório validar que beta continua 200 após deploy de produção (E144)
+
+### 10.5 Validação pós-deploy obrigatória (produção + beta)
+
+Após qualquer deploy em produção, executar imediatamente:
+
+```bash
+# Produção deve responder 200
+curl -s -o /dev/null -w "%{http_code}" https://mesas.artificiorpg.com
+curl -s https://mesas.artificiorpg.com/api/v1/health
+
+# Beta deve permanecer online (isolamento)
+curl -s -o /dev/null -w "%{http_code}" https://mesasbeta.artificiorpg.com
+curl -s https://mesasbeta.artificiorpg.com/api/v1/health
+
+# Containers beta devem continuar ativos
+ssh -F C:\projetos\config faren "docker ps --filter name=mesas-beta --format 'table {{.Names}}\t{{.Status}}'"
+
+# Frontend deve estar healthy nos dois ambientes
+ssh -F C:\projetos\config faren "docker inspect mesas-app --format '{{.State.Health.Status}}'"
+ssh -F C:\projetos\config faren "docker inspect mesas-beta-frontend --format '{{.State.Health.Status}}'"
+```
+
+**Critério de sucesso:**
+- Produção: HTTP 200 + health `status: ok`
+- Beta: HTTP 200 + health `status: ok`
+- Containers beta (`mesas-beta-frontend`, `mesas-beta-api`, `mesas-beta-db`) continuam ativos
+- Frontends `mesas-app` e `mesas-beta-frontend` com health `healthy` (E145)
+
+**Se beta cair após deploy de produção:**
+1. Registrar incidente `E144` em `ERRORS_SOLUTIONS.md`
+2. Recuperar beta imediatamente (`docker compose -f docker-compose.beta.yml up -d --force-recreate`)
+3. Corrigir workflow antes do próximo deploy
+
+**Se frontend ficar `unhealthy` com HTTP 200 externo (E145):**
+1. Inspecionar healthcheck do container: `docker inspect <container> --format '{{json .State.Health}}'`
+2. Se erro for `Connecting to localhost:80 ([::1]:80) ... Connection refused`, ajustar compose para `http://127.0.0.1:80`
+3. Recriar somente frontend (`docker compose -f <compose> up -d --force-recreate <frontend>`) e revalidar health
 
 ---
 
