@@ -51,11 +51,6 @@ const SECAO_MAP = [
     instrucao: 'Atualizar descrição dos workflows e triggers de deploy.'
   },
   {
-    pattern: /aggregator|parser|candidat|discord_message_parser/i,
-    secao: '§7 AggregatorBot',
-    instrucao: 'Verificar pipeline de ingestão, parser Python e campos extraídos.'
-  },
-  {
     pattern: /requireRole|publisher_role|gm_profile|role.*admin|role.*player/i,
     secao: '§5 Roles e Permissões',
     instrucao: 'Verificar lógica de elevação de role e proteção de rotas.'
@@ -145,7 +140,6 @@ function main() {
     linhasOutput.push(`**O que verificar:** ${instrucao}`);
     linhasOutput.push('');
 
-    // Listar arquivos alterados que dispararam essa seção
     const arquivosRelacionados = arquivosAlterados.filter(f => pattern.test(f));
     if (arquivosRelacionados.length > 0) {
       linhasOutput.push('**Arquivos alterados relacionados:**');
@@ -171,6 +165,7 @@ function main() {
   linhasOutput.push('2. Navegue até cada seção listada acima');
   linhasOutput.push('3. Compare com os arquivos alterados e atualize o que estiver desatualizado');
   linhasOutput.push('4. Feche este PR após aplicar as atualizações necessárias');
+  linhasOutput.push('');
 
   const output = linhasOutput.join('\n');
   fs.writeFileSync(OUTPUT_PATH, output);
