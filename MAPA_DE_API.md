@@ -46,17 +46,22 @@
 | **POST** | `/profile` | ❌ Pendente/Front | - |
 | **PUT** | `/profile` | ❌ Pendente/Front | - |
 | **GET** | `/me` | ✅ Em Uso | PainelMestrePage.tsx |
+| **GET** | `/tables/:id` | ✅ Em Uso | PainelMestrePage.tsx |
 | **POST** | `/tables` | ✅ Em Uso | useCreateTableForm.ts, PainelMestrePage.tsx |
 | **PUT** | `/tables/:id` | ✅ Em Uso | useCreateTableForm.ts, PainelMestrePage.tsx |
 | **GET** | `/tables` | ✅ Em Uso | PainelMestrePage.tsx |
 | **PATCH** | `/tables/:id/status` | ✅ Em Uso | uiHelpers.ts |
 | **DELETE** | `/tables/:id` | ✅ Em Uso | uiHelpers.ts, PainelMestrePage.tsx |
-| **PUT** | `/admin/tables/:id` | ✅ Em Uso | PainelMestrePage.tsx |
-| **DELETE** | `/admin/tables/:id` | ✅ Em Uso | PainelMestrePage.tsx |
 | **POST** | `/tables/:slug/view` | ❌ Pendente/Front | - |
 | **POST** | `/tables/:id/click` | ❌ Pendente/Front | - |
 | **POST** | `/tables/:id/contact` | ❌ Pendente/Front | - |
 | **POST** | `/tables/:id/favorite` | ❌ Pendente/Front | - |
+
+### ADMIN (`routes/adminTables.ts`)
+| Metodo | Endpoint | Status | Chamado por (Frontend) |
+|---|---|---|---|
+| **PUT** | `/admin/tables/:id` | ✅ Em Uso | GestaoPage.tsx, PainelMestrePage.tsx |
+| **DELETE** | `/admin/tables/:id` | ✅ Em Uso | GestaoPage.tsx |
 
 ### LINKS (`routes/links.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |

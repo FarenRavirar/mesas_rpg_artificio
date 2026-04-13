@@ -27,10 +27,10 @@
 ## Última Sessão
 
 **Data:** 13/04/2026  
-**Tipo:** Correção de bug crítico — Loop 404 ao editar mesa  
-**O que foi feito:** Corrigido loop infinito de GET `/api/v1/tables/{UUID}` 404 em `PainelMestrePage.tsx`: (1) rota pública → rota GM (`/api/v1/gm/tables/:tableId`), (2) variável `editId` não definida no escopo → `editingTableId`, (3) dependência de objeto `searchParams` → string `editIdFromUrl`, (4) `useMemo` com setState → `useEffect`, (5) `removeLink` corrigido, (6) imports corrigidos. Build ✓.  
-**Branch:** `feature/fix-loop-404-edit-mesa`  
-**Arquivo:** `sessoes/resumo_13-04_fix-loop-404-edit-mesa.md`
+**Tipo:** Correção de bug crítico — Implementação do endpoint GET para edição de mesas  
+**O que foi feito:** Implementado endpoint `GET /api/v1/gm/tables/:id` que estava faltando no backend para resolver problema 404 ao carregar dados de mesas para edição. Endpoint retorna os dados completos da mesa, contatos e schedules necessários para o formulário de edição no frontend. Corrigidos também: (1) problemas estruturais no SELECT de múltiplas tabelas com Kysely, (2) erros de tipagem com expressões `sql``expressão``.as('alias')`, (3) colchetes extras que geravam falhas de compilação.  
+**Status:** Implementado no `gmPanel.ts`, documentado no `MAPA_DE_API.md`, registrado na `FILA_IMPLEMENTACAO.md` como item 025. 
+**Arquivo:** `sessoes/resumo_13-04_registro_atualizacao_fila.md`
 
 ---
 

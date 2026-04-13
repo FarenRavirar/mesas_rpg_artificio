@@ -71,7 +71,12 @@ Não é necessário em tarefas fora do modo lote.
 
 ## Itens da fila — Lote: painel-mestre (Fase 3)
 
-(Todos os itens deste lote foram concluídos — ver Histórico)
+| ID | Fase | Tipo | Titulo | Descrição objetiva | Arquivos esperados | Status | Observação |
+|---|---|---|---|---|---|---|---|
+| 022 | Fase 3 | backend | Endpoint de listagem de mesas do GM | Criar `GET /api/v1/gm/tables` para listar mesas do usuário autenticado | `backend/src/routes/gmPanel.ts` | concluido | — |
+| 023 | Fase 3 | backend | Endpoint de criação de mesa no painel do GM | Criar `POST /api/v1/gm/tables` para criar mesa no contexto do GM logado | `backend/src/routes/gmPanel.ts` | concluido | — |
+| 024 | Fase 3 | backend | Endpoint de atualização de mesa no painel do GM | Criar `PUT /api/v1/gm/tables/:id` para atualizar mesa específica do GM logado | `backend/src/routes/gmPanel.ts` | concluido | — |
+| 025 | Fase 3 | backend | Endpoint de obtenção de dados da mesa para edição | Criar `GET /api/v1/gm/tables/:id` para obter dados completos da mesa para formulário de edição | `backend/src/routes/gmPanel.ts` | concluido | **NOVO:** Implementado para resolver problema 404 ao carregar dados para edição de mesa existente |
 
 
 ---
