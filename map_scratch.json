@@ -111,16 +111,6 @@
       "controller": "gmPanel"
     },
     {
-      "method": "PUT",
-      "path": "/admin/tables/:id",
-      "controller": "gmPanel"
-    },
-    {
-      "method": "DELETE",
-      "path": "/admin/tables/:id",
-      "controller": "gmPanel"
-    },
-    {
       "method": "POST",
       "path": "/tables/:slug/view",
       "controller": "gmPanel"
@@ -379,6 +369,16 @@
       "method": "POST",
       "path": "/suggest",
       "controller": "vttPlatforms"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/admin/tables/:id",
+      "controller": "adminTables"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/admin/tables/:id",
+      "controller": "adminTables"
     }
   ],
   "frontend": [
