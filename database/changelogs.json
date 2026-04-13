@@ -1,5 +1,13 @@
 [
   {
+    "id": "2026-04-13-painel-mestre-melhorias",
+    "title": "Painel do mestre ficou mais fácil de usar",
+    "body": "Fizemos várias melhorias no painel do mestre para deixar tudo mais prático e organizado:\n\n• **Editar mesa funciona direitinho** - Corrigimos um problema que fazia o formulário de edição abrir vazio. Agora quando você clica em \"Editar\", todos os dados da sua mesa aparecem certinho para você modificar\n• **Ativar e desativar mesas** - O botão de ativar e desativar estava dando erro, mas agora funciona perfeitamente. Você pode pausar e reativar suas mesas sem problemas\n• **Mesas pausadas ficam mais claras** - Agora é muito mais fácil ver quais mesas estão ativas e quais estão pausadas: as mesas desativadas aparecem mais apagadas, com a imagem em preto e branco, e têm uma etiqueta \"⏸️ Desativada\" bem visível\n• **Organização melhor** - Com o visual diferenciado, você consegue gerenciar várias mesas ao mesmo tempo sem se confundir\n\nSeu painel agora está mais confiável e muito mais fácil de usar! 🎲\n\n_Atualização publicada em 13/04/2026 às 18:00_",
+    "type": "app",
+    "published": true,
+    "created_at": "2026-04-13T18:00:00-03:00"
+  },
+  {
     "id": "2026-04-09-perfil-premium",
     "title": "Seu perfil ficou mais bonito e fácil de usar",
     "body": "Demos um upgrade completo na tela de edição do seu perfil para deixar tudo mais profissional e agradável:\n\n• **Foto de perfil repaginada** - Agora a foto fica do lado das opções, ocupando menos espaço e deixando tudo mais organizado. Os botões ficaram menores e mais discretos\n• **Seu cargo aparece** - Se você é mestre ou admin, agora tem uma etiqueta colorida do lado do seu nome mostrando isso\n• **Botão para ver seu perfil público** - Clique em \"Ver perfil público\" para abrir seu perfil em uma nova aba e ver como os outros te veem\n• **Preferências de jogo mais claras** - Os controles de Combate, Roleplay, Exploração e Estratégia agora mostram o número do lado do nome, ficando mais fácil de entender\n• **Tudo mais compacto** - Reduzimos os espaços entre os campos para você ver mais informações de uma vez, sem precisar rolar tanto a página\n• **Abas mais destacadas** - A aba que você está vendo agora fica com um fundo colorido, deixando bem claro onde você está\n\nSeu perfil agora está mais rápido de editar e muito mais bonito de ver! 🎲\n\n_Atualização publicada em 09/04/2026 às 01:37_",
