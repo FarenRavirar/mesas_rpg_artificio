@@ -17,6 +17,11 @@ services:
       - API_UPSTREAM=mesas-beta-api
     depends_on:
       - mesas-beta-api
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:80 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   mesas-beta-api:
     build:
