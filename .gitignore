@@ -35,3 +35,5 @@ logs/
 
 # Configuração local de desenvolvimento
 frontend/vite.config.local.ts
+/.clinerules
+/sessoes
