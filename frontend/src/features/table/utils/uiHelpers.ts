@@ -152,7 +152,8 @@ export async function handleDelete(id: string, title: string): Promise<void> {
 
 /**
  * Handler para editar mesa
+ * Navega para /painel?edit=<id> — rota tratada por PainelMestrePage via searchParams
  */
 export function handleEdit(id: string): void {
-  window.location.href = `/painel/mesas/${id}/editar`;
+  window.location.href = `/painel?edit=${id}`;
 }

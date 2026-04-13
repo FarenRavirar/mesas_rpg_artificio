@@ -1,6 +1,6 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 11/04/2026 12:06 BRT
+**Última atualização:** 12/04/2026 22:49 BRT
 
 ---
 
@@ -14,20 +14,23 @@
 
 ## Próxima Ação
 
-**Item 139 (REQ-28, GUT 100)** — Corrigir descrição incompleta na importação JSON
-- **Problema:** Sistema usa apenas sinopse curta quando deveria montar descrição longa completa
-- **Escopo:** Definir regra editorial de separação (synopsis, description, rules, signupText)
-- **Prioridade:** 2 — Qualidade editorial
-- **Arquivo-alvo:** `frontend/src/utils/candidateToFormData.ts`
+**Item 142 (REQ-30, GUT 125)** — ⚡ PRIORIDADE IMEDIATA — Corrigir: erro "token inválido ou expirado" ao desativar mesa
+- **Problema:** Bug crítico — mestre não consegue gerenciar status da mesa
+- **Escopo:** Investigar header Authorization no toggle-status + middleware auth
+- **Prioridade:** 1 — Bug bloqueador para o mestre
+
+**Lote ativo:** `revisao-onboarding-mesas` — itens 142–149 (141 concluído)  
+**Lote paralelo:** `auditoria-cobertura-apis` — itens 150–151 (auditoria + implementação de APIs órfãs)
 
 ---
 
 ## Última Sessão
 
-**Data:** 11/04/2026  
-**Tipo:** Manutenção de documentação  
-**O que foi feito:** Padronização e correção de bloqueadores na FILA_IMPLEMENTACAO.md  
-**Arquivo:** `sessoes/resumo_11-04_padronizacao-documentacao.md`
+**Data:** 12/04/2026  
+**Tipo:** Correção de bug crítico — Item 141  
+**O que foi feito:** Corrigido bug que abria página vazia ao editar mesa. Criado `mapTableApiToInitialData.ts` (mapper API→form), corrigido `handleEdit` em `uiHelpers.ts`, aplicado em `PainelMestrePage.tsx`. Build ✓.  
+**Branch:** `feature/fix-edit-mesa-vazia`  
+**Arquivo:** `sessoes/resumo_12-04_fix-edit-mesa-vazia.md`
 
 ---
 

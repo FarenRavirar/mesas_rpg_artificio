@@ -296,7 +296,8 @@ export const PainelMestrePage = () => {
 
           if (response.ok) {
             const data = await response.json();
-            setEditingTableData(data.data);
+            const { mapTableApiToInitialData } = await import('../features/create-table/utils/mapTableApiToInitialData');
+            setEditingTableData(mapTableApiToInitialData(data.data));
             setView('create-table');
           } else {
             toast.error('Mesa não encontrada');
