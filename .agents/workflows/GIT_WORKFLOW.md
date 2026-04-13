@@ -45,7 +45,7 @@ Regras operacionais:
 | Beta | `dev` | `deploy-beta.yml` | `/opt/mesas-beta/` | `mesas-beta-app` | Cloudflare Tunnel para `http://mesas-beta-app:80`, sem porta pública no host |
 | Produção | `main` | `deploy-production.yml` | `/opt/mesas/` | `mesas-app` | Cloudflare prevista para `http://mesas-app:80`; runtime ainda não publicado |
 
-O deploy é feito via rsync + SSH pelo GitHub Actions para a VM Oracle, seguido de rebuild Docker no diretório remoto do ambiente.
+O deploy é feito validando as credenciais Git com token no GitHub Actions diretamente para a VM Oracle que clona as branches mais recentes e emite builds forçados sem cache (com tempo de shutdown e aguardo do DB) localmente.
 
 ---
 
@@ -125,33 +125,82 @@ Regra de ouro:
 ### Beta
 
 ```bash
-set -e
+set -euo pipefail
+export GH_TOKEN="${{ secrets.GH_TOKEN }}"
 cd /opt/mesas-beta
-docker compose -f docker-compose.beta.yml up -d --build --remove-orphans
-sleep 10
+git fetch https://$GH_TOKEN@github.com/FarenRavirar/mesas_rpg_artificio.git dev
+git reset --hard FETCH_HEAD
+
+# Remover containers órfãos antigos
+docker ps -a --filter "name=mesas-beta" --format "{{.Names}}" | grep -v -E "(mesas-beta-frontend|mesas-beta-api|mesas-beta-db)$" | xargs -r docker rm -f || true
+
+docker compose -f docker-compose.beta.yml down
+docker compose -f docker-compose.beta.yml build --no-cache
+docker compose -f docker-compose.beta.yml up -d mesas-beta-db
+
+# Aguardar DB ficar pronto
+MAX_RETRIES=30
+RETRIES=0
+until docker compose -f docker-compose.beta.yml exec -T mesas-beta-db pg_isready -U admin -d mesas_rpg; do
+  RETRIES=$((RETRIES+1))
+  if [ $RETRIES -ge $MAX_RETRIES ]; then
+    echo "❌ Banco não ficou pronto"
+    exit 1
+  fi
+  sleep 3
+done
+
+# Subir resto da stack e validar
+docker compose -f docker-compose.beta.yml up -d --force-recreate
+sleep 20
+if ! docker compose -f docker-compose.beta.yml ps | grep "mesas-beta-api" | grep -q "Up"; then
+  exit 1
+fi
 docker compose -f docker-compose.beta.yml ps
-docker compose -f docker-compose.beta.yml logs --tail=30 mesas-beta-app
-docker compose -f docker-compose.beta.yml logs --tail=30 mesas-beta-api
 docker image prune -f
 ```
 
 ### Produção
 
 ```bash
-set -e
+set -euo pipefail
 cd /opt/mesas
-docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
-sleep 10
+git fetch origin main
+git reset --hard origin/main
+
+# Remover containers órfãos antigos
+docker ps -a --filter "name=mesas-" --format "{{.Names}}" | grep -v -E "(mesas-app|mesas-api|mesas-db)$" | xargs -r docker rm -f || true
+
+docker compose -f docker-compose.prod.yml down
+docker compose -f docker-compose.prod.yml build --no-cache
+docker compose -f docker-compose.prod.yml up -d mesas-db
+
+# Aguardar DB ficar pronto
+MAX_RETRIES=30
+RETRIES=0
+until docker compose -f docker-compose.prod.yml exec -T mesas-db pg_isready -U admin -d mesas_rpg; do
+  RETRIES=$((RETRIES+1))
+  if [ $RETRIES -ge $MAX_RETRIES ]; then
+    echo "❌ Banco não ficou pronto"
+    exit 1
+  fi
+  sleep 3
+done
+
+# Subir resto da stack e validar
+docker compose -f docker-compose.prod.yml up -d --force-recreate
+sleep 20
+if ! docker compose -f docker-compose.prod.yml ps | grep "mesas-api" | grep -q "Up"; then
+  exit 1
+fi
 docker compose -f docker-compose.prod.yml ps
-docker compose -f docker-compose.prod.yml logs --tail=30 mesas-app
-docker compose -f docker-compose.prod.yml logs --tail=30 mesas-api
 docker image prune -f
 ```
 
 Observações:
-- O workflow não deve forçar `down` como passo padrão
-- O workflow não deve forçar `--no-cache` como padrão
-- O arquivo `.env` remoto permanece fora do rsync
+- O workflow real no GitHub Actions utiliza rotinas endurecidas (`set -euo pipefail`, `--no-cache`, reinicialização forçada, healthchecks síncronos).
+- A sincronização agora acontece via Git diretamente na máquina alvo no momento do deploy, não por rsync.
+- O arquivo `.env` remoto permanece intocado (não é atualizado via workflow).
 
 ---
 
