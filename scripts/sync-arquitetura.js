@@ -79,7 +79,7 @@ function extrairArquivosAlterados(diff) {
 function extrairTrechoSecao(arquitetura, secaoNum) {
   const regex = new RegExp(`(## ${secaoNum}\\..+?)(?=## \\d+\\.|$)`, 's');
   const match = arquitetura.match(regex);
-  return match ? match[0].slice(0, 500) + (match[0].length > 500 ? '\n[... trecho truncado ...]' : '') : null;
+  return match ? match[0].slice(0, 1000) + (match[0].length > 1000 ? '\n[... trecho truncado ...]' : '') : null;
 }
 
 function main() {
