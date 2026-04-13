@@ -1,6 +1,6 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 12/04/2026 22:49 BRT
+**Última atualização:** 13/04/2026 16:24 BRT
 
 ---
 
@@ -14,23 +14,23 @@
 
 ## Próxima Ação
 
-**Item 142 (REQ-30, GUT 125)** — ⚡ PRIORIDADE IMEDIATA — Corrigir: erro "token inválido ou expirado" ao desativar mesa
-- **Problema:** Bug crítico — mestre não consegue gerenciar status da mesa
-- **Escopo:** Investigar header Authorization no toggle-status + middleware auth
-- **Prioridade:** 1 — Bug bloqueador para o mestre
+**Item 143 (REQ-30, GUT 80)** — Adicionar campo `name_pt` em sistemas e cenários para versão em português
+- **Problema:** BUG 3 — Campo de frequência duplicado na Etapa 3 do onboarding
+- **Escopo:** Investigar steps do formulário multi-etapas e remover duplicata
+- **Prioridade:** 2 — Bug UX que confunde o mestre durante publicação
 
-**Lote ativo:** `revisao-onboarding-mesas` — itens 142–149 (141 concluído)  
+**Lote ativo:** `revisao-onboarding-mesas` — itens 142–149 (141 e 142 concluídos)  
 **Lote paralelo:** `auditoria-cobertura-apis` — itens 150–151 (auditoria + implementação de APIs órfãs)
 
 ---
 
 ## Última Sessão
 
-**Data:** 13/04/2026  
-**Tipo:** Correção de bug crítico — Implementação do endpoint GET para edição de mesas  
-**O que foi feito:** Implementado endpoint `GET /api/v1/gm/tables/:id` que estava faltando no backend para resolver problema 404 ao carregar dados de mesas para edição. Endpoint retorna os dados completos da mesa, contatos e schedules necessários para o formulário de edição no frontend. Corrigidos também: (1) problemas estruturais no SELECT de múltiplas tabelas com Kysely, (2) erros de tipagem com expressões `sql``expressão``.as('alias')`, (3) colchetes extras que geravam falhas de compilação.  
-**Status:** Implementado no `gmPanel.ts`, documentado no `MAPA_DE_API.md`, registrado na `FILA_IMPLEMENTACAO.md` como item 025. 
-**Arquivo:** `sessoes/resumo_13-04_registro_atualizacao_fila.md`
+**Data:** 13/04/2026 16:30 BRT  
+**Tipo:** Correção de bug — Erro "token inválido ou expirado" ao desativar mesa  
+**O que foi feito:** Corrigido bug crítico (REQ-30 BUG 2) onde o frontend usava `PUT /api/v1/gm/tables/:id` para alterar status da mesa, mas esse endpoint exige todos os campos obrigatórios. Solução: alterar para `PATCH /api/v1/gm/tables/:id/status` que aceita apenas o campo `status`. Causa raiz: confusão entre endpoint de atualização completa (PUT) e endpoint de alteração parcial (PATCH).  
+**Status:** Implementado e validado localmente (build ✓). Erro E142 documentado. Pendente deploy em beta para validação E2E.  
+**Arquivo:** `sessoes/resumo_13-04_bug_token_desativar_mesa.md`
 
 ---
 

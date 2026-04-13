@@ -393,13 +393,12 @@ export const PainelMestrePage = () => {
 
     setTogglingTableId(tableId);
     try {
-      // CORREÇÃO: Usar PUT /tables/:id em vez de PATCH /tables/:id/status
-      const endpoint = user?.role === 'admin'
-        ? `${API_BASE}/api/v1/admin/tables/${tableId}`
-        : `${API_BASE}/api/v1/gm/tables/${tableId}`;
+      // CORREÇÃO BUG 2 (REQ-30): Usar PATCH /tables/:id/status em vez de PUT /tables/:id
+      // PUT exige todos os campos obrigatórios, PATCH /status só altera o status
+      const endpoint = `${API_BASE}/api/v1/gm/tables/${tableId}/status`;
 
       const response = await fetch(endpoint, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ status: newStatus }),
