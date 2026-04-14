@@ -5,6 +5,7 @@ import { Dice1, Globe, MapPin } from 'lucide-react';
 import type { TableCard } from '../types/tables';
 import { getSlotsVisualState } from '../utils/slots';
 import { SlotsIndicator } from './SlotsIndicator';
+import bannerPlaceholder from '../assets/banner_placeholder.webp';
 
 const modalityLabels: Record<string, string> = {
   online: 'Online',
@@ -94,17 +95,17 @@ export function TableCardComponent({ table }: { table: TableCard }) {
     >
       {/* BLOCO 1: HEADER (Imagem + Badges críticos) */}
       <div className="h-[168px] relative overflow-hidden">
-        {table.cover_url ? (
-          <img
-            src={table.cover_url}
-            alt={table.title}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-[#2A3F6D] to-[#1B2A4A] flex items-center justify-center">
-            <div className="text-5xl opacity-30">🎲</div>
-          </div>
-        )}
+        <img
+          src={table.cover_url || bannerPlaceholder}
+          alt={table.title}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          onError={(event) => {
+            const img = event.currentTarget;
+            if (img.dataset.fallbackApplied === 'true') return;
+            img.dataset.fallbackApplied = 'true';
+            img.src = bannerPlaceholder;
+          }}
+        />
 
         {/* Badges críticos apenas */}
         <div className="absolute top-3 left-3 flex flex-wrap gap-2">

@@ -35,14 +35,33 @@ for (const envName of requiredEnv) {
   }
 }
 
-const frontendUrl = process.env.FRONTEND_URL as string;
-const frontendOrigin = new URL(frontendUrl).origin;
+const frontendUrls = [
+  process.env.FRONTEND_URL,
+  ...(process.env.FRONTEND_URLS?.split(',') ?? []),
+]
+  .map((url) => url?.trim())
+  .filter((url): url is string => Boolean(url))
+  .map((url) => new URL(url).origin);
+
+const allowedFrontendOrigins = Array.from(new Set(frontendUrls));
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(cors({
-  origin: frontendOrigin,
+  origin: (origin, callback) => {
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+
+    if (allowedFrontendOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`[cors] Origin não permitida: ${origin}`));
+  },
   credentials: true,
 }));
 

@@ -122,17 +122,19 @@ DATABASE_URL=postgresql://admin:MesasRPG%232026%21Xk9vPq@localhost:5432/mesas_rp
 
 # Autenticação JWT
 JWT_SECRET=mesas_rpg_jwt_secret_super_seguro_2026_minimo_32_caracteres_aqui
+JWT_EXPIRES_IN=7d
 
-# Frontend URL (para redirect após OAuth)
-FRONTEND_URL=http://localhost:5173
+# Frontend (origens permitidas para OAuth/CORS)
+FRONTEND_URL=https://mesasbeta.artificiorpg.com
+FRONTEND_URLS=https://mesasbeta.artificiorpg.com,http://localhost:5173
+
+# Cookie de sessão para fluxo cross-origin (localhost -> beta)
+COOKIE_SAME_SITE=none
 
 # Google OAuth (NECESSÁRIO CONFIGURAR para testar login)
 GOOGLE_CLIENT_ID=seu_client_id_aqui.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=seu_client_secret_aqui
-GOOGLE_CALLBACK_URL=http://localhost:3000/api/v1/auth/google/callback
-
-# Imgur API (NECESSÁRIO CONFIGURAR para testar upload de imagens)
-IMGUR_CLIENT_ID=seu_imgur_client_id_aqui
+GOOGLE_CALLBACK_URL=https://mesasbeta.artificiorpg.com/api/v1/auth/google/callback
 
 # Discord OAuth (integração perfil mestre)
 DISCORD_CLIENT_ID=1490592397950976162
@@ -144,7 +146,11 @@ DISCORD_REDIRECT_URI=http://localhost:3000/auth/discord/callback
 **Notas importantes:**
 - A senha do PostgreSQL **deve ser URL-encoded** (`#` → `%23`, `!` → `%21`)
 - Credenciais completas estão em `C:\projetos\Secrets\senha docker producao posgress.txt`
-- Google OAuth e Imgur são **opcionais** para desenvolvimento (funcionalidades relacionadas não funcionarão sem configuração)
+- `FRONTEND_URLS` define allowlist de origens para CORS/OAuth callback (`frontend_redirect`)
+- O login web usa cookie `am_session` (`HttpOnly`) e exige `COOKIE_SAME_SITE=none` no fluxo cross-origin com localhost
+- Google OAuth e Cloudinary são **opcionais** para desenvolvimento (funcionalidades relacionadas não funcionarão sem configuração)
+- Cloudinary no frontend exige `VITE_CLOUDINARY_CLOUD_NAME` e `VITE_CLOUDINARY_UPLOAD_PRESET`
+
 
 #### 3.2.4 Configuração do Frontend Local
 
@@ -241,7 +247,7 @@ npm run dev -- --config vite.config.local.ts
 **Imagens não carregam (404)**
 - URLs do Discord **expiram** (contêm tokens temporários `ex=`, `is=`, `hm=`)
 - Fallback (dado 🎲) deve aparecer automaticamente
-- Solução permanente: re-upload para Imgur (conforme arquitetura §16)
+- Solução permanente: usar URL estável (Cloudinary ou outra URL pública persistente) no `banner_url`
 
 **Frontend não conecta ao backend**
 - Verificar se proxy está configurado no `vite.config.ts`
@@ -257,7 +263,7 @@ npm run dev -- --config vite.config.local.ts
 
 **Funcionalidades que NÃO funcionam sem configuração adicional:**
 - ❌ Login com Google OAuth (requer `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET`)
-- ❌ Upload de imagens (requer `IMGUR_CLIENT_ID`)
+- ❌ Upload direto para Cloudinary sem configurar `VITE_CLOUDINARY_CLOUD_NAME` e `VITE_CLOUDINARY_UPLOAD_PRESET`
 - ❌ Integração Discord (opcional, não essencial para desenvolvimento)
 
 **Funcionalidades que funcionam normalmente:**
@@ -279,7 +285,7 @@ npm run dev -- --config vite.config.local.ts
 **Nota sobre imagens:**
 - Mesas de teste têm URLs do Discord que **expiraram**
 - Fallback (dado 🎲) funciona corretamente
-- Para testar upload de imagens, configurar `IMGUR_CLIENT_ID`
+- Para testar upload direto, configurar `VITE_CLOUDINARY_CLOUD_NAME` e `VITE_CLOUDINARY_UPLOAD_PRESET`
 
 #### 3.2.10 Alternativa: Testar Direto no Beta
 
@@ -336,7 +342,7 @@ Se configurar ambiente local for complexo, testar diretamente em:
 | `gm_id` | FK para `gm_profiles` (null se importado sem vínculo) |
 | `system_id` | FK para `systems` |
 | `title`, `description`, `cover_url`, `cover_source_type`, `cover_origin_url`, `cover_deletehash`, `cover_imgur_id` | Conteúdo editorial da mesa e metadados de imagem hospedada ou reaproveitada externamente |
-| `banner_url` | URL externa de banner/capa (migration_09) — aceita URLs diretas do Discord sem reupload para Imgur |
+| `banner_url` | URL canônica de banner/capa da mesa (aceita URL pública externa, incluindo `secure_url` do Cloudinary) |
 | `frequency` | Frequência das sessões: `semanal`, `quinzenal`, `mensal`, `avulsa` (migration_09) |
 | `frequency_custom` | Descrição livre de frequência quando `frequency = 'avulsa'` (migration_09) |
 | `rules_notes` | Regras, avisos ou notas especiais da mesa (migration_09) |
@@ -936,103 +942,80 @@ Ver `CatalogoPage.tsx` (refatorado em Abril/2026) como referência de uso corret
 | **Selo público** | Marcador visual exibido no perfil do mestre quando houver vínculo validado com comunidade parceira ou critério editorial definido pela plataforma. |
 | **Cargo público do Discord** | Informação pública de cargo obtida futuramente por integração autorizada com servidores Discord elegíveis, usada apenas para fins de contexto comunitário e selos. |
 
-## 16. Gestão de Imagens e Integração Imgur
+## 16. Gestão de Imagens (Cloudinary + legado)
 
 ### 16.1 Princípio Geral
 
-Imagens do ecossistema do projeto são divididas em três categorias com tratamentos distintos:
+O runtime atual separa imagem em três grupos:
 
-**Imagens estáticas do site** (logos, ícones, ilustrações de UI) — servidas diretamente pelo Nginx a partir do build do Vite. Nunca vão para o Imgur.
+**Imagens estáticas da interface** — empacotadas no build do frontend e servidas por Nginx.
 
-**Imagens enviadas por usuários** — processadas na Oracle, convertidas para WebP e hospedadas no Imgur via API. São elas:
-- Banners de mesas criadas localmente (`tables.cover_url` quando `cover_source_type=imgur_upload`)
-- Avatar e banner do perfil do mestre (`gm_profiles.avatar_url`, `gm_profiles.banner_url`)
+**Imagem de mesa** — persistida no campo canônico `tables.banner_url`.
+- Entrada de criação/edição: `banner_url` (payload de `POST/PUT /api/v1/gm/tables`)
+- Leitura por endpoint:
+  - `GET /api/v1/gm/tables` retorna `image_url` (alias de `banner_url`) para cards do painel
+  - `GET /api/v1/gm/tables/:id` retorna campos canônicos de `tables` (incluindo `banner_url`) e legado (`cover_url`)
+  - `GET /api/v1/tables` e `GET /api/v1/tables/:slug` projetam `cover_url` como alias de `banner_url`
 
-**Imagens reaproveitadas de fontes externas monitoradas pelo bot** — especialmente campanhas importadas dos canais do Covil do Lich no Discord. Quando a postagem já trouxer uma imagem de campanha com URL pública reutilizável, essa imagem poderá ser usada diretamente como `cover_url` da mesa importada, sem reupload obrigatório para Imgur.
+**Imagem de perfil de mestre** — armazenada em `gm_profiles.avatar_url` e `gm_profiles.banner_url`.
 
-### 16.2 Fluxos de imagem (Upload e Reaproveitamento Externo)
+### 16.2 Fluxos reais de banner no formulário
 
-**Fluxo A — Upload local para Imgur**
-
-```
-[Cliente envia imagem]
-    → API Node.js recebe o arquivo via multipart/form-data
-    → Sharp converte para WebP (qualidade 85, resize proporcional com limite de 1280px de largura)
-    → Buffer WebP é enviado para a API do Imgur via POST /image (base64)
-    → Imgur retorna { link, deletehash, id }
-    → Backend salva no banco: link (URL pública), deletehash (para exclusão futura), imgur_id
-    → cover_source_type = imgur_upload
-    → URL pública do Imgur é retornada ao Frontend e gravada no campo correspondente
-```
-
-**Fluxo B — Reaproveitamento de imagem externa vinda do Discord**
+**Fluxo A — Upload direto no frontend para Cloudinary**
 
 ```
-[Sistema encontra anúncio no Discord]
-    → Extrai a imagem de campanha já publicada na postagem
-    → Valida se a URL é pública e reutilizável externamente
-    → Grava a URL em cover_url
-    → Grava a mesma origem em cover_origin_url
-    → cover_source_type = discord_reused
-    → Não cria deletehash nem imgur_id
+[Usuário seleciona arquivo no ImageUploader]
+    → Frontend valida formato/tamanho
+    → Frontend envia para https://api.cloudinary.com/v1_1/<cloud>/image/upload
+    → Cloudinary responde secure_url
+    → Frontend grava secure_url em bannerUrl
+    → Mapper envia banner_url no POST/PUT /api/v1/gm/tables
+    → Backend valida URL (schema) e persiste em tables.banner_url
 ```
 
-**Regra arquitetural:** para anúncios importados dos canais monitorados do Covil do Lich, a imagem da campanha deve ser reaproveitada sempre que a postagem já fornecer uma URL pública utilizável.
+**Fluxo B — URL manual (fallback)**
 
-**Dependências no Backend:**
-- `sharp` — conversão e resize para WebP
-- `axios` ou `node-fetch` — chamadas à API do Imgur e consumo de origens externas quando necessário
-- Variável de ambiente `IMGUR_CLIENT_ID` — obrigatória para uploads próprios, nunca exposta ao Frontend
+```
+[Usuário cola URL manual]
+    → Frontend grava valor no bannerUrl
+    → Mapper envia banner_url
+    → Backend persiste banner_url
+```
 
-### 16.3 Campos de Banco Adicionais
+No runtime atual não existe endpoint backend de upload de arquivo de banner de mesa.
 
-Para suportar o ciclo de vida das imagens, os seguintes campos devem estar presentes:
+### 16.3 Campos de banco e legado
 
 **Em `tables`:**
-| Campo | Tipo | Descrição |
-|---|---|---|
-| `cover_url` | `TEXT` | URL pública da imagem exibida na mesa |
-| `cover_source_type` | `TEXT` | Origem da imagem, como `imgur_upload` ou `discord_reused` |
-| `cover_origin_url` | `TEXT` | URL original da imagem quando vier de fonte externa reaproveitada |
-| `cover_deletehash` | `TEXT` | Hash de exclusão no Imgur, quando aplicável |
-| `cover_imgur_id` | `TEXT` | ID da imagem no Imgur, quando aplicável |
+- Campo canônico atual: `banner_url`
+- Campos legados ainda presentes: `cover_url`, `cover_source_type`, `cover_origin_url`, `cover_deletehash`, `cover_imgur_id`
 
 **Em `gm_profiles`:**
-| Campo | Tipo | Descrição |
-|---|---|---|
-| `avatar_url` | `TEXT` | URL pública do Imgur |
-| `avatar_deletehash` | `TEXT` | Hash de exclusão |
-| `avatar_imgur_id` | `TEXT` | ID da imagem |
-| `banner_url` | `TEXT` | URL pública do Imgur |
-| `banner_deletehash` | `TEXT` | Hash de exclusão |
-| `banner_imgur_id` | `TEXT` | ID da imagem |
+- Campos usados no perfil: `avatar_url`, `banner_url`
+- Metadados legados ainda presentes: `avatar_deletehash`, `avatar_imgur_id`, `banner_deletehash`, `banner_imgur_id`
 
-### 16.4 Política de Expiração e Exclusão
+A tabela `imgur_cleanup_log` permanece como legado/histórico e não representa o fluxo principal de upload de mesas no estado atual.
 
-**Banners enviados localmente e hospedados no Imgur** possuem ciclo de vida vinculado ao status da mesa:
+### 16.4 Variáveis de ambiente relacionadas
 
-Quando o status de uma mesa transitar para `ended` ou `cancelled`, um job de limpeza executa automaticamente a exclusão da imagem no Imgur via `DELETE /image/{deletehash}`. Após confirmação de exclusão bem-sucedida, os campos `cover_url`, `cover_source_type`, `cover_origin_url`, `cover_deletehash` e `cover_imgur_id` são zerados no banco.
+**Frontend (upload direto):**
+- `VITE_CLOUDINARY_CLOUD_NAME`
+- `VITE_CLOUDINARY_UPLOAD_PRESET`
 
-**Banners reaproveitados de importação do Discord** não devem gerar tentativa de exclusão na origem externa. Quando a mesa importada for encerrada, cancelada ou removida, o sistema apenas poderá limpar a referência local conforme a política de retenção do anúncio, sem enviar `DELETE` ao provedor externo.
+**Backend (OAuth/CORS para fluxo local e callback):**
+- `FRONTEND_URL`
+- `FRONTEND_URLS` (allowlist de origens)
+- `COOKIE_SAME_SITE` (usar `none` para fluxo cross-origin com localhost)
 
-**Imagens de mestres** (avatar e banner do `gm_profile`) **não possuem expiração automática**. Só são excluídas do Imgur quando o mestre faz upload de uma nova imagem (substituição) — neste caso, a imagem anterior é deletada do Imgur antes de persistir a nova — ou quando a conta do mestre é encerrada por um administrador.
+### 16.5 Segurança e exposição de dados
 
-### 16.6 Limites e Regras de Upload
+- Campos `cover_deletehash`, `avatar_deletehash` e `banner_deletehash` não devem ser expostos em rotas públicas.
+- `routes/gm.ts` já documenta e aplica essa restrição.
+- `routes/gmPanel.ts` remove `avatar_deletehash` e `banner_deletehash` da resposta de perfil.
 
-- **Tamanho máximo aceito pelo Backend:** 10MB por arquivo (antes da conversão WebP)
-- **Formatos aceitos na entrada:** JPEG, PNG, WebP, AVIF, GIF (estático — GIF animado é rejeitado)
-- **Saída sempre em WebP**, qualidade 85, largura máxima 1280px, altura proporcional
-- **Uma imagem por campo por vez:** ao substituir, a anterior é deletada do Imgur antes do novo upload
-- **Imgur Client ID** deve ser de aplicação registrada como anônima (anonymous upload) para não exigir OAuth do usuário final
-- **Rate limit do Imgur:** respeitar o limite de 1250 uploads por dia por Client ID. Em caso de `429`, o Backend deve retornar erro claro ao usuário e não tentar novamente na mesma requisição
+### 16.6 Observação operacional importante
 
-### 16.7 Segurança
-
-- `cover_deletehash`, `avatar_deletehash` e `banner_deletehash` são campos **nunca retornados por nenhuma rota pública da API**. Ficam restritos ao Backend e ao painel admin.
-- O `IMGUR_CLIENT_ID` é variável de ambiente obrigatória, listada no `.env.example` sem valor real.
-- URLs externas reaproveitadas do Discord só podem ser usadas quando já forem públicas e reutilizáveis na própria postagem importada. O sistema não tenta apagar nem modificar o arquivo na origem externa.
-- Uploads são processados apenas por usuários autenticados com role `gm` (para imagens de mesa e perfil de mestre) ou `admin`.
-
+O upload direto para Cloudinary depende de variáveis `VITE_*` em tempo de build do frontend. Se elas não estiverem configuradas, o `ImageUploader` mantém apenas o fallback por URL manual.
 
 ## 18. Referências e Documentos Relacionados
 

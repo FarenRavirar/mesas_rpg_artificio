@@ -1,6 +1,10 @@
 import { Sparkles, Crown } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import type { TableDetail } from '../types/tables';
+
+interface TableBadgeSource {
+  is_covil?: boolean;
+  is_ddal?: boolean;
+}
 
 export interface TableBadge {
   id: string;
@@ -14,7 +18,7 @@ export interface TableBadge {
  * Sistema extensível de badges/certificações para mesas
  * Prioridade: maior = mais importante (aparece primeiro)
  */
-export function getTableBadges(table: TableDetail): TableBadge[] {
+export function getTableBadges(table: TableBadgeSource): TableBadge[] {
   const badges: TableBadge[] = [];
 
   // Covil do Lich (prioridade máxima - curadoria premium)

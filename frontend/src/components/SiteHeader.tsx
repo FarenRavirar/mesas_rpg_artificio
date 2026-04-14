@@ -4,8 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { NotificationBell } from './NotificationBell';
 import { ChangelogModal } from './ChangelogModal';
 import { useState, useEffect } from 'react';
-
-const API_BASE = import.meta.env.VITE_API_URL || '';
+import { getGoogleLoginUrl } from '../utils/auth';
 
 export const SiteHeader = () => {
   const { user, logout } = useAuth();
@@ -28,7 +27,7 @@ export const SiteHeader = () => {
   };
 
   const handleLoginClick = () => {
-    window.location.assign(`${API_BASE}/api/v1/auth/google`);
+    window.location.assign(getGoogleLoginUrl());
   };
 
   return (

@@ -1,4 +1,5 @@
 import { getSlotsVisualState } from '../utils/slots';
+import bannerPlaceholder from '../assets/banner_placeholder.webp';
 
 interface TableMetrics {
   views: number;
@@ -67,13 +68,17 @@ export function TableCardDashboard({
           isInactive ? 'grayscale' : '' // Desativada: imagem em escala de cinza
         }`}
       >
-        {table.image_url ? (
-          <img src={table.image_url} alt={table.title} className="w-full h-full object-cover" />
-        ) : (
-          <div className="flex items-center justify-center h-full text-white/30 text-sm">
-            ⚠️ Sem imagem
-          </div>
-        )}
+        <img
+          src={table.image_url || bannerPlaceholder}
+          alt={table.title}
+          className="w-full h-full object-cover"
+          onError={(event) => {
+            const img = event.currentTarget;
+            if (img.dataset.fallbackApplied === 'true') return;
+            img.dataset.fallbackApplied = 'true';
+            img.src = bannerPlaceholder;
+          }}
+        />
       </a>
 
       {/* TITLE */}

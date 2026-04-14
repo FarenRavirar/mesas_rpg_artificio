@@ -338,10 +338,17 @@ GOOGLE_CALLBACK_URL=https://mesasbeta.artificiorpg.com/api/v1/auth/google/callba
 JWT_SECRET=...
 JWT_EXPIRES_IN=7d  # Atualizado em 04/04/2026 (era 15m)
 
-# Frontend
+# Frontend (origem principal + allowlist para CORS/OAuth)
 FRONTEND_URL=https://mesasbeta.artificiorpg.com
+FRONTEND_URLS=https://mesasbeta.artificiorpg.com,http://localhost:5173
+COOKIE_SAME_SITE=none
 
-# Imgur
+# Frontend build-time (upload direto Cloudinary)
+VITE_API_URL=https://mesasbeta.artificiorpg.com
+VITE_CLOUDINARY_CLOUD_NAME=...
+VITE_CLOUDINARY_UPLOAD_PRESET=...
+
+# Legado (não é o fluxo principal de upload de banner de mesa)
 IMGUR_CLIENT_ID=...
 ```
 

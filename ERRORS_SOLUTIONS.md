@@ -49,10 +49,10 @@ Use para localizar o erro sem varrer a tabela inteira:
 | Ferramentas automatizadas / Agentes | E045, E050, E051, E052, E053, E058, E060, E061, E062, E063, E066, E070, E073, E076, E085, E091, E094, E095, E096, E097, E099, E100 |
 | PowerShell — comandos Unix inexistentes / software externo | E085, E094 |
 | Backend / API / Rotas | E118 |
-| Autenticação / Sessão | E103, E105, E116 |
+| Autenticação / Sessão | E103, E105, E116, E147 |
 | Backend / API Node.js | E078, E087, E089, E098 |
 | Imgur / Upload de Imagens | E079, E080, E081 |
-| Autenticação / Sessão | E103, E105 |
+| Autenticação / Sessão | E103, E105, E116, E147 |
 | SSH / Conexão Remota | E102 |
 
 ---
@@ -198,7 +198,7 @@ Use para localizar o erro sem varrer a tabela inteira:
 | ID | Sintoma | Causa provável | Diagnóstico rápido | Solução validada | Prevenção |
 |---|---|---|---|---|---|
 | E103 | Usuários sendo deslogados inesperadamente durante o uso da aplicação | **Causa raiz final (05/04/2026 - 3 tentativas):** JWT_EXPIRES_IN=15m estava hardcoded no docker-compose.beta.yml, sobrescrevendo o .env. Docker Compose prioriza variáveis no YAML sobre .env. **Por que demorou:** (1ª) Corrigiu código local - não resolveu; (2ª) Corrigiu .env + restart - compose ignorou; (3ª) Identificou hardcode no YAML + down/up - resolveu | Usuário relata logout após ~15 minutos de uso; logs do frontend mostram chamadas frequentes para `/api/v1/me`; `window.location.reload()` sendo chamado no storage listener. **Diagnóstico remoto:** `docker exec mesas-beta-api env \| grep JWT_EXPIRES_IN` retorna `JWT_EXPIRES_IN=15m` | **Solução validada (05/04/2026):** (1) Atualizar `.env` no servidor: `ssh faren "sed -i 's/JWT_EXPIRES_IN=15m/JWT_EXPIRES_IN=7d/' /opt/mesas-beta/.env"`; (2) Reiniciar container: `ssh faren "docker restart mesas-beta-api"`; (3) Validar: `docker exec mesas-beta-api env \| grep JWT_EXPIRES_IN` deve retornar `7d`. Modificações no código (`AuthContext.tsx` com validação inteligente) já estavam aplicadas desde 04/04/2026 | NUNCA hardcodar env vars no docker-compose.yml - sempre usar ${VARIAVEL}; Validar 3 locais: .env local, .env remoto, docker-compose.yml; Sempre usar down/up após mudanças no compose (restart não aplica mudanças do YAML) |
-
+| E147 | Login OAuth iniciado em `localhost` retorna para domínio incorreto ou sessão não persiste no frontend local | Backend beta não estava aceitando origem local em CORS e cookie estava com `SameSite` incompatível para fluxo cross-origin (`localhost` ↔ `mesasbeta`). Em paralelo, o redirect pós-login precisava respeitar `frontend_redirect` validado por allowlist | (1) Validar se `FRONTEND_URLS` inclui `http://localhost:5173` e `http://127.0.0.1:5173`; (2) validar `COOKIE_SAME_SITE=none` no ambiente beta; (3) confirmar em `backend/src/server.ts` uso de lista dinâmica de origens; (4) confirmar em `backend/src/routes/auth.ts` leitura de `frontend_redirect` com allowlist; (5) confirmar em `frontend/src/utils/auth.ts` envio de `frontend_redirect=window.location.origin` | **Solução validada (14/04/2026):** (1) Atualizar `/opt/mesas-beta/.env` com `FRONTEND_URLS` (localhost e 127.0.0.1) + `COOKIE_SAME_SITE=none`; (2) injetar variáveis no `docker-compose.beta.yml`; (3) recriar stack beta para aplicar envs; (4) manter CORS dinâmico por `FRONTEND_URLS` em `server.ts`; (5) manter callback OAuth retornando para origem permitida via `state` + `frontend_redirect` em `auth.ts` | Antes de validar OAuth local, sempre conferir allowlist (`FRONTEND_URLS`), política de cookie (`SameSite=None; Secure`) e parâmetro `frontend_redirect`. Sempre testar `/api/v1/me` com `credentials: 'include'` após callback para confirmar sessão ativa no frontend local |
 
 ---
 

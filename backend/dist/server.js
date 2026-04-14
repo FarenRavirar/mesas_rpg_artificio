@@ -36,12 +36,28 @@ for (const envName of requiredEnv) {
         throw new Error(`[startup] Variável obrigatória ausente: ${envName}`);
     }
 }
-const frontendUrl = process.env.FRONTEND_URL;
-const frontendOrigin = new URL(frontendUrl).origin;
+const frontendUrls = [
+    process.env.FRONTEND_URL,
+    ...(process.env.FRONTEND_URLS?.split(',') ?? []),
+]
+    .map((url) => url?.trim())
+    .filter((url) => Boolean(url))
+    .map((url) => new URL(url).origin);
+const allowedFrontendOrigins = Array.from(new Set(frontendUrls));
 const app = (0, express_1.default)();
 const port = process.env.PORT || 3000;
 app.use((0, cors_1.default)({
-    origin: frontendOrigin,
+    origin: (origin, callback) => {
+        if (!origin) {
+            callback(null, true);
+            return;
+        }
+        if (allowedFrontendOrigins.includes(origin)) {
+            callback(null, true);
+            return;
+        }
+        callback(new Error(`[cors] Origin não permitida: ${origin}`));
+    },
     credentials: true,
 }));
 app.use((0, cookie_parser_1.default)());

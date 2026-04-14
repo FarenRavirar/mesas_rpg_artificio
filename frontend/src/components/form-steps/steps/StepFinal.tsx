@@ -4,7 +4,14 @@ import { Crown, ShieldCheck } from 'lucide-react';
 import { SettingStylesField } from '../../SettingStylesField';
 import { ContactsFormBlock, type ContactFormEntry } from '../../ContactsFormBlock';
 import { RichTextArea } from '../../RichTextArea';
-import type { ChangeEvent, InputHTMLAttributes } from 'react';
+import { ImageUploader } from '../../ImageUploader';
+import type {
+  ChangeEvent,
+  InputHTMLAttributes,
+  ReactNode,
+  SelectHTMLAttributes,
+} from 'react';
+
 
 interface DdalFormState {
   is_ddal: boolean;
@@ -87,7 +94,12 @@ function InputField({ label, id, ...props }: InputHTMLAttributes<HTMLInputElemen
   );
 }
 
-function SelectField({ label, id, children, ...props }: any) {
+function SelectField({
+  label,
+  id,
+  children,
+  ...props
+}: SelectHTMLAttributes<HTMLSelectElement> & { label: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
       <label htmlFor={id} className="text-sm font-medium text-white/70">{label}</label>
@@ -129,29 +141,18 @@ export function StepFinal(props: StepFinalProps) {
       />
 
       {/* Banner */}
-      <InputField
-        label="URL do Banner da Mesa (opcional)"
-        id="banner_url"
-        name="banner_url"
+      <ImageUploader
+        idPrefix="stepfinal-banner"
+        manualInputId="banner_url"
+        label="Banner da Mesa (opcional)"
         value={props.bannerUrl}
-        onChange={(e) => {
-          props.setBannerUrl(e.target.value);
+        onChange={(url) => {
+          props.setBannerUrl(url);
           props.setBannerError(false);
         }}
-        placeholder="https://exemplo.com/banner.jpg"
+        onError={props.setBannerError}
+        hasError={props.bannerError}
       />
-
-      {/* Preview do banner */}
-      {props.bannerUrl && !props.bannerError ? (
-        <div className="overflow-hidden rounded-xl border border-white/10">
-          <img
-            src={props.bannerUrl}
-            alt="Preview do banner"
-            onError={() => props.setBannerError(true)}
-            className="w-full max-h-48 object-cover"
-          />
-        </div>
-      ) : null}
 
       {/* REMOVIDO: Avatar do mestre (modo review desacoplado) */}
 

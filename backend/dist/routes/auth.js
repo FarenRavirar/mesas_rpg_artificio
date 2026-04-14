@@ -28,9 +28,40 @@ const FRONTEND_URL = process.env.FRONTEND_URL;
 const JWT_SECRET = process.env.JWT_SECRET;
 const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+const COOKIE_SAME_SITE = (process.env.COOKIE_SAME_SITE || 'lax').toLowerCase();
+const resolveCookieSameSite = () => {
+    if (COOKIE_SAME_SITE === 'none')
+        return 'none';
+    if (COOKIE_SAME_SITE === 'strict')
+        return 'strict';
+    return 'lax';
+};
+const ALLOWED_FRONTEND_ORIGINS = Array.from(new Set([FRONTEND_URL, ...(process.env.FRONTEND_URLS?.split(',') ?? [])]
+    .map((url) => url.trim())
+    .filter((url) => url.length > 0)
+    .map((url) => new URL(url).origin)));
+const DEFAULT_FRONTEND_ORIGIN = new URL(FRONTEND_URL).origin;
+const getAllowedFrontendOrigin = (candidate) => {
+    if (!candidate)
+        return null;
+    try {
+        const origin = new URL(candidate).origin;
+        return ALLOWED_FRONTEND_ORIGINS.includes(origin) ? origin : null;
+    }
+    catch {
+        return null;
+    }
+};
 const oauth2Client = new google_auth_library_1.OAuth2Client(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_CALLBACK_URL);
 router.get('/google', (req, res) => {
-    const state = jsonwebtoken_1.default.sign({ nonce: crypto.randomUUID(), timestamp: Date.now() }, JWT_SECRET, { expiresIn: '10m' });
+    const requestedFrontendOrigin = typeof req.query.frontend_redirect === 'string'
+        ? getAllowedFrontendOrigin(req.query.frontend_redirect)
+        : null;
+    const state = jsonwebtoken_1.default.sign({
+        nonce: crypto.randomUUID(),
+        timestamp: Date.now(),
+        frontendRedirectOrigin: requestedFrontendOrigin,
+    }, JWT_SECRET, { expiresIn: '10m' });
     const authorizeUrl = oauth2Client.generateAuthUrl({
         access_type: 'offline',
         scope: [
@@ -50,8 +81,10 @@ router.get('/google/callback', async (req, res) => {
     if (!state || typeof state !== 'string') {
         return res.status(400).json({ error: 'State inválido.' });
     }
+    let frontendRedirectOrigin = null;
     try {
-        jsonwebtoken_1.default.verify(state, JWT_SECRET);
+        const decodedState = jsonwebtoken_1.default.verify(state, JWT_SECRET);
+        frontendRedirectOrigin = getAllowedFrontendOrigin(decodedState.frontendRedirectOrigin ?? undefined);
     }
     catch (error) {
         console.error('[OAuth] State inválido ou expirado:', error);
@@ -138,10 +171,11 @@ router.get('/google/callback', async (req, res) => {
             user.role === 'gm' || user.role === 'admin' ? '/painel' :
                 '/';
         const isProd = process.env.NODE_ENV === 'production';
+        const sameSite = resolveCookieSameSite();
         const cookieOptions = {
             httpOnly: true,
-            secure: isProd,
-            sameSite: 'lax',
+            secure: sameSite === 'none' ? true : isProd,
+            sameSite,
             path: '/',
             maxAge: 7 * 24 * 60 * 60 * 1000,
             ...(COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {}),
@@ -154,7 +188,8 @@ router.get('/google/callback', async (req, res) => {
             isNewUser,
             timestamp: new Date().toISOString(),
         });
-        const redirectUrl = `${FRONTEND_URL.replace(/\/$/, '')}${redirectPath}`;
+        const redirectOrigin = frontendRedirectOrigin || DEFAULT_FRONTEND_ORIGIN;
+        const redirectUrl = `${redirectOrigin.replace(/\/$/, '')}${redirectPath}`;
         new URL(redirectUrl);
         return res.redirect(redirectUrl);
     }
@@ -165,6 +200,7 @@ router.get('/google/callback', async (req, res) => {
 });
 router.post('/logout', auth_1.authMiddleware, async (req, res) => {
     const isProd = process.env.NODE_ENV === 'production';
+    const sameSite = resolveCookieSameSite();
     try {
         await db_1.db
             .updateTable('users')
@@ -181,8 +217,8 @@ router.post('/logout', auth_1.authMiddleware, async (req, res) => {
     }
     res.clearCookie('am_session', {
         httpOnly: true,
-        secure: isProd,
-        sameSite: 'lax',
+        secure: sameSite === 'none' ? true : isProd,
+        sameSite,
         path: '/',
         ...(COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {}),
     });
