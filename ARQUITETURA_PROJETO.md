@@ -961,13 +961,16 @@ O runtime atual separa imagem em três grupos:
 
 ### 16.2 Fluxos reais de banner no formulário
 
-**Fluxo A — Upload direto no frontend para Cloudinary**
+**Fluxo A — Upload via backend com Cloudinary signed (Abril/2026)**
 
 ```
 [Usuário seleciona arquivo no ImageUploader]
-    → Frontend valida formato/tamanho
-    → Frontend envia para https://api.cloudinary.com/v1_1/<cloud>/image/upload
-    → Cloudinary responde secure_url
+    → Frontend abre editor de imagem (crop/zoom)
+    → Usuário ajusta área de corte (proporção 1200x650)
+    → Frontend envia arquivo para POST /api/v1/upload (multipart)
+    → Backend recebe arquivo, aplica crop se necessário
+    → Backend faz upload signed para Cloudinary
+    → Cloudinary retorna secure_url
     → Frontend grava secure_url em bannerUrl
     → Mapper envia banner_url no POST/PUT /api/v1/gm/tables
     → Backend valida URL (schema) e persiste em tables.banner_url
@@ -982,7 +985,9 @@ O runtime atual separa imagem em três grupos:
     → Backend persiste banner_url
 ```
 
-No runtime atual não existe endpoint backend de upload de arquivo de banner de mesa.
+**Rota de upload:** `POST /api/v1/upload` (backend) - recebe arquivo via multipart, retorna `secure_url`
+
+**Componente de edição:** `ImageEditor.tsx` - permite crop manual, zoom e ajuste de posição antes do upload. Proporção fixa de 1200x650 (padrão WordPress).
 
 ### 16.3 Campos de banco e legado
 
@@ -998,11 +1003,17 @@ A tabela `imgur_cleanup_log` permanece como legado/histórico e não representa 
 
 ### 16.4 Variáveis de ambiente relacionadas
 
-**Frontend (upload direto):**
-- `VITE_CLOUDINARY_CLOUD_NAME`
-- `VITE_CLOUDINARY_UPLOAD_PRESET`
+**Frontend (via build args):**
+- `VITE_API_URL` — URL base da API (ex: `https://mesasbeta.artificiorpg.com/api/v1`)
+- `VITE_CLOUDINARY_CLOUD_NAME` — Cloud name para componente de upload visual
+- `VITE_CLOUDINARY_UPLOAD_PRESET` — (deprecated, upload agora é via backend)
 
-**Backend (OAuth/CORS para fluxo local e callback):**
+**Backend (runtime):**
+- `CLOUDINARY_CLOUD_NAME` — Cloud name para upload signed
+- `CLOUDINARY_API_KEY` — API Key para autenticação signed
+- `CLOUDINARY_API_SECRET` — API Secret para autenticação signed
+
+**Frontend (OAuth/CORS para fluxo local e callback):**
 - `FRONTEND_URL`
 - `FRONTEND_URLS` (allowlist de origens)
 - `COOKIE_SAME_SITE` (usar `none` para fluxo cross-origin com localhost)
