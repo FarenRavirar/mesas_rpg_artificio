@@ -80,6 +80,9 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
   // Finalização
   const [rulesNotes, setRulesNotes] = useState(initialData?.rulesNotes || '');
   const [bannerUrl, setBannerUrl] = useState(initialData?.bannerUrl || '');
+  const [bannerCropData, setBannerCropData] = useState<{ x: number; y: number; width: number; height: number } | null>(
+    initialData?.bannerCropData || null
+  );
   const [isCovilMesa, setIsCovilMesa] = useState(initialData?.isCovilMesa || false);
   const [bannerError, setBannerError] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
@@ -162,6 +165,7 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
     contacts,
     rulesNotes,
     bannerUrl,
+    bannerCropData,
     isCovilMesa,
     ddal,
     masterDisplayName,
@@ -359,6 +363,8 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
     setRulesNotes,
     bannerUrl,
     setBannerUrl,
+    bannerCropData,
+    setBannerCropData,
     bannerError,
     setBannerError,
     avatarError,

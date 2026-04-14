@@ -12,36 +12,12 @@ console.log('[cloudinary] Config loaded:', {
   api_secret: process.env.CLOUDINARY_API_SECRET ? 'set' : 'MISSING',
 });
 
-interface CropData {
-  crop_x: number;
-  crop_y: number;
-  crop_width: number;
-  crop_height: number;
-  original_width: number;
-  original_height: number;
-}
-
-export async function uploadImageToCloudinary(imageUrl: string, cropData?: CropData) {
+export async function uploadImageToCloudinary(imageUrl: string) {
   try {
-    const transformations = [];
-
-    if (cropData) {
-      const scaleX = 1200 / cropData.original_width;
-      const scaleY = 650 / cropData.original_height;
-      
-      transformations.push({
-        crop: 'crop',
-        gravity: 'face',
-        width: Math.round(cropData.crop_width * scaleX),
-        height: Math.round(cropData.crop_height * scaleY),
-        x: Math.round(cropData.crop_x * scaleX),
-        y: Math.round(cropData.crop_y * scaleY),
-      });
-    } else {
-      transformations.push({ width: 1200, height: 650, crop: 'fill' });
-    }
-
-    transformations.push({ quality: 'auto', fetch_format: 'auto' });
+    const transformations = [
+      { width: 1200, height: 650, crop: 'fill' },
+      { quality: 'auto', fetch_format: 'auto' }
+    ];
 
     const result = await cloudinary.uploader.upload(imageUrl, {
       folder: 'mesas_rpg',

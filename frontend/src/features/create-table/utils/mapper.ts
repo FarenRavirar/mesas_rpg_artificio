@@ -44,6 +44,7 @@ export function formStateToPayload(state: FormState): CreateTablePayload {
     actual_gm_name: state.publisherRole === 'announcer' ? state.actualGmName : null,
     rules_notes: state.rulesNotes,
     banner_url: state.bannerUrl,
+    banner_crop_data: state.bannerCropData ?? undefined,
     is_covil: state.isCovilMesa,
     is_ddal: state.ddal.is_ddal,
     // CORREÇÃO REG-04, REG-05, REG-06: Adicionar campos ausentes

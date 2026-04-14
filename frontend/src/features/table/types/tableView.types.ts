@@ -152,6 +152,7 @@ export interface TableViewModel {
 
   // Metadados
   coverUrl?: string;
+  coverCropData?: { x: number; y: number; width: number; height: number };
   status: string;
   origin?: 'manual' | 'imported';
   publisherRole: string;

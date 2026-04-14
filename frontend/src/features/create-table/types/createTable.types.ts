@@ -69,6 +69,7 @@ export interface FormState {
   // Finalização
   rulesNotes: string;
   bannerUrl: string;
+  bannerCropData: { x: number; y: number; width: number; height: number } | null;
   isCovilMesa: boolean;
   ddal: DdalFormState;
   

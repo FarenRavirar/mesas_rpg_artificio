@@ -1,6 +1,6 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 14/04/2026 02:36 BRT
+**Última atualização:** 14/04/2026 15:50 BRT
 
 ---
 
@@ -10,44 +10,40 @@
 **Ambiente Produção:** `mesas.artificiorpg.com` — sem alteração de workflow nesta etapa  
 **Branch ativa:** `dev`
 
-**Estado técnico da habilitação local (`localhost`):**
-- CORS do backend com allowlist dinâmica por `FRONTEND_URLS`.
-- OAuth backend com validação de `frontend_redirect` por allowlist de origens.
-- Cookie de sessão preparado para fluxo cross-origin com `COOKIE_SAME_SITE=none`.
-- Frontend local enviando `frontend_redirect=window.location.origin` no início do login Google.
-- Integração Cloudinary no formulário existente com `ImageUploader` + fallback visual mantido.
-- Preload de banner no formulário de edição corrigido para contrato real do endpoint (`banner_url ?? image_url`).
-- **Migration 18 aplicada em beta (14/04/2026):** removidos campos legados imgur (avatar_deletehash, avatar_imgur_id, banner_deletehash, banner_imgur_id, cover_deletehash, cover_imgur_id) + tabela/tipo legado.
-- **Changelog adicionado:** nova experiência de upload de banner com Cloudinary.
+**Implementação de Crop Visual (CSS):**
+- Crop é apenas visual via CSS `object-position`, não recorta a imagem no upload
+- Imagem completa armazenada no Cloudinary (resize 1200x650)
+- Coordenadas de crop salvas em `banner_crop_data` (JSONB)
+- Usuário pode voltar e refazer o crop visual posteriormente
+- Proporção do banner: 1200x650 (1.85:1 - widescreen)
 
-**Gate de garantia real aplicado no alvo correto (`dev`/beta):**
-- Workflow atualizado: `.github/workflows/deploy-beta.yml`
-- Validação externa obrigatória pós-deploy:
-  - `https://mesasbeta.artificiorpg.com` deve responder HTTP 200
-  - `https://mesasbeta.artificiorpg.com/api/v1/health` deve conter `"status":"ok"`
-- Se falhar, workflow tenta **1 recuperação automática** e falha o job se continuar ruim.
+**Implementado nesta sessão:**
+- Backend: removido código de crop de cloudinary.ts e upload.ts
+- Frontend: adicionado estado bannerCropData no useCreateTableForm e props no StepFinal
+- Backend: criação de migration_101_add_banner_crop_data.sql
+- Backend: adicionado campo banner_crop_data em types.ts, validators.ts e tableService.ts
+- Backend: retornado cover_crop_data nas queries de tables.ts
+- Frontend: adicionado coverCropData no TableViewModel e mapper
+- Frontend: implementado CSS object-position no TableHero para display do crop
 
-**Gate de garantia real aplicado no alvo correto (`dev`/beta):**
-- Workflow atualizado: `.github/workflows/deploy-beta.yml`
-- Validação externa obrigatória pós-deploy:
-  - `https://mesasbeta.artificiorpg.com` deve responder HTTP 200
-  - `https://mesasbeta.artificiorpg.com/api/v1/health` deve conter `"status":"ok"`
-- Se falhar, workflow tenta **1 recuperação automática** e falha o job se continuar ruim.
+**Migration 101 (pendente aplicar em beta):**
+- Adiciona coluna `banner_crop_data` JSONB na tabela `tables`
+- Armazena coordenadas {x, y, width, height} para display CSS
 
 ---
 
 ## Próxima Ação
 
-1. ~~Executar validação dos cenários A/B/C/D do `CLOUDINARY_INTEGRATION_GUIDE.md`~~ (executado manualmente pelo responsável)
-2. Revalidar login local (`localhost:5173`) com sessão ativa em `GET /api/v1/me`.
+1. Aplicar migration_101_add_banner_crop_data.sql no banco beta
+2. Deploy das alterações (backend + frontend)
 
 ---
 
 ## Última Sessão
 
-**Data:** 14/04/2026 03:40 BRT  
-**Tipo:** Resolução de bloqueadores de deploy  
-**O que foi feito:** Aplicada `migration_18_drop_imgur_legacy.sql` no banco beta (campos imgur removidos de gm_profiles e tables, tabela/tipo legado removidos); adicionado changelog para nova experiência de upload; atualizado `CLOUDINARY_INTEGRATION_GUIDE.md` para refletir que campos legados foram removidos.  
+**Data:** 14/04/2026 15:50 BRT  
+**Tipo:** Implementação de crop visual via CSS  
+**O que foi feito:** Sistema de upload onde crop é apenas visual (CSS object-position), não recorta a imagem no backend. Imagem completa enviada ao Cloudinary, coordenadas salvas em banner_crop_data para display posterior. Criada migration 101, atualizados tipos e validators, implementado display no TableHero.  
 **Status:** ✅ Concluído — 3/4 bloqueadores resolvidos (B1 executado manualmente).  
 **Arquivo:** `sessoes/resumo_14-04_bloqueadores-deploy.md`
 

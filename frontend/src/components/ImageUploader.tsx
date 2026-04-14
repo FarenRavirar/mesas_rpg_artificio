@@ -12,6 +12,8 @@ interface ImageUploaderProps {
   idPrefix?: string;
   manualInputId?: string;
   fileInputId?: string;
+  onCropChange?: (cropData: { x: number; y: number; width: number; height: number } | null) => void;
+  initialCropData?: { x: number; y: number; width: number; height: number } | null;
 }
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
@@ -32,6 +34,8 @@ export function ImageUploader({
   idPrefix = 'image-uploader',
   manualInputId,
   fileInputId,
+  onCropChange,
+  initialCropData,
 }: ImageUploaderProps) {
   const inputId = fileInputId || `${idPrefix}-file`;
   const manualUrlId = manualInputId || `${idPrefix}-url`;
@@ -46,7 +50,7 @@ export function ImageUploader({
     crop: PixelCrop;
     originalWidth: number;
     originalHeight: number;
-  } | null>(null);
+  } | null>(initialCropData ? { crop: initialCropData as unknown as PixelCrop, originalWidth: 0, originalHeight: 0 } : null);
 
   const cloudName = (import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '').trim();
   const uploadEndpoint = (import.meta.env.VITE_API_URL || '').replace(/\/api\/v1$/, '') + '/api/v1';
@@ -94,12 +98,19 @@ export function ImageUploader({
   };
 
   const handleCropComplete = useCallback((croppedAreaPixels: PixelCrop, originalWidth: number, originalHeight: number) => {
-    setCropData({
+    const newCropData = {
       crop: croppedAreaPixels,
       originalWidth,
       originalHeight,
+    };
+    setCropData(newCropData);
+    onCropChange?.({
+      x: Math.round(croppedAreaPixels.x),
+      y: Math.round(croppedAreaPixels.y),
+      width: Math.round(croppedAreaPixels.width),
+      height: Math.round(croppedAreaPixels.height),
     });
-  }, []);
+  }, [onCropChange]);
 
   const handleConfirmCrop = async () => {
     if (!pendingFile) return;
@@ -110,15 +121,6 @@ export function ImageUploader({
     try {
       const formData = new FormData();
       formData.append('file', pendingFile);
-
-      if (cropData) {
-        formData.append('crop_x', String(Math.round(cropData.crop.x)));
-        formData.append('crop_y', String(Math.round(cropData.crop.y)));
-        formData.append('crop_width', String(Math.round(cropData.crop.width)));
-        formData.append('crop_height', String(Math.round(cropData.crop.height)));
-        formData.append('original_width', String(Math.round(cropData.originalWidth)));
-        formData.append('original_height', String(Math.round(cropData.originalHeight)));
-      }
 
       const response = await fetch(uploadEndpoint, {
         method: 'POST',
@@ -139,10 +141,16 @@ export function ImageUploader({
       setError(error instanceof Error ? error.message : 'Falha inesperada no upload.');
     } finally {
       setIsUploading(false);
-      URL.revokeObjectURL(pendingImageUrl);
-      setPendingFile(null);
-      setPendingImageUrl('');
-      setCropData(null);
+      if (pendingImageUrl) {
+        URL.revokeObjectURL(pendingImageUrl);
+      }
+    }
+  };
+
+  const handleEditExisting = () => {
+    if (value) {
+      setPendingImageUrl(value);
+      setShowEditor(true);
     }
   };
 

@@ -313,6 +313,8 @@ export function CreateTableForm({
             setRulesNotes={formHook.setRulesNotes}
             bannerUrl={formHook.bannerUrl}
             setBannerUrl={formHook.setBannerUrl}
+            bannerCropData={formHook.bannerCropData}
+            setBannerCropData={formHook.setBannerCropData}
             bannerError={formHook.bannerError}
             setBannerError={formHook.setBannerError}
             gmAvatarUrl={initialData?.gm_avatar_url || ''}

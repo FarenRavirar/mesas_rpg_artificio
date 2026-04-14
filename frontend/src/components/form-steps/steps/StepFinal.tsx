@@ -31,6 +31,8 @@ interface StepFinalProps {
   setRulesNotes: (notes: string) => void;
   bannerUrl: string;
   setBannerUrl: (url: string) => void;
+  bannerCropData: { x: number; y: number; width: number; height: number } | null;
+  setBannerCropData: (data: { x: number; y: number; width: number; height: number } | null) => void;
   bannerError: boolean;
   setBannerError: (error: boolean) => void;
   gmAvatarUrl: string;
@@ -152,6 +154,8 @@ export function StepFinal(props: StepFinalProps) {
         }}
         onError={props.setBannerError}
         hasError={props.bannerError}
+        initialCropData={props.bannerCropData}
+        onCropChange={props.setBannerCropData}
       />
 
       {/* REMOVIDO: Avatar do mestre (modo review desacoplado) */}

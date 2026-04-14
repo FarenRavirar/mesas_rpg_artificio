@@ -248,6 +248,7 @@ export interface TablesTable {
   frequency_custom: string | null;
   rules_notes: string | null;
   banner_url: string | null;
+  banner_crop_data: { x: number; y: number; width: number; height: number } | null;
   master_display_name: string | null;
   campaign_length: string | null;
   level_range: string | null;

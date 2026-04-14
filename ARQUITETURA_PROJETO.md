@@ -343,6 +343,7 @@ Se configurar ambiente local for complexo, testar diretamente em:
 | `system_id` | FK para `systems` |
 | `title`, `description`, `cover_url`, `cover_source_type`, `cover_origin_url`, `cover_deletehash`, `cover_imgur_id` | Conteúdo editorial da mesa e metadados de imagem hospedada ou reaproveitada externamente |
 | `banner_url` | URL canônica de banner/capa da mesa (aceita URL pública externa, incluindo `secure_url` do Cloudinary) |
+| `banner_crop_data` | JSONB — Coordenadas de crop visual `{x, y, width, height}` para display via CSS `object-position` (migration_101) |
 | `frequency` | Frequência das sessões: `semanal`, `quinzenal`, `mensal`, `avulsa` (migration_09) |
 | `frequency_custom` | Descrição livre de frequência quando `frequency = 'avulsa'` (migration_09) |
 | `rules_notes` | Regras, avisos ou notas especiais da mesa (migration_09) |

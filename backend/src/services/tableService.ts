@@ -115,6 +115,7 @@ export class TableService {
             communication_platform: data.communication_platform ?? null,
             rules_notes: data.rules_notes ?? null,
             banner_url: data.banner_url ?? null,
+            banner_crop_data: data.banner_crop_data ?? null,
             is_covil: safeIsCovil,
             master_display_name: data.master_display_name ?? null,
             campaign_length: data.campaign_length ?? null,

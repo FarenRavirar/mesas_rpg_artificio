@@ -18,6 +18,12 @@ export function TableHero({ vm, variant = 'full' }: TableHeroProps) {
     is_covil: vm.certifications.covil !== undefined,
   });
 
+  const cropStyle = vm.coverCropData
+    ? {
+        objectPosition: `${(vm.coverCropData.x / vm.coverCropData.width) * 100}% ${(vm.coverCropData.y / vm.coverCropData.height) * 100}%`,
+      }
+    : {};
+
   return (
     <div className="relative rounded-2xl overflow-hidden">
       {/* Cover Image */}
@@ -25,6 +31,7 @@ export function TableHero({ vm, variant = 'full' }: TableHeroProps) {
         src={vm.coverUrl || bannerPlaceholder}
         alt={vm.title}
         className="w-full aspect-[1200/650] object-cover"
+        style={cropStyle}
         onError={(event) => {
           const img = event.currentTarget;
           if (img.dataset.fallbackApplied === 'true') return;

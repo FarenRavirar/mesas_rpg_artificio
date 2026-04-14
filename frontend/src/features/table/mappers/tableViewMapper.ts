@@ -275,6 +275,7 @@ export function mapTableToView(table: TableDetail): TableViewModel {
 
     // Metadados
     coverUrl: table.cover_url ?? undefined,
+    coverCropData: table.cover_crop_data ?? undefined,
     status: table.status,
     origin: table.origin,
     publisherRole: table.publisher_role,
