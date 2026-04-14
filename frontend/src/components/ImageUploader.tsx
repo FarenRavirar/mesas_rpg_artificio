@@ -216,7 +216,7 @@ export function ImageUploader({
         <img
           src={previewSource}
           alt={value ? 'Preview do banner informado' : 'Banner padrão aplicado automaticamente'}
-          className="w-full max-h-52 object-cover"
+          className="w-full aspect-[1200/650] object-cover"
           onError={(event) => {
             const img = event.currentTarget;
             if (img.dataset.fallbackApplied === 'true') return;

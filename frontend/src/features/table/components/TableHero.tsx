@@ -24,7 +24,7 @@ export function TableHero({ vm, variant = 'full' }: TableHeroProps) {
       <img 
         src={vm.coverUrl || bannerPlaceholder}
         alt={vm.title}
-        className="w-full h-64 object-cover"
+        className="w-full aspect-[1200/650] object-cover"
         onError={(event) => {
           const img = event.currentTarget;
           if (img.dataset.fallbackApplied === 'true') return;
