@@ -110,7 +110,7 @@ app.use('/api/v1/settings', settingsRoutes);
 app.use('/api/v1/admin/setting-suggestions', adminSettingSuggestionsRoutes);
 app.use('/api/v1/vtt-platforms', vttPlatformsRoutes);
 app.use('/api/v1/changelog', changelogRoutes);
-app.use('/api/v1/upload', uploadRoutes);
+app.use('/api/v1', uploadRoutes);
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('[Global Error]', err);

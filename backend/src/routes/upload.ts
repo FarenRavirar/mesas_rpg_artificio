@@ -5,7 +5,7 @@ import { uploadImageToCloudinary } from '../services/cloudinary';
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
-router.post('/upload', upload.single('file'), async (req, res) => {
+router.post('/', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       res.status(400).json({ error: 'Nenhum arquivo enviado' });
