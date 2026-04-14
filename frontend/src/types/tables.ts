@@ -35,6 +35,7 @@ export interface TableCard {
   title: string;
   description: string | null;
   cover_url: string | null;
+  cover_crop_data?: { x: number; y: number; width: number; height: number } | null;
   status: TableStatus;
   type: string;
   audience: string;

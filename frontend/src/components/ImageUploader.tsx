@@ -46,7 +46,7 @@ export function ImageUploader({
   const [showEditor, setShowEditor] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [pendingImageUrl, setPendingImageUrl] = useState<string>('');
-  const [cropData, setCropData] = useState<{
+  const [_cropData, setCropData] = useState<{
     crop: PixelCrop;
     originalWidth: number;
     originalHeight: number;
@@ -144,13 +144,6 @@ export function ImageUploader({
       if (pendingImageUrl) {
         URL.revokeObjectURL(pendingImageUrl);
       }
-    }
-  };
-
-  const handleEditExisting = () => {
-    if (value) {
-      setPendingImageUrl(value);
-      setShowEditor(true);
     }
   };
 
