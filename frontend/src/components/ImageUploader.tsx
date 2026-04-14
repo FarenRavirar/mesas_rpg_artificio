@@ -248,7 +248,7 @@ export function ImageUploader({
       {(uploadError || hasError) && (
         <p className="text-xs text-red-300" role="alert">
           {uploadError || 'Não foi possível validar a imagem enviada.'}
-        />
+        </p>
       )}
 
       {showEditor && (
