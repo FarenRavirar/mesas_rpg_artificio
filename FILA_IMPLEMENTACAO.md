@@ -231,6 +231,17 @@ Este arquivo controla fila de execução; não define arquitetura de produto.
 
 ---
 
+## Itens da fila — Lote: habilitacao-dev-local-oauth-cloudinary (Fase 0/3) — ⚡ PRIORIDADE MÁXIMA IMEDIATA
+
+> Viabilização de frontend local (`localhost`) consumindo backend beta remoto com OAuth/cookies e validação funcional da integração Cloudinary.
+
+| ID | Fase | Tipo | GUT | Titulo | Descrição objetiva | Arquivos esperados | Status | Observação |
+|---|---|---|---|---|---|---|---|---|
+| 152 | Fase 0 | infra+backend | 5/5/5 | Habilitar OAuth local com backend beta remoto | Garantir fluxo Google OAuth de `localhost` para `mesasbeta` com retorno de callback para origem local permitida e sessão via cookie cross-origin. Exige allowlist de origens locais, `SameSite=None` e validação de `frontend_redirect` por allowlist. | `/opt/mesas-beta/.env`, `docker-compose.beta.yml`, `backend/src/server.ts`, `backend/src/routes/auth.ts`, `frontend/src/utils/auth.ts` | em_execucao | Ajustes estruturais já aplicados em ambiente beta e código local. Falta validação final ponta-a-ponta com inspeção de cookie + `GET /api/v1/me` sem regressão de fetch. |
+| 153 | Fase 3 | frontend+qa | 4/5/5 | Validar cenários A/B/C/D da integração Cloudinary em ambiente local | Executar matriz manual do `CLOUDINARY_INTEGRATION_GUIDE.md` (A criação com upload, B edição sem alteração, C remoção, D falha de upload) com frontend local e backend beta, registrando resultados objetivos por cenário. | `CLOUDINARY_INTEGRATION_GUIDE.md`, `frontend/src/components/ImageUploader.tsx`, `frontend/src/components/form-steps/steps/StepFinal.tsx` | em_execucao | **PRIORIDADE MÁXIMA IMEDIATA.** Sem essa validação, não há garantia de estabilidade funcional do fluxo de banner no deploy; risco adicional se build de beta/prod não receber `VITE_CLOUDINARY_*`. |
+
+---
+
 ## Itens da fila — Lote: otimizacao-build (Fase 3)
 
 > Otimizações de build e bundle do frontend identificadas durante deploy.

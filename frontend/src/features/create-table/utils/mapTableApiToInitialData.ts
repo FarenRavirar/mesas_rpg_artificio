@@ -57,7 +57,7 @@ export function mapTableApiToInitialData(apiData: any): Partial<FormState> {
     contacts: Array.isArray(apiData.contacts) ? apiData.contacts : [],
 
     rulesNotes: apiData.rules_notes ?? '',
-    bannerUrl: apiData.image_url ?? '',
+    bannerUrl: apiData.banner_url ?? apiData.image_url ?? '',
     isCovilMesa: apiData.is_covil_mesa ?? false,
 
     ddal: {

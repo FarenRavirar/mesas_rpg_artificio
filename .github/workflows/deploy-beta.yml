@@ -89,6 +89,32 @@ jobs:
               fi
               sleep 3
             done
+            # GATE BETA-01: validação externa obrigatória pós-deploy
+            BETA_HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://mesasbeta.artificiorpg.com)
+            if [ "$BETA_HTTP_CODE" != "200" ]; then
+              echo "⚠️ Beta não respondeu HTTP 200. Tentando recuperação automática única..."
+              docker compose -f docker-compose.beta.yml up -d --force-recreate
+              sleep 20
+              BETA_HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://mesasbeta.artificiorpg.com)
+              if [ "$BETA_HTTP_CODE" != "200" ]; then
+                echo "❌ Beta permaneceu fora após recuperação automática"
+                docker compose -f docker-compose.beta.yml ps
+                docker compose -f docker-compose.beta.yml logs --tail=120 mesas-beta-frontend mesas-beta-api mesas-beta-db
+                exit 1
+              fi
+            fi
+
+            if ! curl -fsS https://mesasbeta.artificiorpg.com/api/v1/health | grep -q '"status":"ok"'; then
+              echo "⚠️ Health público do beta não retornou status ok. Tentando recuperação automática única..."
+              docker compose -f docker-compose.beta.yml up -d --force-recreate
+              sleep 20
+              if ! curl -fsS https://mesasbeta.artificiorpg.com/api/v1/health | grep -q '"status":"ok"'; then
+                echo "❌ Health público do beta segue inválido após recuperação"
+                docker compose -f docker-compose.beta.yml ps
+                docker compose -f docker-compose.beta.yml logs --tail=120 mesas-beta-frontend mesas-beta-api mesas-beta-db
+                exit 1
+              fi
+            fi
             
             # CORREÇÃO INT-03: Validar se frontend buildou com sucesso
             if ! docker compose -f docker-compose.beta.yml logs mesas-beta-frontend 2>&1 | grep -q "build completed"; then
