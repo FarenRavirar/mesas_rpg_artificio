@@ -85,6 +85,7 @@ const baseTableSchema = z.object({
     width: z.number(),
     height: z.number(),
   }).nullable().optional(),
+  gm_avatar_url: z.string().url().nullable().optional(),
   is_covil: z.boolean().default(false),
   master_display_name: z.string().max(100).nullable().optional(),
   campaign_length: z.string().max(100).nullable().optional(),

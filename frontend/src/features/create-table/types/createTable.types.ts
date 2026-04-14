@@ -70,6 +70,7 @@ export interface FormState {
   rulesNotes: string;
   bannerUrl: string;
   bannerCropData: { x: number; y: number; width: number; height: number } | null;
+  gmAvatarUrl: string;
   isCovilMesa: boolean;
   ddal: DdalFormState;
   
@@ -120,6 +121,7 @@ export interface CreateTablePayload {
   rules_notes: string;
   banner_url: string;
   banner_crop_data?: { x: number; y: number; width: number; height: number };
+  gm_avatar_url?: string;
   is_covil: boolean;
   is_ddal: boolean;
   // CORREÇÃO REG-04, REG-05, REG-06: Campos ausentes no payload

@@ -45,6 +45,7 @@ export function formStateToPayload(state: FormState): CreateTablePayload {
     rules_notes: state.rulesNotes,
     banner_url: state.bannerUrl,
     banner_crop_data: state.bannerCropData ?? undefined,
+    gm_avatar_url: state.gmAvatarUrl || undefined,
     is_covil: state.isCovilMesa,
     is_ddal: state.ddal.is_ddal,
     // CORREÇÃO REG-04, REG-05, REG-06: Adicionar campos ausentes

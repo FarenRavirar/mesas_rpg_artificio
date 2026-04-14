@@ -10,7 +10,7 @@
 **Ambiente Produção:** `mesas.artificiorpg.com` — sem alteração de workflow nesta etapa  
 **Branch ativa:** `dev`
 
-**Implementação de Crop Visual (CSS):**
+**Implementação de Crop Visual (CSS) - CONCLUÍDA:**
 - Crop é apenas visual via CSS `object-position`, não recorta a imagem no upload
 - Imagem completa armazenada no Cloudinary (resize 1200x650)
 - Coordenadas de crop salvas em `banner_crop_data` (JSONB)
@@ -20,22 +20,18 @@
 **Implementado nesta sessão:**
 - Backend: removido código de crop de cloudinary.ts e upload.ts
 - Frontend: adicionado estado bannerCropData no useCreateTableForm e props no StepFinal
-- Backend: criação de migration_101_add_banner_crop_data.sql
+- Backend: criação de migration_101_add_banner_crop_data.sql (já aplicada no beta)
 - Backend: adicionado campo banner_crop_data em types.ts, validators.ts e tableService.ts
 - Backend: retornado cover_crop_data nas queries de tables.ts
 - Frontend: adicionado coverCropData no TableViewModel e mapper
 - Frontend: implementado CSS object-position no TableHero para display do crop
-
-**Migration 101 (pendente aplicar em beta):**
-- Adiciona coluna `banner_crop_data` JSONB na tabela `tables`
-- Armazena coordenadas {x, y, width, height} para display CSS
+- Correções TypeScript: banner_crop_data no CreateTablePayload, cover_crop_data no TableCard
 
 ---
 
 ## Próxima Ação
 
-1. Aplicar migration_101_add_banner_crop_data.sql no banco beta
-2. Deploy das alterações (backend + frontend)
+- Validar funcionamento do crop visual no beta: criar/editar mesa com banner e verificar display com object-position
 
 ---
 

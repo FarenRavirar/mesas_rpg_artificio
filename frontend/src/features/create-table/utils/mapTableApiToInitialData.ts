@@ -59,6 +59,7 @@ export function mapTableApiToInitialData(apiData: any): Partial<FormState> {
     rulesNotes: apiData.rules_notes ?? '',
     bannerUrl: apiData.banner_url ?? apiData.image_url ?? '',
     bannerCropData: apiData.banner_crop_data ?? null,
+    gmAvatarUrl: apiData.gm_avatar_url ?? '',
     isCovilMesa: apiData.is_covil_mesa ?? false,
 
     ddal: {
