@@ -18,6 +18,9 @@ services:
       - NODE_ENV=production
       - VITE_ENV=beta
       - API_UPSTREAM=mesas-beta-api
+      - VITE_API_URL=${VITE_API_URL}
+      - VITE_CLOUDINARY_CLOUD_NAME=${VITE_CLOUDINARY_CLOUD_NAME}
+      - VITE_CLOUDINARY_UPLOAD_PRESET=${VITE_CLOUDINARY_UPLOAD_PRESET}
     depends_on:
       - mesas-beta-api
     healthcheck:
