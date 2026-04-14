@@ -232,7 +232,7 @@ export const PlayerPage = () => {
               {player.playstyle_roleplay !== null && (
                 <div className="playstyle-item">
                   <div className="playstyle-label">
-                    <span>Roleplay</span>
+                    <span>Socialização</span>
                     <span className="playstyle-value">{player.playstyle_roleplay}/5</span>
                   </div>
                   <div className="playstyle-bar">

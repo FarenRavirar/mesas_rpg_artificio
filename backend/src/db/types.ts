@@ -135,6 +135,7 @@ export type GmProfileUpdate = Updateable<GmProfilesTable>;
 export interface SystemsTable {
   id: Generated<string>;
   name: string;
+  name_pt: string | null;
   slug: string;
   description: string | null;
   parent_id: string | null;
@@ -170,6 +171,7 @@ export interface PlatformsTable {
 export interface ScenariosTable {
   id: Generated<string>;
   name: string;
+  name_pt: string | null;
   slug: string;
   subgenres: Generated<string[]>;
   created_at: Generated<Date>;

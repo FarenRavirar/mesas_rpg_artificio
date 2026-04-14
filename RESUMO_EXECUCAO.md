@@ -1,6 +1,6 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 14/04/2026 16:40 BRT
+**Última atualização:** 14/04/2026 18:30 BRT
 
 ---
 
@@ -10,60 +10,60 @@
 **Ambiente Produção:** `mesas.artificiorpg.com` — sem alteração de workflow nesta etapa  
 **Branch ativa:** `dev`
 
-**Implementação de Crop Visual (CSS) - CONCLUÍDA:**
-- Crop é apenas visual via CSS `object-position`, não recorta a imagem no upload
-- Imagem completa armazenada no Cloudinary (resize 1200x650)
-- Coordenadas de crop salvas em `banner_crop_data` (JSONB)
-- Usuário pode voltar e refazer o crop visual posteriormente
-- Proporção do banner: 1200x650 (1.85:1 - widescreen)
+**Correções do REQ-30 (Onboarding de Mesas) - CONCLUÍDAS:**
+- BUG 3: Removido campo "Frequência" duplicado no SessionRepeater (ao lado do dia)
+- MELHORIA 1: Removido "Vagas por Sessão", simplificado para slots_total + slots_open
+- Label "Roleplay" → "Socialização" em ProfileEditPage e PlayerPage
 
-**Upload de Avatar via Cloudinary - CONCLUÍDO:**
-- Novo componente `AvatarUploader.tsx` com upload signed para Cloudinary
-- Upload direto via backend (rota POST /api/v1/upload)
-- Same state `gmAvatarUrl` usado no formulário de criação de mesa e perfil do mestre
-- Suporta URL manual como fallback
-- Limite de 2MB, formatos JPG/PNG/WEBP
+**MELHORIA 2 - Cenário duplicado:**
+- Adicionado `selectedScenarioName` no StepFinal
+- Exibido como badge readonly em SettingStylesField quando cenário foi selecionado na Etapa 2
+- Se não selecionou, permite digitar novo cenário
 
-**Implementado nesta sessão:**
-- Backend: removido código de crop de cloudinary.ts e upload.ts
-- Frontend: adicionado estado bannerCropData no useCreateTableForm e props no StepFinal
-- Backend: criação de migration_101_add_banner_crop_data.sql (já aplicada no beta)
-- Backend: adicionado campo banner_crop_data em types.ts, validators.ts e tableService.ts
-- Backend: retornado cover_crop_data nas queries de tables.ts
-- Frontend: adicionado coverCropData no TableViewModel e mapper
-- Frontend: implementado CSS object-position no TableHero para display do crop
-- Frontend: adicionado AvatarUploader.tsx para upload de foto de perfil via Cloudinary
-- Frontend: adicionado gm_avatar_url no payload e validador do backend
+**BUG 4 - Editor rico:**
+- Substituído `<textarea>` por `<RichTextArea>` (com toolbar) nos campos:
+  - Descrição da Mesa (StepBasic)
+  - Regras/Observações da Mesa (StepFinal)
+  - Requisitos Detalhados (StepFinal)
+
+**FEATURE 1 - Campo name_pt:**
+- Migration 102 adiciona coluna name_pt em systems e scenarios
+- Backend: GET/POST/PUT retornam e aceitam name_pt
+- Frontend: SystemTreeNode e Scenario incluem name_pt
+
+**FEATURE 2 - Toggle PT/EN:**
+- Botões PT/EN adicionados em SystemTreeSelector e ScenarioSelector
+- Ao trocar idioma, exibe name_pt ou name conforme seleção
+
+**FEATURE 3 - Sugestão de sistema:**
+- Sistema de sugestão já existente no StepSystem (+ Adicionar Sistema)
+- Cenário pode ser sugerido via SettingStylesField (campo texto livre)
 
 ---
 
 ## Próxima Ação
 
-- Validar funcionamento do upload de avatar no beta: criar/editar mesa com foto de perfil via Cloudinary
+- Aplicar migration_102_add_name_pt.sql no banco beta
+- Deploy para validar alterações em beta
 
 ---
 
 ## Última Sessão
 
-**Data:** 14/04/2026 16:40 BRT  
-**Tipo:** Implementação de upload de avatar via Cloudinary  
-**O que foi feito:** Criado componente AvatarUploader.tsx para upload de foto de perfil via Cloudinary (mesma rota /api/v1/upload). Mesmo estado gmAvatarUrl usado no formulário de criação de mesa e no perfil do mestre. Adicionado gm_avatar_url no payload e validador do backend. Atualizada documentação (ARQUITETURA_PROJETO.md, RESUMO_EXECUCAO.md).
+**Data:** 14/04/2026 18:30 BRT  
+**Tipo:** Correções do REQ-30 + Features name_pt, toggle PT/EN, sugestão de sistema  
+**O que foi feito:** 
+- BUG 3: Removido campo frequência duplicado do SessionRepeater
+- MELHORIA 1: Removido vagas por sessão, simplificado para slots_total + slots_open
+- Label Roleplay → Socialização
+- MELHORIA 2: Cenário exibido como readonly se selecionado na Etapa 2
+- BUG 4: Editor rico (RichTextArea) adicionado em description, rules_notes, technical_requirements
+- FEATURE 1: name_pt em sistemas e cenários (migration 102 + backend + frontend)
+- FEATURE 2: Toggle PT/EN nos seletores
+- FEATURE 3: Sistema de sugestão já existe, cenário via campo texto
 
-**Status:** ✅ Concluído
-
----
-
-**Data:** 14/04/2026 15:50 BRT  
-**Tipo:** Implementação de crop visual via CSS  
-**O que foi feito:** Sistema de upload onde crop é apenas visual (CSS object-position), não recorta a imagem no backend. Imagem completa enviada ao Cloudinary, coordenadas salvas em banner_crop_data para display posterior. Criada migration 101, atualizados tipos e validators, implementado display no TableHero.  
-**Status:** ✅ Concluído — 3/4 bloqueadores resolvidos (B1 executado manualmente).  
-**Arquivo:** `sessoes/resumo_14-04_bloqueadores-deploy.md`
-
-**Data:** 14/04/2026 03:15 BRT  
-**Tipo:** Resolução de bloqueadores de deploy  
-**O que foi feito:** Renomeada `migration_17_drop_imgur_legacy.sql` para `migration_18_drop_imgur_legacy.sql` (resolução de conflito de numeração); criada sessão de trabalho para resolver 4 bloqueadores (validação A/B/C/D em beta, changelog ausente, guia contraditório).  
-**Status:** Em andamento — execução de validações em beta necessária.  
-**Arquivo:** `sessoes/resumo_14-04_bloqueadores-deploy.md`
+**Status:** ✅ Concluído — aguardando aplicação da migration e deploy
+**Arquivo:** `sessoes/resumo_14-04_correcoes-onboarding.md`
 
 ---
 
@@ -71,7 +71,6 @@
 
 Abrir o novo chat já apontando estes arquivos, nesta ordem:
 1. `RESUMO_EXECUCAO.md` (estado mais recente)
-2. `.github/workflows/deploy-beta.yml` (gate ativo de deploy beta)
-3. `OPERACAO_PRODUCAO.md` (§10.5 validação pós-deploy)
-4. `ERRORS_SOLUTIONS.md` (buscar por `E144`, `E145`, `E146`, `E147`)
-5. `sessoes/resumo_14-04_auditoria-docs-oauth-cloudinary.md` (linha de execução detalhada)
+2. `TODO_OPERACIONAL.md` (backlog de bugs e features)
+3. `FILA_IMPLEMENTACAO.md` (itens técnicos pendentes)
+4. `database/migration_102_add_name_pt.sql` (pronta para aplicar)

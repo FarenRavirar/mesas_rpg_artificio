@@ -36,7 +36,7 @@ router.get('/', async (req: Request, res: Response) => {
   try {
     let query = db
       .selectFrom('scenarios')
-      .select(['id', 'name', 'slug', 'subgenres'])
+      .select(['id', 'name', 'name_pt', 'slug', 'subgenres'])
       .orderBy('name', 'asc');
 
     // Busca full-text se houver query
@@ -70,7 +70,7 @@ router.get('/:id', async (req: Request, res: Response) => {
   try {
     const scenario = await db
       .selectFrom('scenarios')
-      .select(['id', 'name', 'slug', 'subgenres'])
+      .select(['id', 'name', 'name_pt', 'slug', 'subgenres'])
       .where('id', '=', id)
       .executeTakeFirst();
 
@@ -91,7 +91,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 
 // POST /api/v1/admin/scenarios — Criar novo cenário
 router.post('/admin', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
-  const { name, subgenres } = req.body;
+  const { name, name_pt, subgenres } = req.body;
 
   if (!name) {
     return res.status(400).json({ error: 'Nome é obrigatório.' });
@@ -119,10 +119,11 @@ router.post('/admin', authMiddleware, requireRole('admin'), async (req: Request,
       .insertInto('scenarios')
       .values({
         name,
+        name_pt: name_pt || null,
         slug,
         subgenres: subgenresArray,
       })
-      .returning(['id', 'name', 'slug', 'subgenres'])
+      .returning(['id', 'name', 'name_pt', 'slug', 'subgenres'])
       .executeTakeFirst();
 
     return res.status(201).json({ data: newScenario });
@@ -135,7 +136,7 @@ router.post('/admin', authMiddleware, requireRole('admin'), async (req: Request,
 // PUT /api/v1/admin/scenarios/:id — Editar cenário
 router.put('/admin/:id', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { name, subgenres } = req.body;
+  const { name, name_pt, subgenres } = req.body;
 
   if (!name) {
     return res.status(400).json({ error: 'Nome é obrigatório.' });
@@ -175,11 +176,12 @@ router.put('/admin/:id', authMiddleware, requireRole('admin'), async (req: Reque
       .updateTable('scenarios')
       .set({
         name,
+        name_pt: name_pt || null,
         slug,
         subgenres: subgenresArray,
       })
       .where('id', '=', id)
-      .returning(['id', 'name', 'slug', 'subgenres'])
+      .returning(['id', 'name', 'name_pt', 'slug', 'subgenres'])
       .executeTakeFirst();
 
     return res.json({ data: updated });

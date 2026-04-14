@@ -37,8 +37,6 @@ export function mapTableApiToInitialData(apiData: any): Partial<FormState> {
               day_of_week: 'segunda',
               start_time: '19:00',
               end_time: '22:00',
-              frequency: 'semanal',
-              slots_per_session: null,
               is_ongoing: false,
               notes: '',
               sort_order: 0,

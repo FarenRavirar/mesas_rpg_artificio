@@ -4,6 +4,7 @@ import { Search, MapPin } from 'lucide-react';
 interface Scenario {
   id: string;
   name: string;
+  name_pt: string | null;
   slug: string;
   subgenres: string[];
 }
@@ -16,12 +17,20 @@ interface ScenarioSelectorProps {
 
 const normalizeText = (value: string): string => value.trim().toLowerCase();
 
+const getDisplayName = (scenario: Scenario, lang: 'en' | 'pt'): string => {
+  if (lang === 'pt' && scenario.name_pt) {
+    return scenario.name_pt;
+  }
+  return scenario.name;
+};
+
 export const ScenarioSelector = ({
   selectedScenarioId,
   onSelect,
   disabled = false,
 }: ScenarioSelectorProps) => {
   const [search, setSearch] = useState('');
+  const [language, setLanguage] = useState<'en' | 'pt'>('pt');
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,6 +68,7 @@ export const ScenarioSelector = ({
 
     return scenarios.filter((scenario) => {
       return normalizeText(scenario.name).includes(normalizedSearch)
+        || normalizeText(scenario.name_pt || '').includes(normalizedSearch)
         || normalizeText(scenario.slug).includes(normalizedSearch)
         || scenario.subgenres.some((subgenre) => normalizeText(subgenre).includes(normalizedSearch));
     });
@@ -69,15 +79,37 @@ export const ScenarioSelector = ({
   return (
     <div className="space-y-3">
       {/* Campo de busca */}
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar cenário (ex: Forgotten Realms, Eberron)..."
-          disabled={disabled || loading}
-          className="w-full rounded-xl border border-white/15 bg-[#13213f] py-2.5 pl-9 pr-3 outline-none focus:border-[var(--color-artificio-orange)] disabled:opacity-50 disabled:cursor-not-allowed"
-        />
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar cenário (ex: Forgotten Realms, Eberron)..."
+            disabled={disabled || loading}
+            className="w-full rounded-xl border border-white/15 bg-[#13213f] py-2.5 pl-9 pr-3 outline-none focus:border-[var(--color-artificio-orange)] disabled:opacity-50 disabled:cursor-not-allowed"
+          />
+        </div>
+        <div className="flex rounded-xl border border-white/15 bg-[#13213f] p-1">
+          <button
+            type="button"
+            onClick={() => setLanguage('pt')}
+            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+              language === 'pt' ? 'bg-[var(--color-artificio-orange)] text-white' : 'text-white/60 hover:text-white'
+            }`}
+          >
+            PT
+          </button>
+          <button
+            type="button"
+            onClick={() => setLanguage('en')}
+            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+              language === 'en' ? 'bg-[var(--color-artificio-orange)] text-white' : 'text-white/60 hover:text-white'
+            }`}
+          >
+            EN
+          </button>
+        </div>
       </div>
 
       {/* Cenário selecionado */}
@@ -90,7 +122,7 @@ export const ScenarioSelector = ({
                 Cenário Selecionado
               </p>
               <p className="mt-1 text-sm font-semibold text-white">
-                {selectedScenario.name}
+                {getDisplayName(selectedScenario, language)}
               </p>
               {selectedScenario.subgenres.length > 0 && (
                 <p className="mt-1 text-xs text-white/60">
@@ -136,7 +168,7 @@ export const ScenarioSelector = ({
                     : 'border-white/10 bg-white/5 text-white/80 hover:border-white/20'
                 }`}
               >
-                <p className="font-semibold">{scenario.name}</p>
+                <p className="font-semibold">{getDisplayName(scenario, language)}</p>
                 {scenario.subgenres.length > 0 && (
                   <p className="text-xs text-white/55 mt-0.5">
                     {scenario.subgenres.join(' · ')}

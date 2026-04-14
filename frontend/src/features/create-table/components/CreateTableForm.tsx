@@ -354,6 +354,7 @@ export function CreateTableForm({
             setSettingName={formHook.setSettingName}
             settingStyles={formHook.settingStyles}
             setSettingStyles={formHook.setSettingStyles}
+            selectedScenarioName={selectedScenarioName}
             priceType={formHook.form.price_type}
             userRole={user?.role}
           />

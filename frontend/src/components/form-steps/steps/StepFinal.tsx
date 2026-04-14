@@ -28,6 +28,7 @@ interface DdalFormState {
 }
 
 interface StepFinalProps {
+  selectedScenarioName?: string | null;
   rulesNotes: string;
   setRulesNotes: (notes: string) => void;
   bannerUrl: string;
@@ -77,6 +78,7 @@ interface StepFinalProps {
   setSettingName: (name: string) => void;
   settingStyles: string[];
   setSettingStyles: (styles: string[]) => void;
+  selectedScenarioName?: string | null;
   priceType: string;
   // Contatos
   contacts: ContactFormEntry[];
@@ -171,20 +173,15 @@ export function StepFinal(props: StepFinalProps) {
       />
 
       {/* Rules Notes */}
-      <div className="flex flex-col gap-1">
-        <label htmlFor="rules_notes" className="text-sm font-medium text-white/70">
-          Regras/Observações da Mesa (opcional)
-        </label>
-        <textarea
-          id="rules_notes"
-          name="rules_notes"
-          value={props.rulesNotes}
-          onChange={(e) => props.setRulesNotes(e.target.value)}
-          rows={3}
-          placeholder="Ex: Usamos regras homebrew para combate, proibido PvP, etc."
-          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all resize-none"
-        />
-      </div>
+      <RichTextArea
+        id="rules_notes"
+        label="Regras/Observações da Mesa (opcional)"
+        value={props.rulesNotes}
+        onChange={props.setRulesNotes}
+        placeholder="Ex: Usamos regras homebrew para combate, proibido PvP, etc."
+        rows={3}
+        maxLength={1500}
+      />
 
       {/* Toggle Campos Avançados */}
       <button
@@ -302,19 +299,15 @@ export function StepFinal(props: StepFinalProps) {
           {/* Requisitos técnicos */}
           <div className="space-y-3">
             <p className="text-sm font-semibold text-white/80">Requisitos Técnicos</p>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="technical_requirements" className="text-sm font-medium text-white/70">
-                Requisitos Detalhados (opcional)
-              </label>
-              <textarea
-                id="technical_requirements"
-                value={props.technicalRequirements}
-                onChange={(e) => props.setTechnicalRequirements(e.target.value)}
-                rows={2}
-                placeholder="Ex: Roll20 + Discord, Foundry VTT com módulos X, Y"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all resize-none"
-              />
-            </div>
+            <RichTextArea
+              id="technical_requirements"
+              label="Requisitos Detalhados (opcional)"
+              value={props.technicalRequirements}
+              onChange={props.setTechnicalRequirements}
+              placeholder="Ex: Roll20 + Discord, Foundry VTT com módulos X, Y"
+              rows={2}
+              maxLength={1000}
+            />
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <input
@@ -363,6 +356,7 @@ export function StepFinal(props: StepFinalProps) {
               settingStyles={props.settingStyles}
               onSettingNameChange={props.setSettingName}
               onSettingStylesChange={props.setSettingStyles}
+              selectedScenarioName={props.selectedScenarioName}
             />
           </div>
         </section>

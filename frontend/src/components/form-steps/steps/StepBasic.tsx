@@ -1,4 +1,5 @@
 import type { ChangeEvent } from 'react';
+import { RichTextArea } from '../../RichTextArea';
 
 interface StepBasicProps {
   form: {
@@ -29,20 +30,15 @@ export function StepBasic({ form, setForm }: StepBasicProps) {
         />
       </div>
 
-      <div className="flex flex-col gap-1">
-        <label htmlFor="description" className="text-sm font-medium text-white/70">
-          Descrição da Mesa
-        </label>
-        <textarea
-          id="description"
-          name="description"
-          value={form.description}
-          onChange={handleChange}
-          rows={6}
-          placeholder="Descreva sua campanha, o tom da história, o que esperar..."
-          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all resize-none"
-        />
-      </div>
+      <RichTextArea
+        id="description"
+        label="Descrição da Mesa"
+        value={form.description}
+        onChange={(value) => setForm({ ...form, description: value })}
+        placeholder="Descreva sua campanha, o tom da história, o que esperar..."
+        rows={6}
+        maxLength={5000}
+      />
     </div>
   );
 }

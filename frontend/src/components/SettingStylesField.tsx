@@ -6,6 +6,7 @@ interface SettingStylesFieldProps {
   settingStyles: string[];
   onSettingNameChange: (value: string) => void;
   onSettingStylesChange: (styles: string[]) => void;
+  selectedScenarioName?: string | null;
 }
 
 interface StyleSuggestion {
@@ -23,6 +24,7 @@ export const SettingStylesField: React.FC<SettingStylesFieldProps> = ({
   settingStyles,
   onSettingNameChange,
   onSettingStylesChange,
+  selectedScenarioName = null,
 }) => {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
@@ -108,19 +110,31 @@ export const SettingStylesField: React.FC<SettingStylesFieldProps> = ({
         <label htmlFor="setting-name">
           Cenário <span className="optional">(opcional)</span>
         </label>
-        <input
-          id="setting-name"
-          type="text"
-          className="form-input"
-          value={settingName}
-          onChange={(e) => onSettingNameChange(e.target.value)}
-          placeholder="Ex: Forgotten Realms, Eberron, Ravenloft"
-          // CORREÇÃO DT-10: Adicionar maxLength
-          maxLength={MAX_SETTING_LENGTH}
-        />
-        <p className="form-hint">
-          Digite o nome do cenário para receber sugestões de estilos automaticamente.
-        </p>
+        
+        {selectedScenarioName ? (
+          <div className="selected-scenario-display">
+            <span className="scenario-selected-badge">{selectedScenarioName}</span>
+            <p className="form-hint">
+              Cenário selecionado na etapa anterior. Para alterar, vá para "Sistema e Cenário".
+            </p>
+          </div>
+        ) : (
+          <>
+            <input
+              id="setting-name"
+              type="text"
+              className="form-input"
+              value={settingName}
+              onChange={(e) => onSettingNameChange(e.target.value)}
+              placeholder="Ex: Forgotten Realms, Eberron, Ravenloft"
+              // CORREÇÃO DT-10: Adicionar maxLength
+              maxLength={MAX_SETTING_LENGTH}
+            />
+            <p className="form-hint">
+              Digite o nome do cenário para receber sugestões de estilos automaticamente.
+            </p>
+          </>
+        )}
       </div>
 
       <div className="form-group">

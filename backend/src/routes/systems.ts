@@ -94,7 +94,7 @@ router.get('/', async (req: Request, res: Response) => {
     const [systems, aliases] = await Promise.all([
       db
         .selectFrom('systems')
-        .select(['id', 'name', 'slug', 'parent_id', 'node_type', 'depth', 'path_slug'])
+        .select(['id', 'name', 'name_pt', 'slug', 'parent_id', 'node_type', 'depth', 'path_slug'])
         .orderBy('depth', 'asc')
         .orderBy('name', 'asc')
         .execute() as Promise<SystemRecord[]>,
@@ -166,7 +166,7 @@ const slugify = (value: string): string => {
 
 // POST /api/v1/admin/systems — Criar novo sistema
 router.post('/admin', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
-  const { name, node_type, parent_id, aliases } = req.body;
+  const { name, name_pt, node_type, parent_id, aliases } = req.body;
 
   if (!name || !node_type) {
     return res.status(400).json({ error: 'Nome e tipo são obrigatórios.' });
@@ -218,13 +218,14 @@ router.post('/admin', authMiddleware, requireRole('admin'), async (req: Request,
       .insertInto('systems')
       .values({
         name,
+        name_pt: name_pt || null,
         slug,
         node_type: node_type as SystemNodeType,
         parent_id: parent_id || null,
         depth,
         path_slug,
       })
-      .returning(['id', 'name', 'slug', 'node_type', 'parent_id', 'depth', 'path_slug'])
+      .returning(['id', 'name', 'name_pt', 'slug', 'node_type', 'parent_id', 'depth', 'path_slug'])
       .executeTakeFirst();
 
     // Inserir aliases se fornecidos
@@ -255,7 +256,7 @@ router.post('/admin', authMiddleware, requireRole('admin'), async (req: Request,
 // PUT /api/v1/admin/systems/:id — Editar sistema
 router.put('/admin/:id', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { name, node_type, parent_id } = req.body;
+  const { name, name_pt, node_type, parent_id } = req.body;
 
   if (!name || !node_type) {
     return res.status(400).json({ error: 'Nome e tipo são obrigatórios.' });
@@ -311,6 +312,7 @@ router.put('/admin/:id', authMiddleware, requireRole('admin'), async (req: Reque
       .updateTable('systems')
       .set({
         name,
+        name_pt: name_pt || null,
         slug,
         node_type: node_type as SystemNodeType,
         parent_id: parent_id || null,
@@ -318,7 +320,7 @@ router.put('/admin/:id', authMiddleware, requireRole('admin'), async (req: Reque
         path_slug,
       })
       .where('id', '=', id)
-      .returning(['id', 'name', 'slug', 'node_type', 'parent_id', 'depth', 'path_slug'])
+      .returning(['id', 'name', 'name_pt', 'slug', 'node_type', 'parent_id', 'depth', 'path_slug'])
       .executeTakeFirst();
 
     // Atualizar aliases se fornecidos
