@@ -41,6 +41,20 @@ jobs:
 
             export GH_TOKEN="${{ secrets.GH_TOKEN }}"
             cd /opt/mesas-beta
+
+            if [ ! -f .env ]; then
+              echo "❌ Arquivo /opt/mesas-beta/.env não encontrado"
+              exit 1
+            fi
+
+            for required_key in VITE_API_URL VITE_CLOUDINARY_CLOUD_NAME VITE_CLOUDINARY_UPLOAD_PRESET; do
+              required_value=$(awk -F= -v k="$required_key" '$1==k{print substr($0, index($0, "=")+1)}' .env | tail -n1 | tr -d '\r')
+              if [ -z "$required_value" ]; then
+                echo "❌ Variável obrigatória ausente no .env: $required_key"
+                exit 1
+              fi
+            done
+
             git fetch https://$GH_TOKEN@github.com/FarenRavirar/mesas_rpg_artificio.git dev
             git reset --hard FETCH_HEAD
             

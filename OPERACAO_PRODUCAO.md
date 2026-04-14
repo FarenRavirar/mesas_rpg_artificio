@@ -347,9 +347,6 @@ COOKIE_SAME_SITE=none
 VITE_API_URL=https://mesasbeta.artificiorpg.com
 VITE_CLOUDINARY_CLOUD_NAME=...
 VITE_CLOUDINARY_UPLOAD_PRESET=...
-
-# Legado (não é o fluxo principal de upload de banner de mesa)
-IMGUR_CLIENT_ID=...
 ```
 
 **Como editar `.env` no servidor:**

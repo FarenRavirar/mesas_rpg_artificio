@@ -102,11 +102,7 @@ export interface GmProfilesTable {
   nickname: string | null;
   bio_long: string | null;
   avatar_url: string | null;
-  avatar_deletehash: string | null;
-  avatar_imgur_id: string | null;
   banner_url: string | null;
-  banner_deletehash: string | null;
-  banner_imgur_id: string | null;
   languages: Generated<string[]>;
   specialties: Generated<string[]>;
   badges: Generated<string[]>;
@@ -205,8 +201,6 @@ export interface TablesTable {
   title: string;
   description: string | null;
   cover_url: string | null;
-  cover_deletehash: string | null;
-  cover_imgur_id: string | null;
   status: Generated<TableStatus>;
   type: TableType;
   audience: Generated<TableAudience>;

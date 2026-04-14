@@ -5,6 +5,9 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_ENABLE_DEVTOOLS: ${VITE_ENABLE_DEVTOOLS:-false}
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_CLOUDINARY_CLOUD_NAME: ${VITE_CLOUDINARY_CLOUD_NAME}
+        VITE_CLOUDINARY_UPLOAD_PRESET: ${VITE_CLOUDINARY_UPLOAD_PRESET}
     container_name: mesas-app
     restart: always
     expose:
@@ -50,7 +53,6 @@ services:
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
       - JWT_REFRESH_EXPIRES_IN=7d
       - FRONTEND_URL=https://mesas.artificiorpg.com
-      - IMGUR_CLIENT_ID=${IMGUR_CLIENT_ID}
     depends_on:
       mesas-db:
         condition: service_healthy
