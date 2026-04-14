@@ -344,6 +344,7 @@ Se configurar ambiente local for complexo, testar diretamente em:
 | `title`, `description`, `cover_url`, `cover_source_type`, `cover_origin_url`, `cover_deletehash`, `cover_imgur_id` | Conteúdo editorial da mesa e metadados de imagem hospedada ou reaproveitada externamente |
 | `banner_url` | URL canônica de banner/capa da mesa (aceita URL pública externa, incluindo `secure_url` do Cloudinary) |
 | `banner_crop_data` | JSONB — Coordenadas de crop visual `{x, y, width, height}` para display via CSS `object-position` (migration_101) |
+| `gm_avatar_url` | URL canônica de foto de perfil do mestre (Cloudinary, Google ou URL externa) |
 | `frequency` | Frequência das sessões: `semanal`, `quinzenal`, `mensal`, `avulsa` (migration_09) |
 | `frequency_custom` | Descrição livre de frequência quando `frequency = 'avulsa'` (migration_09) |
 | `rules_notes` | Regras, avisos ou notas especiais da mesa (migration_09) |
@@ -989,6 +990,8 @@ O runtime atual separa imagem em três grupos:
 **Rota de upload:** `POST /api/v1/upload` (backend) - recebe arquivo via multipart, retorna `secure_url`
 
 **Componente de edição:** `ImageEditor.tsx` - permite crop manual, zoom e ajuste de posição antes do upload. Proporção fixa de 1200x650 (padrão WordPress).
+
+**Componente de avatar:** `AvatarUploader.tsx` - permite upload de foto de perfil via Cloudinary (máx 2MB). Suporta URL manual como fallback. Mesmo estado `gmAvatarUrl` usado no formulário de criação de mesa e no perfil do mestre.
 
 ### 16.3 Campos de banco e legado
 

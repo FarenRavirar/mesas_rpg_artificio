@@ -1,6 +1,6 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 14/04/2026 15:50 BRT
+**Última atualização:** 14/04/2026 16:40 BRT
 
 ---
 
@@ -17,6 +17,13 @@
 - Usuário pode voltar e refazer o crop visual posteriormente
 - Proporção do banner: 1200x650 (1.85:1 - widescreen)
 
+**Upload de Avatar via Cloudinary - CONCLUÍDO:**
+- Novo componente `AvatarUploader.tsx` com upload signed para Cloudinary
+- Upload direto via backend (rota POST /api/v1/upload)
+- Same state `gmAvatarUrl` usado no formulário de criação de mesa e perfil do mestre
+- Suporta URL manual como fallback
+- Limite de 2MB, formatos JPG/PNG/WEBP
+
 **Implementado nesta sessão:**
 - Backend: removido código de crop de cloudinary.ts e upload.ts
 - Frontend: adicionado estado bannerCropData no useCreateTableForm e props no StepFinal
@@ -25,17 +32,26 @@
 - Backend: retornado cover_crop_data nas queries de tables.ts
 - Frontend: adicionado coverCropData no TableViewModel e mapper
 - Frontend: implementado CSS object-position no TableHero para display do crop
-- Correções TypeScript: banner_crop_data no CreateTablePayload, cover_crop_data no TableCard
+- Frontend: adicionado AvatarUploader.tsx para upload de foto de perfil via Cloudinary
+- Frontend: adicionado gm_avatar_url no payload e validador do backend
 
 ---
 
 ## Próxima Ação
 
-- Validar funcionamento do crop visual no beta: criar/editar mesa com banner e verificar display com object-position
+- Validar funcionamento do upload de avatar no beta: criar/editar mesa com foto de perfil via Cloudinary
 
 ---
 
 ## Última Sessão
+
+**Data:** 14/04/2026 16:40 BRT  
+**Tipo:** Implementação de upload de avatar via Cloudinary  
+**O que foi feito:** Criado componente AvatarUploader.tsx para upload de foto de perfil via Cloudinary (mesma rota /api/v1/upload). Mesmo estado gmAvatarUrl usado no formulário de criação de mesa e no perfil do mestre. Adicionado gm_avatar_url no payload e validador do backend. Atualizada documentação (ARQUITETURA_PROJETO.md, RESUMO_EXECUCAO.md).
+
+**Status:** ✅ Concluído
+
+---
 
 **Data:** 14/04/2026 15:50 BRT  
 **Tipo:** Implementação de crop visual via CSS  
