@@ -39,7 +39,7 @@ export function ImageUploader({
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const cloudName = (import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '').trim();
-  const uploadEndpoint = (import.meta.env.VITE_API_URL || '').replace(/\/api\/v1$/, '') + '/api/v1/upload';
+  const uploadEndpoint = (import.meta.env.VITE_API_URL || '').replace(/\/api\/v1$/, '') + '/api/v1';
 
   const isCloudinaryConfigured = cloudName.length > 0;
   const previewSource = value.trim() || bannerPlaceholder;
