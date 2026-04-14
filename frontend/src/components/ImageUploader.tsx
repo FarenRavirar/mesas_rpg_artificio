@@ -1,4 +1,6 @@
-import { useRef, useState, type ChangeEvent } from 'react';
+import { useRef, useState, useCallback, type ChangeEvent } from 'react';
+import { ImageEditor } from './ImageEditor';
+import type { PixelCrop } from 'react-image-crop';
 import bannerPlaceholder from '../assets/banner_placeholder.webp';
 
 interface ImageUploaderProps {
@@ -37,6 +39,14 @@ export function ImageUploader({
 
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [showEditor, setShowEditor] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingImageUrl, setPendingImageUrl] = useState<string>('');
+  const [cropData, setCropData] = useState<{
+    crop: PixelCrop;
+    originalWidth: number;
+    originalHeight: number;
+  } | null>(null);
 
   const cloudName = (import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '').trim();
   const uploadEndpoint = (import.meta.env.VITE_API_URL || '').replace(/\/api\/v1$/, '') + '/api/v1';
@@ -54,7 +64,7 @@ export function ImageUploader({
     onError(true);
   };
 
-  const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = '';
 
@@ -75,12 +85,40 @@ export function ImageUploader({
       return;
     }
 
+    const imageUrl = URL.createObjectURL(file);
+    setPendingFile(file);
+    setPendingImageUrl(imageUrl);
+    setCropData(null);
+    setShowEditor(true);
     clearError();
+  };
+
+  const handleCropComplete = useCallback((croppedAreaPixels: PixelCrop, originalWidth: number, originalHeight: number) => {
+    setCropData({
+      crop: croppedAreaPixels,
+      originalWidth,
+      originalHeight,
+    });
+  }, []);
+
+  const handleConfirmCrop = async () => {
+    if (!pendingFile) return;
+
     setIsUploading(true);
+    setShowEditor(false);
 
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', pendingFile);
+
+      if (cropData) {
+        formData.append('crop_x', String(Math.round(cropData.crop.x)));
+        formData.append('crop_y', String(Math.round(cropData.crop.y)));
+        formData.append('crop_width', String(Math.round(cropData.crop.width)));
+        formData.append('crop_height', String(Math.round(cropData.crop.height)));
+        formData.append('original_width', String(Math.round(cropData.originalWidth)));
+        formData.append('original_height', String(Math.round(cropData.originalHeight)));
+      }
 
       const response = await fetch(uploadEndpoint, {
         method: 'POST',
@@ -101,7 +139,21 @@ export function ImageUploader({
       setError(error instanceof Error ? error.message : 'Falha inesperada no upload.');
     } finally {
       setIsUploading(false);
+      URL.revokeObjectURL(pendingImageUrl);
+      setPendingFile(null);
+      setPendingImageUrl('');
+      setCropData(null);
     }
+  };
+
+  const handleCancelCrop = () => {
+    setShowEditor(false);
+    if (pendingImageUrl) {
+      URL.revokeObjectURL(pendingImageUrl);
+    }
+    setPendingFile(null);
+    setPendingImageUrl('');
+    setCropData(null);
   };
 
   return (
@@ -117,7 +169,7 @@ export function ImageUploader({
             id={inputId}
             type="file"
             accept="image/png,image/jpeg,image/webp"
-            onChange={handleFileUpload}
+            onChange={handleFileSelect}
             className="hidden"
           />
 
@@ -196,7 +248,17 @@ export function ImageUploader({
       {(uploadError || hasError) && (
         <p className="text-xs text-red-300" role="alert">
           {uploadError || 'Não foi possível validar a imagem enviada.'}
-        </p>
+        />
+      )}
+
+      {showEditor && (
+        <ImageEditor
+          imageSrc={pendingImageUrl}
+          onCropComplete={handleCropComplete}
+          onCancel={handleCancelCrop}
+          onConfirm={handleConfirmCrop}
+          aspect={1200 / 400}
+        />
       )}
     </section>
   );

@@ -103,7 +103,7 @@ app.use('/api/v1/settings', settings_1.default);
 app.use('/api/v1/admin/setting-suggestions', adminSettingSuggestions_1.default);
 app.use('/api/v1/vtt-platforms', vttPlatforms_1.default);
 app.use('/api/v1/changelog', changelog_1.default);
-app.use('/api/v1/upload', upload_1.default);
+app.use('/api/v1', upload_1.default);
 app.use((err, req, res, next) => {
     console.error('[Global Error]', err);
     res.status(500).json({ error: 'Erro interno no servidor.' });
