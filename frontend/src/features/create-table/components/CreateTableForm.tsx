@@ -317,7 +317,8 @@ export function CreateTableForm({
             setBannerCropData={formHook.setBannerCropData}
             bannerError={formHook.bannerError}
             setBannerError={formHook.setBannerError}
-            gmAvatarUrl={initialData?.gm_avatar_url || ''}
+            gmAvatarUrl={formHook.gmAvatarUrl}
+            setGmAvatarUrl={formHook.setGmAvatarUrl}
             avatarError={formHook.avatarError}
             setAvatarError={formHook.setAvatarError}
             isCovilMesa={formHook.isCovilMesa}
