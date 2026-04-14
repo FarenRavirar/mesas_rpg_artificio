@@ -159,3 +159,8 @@
 | **GET** | `/` | ❌ Pendente/Front | - |
 | **POST** | `/suggest` | ❌ Pendente/Front | - |
 
+### UPLOAD (`routes/upload.ts`)
+| Metodo | Endpoint | Status | Chamado por (Frontend) |
+|---|---|---|---|
+| **POST** | `/upload` | ✅ Em Uso | ImageUploader.tsx — upload de imagem via backend com Cloudinary signed (substitui upload direto unsigned)
+
