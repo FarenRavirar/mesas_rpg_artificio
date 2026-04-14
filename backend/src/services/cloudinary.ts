@@ -27,7 +27,7 @@ export async function uploadImageToCloudinary(imageUrl: string, cropData?: CropD
 
     if (cropData) {
       const scaleX = 1200 / cropData.original_width;
-      const scaleY = 400 / cropData.original_height;
+      const scaleY = 650 / cropData.original_height;
       
       transformations.push({
         crop: 'crop',
@@ -38,7 +38,7 @@ export async function uploadImageToCloudinary(imageUrl: string, cropData?: CropD
         y: Math.round(cropData.crop_y * scaleY),
       });
     } else {
-      transformations.push({ width: 1200, height: 400, crop: 'fill' });
+      transformations.push({ width: 1200, height: 650, crop: 'fill' });
     }
 
     transformations.push({ quality: 'auto', fetch_format: 'auto' });

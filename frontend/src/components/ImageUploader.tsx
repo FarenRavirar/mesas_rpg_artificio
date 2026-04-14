@@ -257,7 +257,7 @@ export function ImageUploader({
           onCropComplete={handleCropComplete}
           onCancel={handleCancelCrop}
           onConfirm={handleConfirmCrop}
-          aspect={1200 / 400}
+          aspect={1200 / 650}
         />
       )}
     </section>

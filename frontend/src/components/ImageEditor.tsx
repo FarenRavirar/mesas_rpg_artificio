@@ -35,7 +35,7 @@ export function ImageEditor({
   onCropComplete,
   onCancel,
   onConfirm,
-  aspect = 1200 / 400
+  aspect = 1200 / 650
 }: ImageEditorProps) {
   const [crop, setCrop] = useState<Crop>();
   const imgRef = useRef<HTMLImageElement>(null);
