@@ -217,8 +217,8 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
       const isEditing = !!(initialData as any)?.id;
       const method = isEditing ? 'PUT' : 'POST';
       const endpoint = isEditing 
-        ? `${API_BASE}/api/v1/gm/tables/${(initialData as any).id}` 
-        : `${API_BASE}/api/v1/gm/tables`;
+        ? `${API_BASE}/gm/tables/${(initialData as any).id}` 
+        : `${API_BASE}/gm/tables`;
 
       const res = await fetch(endpoint, {
         method,

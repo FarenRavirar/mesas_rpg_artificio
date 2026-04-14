@@ -12,7 +12,7 @@ export function useSystems() {
   const fetchSystems = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/api/v1/systems?view=flat`, {
+      const response = await fetch(`${API_BASE}/systems?view=flat`, {
         credentials: 'include',
       });
       
@@ -31,7 +31,7 @@ export function useSystems() {
     if (!confirm(`Deletar sistema "${name}"? Esta ação não pode ser desfeita.`)) return;
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/systems/admin/${id}`, {
+      const response = await fetch(`${API_BASE}/systems/admin/${id}`, {
         method: 'DELETE',
         credentials: 'include',
       });

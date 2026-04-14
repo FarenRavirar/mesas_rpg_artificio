@@ -44,7 +44,7 @@ export function useLinks(): UseLinksReturn {
       setLoading(true);
       setError(null);
 
-      const res = await fetch(`${API_BASE}/api/v1/profile/links`, {
+      const res = await fetch(`${API_BASE}/profile/links`, {
         credentials: 'include',
       });
 
@@ -73,7 +73,7 @@ export function useLinks(): UseLinksReturn {
       try {
         setError(null);
 
-        const res = await fetch(`${API_BASE}/api/v1/profile/links`, {
+        const res = await fetch(`${API_BASE}/profile/links`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -106,7 +106,7 @@ export function useLinks(): UseLinksReturn {
       try {
         setError(null);
 
-        const res = await fetch(`${API_BASE}/api/v1/profile/links/${linkId}`, {
+        const res = await fetch(`${API_BASE}/profile/links/${linkId}`, {
           method: 'DELETE',
           credentials: 'include',
         });
@@ -133,7 +133,7 @@ export function useLinks(): UseLinksReturn {
       try {
         setError(null);
 
-        const res = await fetch(`${API_BASE}/api/v1/profile/links/reorder`, {
+        const res = await fetch(`${API_BASE}/profile/links/reorder`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',

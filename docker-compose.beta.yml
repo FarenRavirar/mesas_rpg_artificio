@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_ENABLE_DEVTOOLS: ${VITE_ENABLE_DEVTOOLS:-true}
-        VITE_API_URL: ${VITE_API_URL}
+        VITE_API_URL: ${VITE_API_URL:-https://mesasbeta.artificiorpg.com}
         VITE_CLOUDINARY_CLOUD_NAME: ${VITE_CLOUDINARY_CLOUD_NAME}
         VITE_CLOUDINARY_UPLOAD_PRESET: ${VITE_CLOUDINARY_UPLOAD_PRESET}
     container_name: mesas-beta-frontend
