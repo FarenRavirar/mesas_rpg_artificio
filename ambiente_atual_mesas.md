@@ -100,9 +100,8 @@ frontend:
   runtime_entrypoint: nginx -g "daemon off;"
   build_args_configured:
     - VITE_ENABLE_DEVTOOLS  # true em beta
-    - VITE_API_URL  # não necessário (código morto)
-    - VITE_CLOUDINARY_CLOUD_NAME  # pendente configuração
-    - VITE_CLOUDINARY_UPLOAD_PRESET  # pendente configuração
+    - VITE_API_URL  # Obrigatório - URL base da API para o frontend
+    - VITE_CLOUDINARY_CLOUD_NAME  # Obrigatório - cloud name para componente de upload
   nginx_static_root: /usr/share/nginx/html
   nginx_build_copy: /app/dist → /usr/share/nginx/html
 ```
@@ -146,6 +145,7 @@ routes:
   - /api/v1/system-suggestions
   - /api/v1/admin/system-suggestions
   - /api/v1/notifications
+  - /api/v1/upload  # upload de imagens via backend + Cloudinary signed
 
 health_behavior:
   checks_database_if_DATABASE_URL_present: true
