@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import ReactCrop, { Crop, PixelCrop, centerCrop, makeAspectCrop } from 'react-image-crop';
+import ReactCrop, { centerCrop, makeAspectCrop, type Crop, type PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 
 interface ImageEditorProps {
@@ -38,7 +38,6 @@ export function ImageEditor({
   aspect = 1200 / 400
 }: ImageEditorProps) {
   const [crop, setCrop] = useState<Crop>();
-  const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   const imgRef = useRef<HTMLImageElement>(null);
   const [scale, setScale] = useState(1);
 
@@ -52,7 +51,6 @@ export function ImageEditor({
   }, []);
 
   const handleCropComplete = useCallback((c: PixelCrop) => {
-    setCompletedCrop(c);
     if (imgRef.current) {
       onCropComplete(c, imgRef.current.naturalWidth, imgRef.current.naturalHeight);
     }
