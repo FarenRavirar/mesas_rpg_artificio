@@ -21,8 +21,8 @@ router.post('/', upload.single('file'), async (req, res) => {
       secure_url: result.secure_url,
       public_id: result.public_id
     });
-  } catch (error) {
-    console.error('[upload] Erro ao fazer upload:', error);
+  } catch (error: any) {
+    console.error('[upload] Erro ao fazer upload:', error?.message || error);
     res.status(500).json({ error: 'Falha ao processar imagem' });
   }
 });
