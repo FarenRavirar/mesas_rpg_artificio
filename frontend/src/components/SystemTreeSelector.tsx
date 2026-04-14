@@ -25,7 +25,7 @@ interface SystemTreeSelectorProps {
 
 const normalizeText = (value: string): string => value.trim().toLowerCase();
 
-const getDisplayName = (node: FlattenedSystemNode, lang: 'en' | 'pt'): string => {
+const getDisplayName = (node: { name: string; name_pt?: string | null }, lang: 'en' | 'pt'): string => {
   if (lang === 'pt' && node.name_pt) {
     return node.name_pt;
   }
@@ -349,28 +349,6 @@ export const SystemTreeSelector = ({
               </div>
             )}
 
-            {variants.length > 0 && (
-              <div className="space-y-1">
-                <label className="text-xs text-white/60">Variante</label>
-                <select
-                  value={selectedVariantId || ''}
-                  onChange={(e) => {
-                    const v = variants.find(v => v.id === e.target.value);
-                    if (v) {
-                      onToggle(v.id);
-                      setActiveRootId(v.parent_id);
-                      setActiveMidId(v.id);
-                    }
-                  }}
-                  className="w-full rounded-lg border border-white/20 bg-[#13213f] px-3 py-2 text-sm text-white outline-none focus:border-[var(--color-artificio-orange)]"
-                >
-                  <option value="">Selecione uma variante...</option>
-                  {variants.map(v => (
-                    <option key={v.id} value={v.id}>{getDisplayName(v, language)}</option>
-                  ))}
-                </select>
-              </div>
-            )}
 
             {/* Caminho completo */}
             <div className="pt-2 border-t border-white/10">

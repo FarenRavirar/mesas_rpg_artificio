@@ -132,11 +132,8 @@ export function StepReview({
             sessions.map((session, idx) => (
               <div key={idx} className="p-2 bg-white/5 rounded-lg">
                 <span className="text-white">
-                  {session.day_of_week} · {session.start_time} - {session.end_time}
+                  {session.day_of_week} · {session.start_time}{session.end_time ? ` - ${session.end_time}` : ''}
                 </span>
-                {session.frequency && (
-                  <span className="text-white/60 ml-2">({session.frequency})</span>
-                )}
               </div>
             ))
           ) : (

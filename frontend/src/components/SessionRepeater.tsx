@@ -27,12 +27,7 @@ const DAYS_OF_WEEK = [
   { value: 'domingo', label: 'Domingo' },
 ] as const;
 
-const FREQUENCIES = [
-  { value: 'semanal', label: 'Semanal' },
-  { value: 'quinzenal', label: 'Quinzenal' },
-  { value: 'mensal', label: 'Mensal' },
-  { value: 'avulsa', label: 'Avulsa' },
-] as const;
+
 
 export function SessionRepeater({ sessions, onChange, disabled = false }: SessionRepeaterProps) {
   const [removeConfirm, setRemoveConfirm] = useState<number | null>(null);
@@ -144,26 +139,7 @@ export function SessionRepeater({ sessions, onChange, disabled = false }: Sessio
                 </select>
               </div>
 
-              {/* Dia da Semana */}
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-black uppercase tracking-widest text-white/70">
-                  Dia da Semana *
-                </label>
-                <select
-                  value={session.day_of_week}
-                  onChange={(e) =>
-                    handleUpdateSession(index, 'day_of_week', e.target.value as SessionSchedule['day_of_week'])
-                  }
-                  disabled={disabled}
-                  className="w-full bg-[#1B2A4A] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all cursor-pointer disabled:opacity-50"
-                >
-                  {DAYS.map((day) => (
-                    <option key={day.value} value={day.value}>
-                      {day.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+
 
               {/* Horário inicial */}
               <div className="flex flex-col gap-1">

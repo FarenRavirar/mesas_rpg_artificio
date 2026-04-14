@@ -78,7 +78,6 @@ interface StepFinalProps {
   setSettingName: (name: string) => void;
   settingStyles: string[];
   setSettingStyles: (styles: string[]) => void;
-  selectedScenarioName?: string | null;
   priceType: string;
   // Contatos
   contacts: ContactFormEntry[];
