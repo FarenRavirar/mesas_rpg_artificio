@@ -21,6 +21,7 @@ import adminSettingSuggestionsRoutes from './routes/adminSettingSuggestions';
 import vttPlatformsRoutes from './routes/vttPlatforms';
 import changelogRoutes from './routes/changelog';
 import adminTablesRoutes from './routes/adminTables';
+import uploadRoutes from './routes/upload';
 import 'express-async-errors';
 import { db } from './db';
 import { requestLogger } from './middleware/requestLogger';
@@ -109,6 +110,7 @@ app.use('/api/v1/settings', settingsRoutes);
 app.use('/api/v1/admin/setting-suggestions', adminSettingSuggestionsRoutes);
 app.use('/api/v1/vtt-platforms', vttPlatformsRoutes);
 app.use('/api/v1/changelog', changelogRoutes);
+app.use('/api/v1/upload', uploadRoutes);
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('[Global Error]', err);

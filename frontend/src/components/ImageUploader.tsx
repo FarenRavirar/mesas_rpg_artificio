@@ -39,9 +39,9 @@ export function ImageUploader({
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const cloudName = (import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '').trim();
-  const uploadPreset = (import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || '').trim();
+  const uploadEndpoint = (import.meta.env.VITE_API_URL || '').replace(/\/api\/v1$/, '') + '/api/v1/upload';
 
-  const isCloudinaryConfigured = cloudName.length > 0 && uploadPreset.length > 0;
+  const isCloudinaryConfigured = cloudName.length > 0;
   const previewSource = value.trim() || bannerPlaceholder;
 
   const clearError = () => {
@@ -81,17 +81,17 @@ export function ImageUploader({
     try {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('upload_preset', uploadPreset);
 
-      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+      const response = await fetch(uploadEndpoint, {
         method: 'POST',
+        credentials: 'include',
         body: formData,
       });
 
       const payload = await response.json();
 
       if (!response.ok || !payload?.secure_url) {
-        throw new Error(payload?.error?.message || 'Falha ao enviar imagem para Cloudinary.');
+        throw new Error(payload?.error || 'Falha ao enviar imagem.');
       }
 
       onChange(payload.secure_url as string);

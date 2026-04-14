@@ -26,6 +26,7 @@ const adminSettingSuggestions_1 = __importDefault(require("./routes/adminSetting
 const vttPlatforms_1 = __importDefault(require("./routes/vttPlatforms"));
 const changelog_1 = __importDefault(require("./routes/changelog"));
 const adminTables_1 = __importDefault(require("./routes/adminTables"));
+const upload_1 = __importDefault(require("./routes/upload"));
 require("express-async-errors");
 const db_1 = require("./db");
 const requestLogger_1 = require("./middleware/requestLogger");
@@ -102,6 +103,7 @@ app.use('/api/v1/settings', settings_1.default);
 app.use('/api/v1/admin/setting-suggestions', adminSettingSuggestions_1.default);
 app.use('/api/v1/vtt-platforms', vttPlatforms_1.default);
 app.use('/api/v1/changelog', changelog_1.default);
+app.use('/api/v1/upload', upload_1.default);
 app.use((err, req, res, next) => {
     console.error('[Global Error]', err);
     res.status(500).json({ error: 'Erro interno no servidor.' });

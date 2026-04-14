@@ -159,10 +159,9 @@ router.get('/me', auth_1.authMiddleware, async (req, res) => {
             .where('gm_id', '=', gmProfile.id)
             .executeTakeFirst();
         const tablesCount = Number(tablesCountRow?.count ?? 0);
-        const { avatar_deletehash, banner_deletehash, ...safeProfile } = gmProfile;
         return res.json({
             data: {
-                ...safeProfile,
+                ...gmProfile,
                 tables_count: tablesCount,
                 avg_rating: null,
             },
