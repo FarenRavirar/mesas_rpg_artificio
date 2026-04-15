@@ -1,6 +1,6 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 15/04/2026 01:34 BRT
+**Última atualização:** 15/04/2026 12:38 BRT
 
 ---
 
@@ -18,31 +18,37 @@
 - `migration_101` idempotente (`IF NOT EXISTS`)
 - Gate de migration validado em run real beta/prod com schema mínimo conforme (`system_suggestions.name_pt`, `scenario_suggestions`)
 - `migration_104_drop_tables_frequency_columns.sql` confirmada como aplicada em beta e produção (`frequency_cols=0`, `migration104_applied=yes`)
+- **Auditoria TODO_OPERACIONAL.md concluída:** 8 itens movidos para Histórico de Conclusão (incluindo REQ-03 Cloudinary), 1 item removido (OPS-05), 14 itens mantidos no backlog ativo
+- **Verificação GUT ≥ 100 concluída:** 8 itens verificados (código, FILA, sessões), 6 confirmados no backlog ativo, 2 já concluídos (REQ-30, REQ-03)
 
 ---
 
 ## Próxima Ação
 
-1. Priorizar próximo item do backlog técnico/produto (sem bloqueio de schema remanescente)
-2. Manter monitoramento normal de beta e produção após estabilização
+1. Executar REQ-13 (QA de primeira publicação real) — validação manual pelo responsável
+2. Priorizar itens de alta prioridade (GUT ≥ 100): REQ-03, REQ-08, REQ-17, REQ-21, REQ-29, OPS-02
 3. Seguir execução do próximo lote conforme `FILA_IMPLEMENTACAO.md`
 
 ---
 
 ## Última Sessão
 
-**Data:** 15/04/2026 01:34 BRT  
-**Tipo:** Estabilização de deploy beta/prod + fechamento documental REQ-31/143  
-**Arquivo:** `sessoes/resumo_14-04_continuacao-migrations.md`  
+**Data:** 15/04/2026 12:38 BRT  
+**Tipo:** Auditoria completa do TODO_OPERACIONAL.md + Verificação GUT ≥ 100  
+**Arquivo:** `sessoes/resumo_15-04_03_auditoria-todo-operacional.md`  
 **O que foi feito:**
-- Corrigido erro `405` na publicação de mesa (endpoint sem prefixo `/api/v1`)
-- Promoção completa do fix para beta e produção (runs `24435524262` e `24435590034`)
-- Sessão atualizada com evidências dos incidentes e fechamento de pendências operacionais
-- `ARQUITETURA_PROJETO.md`, `MAPA_DE_API.md`, `TODO_OPERACIONAL.md` e `FILA_IMPLEMENTACAO.md` sincronizados
-- Item 143 da fila movido para `concluido` com evidência operacional em run real
-- REQ-31 concluído com confirmação de `migration_104` aplicada em beta/produção
+- Auditoria sistemática de todos os 32 itens do TODO_OPERACIONAL.md
+- Verificação de código-fonte para confirmar implementações (migrations, páginas frontend, configurações)
+- 7 itens movidos para Histórico de Conclusão: REQ-04, REQ-05, REQ-06, REQ-09, REQ-11, REQ-12, REQ-30 item 143
+- 1 item removido: OPS-05 (Node version já atualizado para v22 LTS)
+- 1 item corrigido: REQ-03 (Imgur → Cloudinary conforme sessão 14/04)
+- 15 itens mantidos no backlog ativo (7 alta prioridade, 2 média, 6 baixa)
+- Seção "Concluídos Recentes" renomeada para "Histórico de Conclusão"
+- Todos os itens concluídos agora têm data e resumo
+- **Verificação detalhada GUT ≥ 100:** 8 itens verificados via código, FILA_IMPLEMENTACAO.md e sessões anteriores
+- REQ-30 confirmado como já concluído (está no Histórico de Conclusão 14/04 e 15/04)
 
-**Status:** ✅ Sessão sem pendências técnicas remanescentes.
+**Status:** ✅ Auditoria e verificação GUT concluídas. TODO_OPERACIONAL.md atualizado e sincronizado com estado real do projeto.
 
 ---
 
@@ -50,7 +56,7 @@
 
 Abrir o novo chat já apontando estes arquivos, nesta ordem:
 1. `RESUMO_EXECUCAO.md` (estado mais recente)
-2. `sessoes/resumo_14-04_continuacao-migrations.md` (linha do tempo da limpeza estrutural)
+2. `sessoes/resumo_15-04_auditoria-todo-operacional.md` (auditoria completa do backlog + verificação GUT)
 3. `PRE_DEPLOY_CHECKLIST.md` (gates obrigatórios)
 4. `OPERACAO_PRODUCAO.md` (runbook de deploy e validação)
 5. `scripts/deploy/apply_required_migrations.sh` (fonte canônica do gate)
