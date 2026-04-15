@@ -66,7 +66,7 @@ Use para localizar o erro sem varrer a tabela inteira:
 | E040 | `rsync: connection unexpectedly closed (exit code 11)` | Diretório de destino não existe na máquina remota (VM) | Logs do GitHub Actions mostrando falha no rsync logo após mudar caminhos de pasta | Adicionar `ssh mkdir -p /path/to/dest` antes do passo de rsync no workflow YAML | Sempre garantir que o diretório pai existe antes de realizar rsync em caminhos complexos ou novos |
 | E055 | `unknown flag: --branch` ao executar `gh run list --branch dev` na VM | Versão do GitHub CLI instalada na VM não suporta o parâmetro `--branch` | Comando retorna `unknown flag: --branch` | Usar: `gh run list --repo FarenRavirar/mesas_rpg_artificio -L 5 --json databaseId,name,status,conclusion,headBranch,createdAt` | Validar flags com `gh run list --help` no ambiente alvo antes de automatizar |
 | E056 | `Unknown JSON field` ao executar `gh run list --json` com campos `displayTitle` ou `workflowName` | Versão do CLI da VM expõe schema reduzido | Comando falha listando campos permitidos | Usar apenas campos suportados: `conclusion`, `createdAt`, `databaseId`, `event`, `headBranch`, `headSha`, `name`, `status`, `updatedAt`, `url`, `workflowDatabaseId` | Validar schema exato com `gh run list --help` antes de usar `--json` |
-| E133 | Deploy via GitHub Actions copia arquivos mas containers não refletem mudanças — código atualizado no servidor mas runtime continua com versão antiga | **Causa raiz confirmada (07/04/2026 - 3ª ocorrência):** Workflow usa `docker compose up -d --build --remove-orphans` mas **sem `--force-recreate`**. Docker Compose com `--build` só reconstrói se detectar mudanças no Dockerfile ou contexto de build. Mudanças em arquivos `.tsx`/`.ts` podem ser ignoradas por cache de layers. Container fica desatualizado mesmo após rsync bem-sucedido | **Diagnóstico:** (1) `git log --oneline -1` no servidor mostra commit recente; (2) `docker ps --format '{{.CreatedAt}}'` mostra container criado **antes** do último deploy; (3) Código no servidor (`/opt/mesas-beta/`) está atualizado mas runtime não reflete mudanças; (4) Rebuild manual com `--force-recreate` resolve imediatamente | **Solução validada (07/04/2026):** Adicionar `--force-recreate` ao comando de deploy nos workflows: `docker compose -f docker-compose.beta.yml up -d --build --force-recreate --remove-orphans`. Aplicar em `deploy-beta.yml` (linha 43) e `deploy-production.yml` (linha 43). Commit e push para `dev` | **Prevenção obrigatória:** (1) Sempre usar `--force-recreate` em workflows de deploy para garantir que containers sejam recriados mesmo com cache; (2) Adicionar validação pós-deploy: comparar timestamp de criação do container com timestamp do commit; (3) Nunca assumir que `--build` sozinho garante atualização completa |
+| E133 | Deploy via GitHub Actions copia arquivos mas containers não refletem mudanças — código atualizado no servidor mas runtime continua com versão antiga | **Causa raiz confirmada (07/04/2026 - 3ª ocorrência):** Workflow usa `docker compose up -d --build --remove-orphans` mas **sem `--force-recreate`**. Docker Compose com `--build` só reconstrói se detectar mudanças no Dockerfile ou contexto de build. Mudanças em arquivos `.tsx`/`.ts` podem ser ignoradas por cache de layers. Container fica desatualizado mesmo após rsync bem-sucedido | **Diagnóstico:** (1) `git log --oneline -1` no servidor mostra commit recente; (2) `docker ps --format '{{.CreatedAt}}'` mostra container criado **antes** do último deploy; (3) Código no servidor (`/opt/mesas-beta/`) está atualizado mas runtime não reflete mudanças; (4) Rebuild manual com `--force-recreate` resolve imediatamente | **Solução validada (07/04/2026):** Adicionar `--force-recreate` ao comando de deploy nos workflows: `docker compose -f docker-compose.beta.yml up -d --build --force-recreate --remove-orphans`. Aplicar em `deploy-beta.yml` (linha 43) e `deploy-prod.yml` (linha 43). Commit e push para `dev` | **Prevenção obrigatória:** (1) Sempre usar `--force-recreate` em workflows de deploy para garantir que containers sejam recriados mesmo com cache; (2) Adicionar validação pós-deploy: comparar timestamp de criação do container com timestamp do commit; (3) Nunca assumir que `--build` sozinho garante atualização completa |
 
 ---
 
@@ -522,5 +522,41 @@ docker exec mesas-db psql -U admin -d mesas_rpg -c 'SELECT COUNT(*) FROM systems
 
 **Data:** 09/04/2026
 
+---
 
+## E148 - Build TypeScript falha apos docker compose down deixando beta offline
 
+**Sintoma:**
+Ambiente beta (mesasbeta.artificiorpg.com) fica completamente offline apos push para `dev`. Containers `mesas-beta-frontend`, `mesas-beta-api` e `mesas-beta-db` nao existem mais. Volumes de dados preservados.
+
+**Causa raiz confirmada (14/04/2026):**
+Workflow `deploy-beta.yml` executava `docker compose down --remove-orphans` ANTES do `docker compose build`. Se o build falhar por qualquer motivo (erros TypeScript, dependencia ausente, etc.), os containers ja foram derrubados e nao ha rollback automatico.
+
+**Erros TypeScript que causaram o incidente (commit 4442a3d):**
+- `SessionRepeater.tsx`: `FREQUENCIES` declarado mas nunca usado (TS6133); bloco duplicado referenciando `DAYS` inexistente (TS2304)
+- `SystemTreeSelector.tsx`: `getDisplayName()` recebia `SystemTreeNode` mas esperava `FlattenedSystemNode` (TS2345, 4 ocorrencias); `selectedVariantId` nao declarado (TS2304)
+- `StepFinal.tsx`: `selectedScenarioName` declarado duas vezes na interface (TS2300)
+- `StepReview.tsx`, `CreateTableForm.tsx`, `useCreateTableForm.ts`: `frequency` e `slots_per_session` referenciados em `SessionSchedule` mas nao existem no tipo (TS2339, TS2353)
+
+**Diagnostico:**
+1. `gh run list --repo FarenRavirar/mesas_rpg_artificio --branch dev --limit 3 --json status,conclusion,databaseId,displayTitle`
+2. Identificar run com `conclusion: "failure"`
+3. `gh run view <id> --log-failed` - procurar por `error TS` no output
+4. `docker ps` na VM confirma ausencia dos containers beta
+
+**Solucao validada (14/04/2026):**
+1. Corrigir todos os erros TypeScript no codigo local
+2. Validar localmente: `npx tsc --noEmit` no diretorio `frontend/` deve retornar sem erros
+3. Push para `dev` - novo deploy sobe o beta automaticamente
+
+**Prevencao aplicada no workflow (commit 62f67db):**
+1. Step `TypeScript check (frontend)` adicionado no runner do GitHub Actions ANTES do step SSH. Se `npx tsc --noEmit` falhar, o deploy nem chega a VM e o beta permanece no ar
+2. `trap rollback ERR` no script SSH: se o build falhar apos o `down`, tenta resubir os containers automaticamente
+3. Lock timeout reduzido de 600s para 120s
+
+**Recuperacao manual (se necessario):**
+```powershell
+ssh -F C:\projetos\config faren "cd /opt/mesas-beta && docker compose -f docker-compose.beta.yml up -d --force-recreate"
+```
+
+**Data:** 14/04/2026

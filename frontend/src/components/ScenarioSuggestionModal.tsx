@@ -1,96 +1,23 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
-interface SystemSuggestionModalProps {
+interface ScenarioSuggestionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
 }
 
-type SuggestionType = 'system' | 'edition' | 'variant' | 'subsystem';
-
-type SystemNode = {
-  id: string;
-  name: string;
-  name_pt?: string | null;
-  node_type: 'system' | 'edition' | 'variant' | 'subsystem';
-  depth?: number;
-  children?: SystemNode[];
-};
-
-type FlattenedSystemNode = {
-  id: string;
-  label: string;
-};
-
-const flattenSystems = (nodes: SystemNode[], depth = 0): FlattenedSystemNode[] => {
-  const flattened: FlattenedSystemNode[] = [];
-
-  for (const node of nodes) {
-    const displayName = node.name_pt || node.name;
-    const prefix = depth > 0 ? `${'—'.repeat(depth)} ` : '';
-
-    flattened.push({
-      id: node.id,
-      label: `${prefix}${displayName}`,
-    });
-
-    if (node.children && node.children.length > 0) {
-      flattened.push(...flattenSystems(node.children, depth + 1));
-    }
-  }
-
-  return flattened;
-};
-
-export const SystemSuggestionModal = ({ isOpen, onClose, onSuccess }: SystemSuggestionModalProps) => {
+export const ScenarioSuggestionModal = ({ isOpen, onClose, onSuccess }: ScenarioSuggestionModalProps) => {
   const { isAuthenticated } = useAuth();
 
   const [name, setName] = useState('');
   const [namePt, setNamePt] = useState('');
   const [description, setDescription] = useState('');
-  const [parentId, setParentId] = useState('');
-  const [suggestionType, setSuggestionType] = useState<SuggestionType>('system');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const [systemsTree, setSystemsTree] = useState<SystemNode[]>([]);
-  const [systemsLoading, setSystemsLoading] = useState(false);
-  const [systemsError, setSystemsError] = useState<string | null>(null);
-
-  const parentOptions = useMemo(() => flattenSystems(systemsTree), [systemsTree]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const fetchSystemsTree = async () => {
-      setSystemsLoading(true);
-      setSystemsError(null);
-
-      try {
-        const response = await fetch(`${API_BASE}/api/v1/systems?view=tree`, {
-          credentials: 'include',
-        });
-
-        if (!response.ok) {
-          throw new Error('Erro ao carregar sistemas');
-        }
-
-        const data = await response.json();
-        setSystemsTree(data.data || []);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Erro ao carregar sistemas';
-        setSystemsError(message);
-      } finally {
-        setSystemsLoading(false);
-      }
-    };
-
-    fetchSystemsTree();
-  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,7 +27,7 @@ export const SystemSuggestionModal = ({ isOpen, onClose, onSuccess }: SystemSugg
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/system-suggestions`, {
+      const response = await fetch(`${API_BASE}/api/v1/scenario-suggestions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -108,8 +35,6 @@ export const SystemSuggestionModal = ({ isOpen, onClose, onSuccess }: SystemSugg
           name: name.trim(),
           name_pt: namePt.trim() || null,
           description: description.trim() || null,
-          parent_id: suggestionType === 'system' ? null : parentId || null,
-          suggestion_type: suggestionType,
         }),
       });
 
@@ -121,8 +46,6 @@ export const SystemSuggestionModal = ({ isOpen, onClose, onSuccess }: SystemSugg
       setName('');
       setNamePt('');
       setDescription('');
-      setParentId('');
-      setSuggestionType('system');
       onSuccess?.();
       onClose();
     } catch (err) {
@@ -142,7 +65,7 @@ export const SystemSuggestionModal = ({ isOpen, onClose, onSuccess }: SystemSugg
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-          <h2 className="text-xl font-bold text-white">Sugerir Sistema</h2>
+          <h2 className="text-xl font-bold text-white">Sugerir Cenário</h2>
           <button
             onClick={onClose}
             className="text-white/50 hover:text-white transition-colors"
@@ -154,7 +77,7 @@ export const SystemSuggestionModal = ({ isOpen, onClose, onSuccess }: SystemSugg
 
         <div className="px-6 py-4">
           <p className="text-white/70 text-sm mb-6">
-            Sugira um novo sistema, edição ou variante. Sua sugestão será revisada por um administrador.
+            Sugira um novo cenário para o catálogo da plataforma. Sua sugestão será revisada por um administrador.
           </p>
 
           {error && (
@@ -166,33 +89,14 @@ export const SystemSuggestionModal = ({ isOpen, onClose, onSuccess }: SystemSugg
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-white font-semibold mb-2 text-sm">
-                Tipo de Sugestão
-              </label>
-              <select
-                value={suggestionType}
-                onChange={(e) => {
-                  setSuggestionType(e.target.value as SuggestionType);
-                  setParentId('');
-                }}
-                className="w-full px-4 py-2 bg-[#0F1A2E] border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-artificio-orange)]"
-              >
-                <option value="system">Novo Sistema</option>
-                <option value="edition">Edição de Sistema Existente</option>
-                <option value="variant">Variante de Sistema</option>
-                <option value="subsystem">Subsistema</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-white font-semibold mb-2 text-sm">
-                Nome do Sistema *
+                Nome do Cenário *
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                placeholder="Ex: Vampire: The Masquerade"
+                placeholder="Ex: Forgotten Realms"
                 className="w-full px-4 py-2 bg-[#0F1A2E] border border-white/10 rounded-lg text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[var(--color-artificio-orange)]"
               />
             </div>
@@ -205,7 +109,7 @@ export const SystemSuggestionModal = ({ isOpen, onClose, onSuccess }: SystemSugg
                 type="text"
                 value={namePt}
                 onChange={(e) => setNamePt(e.target.value)}
-                placeholder="Ex: Vampiro: A Máscara"
+                placeholder="Ex: Reinos Esquecidos"
                 className="w-full px-4 py-2 bg-[#0F1A2E] border border-white/10 rounded-lg text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[var(--color-artificio-orange)]"
               />
             </div>
@@ -217,37 +121,11 @@ export const SystemSuggestionModal = ({ isOpen, onClose, onSuccess }: SystemSugg
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Informações adicionais sobre o sistema..."
+                placeholder="Contexto adicional sobre o cenário..."
                 rows={4}
                 className="w-full px-4 py-2 bg-[#0F1A2E] border border-white/10 rounded-lg text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[var(--color-artificio-orange)] resize-none"
               />
             </div>
-
-            {suggestionType !== 'system' && (
-              <div>
-                <label className="block text-white font-semibold mb-2 text-sm">
-                  Sistema pai (opcional)
-                </label>
-                <select
-                  value={parentId}
-                  onChange={(e) => setParentId(e.target.value)}
-                  className="w-full px-4 py-2 bg-[#0F1A2E] border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-artificio-orange)]"
-                  disabled={systemsLoading}
-                >
-                  <option value="">
-                    {systemsLoading ? 'Carregando sistemas...' : 'Selecione um sistema pai'}
-                  </option>
-                  {parentOptions.map((option) => (
-                    <option key={option.id} value={option.id}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                {systemsError && (
-                  <p className="text-xs text-red-300 mt-2">{systemsError}</p>
-                )}
-              </div>
-            )}
 
             <div className="flex gap-3 pt-4">
               <button

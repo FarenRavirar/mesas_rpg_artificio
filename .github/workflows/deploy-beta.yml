@@ -1,4 +1,4 @@
-﻿name: Deploy Beta
+name: Deploy Beta
 
 on:
   push:
@@ -97,6 +97,8 @@ jobs:
               fi
               sleep 3
             done
+
+            bash ./scripts/deploy/apply_required_migrations.sh docker-compose.beta.yml mesas-beta-db
 
             API_CONTAINER="mesas-beta-api"
             MAX_API_RETRIES=20

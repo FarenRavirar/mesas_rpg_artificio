@@ -127,7 +127,13 @@
 ### SYSTEMSUGGESTIONS (`routes/systemSuggestions.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
 |---|---|---|---|
-| **POST** | `/` | ❌ Pendente/Front | - |
+| **POST** | `/` | ✅ Em Uso | SystemSuggestionModal.tsx, StepSystem.tsx |
+| **GET** | `/mine` | ❌ Pendente/Front | - |
+
+### SCENARIOSUGGESTIONS (`routes/scenarioSuggestions.ts`)
+| Metodo | Endpoint | Status | Chamado por (Frontend) |
+|---|---|---|---|
+| **POST** | `/` | ✅ Em Uso | ScenarioSuggestionModal.tsx, StepSystem.tsx |
 | **GET** | `/mine` | ❌ Pendente/Front | - |
 
 ### SYSTEMSUGGESTIONSADMIN (`routes/systemSuggestionsAdmin.ts`)

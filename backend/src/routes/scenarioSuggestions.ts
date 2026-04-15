@@ -6,7 +6,7 @@ const router = Router();
 
 router.use(authMiddleware);
 
-// POST /api/v1/system-suggestions - Criar sugestão
+// POST /api/v1/scenario-suggestions - Criar sugestão
 router.post('/', async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;
@@ -14,19 +14,15 @@ router.post('/', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Não autenticado.' });
     }
 
-    const { name, name_pt, description, parent_id, suggestion_type } = req.body;
+    const { name, name_pt, description } = req.body;
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return res.status(400).json({ error: 'Nome é obrigatório.' });
     }
 
-    if (!suggestion_type || !['system', 'edition', 'variant', 'subsystem'].includes(suggestion_type)) {
-      return res.status(400).json({ error: 'Tipo de sugestão inválido.' });
-    }
-
-    // Verificar limite de 5 sugestões pendentes
+    // Limite de 5 sugestões pendentes por usuário
     const pendingCount = await db
-      .selectFrom('system_suggestions')
+      .selectFrom('scenario_suggestions')
       .select(db.fn.count('id').as('count'))
       .where('user_id', '=', userId)
       .where('status', '=', 'pending')
@@ -37,14 +33,12 @@ router.post('/', async (req: Request, res: Response) => {
     }
 
     const newSuggestion = await db
-      .insertInto('system_suggestions')
+      .insertInto('scenario_suggestions')
       .values({
         user_id: userId,
         name: name.trim(),
         name_pt: typeof name_pt === 'string' && name_pt.trim().length > 0 ? name_pt.trim() : null,
-        description: description?.trim() || null,
-        parent_id: parent_id?.trim() || null,
-        node_type: suggestion_type,
+        description: typeof description === 'string' && description.trim().length > 0 ? description.trim() : null,
         status: 'pending',
       })
       .returningAll()
@@ -52,12 +46,12 @@ router.post('/', async (req: Request, res: Response) => {
 
     return res.status(201).json({ data: newSuggestion });
   } catch (error: any) {
-    console.error('[POST /system-suggestions]', error);
+    console.error('[POST /scenario-suggestions]', error);
     return res.status(500).json({ error: 'Erro ao criar sugestão.' });
   }
 });
 
-// GET /api/v1/system-suggestions/mine - Listar minhas sugestões
+// GET /api/v1/scenario-suggestions/mine - Listar minhas sugestões
 router.get('/mine', async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;
@@ -66,7 +60,7 @@ router.get('/mine', async (req: Request, res: Response) => {
     }
 
     const suggestions = await db
-      .selectFrom('system_suggestions')
+      .selectFrom('scenario_suggestions')
       .selectAll()
       .where('user_id', '=', userId)
       .orderBy('created_at', 'desc')
@@ -74,7 +68,7 @@ router.get('/mine', async (req: Request, res: Response) => {
 
     return res.json({ data: suggestions });
   } catch (error: any) {
-    console.error('[GET /system-suggestions/mine]', error);
+    console.error('[GET /scenario-suggestions/mine]', error);
     return res.status(500).json({ error: 'Erro ao listar sugestões.' });
   }
 });

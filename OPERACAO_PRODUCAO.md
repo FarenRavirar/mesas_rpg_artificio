@@ -440,7 +440,7 @@ docker ps --filter 'name=mesas-beta' --format '{{.Names}}'
 
 O deploy ocorre exclusivamente via GitHub Actions:
 - Push autorizado em `dev` -> `deploy-beta.yml` -> ambiente beta
-- Push autorizado em `main` -> `deploy-production.yml` -> ambiente produção
+- Push autorizado em `main` -> `deploy-prod.yml` -> ambiente produção
 
 Comandos remotos atualmente esperados no workflow:
 
@@ -449,6 +449,9 @@ Comandos remotos atualmente esperados no workflow:
 set -e
 cd /opt/mesas-beta
 docker compose -f docker-compose.beta.yml up -d --build --remove-orphans
+until docker compose -f docker-compose.beta.yml exec -T mesas-beta-db pg_isready -U admin -d mesas_rpg; do sleep 2; done
+bash ./scripts/deploy/apply_required_migrations.sh docker-compose.beta.yml mesas-beta-db
+docker compose -f docker-compose.beta.yml up -d mesas-beta-api mesas-beta-frontend
 sleep 10
 docker compose -f docker-compose.beta.yml ps
 docker compose -f docker-compose.beta.yml logs --tail=30 mesas-beta-frontend
@@ -458,13 +461,29 @@ docker image prune -f
 # Produção
 set -e
 cd /opt/mesas
-docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
+docker compose -f docker-compose.prod.yml up -d mesas-db
+until docker compose -f docker-compose.prod.yml exec -T mesas-db pg_isready -U admin -d mesas_rpg; do sleep 2; done
+bash ./scripts/deploy/apply_required_migrations.sh docker-compose.prod.yml mesas-db
+docker compose -f docker-compose.prod.yml up -d --build --remove-orphans mesas-api mesas-app
 sleep 10
 docker compose -f docker-compose.prod.yml ps
 docker compose -f docker-compose.prod.yml logs --tail=30 mesas-app
 docker compose -f docker-compose.prod.yml logs --tail=30 mesas-api
 docker image prune -f
 ```
+
+Regras do gate de migrations (`apply_required_migrations.sh`):
+- Aplica apenas migrations pendentes registrando em `schema_migrations`
+- Usa classes explícitas:
+  - `ONLINE_SAFE_MIGRATIONS` (automáticas)
+  - `MANUAL_RISK_MIGRATIONS` (bloqueadas por padrão)
+- Bloqueia deploy automático se houver:
+  - mais pendências online-safe que `MAX_AUTO_PENDING`
+  - SQL destrutivo em migration classificada como online-safe
+  - migration de risco pendente sem autorização explícita (`ALLOW_MANUAL_MIGRATIONS=true`)
+- Em produção, migration de risco exige backup (`PROD_BACKUP_FILE`) quando `REQUIRE_PROD_BACKUP_FOR_MANUAL=true`
+- Configura proteção de lock/tempo via `LOCK_TIMEOUT` e `STATEMENT_TIMEOUT`
+- Valida schema mínimo ao final (`system_suggestions.name_pt` e `scenario_suggestions`)
 
 O que o agente NUNCA deve fazer no Oracle:
 - Alterar manualmente arquivos versionados em `/opt/mesas-beta/` ou `/opt/mesas/` como fluxo padrão de deploy
@@ -557,18 +576,34 @@ ssh ubuntu@137.131.250.231
    ```bash
    gh run list --repo FarenRavirar/mesas_rpg_artificio -L 3 --json databaseId,name,status,conclusion,headBranch,createdAt
    ```
-2. Confirmar se a publicação operacional em produção já existe antes de validar URL pública
-3. Após a primeira publicação operacional, testar:
+2. Confirmar no log da etapa de deploy a evidência do gate de migration:
+   - `[migrations] schema em conformidade para runtime.`
+3. Confirmar se a publicação operacional em produção já existe antes de validar URL pública
+4. Após a primeira publicação operacional, testar:
    - `https://mesas.artificiorpg.com`
    - healthcheck equivalente de produção
    - login via Google OAuth
    - containers de produção
-4. Logs de produção, quando houver runtime publicado:
+5. Logs de produção, quando houver runtime publicado:
    ```bash
    docker compose -f /opt/mesas/docker-compose.prod.yml ps
    docker compose -f /opt/mesas/docker-compose.prod.yml logs --tail=50 mesas-app
    docker compose -f /opt/mesas/docker-compose.prod.yml logs --tail=50 mesas-api
    ```
+
+### Execução controlada (apenas migrations de risco)
+
+> [!CAUTION]
+> Executar somente com autorização explícita e backup válido em produção.
+
+```bash
+# Exemplo (produção) com migration de risco liberada explicitamente
+cd /opt/mesas
+export ALLOW_MANUAL_MIGRATIONS=true
+export REQUIRE_PROD_BACKUP_FOR_MANUAL=true
+export PROD_BACKUP_FILE=/tmp/backup_YYYYMMDD_HHMMSS_pre_deploy.sql
+bash ./scripts/deploy/apply_required_migrations.sh docker-compose.prod.yml mesas-db
+```
 
 ---
 

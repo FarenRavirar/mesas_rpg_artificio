@@ -14,6 +14,7 @@ Antes sequer de cogitar enviar código novo para produção, o agente DEVE garan
 - [ ] **Mergulho pré-deploy:** Ler `AGENTS.md`, `RESUMO_EXECUCAO.md` e consultar este checklist.
 - [ ] **Paridade Testada no Beta:** O código que vai para produção já foi submetido via push/merge para a branch `dev` e os containers do `mesas-beta` iniciaram com sucesso?
 - [ ] **Migrations Foram Executadas no Beta:** Se houve nova Migration `.sql`, ela subiu pro banco Beta sem quebrar os dados preexistentes?
+- [ ] **Classificação das migrations atualizada:** Toda migration nova foi classificada em `scripts/deploy/apply_required_migrations.sh` como `ONLINE_SAFE_MIGRATIONS` ou `MANUAL_RISK_MIGRATIONS` antes do deploy?
 - [ ] **Teste de Ponta-a-Ponta no Beta:** Interfaces impactadas foram checadas manualmente (seja pelo usuário ou log do agente via `curl`/terminal)? Todo deploy pressupõe a aprovação unânime do comportamento em `mesasbeta.artificiorpg.com`.
 
 ## 🛑 FASE 2: PREVENÇÃO DE DESASTRE DE SCHEMA
@@ -75,22 +76,25 @@ A Produção (`mesas.artificiorpg.com`) reflete os arquivos em `/opt/mesas/` ser
    gh pr merge <número> --merge --delete-branch=false
    ```
 
-3. **Aguardar workflow automático:** O GitHub Actions executará `deploy-production.yml` automaticamente após o merge.
+3. **Aguardar workflow automático:** O GitHub Actions executará `deploy-prod.yml` automaticamente após o merge.
 
 4. **Verificação de Healthcheck (em menos de 1 min):** Utilize validações silentes em vez de interações manuais excludentes. 
    - [ ] Confirmar Logs: `docker logs mesas-api --since 1m` ou `tail` nas linhas mais recentes em busca explícita por erros (`grep -i 'error\|exception\|fatal'`).
    - [ ] Ping na Rota: `wget -qO- http://localhost:3000/api/v1/health`
 5. **Verificação Visual do Healthcheck Completo:**
    - [ ] Testou se a API retornou um Code `200` com `{ status: 'ok' }` e `db: 'connected'`?
-6. **Verificação obrigatória de isolamento Beta (E144):**
+6. **Verificação obrigatória do gate de migration (apply_required_migrations.sh):**
+   - [ ] Run do workflow contém log `[migrations] schema em conformidade para runtime.`
+   - [ ] Se houve migration classificada como `MANUAL_RISK_MIGRATIONS` em produção: backup confirmado + evidência de execução controlada
+7. **Verificação obrigatória de isolamento Beta (E144):**
    - [ ] `curl -s -o /dev/null -w "%{http_code}" https://mesasbeta.artificiorpg.com` retorna `200`
    - [ ] `curl -s https://mesasbeta.artificiorpg.com/api/v1/health` retorna `{"status":"ok","environment":"beta","db":"connected"...}`
    - [ ] `docker ps --filter name=mesas-beta` mostra `mesas-beta-frontend`, `mesas-beta-api`, `mesas-beta-db` ativos
-7. **Verificação obrigatória de saúde real do frontend (E145):**
+8. **Verificação obrigatória de saúde real do frontend (E145):**
    - [ ] `docker inspect mesas-app --format '{{.State.Health.Status}}'` retorna `healthy`
    - [ ] `docker inspect mesas-beta-frontend --format '{{.State.Health.Status}}'` retorna `healthy`
    - [ ] Se algum frontend estiver `unhealthy`, deploy deve ser tratado como falho mesmo com HTTP 200 externo
-8. **Verificação anti-corrida de deploy beta (E146):**
+9. **Verificação anti-corrida de deploy beta (E146):**
    - [ ] Confirmar no GitHub Actions que não há dois runs `Deploy Beta` ativos ao mesmo tempo para `dev`
    - [ ] `deploy-beta.yml` deve conter `concurrency` com `cancel-in-progress: false`
    - [ ] Script remoto do deploy beta deve adquirir lock exclusivo (`flock /tmp/mesas-beta-deploy.lock`)
