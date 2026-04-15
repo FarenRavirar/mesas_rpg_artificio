@@ -213,7 +213,8 @@ export interface TablesTable {
   game_platform_custom: string | null; // Texto livre quando seleciona "Personalizado"
   game_platform_legacy: string | null; // Backup do campo antigo
   game_platform: string | null; // DEPRECATED: Manter por compatibilidade temporária
-  communication_platform: string | null;
+  communication_platform_id: string | null; // Referência à communication_platforms (Migration 105)
+  communication_platform: string | null; // DEPRECATED: fallback legado de texto livre
   price_type: Generated<PriceType>;
   price_value: number | null;
   price_frequency: PriceFrequency | null;
@@ -411,6 +412,22 @@ export type VttPlatform = Selectable<VttPlatformsTable>;
 export type NewVttPlatform = Insertable<VttPlatformsTable>;
 export type VttPlatformUpdate = Updateable<VttPlatformsTable>;
 
+// Communication Platforms (Migration 105)
+export interface CommunicationPlatformsTable {
+  id: Generated<string>;
+  name: string;
+  slug: string;
+  website_url: string | null;
+  is_active: Generated<boolean>;
+  sort_order: Generated<number>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export type CommunicationPlatform = Selectable<CommunicationPlatformsTable>;
+export type NewCommunicationPlatform = Insertable<CommunicationPlatformsTable>;
+export type CommunicationPlatformUpdate = Updateable<CommunicationPlatformsTable>;
+
 export type VttSuggestionStatus = 'pending' | 'approved' | 'rejected';
 
 export interface VttPlatformSuggestionsTable {
@@ -458,6 +475,9 @@ export interface Database {
   // VTT Platforms (Migration 006)
   vtt_platforms: VttPlatformsTable;
   vtt_platform_suggestions: VttPlatformSuggestionsTable;
+
+  // Communication Platforms (Migration 105)
+  communication_platforms: CommunicationPlatformsTable;
   
   // Migration 17: Sistema de Changelog/Atualizações
   update_log: UpdateLogTable;

@@ -23,6 +23,8 @@ ONLINE_SAFE_MIGRATIONS=(
   "migration_101_add_banner_crop_data.sql"
   "migration_102_add_name_pt.sql"
   "migration_103_scenario_suggestions.sql"
+  "migration_105_communication_platforms.sql"
+  "migration_106_vtt_logo_filenames.sql"
 )
 
 # Migrations classificadas como risco/execucao manual.

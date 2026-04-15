@@ -1,10 +1,10 @@
 # Índice de Sessões
 
-Última atualização: 15/04/2026 15:20 BRT
+Última atualização: 15/04/2026 19:48 BRT
 
 ---
 
-## 15/04/2026 (6 sessões)
+## 15/04/2026 (7 sessões)
 
 | # | Arquivo |
 |---|---|
@@ -14,6 +14,7 @@
 | 4 | `26-04-15_4_organizacao-fila.md` |
 | 5 | `26-04-15_5_unificacao-docs.md` |
 | 6 | `26-04-15_6_auditoria-completa-fila-backlog.md` |
+| 7 | `26-04-15_7_deb07-plataformas-tabelas.md` |
 
 ---
 
@@ -68,7 +69,7 @@
 
 ## Sessão Mais Recente
 
-`26-04-15_3_auditoria-todo-operacional.md`
+`26-04-15_7_deb07-plataformas-tabelas.md`
 
 ---
 

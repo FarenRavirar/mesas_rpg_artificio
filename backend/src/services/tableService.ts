@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { CreateTableInput, UpdateTableInput } from '../validators/tableValidators';
-import { Insertable } from 'kysely';
+import { Insertable, sql } from 'kysely';
 import { TablesTable } from '../db/types';
 
 const DDAL_ELIGIBLE_PATH = 'dungeons-dragons/5e/2024';
@@ -45,6 +45,63 @@ export class TableService {
     }
 
     /**
+     * Valida/resolve plataforma de comunicação
+     * - Se communicationPlatformId for informado, valida UUID existente
+     * - Se vier apenas texto legado, tenta resolver por slug/nome
+     */
+    static async validateCommunicationPlatform(
+        communicationPlatformId: string | null,
+        communicationPlatformLegacy?: string | null
+    ): Promise<{ id: string | null; legacy: string | null }> {
+        const legacy = communicationPlatformLegacy?.trim() ? communicationPlatformLegacy.trim() : null;
+
+        if (communicationPlatformId) {
+            const platform = await db
+                .selectFrom('communication_platforms')
+                .select(['id'])
+                .where('id', '=', communicationPlatformId)
+                .executeTakeFirst();
+
+            if (!platform) {
+                throw new Error('Plataforma de comunicação inválida');
+            }
+
+            return { id: platform.id, legacy: legacy ?? null };
+        }
+
+        if (!legacy) {
+            return { id: null, legacy: null };
+        }
+
+        const legacySlug = legacy
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9\s-]/g, '')
+            .trim()
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-')
+            .slice(0, 100);
+
+        const platform = await db
+            .selectFrom('communication_platforms')
+            .select(['id'])
+            .where((eb) =>
+                eb.or([
+                    eb('slug', '=', legacySlug),
+                    eb(sql`LOWER(name)`, '=', legacy.toLowerCase()),
+                ])
+            )
+            .executeTakeFirst();
+
+        if (platform) {
+            return { id: platform.id, legacy };
+        }
+
+        return { id: null, legacy };
+    }
+
+    /**
      * Gera slug único para mesa
      */
     static generateSlug(title: string): string {
@@ -68,6 +125,8 @@ export class TableService {
         data: CreateTableInput,
         gmProfileId: string,
         vttPlatformUuid: string | null,
+        communicationPlatformUuid: string | null,
+        communicationPlatformLegacy: string | null,
         slug: string,
         userRole: string
     ): Insertable<TablesTable> {
@@ -110,7 +169,8 @@ export class TableService {
             ddal_rules_notes: data.is_ddal ? data.ddal_rules_notes : null,
             vtt_platform_id: vttPlatformUuid,
             game_platform_custom: data.vtt_platform_id === 'custom' ? data.game_platform_custom : null,
-            communication_platform: data.communication_platform ?? null,
+            communication_platform_id: communicationPlatformUuid,
+            communication_platform: communicationPlatformLegacy,
             rules_notes: data.rules_notes ?? null,
             banner_url: data.banner_url ?? null,
             banner_crop_data: data.banner_crop_data ?? null,

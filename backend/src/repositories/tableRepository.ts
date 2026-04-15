@@ -12,12 +12,14 @@ export class TableRepository {
       .selectFrom('tables as t')
       .leftJoin('systems as s', 's.id', 't.system_id')
       .leftJoin('scenarios as sc', 'sc.id', 't.scenario_id')
+      .leftJoin('communication_platforms as cp', 'cp.id', 't.communication_platform_id')
       .selectAll('t')
       .select([
         sql<string | null>`s.name`.as('system_name'),
         sql<string | null>`s.path_slug`.as('system_path'),
         sql<string | null>`sc.name`.as('scenario_name'),
         sql<string | null>`sc.slug`.as('scenario_path'),
+        sql<string | null>`COALESCE(cp.name, t.communication_platform)`.as('communication_platform'),
       ])
       .where('t.id', '=', tableId)
       .where('t.gm_id', '=', gmProfileId)

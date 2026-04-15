@@ -73,7 +73,14 @@ export function formStateToPayload(state: FormState): CreateTablePayload {
     // VTT Platform: enviar ID ou null se "custom"
     vtt_platform_id: (state.vttPlatformId && state.vttPlatformId !== 'custom') ? state.vttPlatformId : undefined,
     game_platform_custom: (state.vttPlatformId === 'custom' && state.gamePlatformCustom) ? state.gamePlatformCustom : undefined,
-    communication_platform: state.communicationPlatform || undefined,
+    communication_platform_id:
+      state.communicationPlatformId && state.communicationPlatformId !== 'custom'
+        ? state.communicationPlatformId
+        : undefined,
+    communication_platform:
+      state.communicationPlatformId === 'custom' && state.communicationPlatformCustom.trim().length > 0
+        ? state.communicationPlatformCustom.trim()
+        : undefined,
     price_value: state.form.price_value ? parseFloat(state.form.price_value) : undefined,
     price_frequency: state.form.price_frequency || undefined,
   };

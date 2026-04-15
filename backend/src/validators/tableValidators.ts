@@ -73,6 +73,7 @@ const baseTableSchema = z.object({
   ddal_rules_notes: z.string().max(1000).nullable().optional(),
   vtt_platform_id: z.string().nullable().optional(),
   game_platform_custom: z.string().max(100).nullable().optional(),
+  communication_platform_id: z.string().uuid('Plataforma de comunicação inválida').nullable().optional(),
   communication_platform: z.string().max(100).nullable().optional(),
   rules_notes: z.string().max(2000).nullable().optional(),
   banner_url: z.string().url().nullable().optional(),

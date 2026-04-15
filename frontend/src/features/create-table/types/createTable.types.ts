@@ -54,7 +54,9 @@ export interface FormState {
   vttPlatformId: string; // ID da VTT selecionada ou "custom"
   gamePlatformCustom: string; // Texto livre quando vttPlatformId === "custom"
   
-  communicationPlatform: string;
+  // Plataforma de comunicação (catálogo + fallback legado)
+  communicationPlatformId: string; // UUID selecionado ou "custom"
+  communicationPlatformCustom: string; // texto livre quando communicationPlatformId === "custom"
   
   // Configuração
   publisherRole: 'gm' | 'announcer';
@@ -132,6 +134,7 @@ export interface CreateTablePayload {
   // VTT Platform
   vtt_platform_id?: string;
   game_platform_custom?: string;
+  communication_platform_id?: string;
   communication_platform?: string;
   price_value?: number;
   price_frequency?: string;

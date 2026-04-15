@@ -284,6 +284,7 @@ router.get('/:slug', async (req: Request, res: Response) => {
       .leftJoin('scenarios as sc', 'sc.id', 't.scenario_id') // CORREÇÃO DT-02: JOIN para retornar cenário
       // CORREÇÃO A01: JOIN com vtt_platforms para retornar dados de VTT
       .leftJoin('vtt_platforms as vtt', 'vtt.id', 't.vtt_platform_id')
+      .leftJoin('communication_platforms as cp', 'cp.id', 't.communication_platform_id')
       .select([
         't.id',
         't.slug',
@@ -346,7 +347,8 @@ router.get('/:slug', async (req: Request, res: Response) => {
         't.table_gm_bio',
         // CORREÇÃO A01: Retornar campos de VTT Platform
         't.game_platform_custom',
-        't.communication_platform',
+        't.communication_platform_id',
+        sql<string | null>`COALESCE(cp.name, t.communication_platform)`.as('communication_platform'),
         's.name as system_name',
         's.slug as system_slug',
         // CORREÇÃO DT-02: Retornar nome do cenário

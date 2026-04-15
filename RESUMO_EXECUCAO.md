@@ -1,6 +1,6 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 15/04/2026 12:38 BRT
+**Última atualização:** 15/04/2026 19:47 BRT
 
 ---
 
@@ -18,20 +18,40 @@
 - `migration_101` idempotente (`IF NOT EXISTS`)
 - Gate de migration validado em run real beta/prod com schema mínimo conforme (`system_suggestions.name_pt`, `scenario_suggestions`)
 - `migration_104_drop_tables_frequency_columns.sql` confirmada como aplicada em beta e produção (`frequency_cols=0`, `migration104_applied=yes`)
-- **Organização FILA_IMPLEMENTACAO.md:** Auditoria completa (~50 itens verificados), índice por GUT no topo, Histórico limpo, ~20 concluídos mover para Histórico, ~30 pendentes mantidos
-- **Verificação GUT ≥ 100 concluída:** 8 itens verificados (código, FILA, sessões), 6 confirmados no backlog ativo, 2 já concluídos (REQ-30, REQ-03)
+- **DEB-07 / FILA 075 implementado no código:** CRUD admin VTT, `communication_platforms` + endpoints públicos/admin, seletor dinâmico no formulário, `PlatformsPage` integrado em `GestaoPage`.
+- **Logos VTT integradas em superfícies estratégicas:** `TableCard` (catálogo/homepage), `TableCardDashboard` (painel) e `TableHero` (detalhe da mesa online/híbrida).
+- **Payload GM atualizado:** `GET /api/v1/gm/tables` agora retorna objeto `vtt_platform` com `logo_filename`.
+- **Build validado:** `npm run build` em `backend` e `frontend` sem erros.
+- **Pendente operacional:** aplicar `migration_106_vtt_logo_filenames.sql` no banco e validar manualmente no beta.
+
 
 ---
 
 ## Próxima Ação
 
-1. Executar REQ-13 (QA de primeira publicação real) — validação manual pelo responsável
-2. Priorizar itens de alta prioridade (GUT ≥ 100): REQ-03, REQ-08, REQ-17, REQ-21, REQ-29, OPS-02
-3. Seguir execução do próximo lote conforme `FILA_IMPLEMENTACAO.md`
+1. Aplicar `database/migration_106_vtt_logo_filenames.sql` no banco (UPDATE em `vtt_platforms.logo_filename`).
+2. Validar manualmente create/edit/list/detail de mesas com dados legados (`communication_platform` texto) no ambiente beta.
+3. Priorizar item 086 (frequência detalhada: `times_per_month` + `custom_notes` + validações condicionais).
+
 
 ---
 
 ## Última Sessão
+
+**Data:** 15/04/2026 19:47 BRT  
+**Tipo:** Continuidade DEB-07/FILA-075 (vínculo e exposição de logos VTT no backend/frontend)  
+**Arquivo:** `sessoes/26-04-15_7_deb07-plataformas-tabelas.md`  
+**O que foi feito:**
+- Criada `database/migration_106_vtt_logo_filenames.sql` para preencher `logo_filename` em `vtt_platforms` por `slug` (idempotente)
+- `backend/src/routes/gmPanel.ts` atualizado para retornar `vtt_platform` no `GET /api/v1/gm/tables`
+- `frontend/src/components/TableCard.tsx` atualizado para mostrar somente a logo VTT no catálogo/homepage (online/híbrida)
+- `frontend/src/components/TableCardDashboard.tsx` atualizado para mostrar somente a logo VTT no painel
+- `frontend/src/features/table/components/TableHero.tsx` atualizado para cobrir `hibrida` na exibição de VTT com logo + nome
+- Build de validação executado com sucesso em backend/frontend (`npm run build`)
+
+**Status:** ✅ Código e UI atualizados para logos VTT nos pontos estratégicos. Pendente aplicação da migration 106 no banco e validação manual no beta.
+
+---
 
 **Data:** 15/04/2026 12:38 BRT  
 **Tipo:** Auditoria completa do BACKLOG_OPERACIONAL.md + Verificação GUT ≥ 100  

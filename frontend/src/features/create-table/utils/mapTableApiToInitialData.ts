@@ -46,7 +46,12 @@ export function mapTableApiToInitialData(apiData: any): Partial<FormState> {
 
     vttPlatformId: apiData.vtt_platform_id ?? '',
     gamePlatformCustom: apiData.game_platform_custom ?? '',
-    communicationPlatform: apiData.communication_platform ?? '',
+    communicationPlatformId: apiData.communication_platform_id
+      ? apiData.communication_platform_id
+      : (apiData.communication_platform ? 'custom' : ''),
+    communicationPlatformCustom: apiData.communication_platform_id
+      ? ''
+      : (apiData.communication_platform ?? ''),
 
     publisherRole: apiData.publisher_role ?? 'gm',
     actualGmName: apiData.actual_gm_name ?? '',

@@ -20,6 +20,7 @@ import discordRoutes from './routes/discord';
 import settingsRoutes from './routes/settings';
 import adminSettingSuggestionsRoutes from './routes/adminSettingSuggestions';
 import vttPlatformsRoutes from './routes/vttPlatforms';
+import communicationPlatformsRoutes from './routes/communicationPlatforms';
 import changelogRoutes from './routes/changelog';
 import adminTablesRoutes from './routes/adminTables';
 import uploadRoutes from './routes/upload';
@@ -111,6 +112,7 @@ app.use('/api/v1/gm', gmRoutes);
 app.use('/api/v1/settings', settingsRoutes);
 app.use('/api/v1/admin/setting-suggestions', adminSettingSuggestionsRoutes);
 app.use('/api/v1/vtt-platforms', vttPlatformsRoutes);
+app.use('/api/v1/communication-platforms', communicationPlatformsRoutes);
 app.use('/api/v1/changelog', changelogRoutes);
 app.use('/api/v1', uploadRoutes);
 

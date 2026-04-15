@@ -283,8 +283,10 @@ export function CreateTableForm({
             setVttPlatformId={formHook.setVttPlatformId}
             gamePlatformCustom={formHook.gamePlatformCustom}
             setGamePlatformCustom={formHook.setGamePlatformCustom}
-            communicationPlatform={formHook.communicationPlatform}
-            setCommunicationPlatform={formHook.setCommunicationPlatform}
+            communicationPlatformId={formHook.communicationPlatformId}
+            setCommunicationPlatformId={formHook.setCommunicationPlatformId}
+            communicationPlatformCustom={formHook.communicationPlatformCustom}
+            setCommunicationPlatformCustom={formHook.setCommunicationPlatformCustom}
           />
         )}
 

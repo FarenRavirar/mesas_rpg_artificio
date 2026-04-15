@@ -33,7 +33,7 @@ Cada item na FILA deve ter:
 
 | # | ID | GUT | Item | Ação | BACKLOG ref |
 |---|---|---|---|---|---|
-| 1 | 075 | 100 | Plataformas como tabelas | ⏳ Parcial (CRUD admin + comm_platform faltam) | ↔ DEB-07 |
+| 1 | 075 | 100 | Plataformas como tabelas | ✅ Implementado (CRUD admin + comm_platform concluídos) | ↔ DEB-07 |
 | 2 | 086 | 100 | Frequência detallada | ⏳ Parcial (times_per_month+custom_notes faltam) | ↔ DEB-08 |
 | 3 | 100 | 100 | Campos Cenário/Estilo | ✅ Implementado (setting_name+styles no DB + endpoint suggest-styles existe) | ↔ REQ-21 |
 
@@ -69,7 +69,7 @@ Cada item na FILA deve ter:
 
 | ID | GUT | Ação | Descrição completa | Dependências | Arquivos | BACKLOG ref | Status |
 |---|---|---|---|---|---|---|
-| **075** | 100 | **⏳ Parcial** | **Plataformas como tabelas (vtt + comm):** vtt_platforms existe (Migration 006) + GET /vtt-platforms + POST /suggest. **FALTA:** (1) CRUD admin para vtt_platforms (POST/PUT/DELETE), (2) criar tabela communication_platforms + endpoints CRUD. Campo `tables.communication_platform` é texto atualmente. | Depende de nada | Backend: db/types.ts, routes/vttPlatforms.ts, nova rota communication.ts. Frontend: PainelMestrePage.tsx, AdminPage | ↔ DEB-07 | ⏳ Parcial |
+| **075** | 100 | **✅ Implementado** | **Plataformas como tabelas (vtt + comm):** vtt_platforms com GET `/` + POST `/suggest` + CRUD admin completo (`GET/POST/PUT/DELETE /admin`). `communication_platforms` criada (migration_105), endpoints públicos/admin ativos (`GET /`, `GET/POST/PUT/DELETE /admin`), integração frontend concluída (hook `useCommunicationPlatforms`, StepConfig com select dinâmico/fallback custom, admin `PlatformsPage` em `GestaoPage`). | Depende de nada | Backend: db/types.ts, routes/vttPlatforms.ts, routes/communicationPlatforms.ts, migration_105. Frontend: StepConfig.tsx, mapper.ts, mapTableApiToInitialData.ts, PlatformsPage.tsx, GestaoPage.tsx | ↔ DEB-07 | ✅ Implementado |
 | **086** | 100 | **⏳ Parcial** | **Frequência detalhada em table_schedules:** Já existe: frequency (semanal/quinzenal/mensal/avulsa) + day_of_week + start_time + end_time + slots_per_session + notes. **FALTA:** (1) campo times_per_month SMALLINT no schema (para frequency=quinzenal), (2) campo custom_notes TEXT (para frequency=mensal), (3) validações condicionais (times obrigatório se quinzenal, notes obrigatório se mensal), (4) UI no SessionRepeater. Ver sessões: 26-04-14_7, 26-04-15_1. | Depende de nada | Backend: db/types.ts (ScheduleTable), routes/tableSchedules.ts. Frontend: SessionRepeater.tsx, validator.ts | ↔ REQ-30 | ⏳ Parcial |
 | **100** | 100 | **✅ Implementado** | **Campos Cenário (setting_name) + Estilos (setting_styles):** Backend: tables.setting_name + setting_styles existem (types.ts). Endpoint GET /settings/suggest-styles existe (settings.ts). Frontend: CreateTableForm tem SettingStylesField.tsx, TableContent.tsx exibe. **100% implementado.** | — | Backend: db/types.ts, routes/settings.ts. Frontend: SettingStylesField.tsx, TableContent.tsx, mapper.ts | ↔ REQ-21 | ✅ Implementado |
 
