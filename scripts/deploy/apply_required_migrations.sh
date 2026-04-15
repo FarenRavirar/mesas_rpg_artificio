@@ -20,6 +20,7 @@ REQUIRE_PROD_BACKUP_FOR_MANUAL="${REQUIRE_PROD_BACKUP_FOR_MANUAL:-true}"
 PROD_BACKUP_FILE="${PROD_BACKUP_FILE:-}"
 
 ONLINE_SAFE_MIGRATIONS=(
+  "migration_101_add_banner_crop_data.sql"
   "migration_102_add_name_pt.sql"
   "migration_103_scenario_suggestions.sql"
 )
@@ -27,7 +28,9 @@ ONLINE_SAFE_MIGRATIONS=(
 # Migrations classificadas como risco/execucao manual.
 # Exemplo de uso futuro:
 # MANUAL_RISK_MIGRATIONS=("migration_104_backfill_heavy.sql")
-MANUAL_RISK_MIGRATIONS=()
+MANUAL_RISK_MIGRATIONS=(
+  "migration_104_drop_tables_frequency_columns.sql"
+)
 
 is_true() {
   case "${1,,}" in

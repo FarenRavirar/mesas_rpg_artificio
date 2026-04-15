@@ -6,6 +6,8 @@ export interface SessionSchedule {
   day_of_week: 'segunda' | 'terça' | 'quarta' | 'quinta' | 'sexta' | 'sábado' | 'domingo';
   start_time: string; // HH:MM
   end_time?: string; // HH:MM - CORREÇÃO REG-01: Opcional para compatibilidade com backend
+  frequency: 'semanal' | 'quinzenal' | 'mensal' | 'avulsa';
+  slots_per_session?: number | null;
   is_ongoing: boolean;
   notes?: string; // CORREÇÃO REG-01: Opcional para compatibilidade
   sort_order: number;
@@ -27,6 +29,13 @@ const DAYS_OF_WEEK = [
   { value: 'domingo', label: 'Domingo' },
 ] as const;
 
+const SCHEDULE_FREQUENCIES = [
+  { value: 'semanal', label: 'Semanal' },
+  { value: 'quinzenal', label: 'Quinzenal' },
+  { value: 'mensal', label: 'Mensal' },
+  { value: 'avulsa', label: 'Avulsa' },
+] as const;
+
 
 
 export function SessionRepeater({ sessions, onChange, disabled = false }: SessionRepeaterProps) {
@@ -37,6 +46,7 @@ export function SessionRepeater({ sessions, onChange, disabled = false }: Sessio
       day_of_week: 'segunda',
       start_time: '19:00',
       end_time: '22:00',
+      frequency: 'semanal',
       is_ongoing: false,
       notes: '',
       sort_order: sessions.length,
@@ -140,6 +150,28 @@ export function SessionRepeater({ sessions, onChange, disabled = false }: Sessio
               </div>
 
 
+
+              {/* Frequência */}
+              <div className="flex flex-col gap-1">
+                <label htmlFor={`session-${index}-frequency`} className="text-xs font-black uppercase tracking-widest text-white/70">
+                  Frequência *
+                </label>
+                <select
+                  id={`session-${index}-frequency`}
+                  value={session.frequency}
+                  onChange={(e) =>
+                    handleUpdateSession(index, 'frequency', e.target.value as SessionSchedule['frequency'])
+                  }
+                  disabled={disabled}
+                  className="w-full bg-[#1B2A4A] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {SCHEDULE_FREQUENCIES.map((freq) => (
+                    <option key={freq.value} value={freq.value}>
+                      {freq.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               {/* Horário inicial */}
               <div className="flex flex-col gap-1">

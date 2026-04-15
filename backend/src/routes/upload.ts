@@ -1,11 +1,28 @@
 import express from 'express';
 import multer from 'multer';
 import { uploadImageToCloudinary } from '../services/cloudinary';
+import { authMiddleware } from '../middleware/auth';
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+    files: 1,
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
-router.post('/', upload.single('file'), async (req, res) => {
+    if (!allowedMimeTypes.has(file.mimetype)) {
+      cb(new Error('Formato inválido. Envie apenas JPG, PNG ou WEBP.'));
+      return;
+    }
+
+    cb(null, true);
+  },
+});
+
+router.post('/upload', authMiddleware, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       res.status(400).json({ error: 'Nenhum arquivo enviado' });
@@ -23,6 +40,17 @@ router.post('/', upload.single('file'), async (req, res) => {
     });
   } catch (error: any) {
     console.error('[upload] Erro ao fazer upload:', error?.message || error);
+
+    if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') {
+      res.status(400).json({ error: 'Arquivo muito grande. Limite de 5 MB.' });
+      return;
+    }
+
+    if (error?.message === 'Formato inválido. Envie apenas JPG, PNG ou WEBP.') {
+      res.status(400).json({ error: error.message });
+      return;
+    }
+
     res.status(500).json({ error: 'Falha ao processar imagem' });
   }
 });

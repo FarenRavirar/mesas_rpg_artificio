@@ -12,7 +12,6 @@ export const PRICE_FREQUENCIES = ['sessao', 'mes', 'campanha'] as const;
 export const EXPERIENCE_LEVELS = ['todos', 'iniciante', 'intermediario', 'veterano'] as const;
 export const PUBLISHER_ROLES = ['gm', 'announcer'] as const;
 export const CONTACT_CHANNELS = ['whatsapp', 'discord', 'phone', 'email', 'facebook', 'instagram', 'form'] as const;
-export const FREQUENCIES = ['semanal', 'quinzenal', 'mensal', 'outros'] as const;
 export const DAYS_OF_WEEK = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'] as const;
 export const SCHEDULE_FREQUENCIES = ['semanal', 'quinzenal', 'mensal', 'avulsa'] as const;
 
@@ -72,8 +71,6 @@ const baseTableSchema = z.object({
   ddal_org_code: z.string().max(50).nullable().optional(),
   ddal_setting: z.string().max(100).nullable().optional(),
   ddal_rules_notes: z.string().max(1000).nullable().optional(),
-  frequency: z.enum(FREQUENCIES).nullable().optional(),
-  frequency_custom: z.string().max(100).nullable().optional(),
   vtt_platform_id: z.string().nullable().optional(),
   game_platform_custom: z.string().max(100).nullable().optional(),
   communication_platform: z.string().max(100).nullable().optional(),
@@ -113,22 +110,6 @@ export const createTableSchema = baseTableSchema
   .refine((data) => !!data.system_id, { 
     message: 'Sistema é obrigatório', 
     path: ['system_id'] 
-  })
-  .refine((data) => {
-    if ((data.type === 'campanha' || data.type === 'oneshot-serie') && !data.frequency) {
-      return false;
-    }
-    return true;
-  }, { 
-    message: 'Frequência é obrigatória para campanhas e one-shots em série', 
-    path: ['frequency'] 
-  })
-  .refine((data) => {
-    if (data.frequency === 'outros' && !data.frequency_custom) return false;
-    return true;
-  }, { 
-    message: 'Descrição customizada obrigatória quando frequência for "Outros"', 
-    path: ['frequency_custom'] 
   })
   .refine((data) => {
     const slotsOpen = data.slots_open ?? data.slots_total;

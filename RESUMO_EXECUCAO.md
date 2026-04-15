@@ -1,6 +1,6 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 14/04/2026 21:10 BRT
+**Última atualização:** 15/04/2026 00:32 BRT
 
 ---
 
@@ -10,46 +10,41 @@
 **Ambiente Produção:** `mesas.artificiorpg.com` — workflow com gate de migration habilitado (`deploy-prod.yml`)  
 **Branch ativa:** `dev`
 
-**Status técnico mais recente (migrations e conformidade de deploy):**
-- Gate de migrations automático habilitado nos workflows:
-  - `.github/workflows/deploy-beta.yml`
-  - `.github/workflows/deploy-prod.yml`
-  - `.github/workflows/promote-to-prod.yml`
-- Script canônico de migration de deploy: `scripts/deploy/apply_required_migrations.sh`
-- Controles aplicados no script:
-  - registro de execução em `schema_migrations`
-  - classes `ONLINE_SAFE_MIGRATIONS` e `MANUAL_RISK_MIGRATIONS`
-  - limite de pendências automáticas (`MAX_AUTO_PENDING`)
-  - proteção de lock/tempo (`LOCK_TIMEOUT` e `STATEMENT_TIMEOUT`)
-  - exigência de backup para migration de risco em produção (quando habilitada)
-  - validação final de schema mínimo (`system_suggestions.name_pt` e `scenario_suggestions`)
-
-**Contexto de schema validado em auditoria:**
-- Beta: `system_suggestions.name_pt` e `scenario_suggestions` presentes
-- Produção (antes da nova gate): ausência de `system_suggestions.name_pt` e `scenario_suggestions`
+**Status técnico mais recente (15/04/2026):**
+- Deploy beta concluído com sucesso (run `24434872861`)
+- `t.frequency` e `t.frequency_custom` removidos do build compilado do beta
+- `GET /gm/tables` sem erro de coluna — painel do mestre funcional
+- `migration_101` corrigida para ser idempotente (`IF NOT EXISTS`)
+- `migration_104` classificada como `MANUAL_RISK` — pendente aplicação manual
+- `deploy-beta.yml` corrigido: `--no-cache` adicionado ao `docker compose build`
+- Mensagem de erro de backend indisponível atualizada para linguagem de atualização
+- `VITE_API_URL` corrigido em produção (apontava para beta)
 
 ---
 
 ## Próxima Ação
 
-1. Executar um run real de `deploy-beta.yml` para validar evidência de log do gate:
-   - `[migrations] schema em conformidade para runtime.`
-2. Executar promoção controlada para validar `deploy-prod.yml`/`promote-to-prod.yml` com a mesma evidência
-3. Confirmar pós-run em produção que `system_suggestions.name_pt` e `scenario_suggestions` ficaram presentes
+1. Validar funcionalmente o painel em `https://mesasbeta.artificiorpg.com/painel` (requer login)
+2. Aplicar `migration_104_drop_tables_frequency_columns.sql` no Beta via fluxo manual controlado
+3. Validar endpoints e telas após schema atualizado no banco Beta
+4. Promover para produção apenas após validação operacional no Beta
 
 ---
 
 ## Última Sessão
 
-**Data:** 14/04/2026 21:10 BRT  
-**Tipo:** Conformidade de deploy + hardening de migrations  
-**O que foi feito:** 
-- Correção dos workflows para executar gate de migrations em beta/prod/promote
-- Criação e hardening do `apply_required_migrations.sh` com classes, timeouts e bloqueios
-- Atualização das documentações operacionais de deploy e checklist
+**Data:** 15/04/2026 00:32 BRT  
+**Tipo:** Correções de deploy, frequency legado e incidentes de produção  
+**Arquivo:** `sessoes/resumo_14-04_continuacao-migrations.md`  
+**O que foi feito:**
+- Diagnosticado e corrigido incidente E148: `VITE_API_URL` apontava para beta em produção
+- Removidos `t.frequency` e `t.frequency_custom` da query `GET /gm/tables` (causa raiz do painel vazio)
+- Corrigido `deploy-beta.yml`: `--no-cache` adicionado ao build (evita cache de camadas antigas)
+- Corrigida `migration_101` para ser idempotente (`IF NOT EXISTS`)
+- Atualizada mensagem de erro de backend indisponível no `App.tsx`
+- Deploy beta concluído com sucesso (run `24434872861`)
 
-**Status:** 🔄 Em validação operacional (faltam runs reais dos workflows)
-**Arquivo:** `sessoes/resumo_14-04_continuacao-migrations.md`
+**Status:** ✅ Deploy beta funcional. Pendente: migration_104 manual + validação funcional do painel.
 
 ---
 
@@ -57,7 +52,7 @@
 
 Abrir o novo chat já apontando estes arquivos, nesta ordem:
 1. `RESUMO_EXECUCAO.md` (estado mais recente)
-2. `sessoes/resumo_14-04_continuacao-migrations.md` (linha do tempo detalhada)
+2. `sessoes/resumo_14-04_continuacao-migrations.md` (linha do tempo da limpeza estrutural)
 3. `PRE_DEPLOY_CHECKLIST.md` (gates obrigatórios)
 4. `OPERACAO_PRODUCAO.md` (runbook de deploy e validação)
 5. `scripts/deploy/apply_required_migrations.sh` (fonte canônica do gate)

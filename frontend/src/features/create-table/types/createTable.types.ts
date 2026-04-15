@@ -36,7 +36,6 @@ export interface BasicFormData {
   state?: string;
   content_warnings?: string[];
   safety_tools?: string[];
-  frequency_custom?: string;
   price_frequency?: string;
 }
 
@@ -50,8 +49,6 @@ export interface FormState {
   
   // Sessões
   sessions: SessionSchedule[];
-  frequency: string;
-  frequencyCustom: string; // CORREÇÃO B01: Adicionar ao tipo
   
   // VTT Platform (select com opção "Personalizado")
   vttPlatformId: string; // ID da VTT selecionada ou "custom"
@@ -132,8 +129,6 @@ export interface CreateTablePayload {
   state?: string;
   content_warnings?: string[];
   safety_tools?: string[];
-  frequency?: string;
-  frequency_custom?: string;
   // VTT Platform
   vtt_platform_id?: string;
   game_platform_custom?: string;

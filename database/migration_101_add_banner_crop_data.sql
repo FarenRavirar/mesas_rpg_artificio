@@ -3,7 +3,7 @@
 -- Descrição: Armazenar coordenadas de crop visual (x, y, width, height) para display com object-position CSS
 
 -- Adicionar novo campo como JSONB (armazena objeto {x, y, width, height})
-ALTER TABLE tables ADD COLUMN banner_crop_data JSONB;
+ALTER TABLE tables ADD COLUMN IF NOT EXISTS banner_crop_data JSONB;
 
 -- Permitir nulo (mesas antigas não têm crop)
 ALTER TABLE tables ALTER COLUMN banner_crop_data DROP NOT NULL;

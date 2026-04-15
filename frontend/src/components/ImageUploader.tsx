@@ -53,7 +53,7 @@ export function ImageUploader({
   } | null>(initialCropData ? { crop: initialCropData as unknown as PixelCrop, originalWidth: 0, originalHeight: 0 } : null);
 
   const cloudName = (import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '').trim();
-  const uploadEndpoint = (import.meta.env.VITE_API_URL || '').replace(/\/api\/v1$/, '') + '/api/v1';
+  const uploadEndpoint = (import.meta.env.VITE_API_URL || '').replace(/\/api\/v1$/, '') + '/api/v1/upload';
 
   const isCloudinaryConfigured = cloudName.length > 0;
   const previewSource = value.trim() || bannerPlaceholder;
