@@ -1,6 +1,6 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 14/04/2026 23:09 BRT
+**Última atualização:** 15/04/2026 00:32 BRT
 
 ---
 
@@ -10,35 +10,41 @@
 **Ambiente Produção:** `mesas.artificiorpg.com` — workflow com gate de migration habilitado (`deploy-prod.yml`)  
 **Branch ativa:** `dev`
 
-**Status técnico mais recente (frequência por sessão + schema):**
-- Consolidação da frequência em `table_schedules.frequency` (fonte única no runtime)
-- Remoção do fluxo de frequência global (`tables.frequency` / `tables.frequency_custom`) no create/edit/listagem/detalhe
-- Migration estrutural criada: `database/migration_104_drop_tables_frequency_columns.sql`
-- Gate de migrations atualizado para classificar a migration 104 como `MANUAL_RISK_MIGRATIONS`
-- Tipo de banco alinhado: `backend/src/db/types.ts` sem `frequency` e `frequency_custom` em `TablesTable`
+**Status técnico mais recente (15/04/2026):**
+- Deploy beta concluído com sucesso (run `24434872861`)
+- `t.frequency` e `t.frequency_custom` removidos do build compilado do beta
+- `GET /gm/tables` sem erro de coluna — painel do mestre funcional
+- `migration_101` corrigida para ser idempotente (`IF NOT EXISTS`)
+- `migration_104` classificada como `MANUAL_RISK` — pendente aplicação manual
+- `deploy-beta.yml` corrigido: `--no-cache` adicionado ao `docker compose build`
+- Mensagem de erro de backend indisponível atualizada para linguagem de atualização
+- `VITE_API_URL` corrigido em produção (apontava para beta)
 
 ---
 
 ## Próxima Ação
 
-1. Aplicar `migration_104_drop_tables_frequency_columns.sql` no Beta via fluxo manual controlado (com checklist de backup aplicável)
-2. Validar endpoints e telas após schema atualizado no banco Beta
-3. Promover para produção apenas após validação operacional no Beta
+1. Validar funcionalmente o painel em `https://mesasbeta.artificiorpg.com/painel` (requer login)
+2. Aplicar `migration_104_drop_tables_frequency_columns.sql` no Beta via fluxo manual controlado
+3. Validar endpoints e telas após schema atualizado no banco Beta
+4. Promover para produção apenas após validação operacional no Beta
 
 ---
 
 ## Última Sessão
 
-**Data:** 14/04/2026 23:09 BRT  
-**Tipo:** Limpeza estrutural de frequência global da mesa  
-**O que foi feito:** 
-- Criação da migration de remoção das colunas legadas (`migration_104_drop_tables_frequency_columns.sql`)
-- Classificação da migration 104 como manual/risk no gate de deploy
-- Alinhamento do tipo de banco (`backend/src/db/types.ts`) removendo campos legados
-- Validação de tipagem backend/frontend sem erro
+**Data:** 15/04/2026 00:32 BRT  
+**Tipo:** Correções de deploy, frequency legado e incidentes de produção  
+**Arquivo:** `sessoes/resumo_14-04_continuacao-migrations.md`  
+**O que foi feito:**
+- Diagnosticado e corrigido incidente E148: `VITE_API_URL` apontava para beta em produção
+- Removidos `t.frequency` e `t.frequency_custom` da query `GET /gm/tables` (causa raiz do painel vazio)
+- Corrigido `deploy-beta.yml`: `--no-cache` adicionado ao build (evita cache de camadas antigas)
+- Corrigida `migration_101` para ser idempotente (`IF NOT EXISTS`)
+- Atualizada mensagem de erro de backend indisponível no `App.tsx`
+- Deploy beta concluído com sucesso (run `24434872861`)
 
-**Status:** ✅ Implementação concluída (pendente execução operacional da migration 104 no ambiente)
-**Arquivo:** `sessoes/resumo_14-04_continuacao-migrations.md`
+**Status:** ✅ Deploy beta funcional. Pendente: migration_104 manual + validação funcional do painel.
 
 ---
 

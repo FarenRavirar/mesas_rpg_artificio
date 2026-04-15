@@ -1,50 +1,50 @@
 [
   {
-    "id": "2026-04-14-upload-banner",
-    "title": "Nova forma de adicionar imagem na sua mesa",
-    "body": "Mudamos completamente a experiência de adicionar a imagem da sua mesa:\n\n• **Upload direto do seu computador** - Agora você pode selecionar a foto direto do seu computador ou celular, sem precisar copiar URLs complicadas\n• **Preview instantâneo** - Assim que você escolhe a imagem, você já vê como vai ficar na capa da mesa\n• **Mais fácil de usar** - Não precisa mais entender de hospedagem de imagens, tudo funciona automaticamente\n• **Powered by Cloudinary** - Agora as imagens são armazenadas de forma mais rápida e confiável\n\nExperimente criar ou editar uma mesa para ver a nova experiência! 🎲\n\n_Atualização publicada em 14/04/2026 às 03:30_",
+    "id": "2026-04-15-upload-e-sugestoes",
+    "title": "Cadastro de mesa ficou mais simples e colaborativo",
+    "body": "Hoje o cadastro de mesa recebeu melhorias que reduzem atrito e ajudam a comunidade a crescer:\n\n• **Upload de imagem direto do celular ou computador** - Sem precisar copiar links de outros sites\n• **Prévia da imagem na hora** - Você vê como a capa da mesa vai ficar antes de salvar\n• **Sugestão de sistemas e cenários no próprio formulário** - Se não encontrar uma opção, você pode sugerir sem sair da tela\n• **Melhor suporte para nomes em português** - Mais facilidade para encontrar e registrar conteúdo do jeito que a comunidade usa\n\n_Atualização publicada em 15/04/2026 às 00:02_",
     "type": "app",
     "published": true,
-    "created_at": "2026-04-14T03:30:00-03:00"
+    "created_at": "2026-04-15T00:02:00-03:00"
   },
   {
     "id": "2026-04-13-painel-mestre-melhorias",
-    "title": "Painel do mestre ficou mais fácil de usar",
-    "body": "Fizemos várias melhorias no painel do mestre para deixar tudo mais prático e organizado:\n\n• **Editar mesa funciona direitinho** - Corrigimos um problema que fazia o formulário de edição abrir vazio. Agora quando você clica em \"Editar\", todos os dados da sua mesa aparecem certinho para você modificar\n• **Ativar e desativar mesas** - O botão de ativar e desativar estava dando erro, mas agora funciona perfeitamente. Você pode pausar e reativar suas mesas sem problemas\n• **Mesas pausadas ficam mais claras** - Agora é muito mais fácil ver quais mesas estão ativas e quais estão pausadas: as mesas desativadas aparecem mais apagadas, com a imagem em preto e branco, e têm uma etiqueta \"⏸️ Desativada\" bem visível\n• **Organização melhor** - Com o visual diferenciado, você consegue gerenciar várias mesas ao mesmo tempo sem se confundir\n\nSeu painel agora está mais confiável e muito mais fácil de usar! 🎲\n\n_Atualização publicada em 13/04/2026 às 18:00_",
+    "title": "Painel do mestre ficou mais confiável para gerenciar mesas",
+    "body": "O painel recebeu correções importantes para o dia a dia de quem mestra:\n\n• **Editar mesa voltou a funcionar corretamente** - O formulário abre preenchido com os dados da mesa\n• **Ativar e desativar mesa sem erro** - O controle de status está estável\n• **Mesas pausadas com visual claro** - Fica fácil diferenciar o que está ativo e o que está desativado\n\n_Atualização publicada em 13/04/2026 às 18:18_",
     "type": "app",
     "published": true,
-    "created_at": "2026-04-13T18:00:00-03:00"
+    "created_at": "2026-04-13T18:18:00-03:00"
   },
   {
-    "id": "2026-04-09-perfil-premium",
-    "title": "Seu perfil ficou mais bonito e fácil de usar",
-    "body": "Demos um upgrade completo na tela de edição do seu perfil para deixar tudo mais profissional e agradável:\n\n• **Foto de perfil repaginada** - Agora a foto fica do lado das opções, ocupando menos espaço e deixando tudo mais organizado. Os botões ficaram menores e mais discretos\n• **Seu cargo aparece** - Se você é mestre ou admin, agora tem uma etiqueta colorida do lado do seu nome mostrando isso\n• **Botão para ver seu perfil público** - Clique em \"Ver perfil público\" para abrir seu perfil em uma nova aba e ver como os outros te veem\n• **Preferências de jogo mais claras** - Os controles de Combate, Roleplay, Exploração e Estratégia agora mostram o número do lado do nome, ficando mais fácil de entender\n• **Tudo mais compacto** - Reduzimos os espaços entre os campos para você ver mais informações de uma vez, sem precisar rolar tanto a página\n• **Abas mais destacadas** - A aba que você está vendo agora fica com um fundo colorido, deixando bem claro onde você está\n\nSeu perfil agora está mais rápido de editar e muito mais bonito de ver! 🎲\n\n_Atualização publicada em 09/04/2026 às 01:37_",
+    "id": "2026-04-08-perfil-premium",
+    "title": "Seu perfil ficou mais organizado e mais rápido de editar",
+    "body": "A edição do perfil foi reorganizada para ficar mais prática:\n\n• **Layout mais limpo** - Campos e seções mais bem distribuídos\n• **Cargos visíveis no perfil** - Você identifica com clareza quando é mestre ou admin\n• **Ajustes de preferências mais claros** - Controles de estilo de jogo ficaram mais fáceis de entender\n\n_Atualização publicada em 08/04/2026 às 23:02_",
     "type": "app",
     "published": true,
-    "created_at": "2026-04-09T01:37:00-03:00"
+    "created_at": "2026-04-08T23:02:00-03:00"
   },
   {
     "id": "2026-04-08-vagas-visuais",
-    "title": "Vagas das mesas agora ficam mais claras",
-    "body": "Melhoramos a forma como você vê as vagas disponíveis nas mesas:\n\n• **Bolinhas coloridas** - Agora as bolinhas mudam de cor conforme a mesa vai enchendo: verde quando tem bastante vaga, amarelo quando está na metade, e vermelho quando está quase lotando\n• **Texto mais claro** - Ao invés de mostrar \"4/5\", agora mostra \"4 vagas\" ou \"1 vaga\", deixando bem claro quantas vagas estão disponíveis\n• **Alerta de última vaga** - Quando sobram só 1 ou 2 vagas, aparece um aviso piscando para você não perder a chance\n• **Mesa lotada fica clara** - Quando a mesa está cheia, o botão fica cinza e mostra \"Mesa lotada\" para você não perder tempo\n• **Funciona em todo lugar** - Essas melhorias aparecem no catálogo, na página inicial e nos detalhes da mesa\n\nAgora fica muito mais fácil saber se ainda dá tempo de entrar na mesa que você quer! 🎲\n\n_Atualização publicada em 08/04/2026 às 19:36_",
+    "title": "Vagas das mesas ficaram mais fáceis de entender",
+    "body": "Melhoramos a leitura das vagas para você decidir mais rápido:\n\n• **Indicadores visuais de lotação** - Dá para perceber rapidamente se a mesa está enchendo\n• **Texto de vagas mais direto** - Informação mais clara sobre quantas vagas restam\n• **Avisos de últimas vagas** - Destaque para mesas quase lotadas\n\n_Atualização publicada em 08/04/2026 às 07:42_",
     "type": "app",
     "published": true,
-    "created_at": "2026-04-08T19:36:00-03:00"
+    "created_at": "2026-04-08T07:42:00-03:00"
   },
   {
     "id": "2026-04-08-performance-catalogo",
-    "title": "Catálogo mais rápido e estável",
-    "body": "Fizemos melhorias técnicas importantes no catálogo que você vai sentir na prática:\n\n• **Carrega mais rápido** - Os filtros agora respondem instantaneamente quando você muda alguma coisa\n• **Não trava mais** - Corrigimos um problema que às vezes fazia a página travar ao usar vários filtros\n• **Link funciona sempre** - Agora você pode copiar o link da página com os filtros ativos e ele sempre vai funcionar direitinho\n• **Voltar e avançar** - Os botões de voltar e avançar do navegador agora funcionam perfeitamente com os filtros\n• **Mais confiável** - A página não perde mais os filtros quando você atualiza ou compartilha o link\n\nEssas melhorias deixam tudo mais suave e confiável para você encontrar suas mesas! 🎲\n\n_Atualização publicada em 08/04/2026 às 07:07_",
+    "title": "Catálogo ficou mais rápido e mais estável",
+    "body": "O catálogo recebeu melhorias de desempenho e estabilidade:\n\n• **Filtros respondem melhor** - Menos lentidão ao ajustar busca\n• **Navegação mais previsível** - Menos travamentos em uso contínuo\n• **Links com filtros mais confiáveis** - Compartilhar e reabrir busca ficou mais consistente\n\n_Atualização publicada em 08/04/2026 às 07:33_",
     "type": "app",
     "published": true,
-    "created_at": "2026-04-08T07:07:00-03:00"
+    "created_at": "2026-04-08T07:33:00-03:00"
   },
   {
-    "id": "2026-04-08-ux-catalogo",
-    "title": "Catálogo mais organizado e fácil de usar",
-    "body": "Melhoramos a forma como você busca e filtra mesas no catálogo:\n\n• **Filtros mais organizados** - Agora fica mais fácil encontrar o que você procura, com tudo separadinho em blocos\n• **Filtros no celular** - No celular, você clica no botão \"Filtros\" e abre um menu lateral bonitinho\n• **Você vê o que filtrou** - Os filtros que você escolheu aparecem como etiquetas coloridas que você pode remover clicando nelas\n• **Botões mais claros** - Agora você sabe na hora se pode entrar na mesa ou se precisa ver os detalhes primeiro\n• **Mais mesas na tela** - Reorganizamos tudo para você ver mais mesas de uma vez\n\nExplore o catálogo e encontre sua próxima aventura! 🎲\n\n_Atualização publicada em 08/04/2026 às 03:26_",
+    "id": "2026-04-07-ux-catalogo",
+    "title": "Filtros do catálogo ficaram mais simples de usar",
+    "body": "A busca por mesas ficou mais amigável, principalmente em telas menores:\n\n• **Filtros mais organizados** - Menos confusão para montar sua busca\n• **Melhor uso no celular** - Fluxo de filtro mais confortável no mobile\n• **Visual mais claro do que foi selecionado** - Você enxerga com facilidade os filtros ativos\n\n_Atualização publicada em 07/04/2026 às 16:15_",
     "type": "app",
     "published": true,
-    "created_at": "2026-04-08T03:26:00-03:00"
+    "created_at": "2026-04-07T16:15:00-03:00"
   }
 ]
