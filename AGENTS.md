@@ -243,21 +243,24 @@ Linguagem 100% leiga. Proibido: `sidebar vertical`, `migration`, `refactor`, `pl
 
 ## PROTOCOLO DE SESSÃO
 
-**Nome do arquivo:** `resumo_[dia-mes]_[NN]_[escopo].md`
+**Nome do arquivo:** `AA-MM-DD_N_<escopo>.md`
 **Localização:** `/sessoes/`
 **Índice:** `/sessoes/index.md`
 
 **Formato:**
 ```
-resumo_DD-MM_NN_<escopo>.md
-       │  │ │└── escopo (curto, minúsculas, hifens)
-       │  └────── NN = 01, 02, 03... (número sequencial do dia)
-       └───────── DD-MM (data)
+AA-MM-DD_N_<escopo>.md
+│ │ │  │ │
+│ │ │  │ └── escopo (curto, minúsculas, hifens)
+│ │ │  └──── número sequencial (1, 2, 3...)
+│ │ └────── dia
+│ └───────── mês
+└─────────── ano (2 dígitos)
 ```
 
 **Verificar número sequencial:**
 1. Consultar `index.md` para saber o próximo número
-2. Se a última sessão do dia é `resumo_15-04_03_*`, a próxima é `resumo_15-04_04_*`
+2. Se a última sessão do dia é `26-04-15_3_*`, a próxima é `26-04-16_1_*`
 
 **Conteúdo mínimo obrigatório:**
 1. **Cabeçalho** — Data, Objetivo (1–2 frases)

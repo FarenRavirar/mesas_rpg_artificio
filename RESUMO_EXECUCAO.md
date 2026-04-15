@@ -35,7 +35,7 @@
 
 **Data:** 15/04/2026 12:38 BRT  
 **Tipo:** Auditoria completa do TODO_OPERACIONAL.md + Verificação GUT ≥ 100  
-**Arquivo:** `sessoes/resumo_15-04_03_auditoria-todo-operacional.md`  
+**Arquivo:** `sessoes/26-04-15_3_auditoria-todo-operacional.md`  
 **O que foi feito:**
 - Auditoria sistemática de todos os 32 itens do TODO_OPERACIONAL.md
 - Verificação de código-fonte para confirmar implementações (migrations, páginas frontend, configurações)
