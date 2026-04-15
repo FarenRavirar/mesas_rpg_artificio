@@ -2,8 +2,8 @@
 
 > Um portal colaborativo para encontrar, publicar e acompanhar mesas de RPG no Brasil.
 
-[![Beta](https://img.shields.io/badge/beta-mesasbeta.artificiorpg.com-orange)](https://mesasbeta.artificiorpg.com)
-[![Produção](https://img.shields.io/badge/produção-mesas.artificiorpg.com-success)](https://mesas.artificiorpg.com)
+[![Teste](https://img.shields.io/badge/beta-mesasbeta.artificiorpg.com-orange)](https://mesasbeta.artificiorpg.com)
+[![Oficial](https://img.shields.io/badge/produção-mesas.artificiorpg.com-success)](https://mesas.artificiorpg.com)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ---
