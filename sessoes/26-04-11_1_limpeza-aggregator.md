@@ -13,13 +13,13 @@ O módulo AggregatorBot (Fase 7) foi descontinuado. Necessário:
 
 ### 1. Análise de Documentação
 - [x] Ler FILA_IMPLEMENTACAO.md
-- [x] Ler TODO_OPERACIONAL.md
+- [x] Ler BACKLOG_OPERACIONAL.md
 - [x] Buscar referências em todos os .md (300+ ocorrências encontradas)
 - [x] Mapear referências cruzadas
 
 ### 2. Limpeza de Documentação
 - [x] FILA_IMPLEMENTACAO.md — Fase 7 completa removida
-- [x] TODO_OPERACIONAL.md — REQs relacionados removidos
+- [x] BACKLOG_OPERACIONAL.md — REQs relacionados removidos
 - [x] AGENTS.md — Referências ao AggregatorBot/CleanupWorker/parser Python removidas
 - [x] MAPA_DE_API.md — Sem referências encontradas (já limpo)
 - [x] ERRORS_SOLUTIONS.md — E082-E084, E106-E109, E120-E126 removidos
@@ -37,7 +37,7 @@ O módulo AggregatorBot (Fase 7) foi descontinuado. Necessário:
 
 ### Documentação
 - FILA_IMPLEMENTACAO.md
-- TODO_OPERACIONAL.md
+- BACKLOG_OPERACIONAL.md
 - ARQUITETURA_PROJETO.md
 - MAPA_DE_API.md
 - ERRORS_SOLUTIONS.md
@@ -57,7 +57,7 @@ O módulo AggregatorBot (Fase 7) foi descontinuado. Necessário:
 - [x] Relatório de vestígios de código criado
 - [x] Nenhum código alterado
 - [x] FILA_IMPLEMENTACAO.md limpa
-- [x] TODO_OPERACIONAL.md limpa
+- [x] BACKLOG_OPERACIONAL.md limpa
 - [ ] Demais documentos não limpos (tarefa interrompida)
 - [ ] Documentos atualizados commitados
 
@@ -85,7 +85,7 @@ Ver `docs/VESTIGIOS_AGGREGATOR.md` para mapeamento detalhado de todos os vestíg
    - Referências ao AggregatorBot eliminadas
    - Histórico mantido para registro
 
-2. **TODO_OPERACIONAL.md:**
+2. **BACKLOG_OPERACIONAL.md:**
    - REQ-14 removido (Importador manual JSON)
    - REQ-18 removido (Correção fluxo revisão candidatos)
    - REQ-19 removido (Melhorias UX Nielsen revisão)

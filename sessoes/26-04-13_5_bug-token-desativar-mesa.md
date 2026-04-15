@@ -30,7 +30,7 @@
 5. [x] Testar correção localmente
 6. [x] Documentar causa raiz em ERRORS_SOLUTIONS.md
 7. [x] Atualizar FILA_IMPLEMENTACAO.md (item 142)
-8. [x] Atualizar TODO_OPERACIONAL.md (REQ-30 BUG 2)
+8. [x] Atualizar BACKLOG_OPERACIONAL.md (REQ-30 BUG 2)
 9. [x] Atualizar RESUMO_EXECUCAO.md apontando para esta sessão
 
 ---
@@ -65,7 +65,7 @@ Corrigir `handleToggleTableStatus` em `PainelMestrePage.tsx` (linhas 387-406):
 **Documentação:**
 - Erro E142 registrado em `ERRORS_SOLUTIONS.md`
 - Item 142 da FILA marcado como concluído
-- REQ-30 BUG 2 marcado como resolvido no TODO_OPERACIONAL.md
+- REQ-30 BUG 2 marcado como resolvido no BACKLOG_OPERACIONAL.md
 
 **Próximos passos:**
 Deploy em beta para validação E2E do toggle de status.

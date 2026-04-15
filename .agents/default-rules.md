@@ -12,7 +12,7 @@ Usar grep/search primeiro para confirmar que o arquivo contém o que se busca.
 Arquivos proibidos de abrir na íntegra:
 - ARQUITETURA_PROJETO.md (1396+ linhas) → só por seção §X
 - FILA_IMPLEMENTACAO.md → só o item atual via grep
-- TODO_OPERACIONAL.md → só o REQ específico via grep
+- BACKLOG_OPERACIONAL.md → só o REQ específico via grep
 - ERRORS_SOLUTIONS.md → só pelo ID do erro via grep
 - Qualquer arquivo de código com mais de 200 linhas → grep primeiro
 
@@ -35,7 +35,7 @@ Antes de qualquer ação, leia nesta ordem exata usando grep seletivo:
 1. AGENTS.md — seções "Fontes de Verdade" e "Protocolo" (não na íntegra)
 2. RESUMO_EXECUCAO.md — estado atual e próxima ação (arquivo completo, é curto)
 3. FILA_IMPLEMENTACAO.md — grep pelo próximo item pendente, ler só esse bloco
-4. TODO_OPERACIONAL.md — grep pelo REQ correspondente ao item, ler só esse bloco
+4. BACKLOG_OPERACIONAL.md — grep pelo REQ correspondente ao item, ler só esse bloco
 
 Por situação específica, consulte também:
 - Erro encontrado → ERRORS_SOLUTIONS.md (grep pelo ID antes de tentar corrigir)
@@ -52,7 +52,7 @@ Nunca leia ARQUITETURA_PROJETO.md na íntegra — consulte apenas a seção §X 
 
 | Situação | Documento | Como acessar |
 |----------|-----------|--------------|
-| O que fazer (produto, prioridade) | TODO_OPERACIONAL.md | grep pelo REQ |
+| O que fazer (produto, prioridade) | BACKLOG_OPERACIONAL.md | grep pelo REQ |
 | Como fazer (técnico, lote, fase) | FILA_IMPLEMENTACAO.md | grep por "pendente" |
 | Erro encontrado | ERRORS_SOLUTIONS.md | grep pelo ID E### |
 | Rotas de API existentes | MAPA_DE_API.md | grep pela rota |
@@ -69,8 +69,8 @@ Nunca leia ARQUITETURA_PROJETO.md na íntegra — consulte apenas a seção §X 
 
 1. Identificar o próximo item da FILA com status pendente e maior score GUT
    → grep -n "pendente" FILA_IMPLEMENTACAO.md | head -5
-2. Verificar o REQ correspondente no TODO_OPERACIONAL.md
-   → grep -n "REQ-XX" TODO_OPERACIONAL.md
+2. Verificar o REQ correspondente no BACKLOG_OPERACIONAL.md
+   → grep -n "REQ-XX" BACKLOG_OPERACIONAL.md
 3. Consultar ERRORS_SOLUTIONS.md para erros conhecidos relacionados
    → grep -n "palavra-chave" ERRORS_SOLUTIONS.md
 4. Criar branch: feature/<escopo> a partir de dev
@@ -80,7 +80,7 @@ Nunca leia ARQUITETURA_PROJETO.md na íntegra — consulte apenas a seção §X 
    → ler só a seção relevante de ARQUITETURA_PROJETO.md antes de implementar
 7. Rodar npm run build — se falhar, corrigir antes de continuar (máximo 3 tentativas)
 8. Atualizar status na FILA_IMPLEMENTACAO.md: pendente → em_execucao → concluido + data
-9. Atualizar status no TODO_OPERACIONAL.md se o REQ foi concluído
+9. Atualizar status no BACKLOG_OPERACIONAL.md se o REQ foi concluído
 10. Atualizar MAPA_DE_API.md se rotas foram adicionadas, removidas ou alteradas
 11. Registrar erros novos em ERRORS_SOLUTIONS.md
 12. Atualizar RESUMO_EXECUCAO.md com estado atual e próxima ação
@@ -198,7 +198,7 @@ Se o mesmo erro ocorrer 3 vezes consecutivas sem solução:
 ## Atualização de documentos ao concluir tarefa
 
 - FILA_IMPLEMENTACAO.md → marcar item como concluido com data
-- TODO_OPERACIONAL.md → atualizar status do REQ, mover para Histórico de Conclusão se fechado
+- BACKLOG_OPERACIONAL.md → atualizar status do REQ, mover para Histórico de Conclusão se fechado
 - ERRORS_SOLUTIONS.md → registrar erros novos encontrados durante a execução
 - MAPA_DE_API.md → obrigatório se qualquer rota foi criada, removida ou alterada
 - RESUMO_EXECUCAO.md → atualizar próxima ação e arquivo de sessão mais recente
@@ -216,7 +216,7 @@ Se o mesmo erro ocorrer 3 vezes consecutivas sem solução:
 - Lotes inteiros com todos os itens concluidos → mover para ## Histórico no final
 - Manter apenas pendente e em_execucao na área ativa
 
-### TODO_OPERACIONAL.md
+### BACKLOG_OPERACIONAL.md
 - REQ concluído → mover para Histórico de Conclusão (manter índice limpo)
 - REQ com status Em validação beta sem atualização por mais de 2 sessões → marcar [REVISAR]
 

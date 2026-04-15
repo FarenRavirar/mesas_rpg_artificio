@@ -4,13 +4,16 @@
 
 ---
 
-## 15/04/2026 (3 sessões)
+## 15/04/2026 (6 sessões)
 
 | # | Arquivo |
 |---|---|
 | 1 | `26-04-15_1_continuacao-migrations.md` |
 | 2 | `26-04-15_2_analise-todo.md` |
 | 3 | `26-04-15_3_auditoria-todo-operacional.md` |
+| 4 | `26-04-15_4_organizacao-fila.md` |
+| 5 | `26-04-15_5_unificacao-docs.md` |
+| 6 | `26-04-15_6_auditoria-completa-fila-backlog.md` |
 
 ---
 

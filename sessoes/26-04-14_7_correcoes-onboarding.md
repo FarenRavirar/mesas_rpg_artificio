@@ -17,7 +17,7 @@
 - [x] FEATURE 2 - Toggle PT/EN nos seletores de sistema/cenário
 - [x] FEATURE 3 - Sugestão de sistema (já existia)
 - [x] Atualizar RESUMO_EXECUCAO.md
-- [x] Atualizar TODO_OPERACIONAL.md
+- [x] Atualizar BACKLOG_OPERACIONAL.md
 - [ ] Aplicar migration_102 no banco beta
 - [ ] Deploy para beta
 

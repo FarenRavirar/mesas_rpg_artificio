@@ -162,7 +162,7 @@ Migration_103 aplicada no beta + sessão encerrada por decisão do responsável.
   - registra regras do `apply_required_migrations.sh` e execucao controlada de migration de risco
 - [x] `ERRORS_SOLUTIONS.md`
   - novo incidente `E149` (validacao bash indisponivel no Windows sem WSL)
-- [x] `TODO_OPERACIONAL.md`
+- [x] `BACKLOG_OPERACIONAL.md`
   - REQ-31 atualizado para `Em validacao beta` com pendencia de run real
 - [x] `FILA_IMPLEMENTACAO.md`
   - item 143 atualizado para `em_validacao` com observacao de cobertura via gate 102/103
@@ -202,7 +202,7 @@ Migration_103 aplicada no beta + sessão encerrada por decisão do responsável.
    - [x] `system_suggestions.name_pt` presente
    - [x] tabela `scenario_suggestions` presente
 5. [x] Passo 5 — Fechamento documental final
-   - [x] atualizar `TODO_OPERACIONAL.md` (REQ-31)
+   - [x] atualizar `BACKLOG_OPERACIONAL.md` (REQ-31)
    - [x] atualizar `FILA_IMPLEMENTACAO.md` (item 143)
    - [x] atualizar `RESUMO_EXECUCAO.md` e este arquivo de sessao com evidencias finais
 

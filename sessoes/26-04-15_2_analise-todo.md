@@ -1,8 +1,8 @@
-# Análise Detalhada do TODO_OPERACIONAL.md — 15/04/2026
+# Análise Detalhada do BACKLOG_OPERACIONAL.md — 15/04/2026
 
 ## Contexto da Auditoria
 
-**Objetivo:** Verificar cada item do TODO_OPERACIONAL.md para determinar se está concluído, obsoleto ou ainda relevante.
+**Objetivo:** Verificar cada item do BACKLOG_OPERACIONAL.md para determinar se está concluído, obsoleto ou ainda relevante.
 
 **Estado do projeto (RESUMO_EXECUCAO.md):**
 - Beta ativo e estável em `mesasbeta.artificiorpg.com`
@@ -502,4 +502,4 @@ Itens na seção "Concluídos Recentes":
 1. ~~Executar verificações no beta via browser~~ (healthcheck OK)
 2. ~~Verificar código-fonte para confirmar implementações~~ (CONCLUÍDO)
 3. Gerar relatório final com recomendações
-4. Propor atualização do TODO_OPERACIONAL.md
+4. Propor atualização do BACKLOG_OPERACIONAL.md

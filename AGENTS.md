@@ -28,10 +28,14 @@ grep -n "padrão" arquivo.md
 
 **Arquivos que nunca abrir na íntegra:**
 - `ARQUITETURA_PROJETO.md` (1396+ linhas) → grep pelo §, abrir só a seção
-- `FILA_IMPLEMENTACAO.md` → `grep -n "pendente"`
-- `TODO_OPERACIONAL.md` → grep pelo REQ específico
-- `ERRORS_SOLUTIONS.md` → grep pelo ID `E###`
-- Qualquer arquivo de código > 200 linhas → grep primeiro
+- `FILA_IMPLEMENTACAO.md` → grep por "pendente" ou ver detalhes no BACKLOG
+- `BACKLOG_OPERACIONAL.md` → grep pelo REQ ou ver no Índice
+
+**Diferença entre documentos:**
+- `BACKLOG_OPERACIONAL.md` = **O QUE FAZER** (features/produto). Guia canônico para agentes.
+- `FILA_IMPLEMENTACAO.md` = **COMO FAZER** (detalhes técnicos). Referência para implementação.
+- **Regra:** Primeiro verificar BACKLOG. Se precisa details técnicos, verificar FILA.
+- **Regra:** Itens novos → primeiro no BACKLOG. FILA recebe detalhes após.
 
 **Hierarquia de leitura por sessão:**
 1. `RESUMO_EXECUCAO.md` + item da FILA via grep (sempre)
@@ -53,8 +57,8 @@ grep -n "padrão" arquivo.md
 | Operação em produção ou beta | `OPERACAO_PRODUCAO.md` | seção relevante |
 | Falha de ambiente, encoding, template | `PRE-FLIGHT_CHECKLIST.md` | arquivo completo |
 | Erro com solução validada | `ERRORS_SOLUTIONS.md` | grep por `E###` |
-| Backlog de requisitos (produto) | `TODO_OPERACIONAL.md` | grep pelo REQ |
-| Fila de execução técnica | `FILA_IMPLEMENTACAO.md` | grep por "pendente" |
+| Backlog de requisitos (produto) | `BACKLOG_OPERACIONAL.md` | Ver Índice ou grep pelo REQ |
+| Fila de execução técnica | `FILA_IMPLEMENTACAO.md` | Ver BACKLOG para detalhes |
 | Índice rápido e checklists | `GUIA_RAPIDO_OPERACIONAL.md` | arquivo completo |
 | Estado atual e próxima ação | `RESUMO_EXECUCAO.md` | arquivo completo |
 
@@ -192,7 +196,7 @@ git rev-list --left-right --count origin/main...origin/dev
 
 | Tipo | Arquivo |
 |---|---|
-| Requisito de produto | `TODO_OPERACIONAL.md` |
+| Requisito de produto | `BACKLOG_OPERACIONAL.md` |
 | Tarefa técnica | `FILA_IMPLEMENTACAO.md` |
 | Erro com solução validada | `ERRORS_SOLUTIONS.md` |
 

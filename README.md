@@ -157,7 +157,7 @@ Para ajudar na priorização, descreva:
 - [RESUMO_EXECUCAO.md](RESUMO_EXECUCAO.md) — estado atual e próxima ação
 - [ARQUITETURA_PROJETO.md](ARQUITETURA_PROJETO.md) — arquitetura e contratos
 - [MAPA_DE_API.md](MAPA_DE_API.md) — rotas e consumidores
-- [TODO_OPERACIONAL.md](TODO_OPERACIONAL.md) — visão de produto
+- [BACKLOG_OPERACIONAL.md](BACKLOG_OPERACIONAL.md) — visão de produto
 - [FILA_IMPLEMENTACAO.md](FILA_IMPLEMENTACAO.md) — fila técnica
 - [ERRORS_SOLUTIONS.md](ERRORS_SOLUTIONS.md) — histórico de erros e soluções
 - [OPERACAO_PRODUCAO.md](OPERACAO_PRODUCAO.md) — operação beta/produção

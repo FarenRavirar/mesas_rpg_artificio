@@ -1,7 +1,7 @@
-# Sessão: Auditoria Completa do TODO_OPERACIONAL.md
+# Sessão: Auditoria Completa do BACKLOG_OPERACIONAL.md
 
 **Data:** 15/04/2026 12:19 BRT  
-**Objetivo:** Zerar o TODO_OPERACIONAL.md verificando cada item individualmente para determinar se está concluído, obsoleto ou ainda relevante.
+**Objetivo:** Zerar o BACKLOG_OPERACIONAL.md verificando cada item individualmente para determinar se está concluído, obsoleto ou ainda relevante.
 
 ---
 
@@ -14,16 +14,16 @@
 
 ## Arquivos Modificados
 
-- `TODO_OPERACIONAL.md` — movidos 8 itens para Histórico de Conclusão
+- `BACKLOG_OPERACIONAL.md` — movidos 8 itens para Histórico de Conclusão
 - `RESUMO_EXECUCAO.md` — atualizado para apontar para esta sessão
 
 ---
 
 ## Plano de Execução
 
-1. Verificar código-fonte de cada item do TODO_OPERACIONAL.md
+1. Verificar código-fonte de cada item do BACKLOG_OPERACIONAL.md
 2. Classificar como: Concluído, Obsoleto, ou Ainda Relevante
-3. Atualizar status no TODO_OPERACIONAL.md
+3. Atualizar status no BACKLOG_OPERACIONAL.md
 4. Registrar no Histórico de Conclusão
 
 ---
@@ -42,7 +42,7 @@
 
 ## Critério de Conclusão
 
-- Auditoria completa de todos os 32 itens do TODO_OPERACIONAL.md
+- Auditoria completa de todos os 32 itens do BACKLOG_OPERACIONAL.md
 - Cada item classificado e documentado
 - RESUMO_EXECUCAO.md atualizado
 
@@ -376,7 +376,7 @@
 
 ### Fase 1: Contexto
 - [x] Ler `RESUMO_EXECUCAO.md`
-- [x] Ler `TODO_OPERACIONAL.md` completo
+- [x] Ler `BACKLOG_OPERACIONAL.md` completo
 - [x] Ler `FILA_IMPLEMENTACAO.md` (via grep)
 - [x] Verificar estado do beta via healthcheck
 
@@ -394,7 +394,7 @@
 
 ### Fase 6: Relatório e Atualização
 - [x] Gerar relatório de auditoria
-- [x] Propor mudanças no TODO_OPERACIONAL.md
+- [x] Propor mudanças no BACKLOG_OPERACIONAL.md
 - [x] Aguardar aprovação do usuário
 - [x] Aplicar mudanças aprovadas
 - [x] Atualizar RESUMO_EXECUCAO.md
@@ -409,7 +409,7 @@
 ✅ **VERIFICAÇÃO GUT ≥ 100 CONCLUÍDA**
 
 **Mudanças aplicadas:**
-1. ✅ TODO_OPERACIONAL.md atualizado:
+1. ✅ BACKLOG_OPERACIONAL.md atualizado:
    - 7 itens movidos para Histórico de Conclusão (15/04/2026)
    - 1 item removido (OPS-05)
    - 1 item corrigido (REQ-03: Imgur → Cloudinary)
@@ -459,7 +459,7 @@
 **Data:** 15/04/2026 12:31 BRT
 
 **Ajuste aplicado:**
-- ✅ REQ-03 atualizado no TODO_OPERACIONAL.md
+- ✅ REQ-03 atualizado no BACKLOG_OPERACIONAL.md
 - **Motivo:** Conforme `sessoes/resumo_14-04_cloudinary-beta-cloudinary-only.md`, Imgur foi descontinuado e substituído por Cloudinary
 - **Mudança:** "Imgur + Sharp" → "Cloudinary + Sharp"
 - **Referências atualizadas:** `CLOUDINARY_INTEGRATION_GUIDE.md` e `OPERACAO_PRODUCAO.md`
@@ -637,7 +637,7 @@
 ? **TODOS OS 15 ITENS S�O V�LIDOS E DEVEM PERMANECER NO BACKLOG**
 
 Nenhum item adicional foi identificado como conclu�do ou obsoleto.
-O TODO_OPERACIONAL.md est� limpo e reflete o trabalho real restante.
+O BACKLOG_OPERACIONAL.md est� limpo e reflete o trabalho real restante.
 
 ---
 
