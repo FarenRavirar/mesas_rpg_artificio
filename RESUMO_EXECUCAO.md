@@ -1,50 +1,48 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 15/04/2026 00:32 BRT
+**Última atualização:** 15/04/2026 01:34 BRT
 
 ---
 
 ## Estado Atual do Projeto
 
 **Ambiente Beta:** `mesasbeta.artificiorpg.com` — deploy automático por `dev`  
-**Ambiente Produção:** `mesas.artificiorpg.com` — workflow com gate de migration habilitado (`deploy-prod.yml`)  
+**Ambiente Produção:** `mesas.artificiorpg.com` — ativa com gate de migration via `deploy-prod.yml`  
 **Branch ativa:** `dev`
 
 **Status técnico mais recente (15/04/2026):**
-- Deploy beta concluído com sucesso (run `24434872861`)
-- `t.frequency` e `t.frequency_custom` removidos do build compilado do beta
-- `GET /gm/tables` sem erro de coluna — painel do mestre funcional
-- `migration_101` corrigida para ser idempotente (`IF NOT EXISTS`)
-- `migration_104` classificada como `MANUAL_RISK` — pendente aplicação manual
-- `deploy-beta.yml` corrigido: `--no-cache` adicionado ao `docker compose build`
-- Mensagem de erro de backend indisponível atualizada para linguagem de atualização
-- `VITE_API_URL` corrigido em produção (apontava para beta)
+- Deploy beta concluído com sucesso (run `24435524262`)
+- Deploy produção concluído com sucesso (run `24435590034`)
+- Correção aplicada no fluxo de publicação de mesa: submit de create/edit usa `/api/v1/gm/tables` (resolve `405 Method Not Allowed`)
+- Build compilado sem dependência de `t.frequency` / `t.frequency_custom` no runtime do painel
+- `migration_101` idempotente (`IF NOT EXISTS`)
+- Gate de migration validado em run real beta/prod com schema mínimo conforme (`system_suggestions.name_pt`, `scenario_suggestions`)
+- `migration_104_drop_tables_frequency_columns.sql` confirmada como aplicada em beta e produção (`frequency_cols=0`, `migration104_applied=yes`)
 
 ---
 
 ## Próxima Ação
 
-1. Validar funcionalmente o painel em `https://mesasbeta.artificiorpg.com/painel` (requer login)
-2. Aplicar `migration_104_drop_tables_frequency_columns.sql` no Beta via fluxo manual controlado
-3. Validar endpoints e telas após schema atualizado no banco Beta
-4. Promover para produção apenas após validação operacional no Beta
+1. Priorizar próximo item do backlog técnico/produto (sem bloqueio de schema remanescente)
+2. Manter monitoramento normal de beta e produção após estabilização
+3. Seguir execução do próximo lote conforme `FILA_IMPLEMENTACAO.md`
 
 ---
 
 ## Última Sessão
 
-**Data:** 15/04/2026 00:32 BRT  
-**Tipo:** Correções de deploy, frequency legado e incidentes de produção  
+**Data:** 15/04/2026 01:34 BRT  
+**Tipo:** Estabilização de deploy beta/prod + fechamento documental REQ-31/143  
 **Arquivo:** `sessoes/resumo_14-04_continuacao-migrations.md`  
 **O que foi feito:**
-- Diagnosticado e corrigido incidente E148: `VITE_API_URL` apontava para beta em produção
-- Removidos `t.frequency` e `t.frequency_custom` da query `GET /gm/tables` (causa raiz do painel vazio)
-- Corrigido `deploy-beta.yml`: `--no-cache` adicionado ao build (evita cache de camadas antigas)
-- Corrigida `migration_101` para ser idempotente (`IF NOT EXISTS`)
-- Atualizada mensagem de erro de backend indisponível no `App.tsx`
-- Deploy beta concluído com sucesso (run `24434872861`)
+- Corrigido erro `405` na publicação de mesa (endpoint sem prefixo `/api/v1`)
+- Promoção completa do fix para beta e produção (runs `24435524262` e `24435590034`)
+- Sessão atualizada com evidências dos incidentes e fechamento de pendências operacionais
+- `ARQUITETURA_PROJETO.md`, `MAPA_DE_API.md`, `TODO_OPERACIONAL.md` e `FILA_IMPLEMENTACAO.md` sincronizados
+- Item 143 da fila movido para `concluido` com evidência operacional em run real
+- REQ-31 concluído com confirmação de `migration_104` aplicada em beta/produção
 
-**Status:** ✅ Deploy beta funcional. Pendente: migration_104 manual + validação funcional do painel.
+**Status:** ✅ Sessão sem pendências técnicas remanescentes.
 
 ---
 

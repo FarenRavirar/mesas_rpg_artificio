@@ -47,8 +47,8 @@
 | **PUT** | `/profile` | ❌ Pendente/Front | - (sem consumidor ativo no frontend) |
 | **GET** | `/me` | ✅ Em Uso | PainelMestrePage.tsx |
 | **GET** | `/tables/:id` | ✅ Em Uso | PainelMestrePage.tsx — retorno atual inclui `banner_url` e campos legados da tabela (incluindo `cover_url`), sem alias `image_url`; integração de edição usa fallback `banner_url ?? image_url` no mapper |
-| **POST** | `/tables` | ✅ Em Uso | useCreateTableForm.ts, PainelMestrePage.tsx |
-| **PUT** | `/tables/:id` | ✅ Em Uso | useCreateTableForm.ts, PainelMestrePage.tsx |
+| **POST** | `/tables` | ✅ Em Uso | useCreateTableForm.ts, PainelMestrePage.tsx — submit corrigido em 15/04 para `${API_BASE}/api/v1/gm/tables` |
+| **PUT** | `/tables/:id` | ✅ Em Uso | useCreateTableForm.ts, PainelMestrePage.tsx — submit corrigido em 15/04 para `${API_BASE}/api/v1/gm/tables/:id` |
 | **GET** | `/tables` | ✅ Em Uso | PainelMestrePage.tsx — retorna `image_url` (alias de `banner_url`) para cards do painel |
 | **PATCH** | `/tables/:id/status` | ✅ Em Uso | PainelMestrePage.tsx (handleToggleTableStatus) - **Aceita apenas:** 'active', 'full', 'cancelled', 'ended' |
 | **DELETE** | `/tables/:id` | ✅ Em Uso | uiHelpers.ts, PainelMestrePage.tsx |
