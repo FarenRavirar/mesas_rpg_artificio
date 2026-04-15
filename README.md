@@ -26,7 +26,7 @@ Aqui, a ideia é centralizar tudo em um só lugar:
 
 ### Para quem quer encontrar mesa
 
-1. Acesse o beta: [mesasbeta.artificiorpg.com](https://mesasbeta.artificiorpg.com)
+1. Acesse o beta: [mesas.artificiorpg.com](https://mesas.artificiorpg.com)
 2. Navegue pelo catálogo público
 3. Use filtros (sistema, modalidade, idioma, dia, preço etc.)
 4. Abra a página da mesa e confira detalhes
@@ -65,7 +65,7 @@ Aqui, a ideia é centralizar tudo em um só lugar:
 
 ### Situação atual
 - Beta ativo em: `mesasbeta.artificiorpg.com`
-- Produção ativa em: `mesas.artificiorpg.com`
+- Produção ativa em: `mesas.artificiorpg.com` (aqui onde voce pode anunciar)
 - Fluxo de publicação de mesas estabilizado
 - Sincronização estrutural de banco concluída entre beta e produção
 
