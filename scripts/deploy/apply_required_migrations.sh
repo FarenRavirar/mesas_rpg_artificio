@@ -36,6 +36,11 @@ is_true() {
   esac
 }
 
+sql_escape_literal() {
+  local raw="$1"
+  printf "%s" "$raw" | sed "s/'/''/g"
+}
+
 if [ ! -f "$COMPOSE_FILE" ]; then
   echo "ERRO: Compose file nao encontrado: $COMPOSE_FILE"
   exit 1
@@ -65,8 +70,11 @@ SQL
 
 is_applied() {
   local migration_name="$1"
+  local escaped_name
+  escaped_name="$(sql_escape_literal "$migration_name")"
+
   docker compose -f "$COMPOSE_FILE" exec -T -e PGOPTIONS="$PG_OPTS" "$DB_SERVICE" \
-    psql -U "$DB_USER" -d "$DB_NAME" -tAc "SELECT 1 FROM schema_migrations WHERE migration_name='${migration_name}' LIMIT 1;"
+    psql -U "$DB_USER" -d "$DB_NAME" -tAc "SELECT 1 FROM schema_migrations WHERE migration_name='${escaped_name}' LIMIT 1;"
 }
 
 PENDING_ONLINE=()
@@ -134,9 +142,11 @@ for migration in "${PENDING_ONLINE[@]}"; do
   cat "$migration_path" | docker compose -f "$COMPOSE_FILE" exec -T -e PGOPTIONS="$PG_OPTS" "$DB_SERVICE" \
     psql -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$DB_NAME"
 
+  escaped_migration="$(sql_escape_literal "$migration")"
+
   docker compose -f "$COMPOSE_FILE" exec -T -e PGOPTIONS="$PG_OPTS" "$DB_SERVICE" \
     psql -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$DB_NAME" \
-    -c "INSERT INTO schema_migrations (migration_name) VALUES ('${migration}') ON CONFLICT (migration_name) DO NOTHING;"
+    -c "INSERT INTO schema_migrations (migration_name) VALUES ('${escaped_migration}') ON CONFLICT (migration_name) DO NOTHING;"
 done
 
 if [ "${#PENDING_MANUAL[@]}" -gt 0 ] && is_true "$ALLOW_MANUAL_MIGRATIONS"; then
@@ -147,9 +157,11 @@ if [ "${#PENDING_MANUAL[@]}" -gt 0 ] && is_true "$ALLOW_MANUAL_MIGRATIONS"; then
     cat "$migration_path" | docker compose -f "$COMPOSE_FILE" exec -T -e PGOPTIONS="$PG_OPTS" "$DB_SERVICE" \
       psql -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$DB_NAME"
 
+    escaped_migration="$(sql_escape_literal "$migration")"
+
     docker compose -f "$COMPOSE_FILE" exec -T -e PGOPTIONS="$PG_OPTS" "$DB_SERVICE" \
       psql -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$DB_NAME" \
-      -c "INSERT INTO schema_migrations (migration_name) VALUES ('${migration}') ON CONFLICT (migration_name) DO NOTHING;"
+      -c "INSERT INTO schema_migrations (migration_name) VALUES ('${escaped_migration}') ON CONFLICT (migration_name) DO NOTHING;"
   done
 fi
 
