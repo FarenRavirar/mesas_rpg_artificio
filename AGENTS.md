@@ -54,6 +54,7 @@ grep -n "padrão" arquivo.md
 | Roles, permissões, autenticação | `ARQUITETURA_PROJETO.md` §5 e §6 | grep pelo §, só a seção |
 | Decisões arquiteturais | `ARQUITETURA_PROJETO.md` §14 | grep pelo §, só a seção |
 | Git, branch, merge, deploy | `GIT_WORKFLOW.md` | seção relevante |
+| Deploy em produção (checklist) | `PRE_DEPLOY_CHECKLIST.md` | arquivo completo |
 | Operação em produção ou beta | `OPERACAO_PRODUCAO.md` | seção relevante |
 | Falha de ambiente, encoding, template | `PRE-FLIGHT_CHECKLIST.md` | arquivo completo |
 | Erro com solução validada | `ERRORS_SOLUTIONS.md` | grep por `E###` |

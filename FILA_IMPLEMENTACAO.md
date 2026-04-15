@@ -16,13 +16,13 @@
 Cada item na FILA deve ter:
 - **ID**: número sequencial (ex: 075, 086)
 - **GUT**: Score (G x U x T)
-- **一步**: Ação imediata (1 linha)
+- **Ação**: Ação imediata (1 linha)
 - **Dependências**: de quais itens depende (se houver)
 - **Arquivos**: arquivos concretos para modificar
 
 **Não adicionar itens sem:**
 1. GUT calculado
-2.一步 claro
+2. Ação clara
 3. Referência de arquivos
 
 ---
@@ -31,36 +31,35 @@ Cada item na FILA deve ter:
 
 ### Alta Prioridade (GUT ≥ 100)
 
-| # | ID | GUT | Item |一步 | BACKLOG ref |
+| # | ID | GUT | Item | Ação | BACKLOG ref |
 |---|---|---|---|---|---|
-| 1 | 075 | 100 | Plataformas como tabelas | ⏳ Validar | ↔ — |
-| 2 | 086 | 100 | Frequência detallada | parcialmente | ↔ REQ-30 |
-| 3 | 100 | 100 | Campos Cenário/Estilo | Pending | ↔ REQ-21 |
+| 1 | 075 | 100 | Plataformas como tabelas | ⏳ Parcial (CRUD admin + comm_platform faltam) | ↔ DEB-07 |
+| 2 | 086 | 100 | Frequência detallada | ⏳ Parcial (times_per_month+custom_notes faltam) | ↔ DEB-08 |
+| 3 | 100 | 100 | Campos Cenário/Estilo | ✅ Implementado (setting_name+styles no DB + endpoint suggest-styles existe) | ↔ REQ-21 |
 
 ### Média Prioridade (GUT 50-99)
 
-| # | ID | GUT | Item |一步 | BACKLOG ref |
+| # | ID | GUT | Item | Ação | BACKLOG ref |
 |---|---|---|---|---|---|
-| 1 | 084 | 80 | Faixa etária dropdown | Pending | ↔ REQ-21 |
-| 2 | 085 | 80 | Nível mesa dropdown | Pending | ↔ REQ-26 |
-| 3 | 089 | 80 | Render markdown MesaPage | Pending | ↔ — |
-| 4 | 097 | 80 | Migration cenário/estilos | Pending | ↔ REQ-21 |
-| 5 | 098 | 80 | Endpoint sugestões estilos | Pending | ↔ REQ-21 |
+| 1 | 084 | 80 | Faixa etária dropdown | ⏳ Parcial (dropdown existe, ícones faltam) | ↔ REQ-21 |
+| 2 | 085 | 80 | Nível mesa dropdown | ❌ Pendente (é InputField, não dropdown) | ↔ DEB-09 |
+| 3 | 089 | 80 | Render markdown MesaPage | ❌ Pendente (descrição e rules_notes não renderizados como markdown) | ↔ — |
+| 4 | 097 | 80 | Migration cenário/estilos | ❌ Pendente (migration não existe) | ↔ REQ-21 |
+| 5 | 098 | 80 | Endpoint sugestões estilos | ✅ Done | ↔ REQ-21 |
 
 ### Baixa Prioridade (GUT < 50)
 
-| # | ID | GUT | Item |一步 | BACKLOG ref |
+| # | ID | GUT | Item | Ação | BACKLOG ref |
 |---|---|---|---|---|---|
-| 1 | 059 | 64 | Atalhos teclado | Implementar | ↔ — |
-| 2 | 060 | 64 | Busca texto candidatos | Implementar | ↔ — |
-| 3 | 067 | 48 | Tooltips explicativos | Implementar | ↔ — |
-| 4 | 082 | 48 | Markdown sanitizer backend | Pending | ↔ — |
-| 5 | 096 | 48 | Dados brutos completos | Pending | ↔ — |
-| 6 | 061 | 36 | Status PT-BR | Implementar | ↔ — |
-| 7 | 062 | 36 | Botão Cancelar modal | Implementar | ↔ — |
-| 8 | 064 | 36 | Ordenação candidatos | Implementar | ↔ — |
-| 9 | 065 | 36 | Tabs modal revisão | Implementar | ↔ — |
-| 10 | 066 | 36 | Erros específicos | Implementar | ↔ — |
+| 1 | 060 | 64 | Busca texto candidatos | Implementar | ↔ — |
+| 2 | 067 | 48 | Tooltips explicativos | Implementar | ↔ — |
+| 3 | 082 | 48 | Markdown sanitizer backend | Pending | ↔ — |
+| 4 | 096 | 48 | Dados brutos completos | Pending | ↔ — |
+| 5 | 061 | 36 | Status PT-BR | Implementar | ↔ — |
+| 6 | 062 | 36 | Botão Cancelar modal | Implementar | ↔ — |
+| 7 | 064 | 36 | Ordenação candidatos | Implementar | ↔ — |
+| 8 | 065 | 36 | Tabs modal revisão | Implementar | ↔ — |
+| 9 | 066 | 36 | Erros específicos | Implementar | ↔ — |
 
 ---
 
@@ -68,27 +67,26 @@ Cada item na FILA deve ter:
 
 ### Alta Prioridade (GUT ≥ 100)
 
-| ID | GUT |一步 | Descrição completa | Dependências | Arquivos | Status |
+| ID | GUT | Ação | Descrição completa | Dependências | Arquivos | BACKLOG ref | Status |
 |---|---|---|---|---|---|---|
-| **075** | 100 | **⏳ Validar** — campos texto vs tabelas | **Plataformas como tabelas no banco (Diferente do REQ-21):** REQ-21 implementou campos de TEXTO (vtt_platform_id, game_platform_custom, communication_platform). Este item pedindo: (1) criar tabelas game_platforms e communication_platforms, (2) endpoints CRUD admin, (3) endpoint público listagem, (4) seletor multi-select no formulário. **VALIDAR PRIMEIRO:** verificar se campos de texto são suficientes ou se precisa mesmo de tabelas. | Depende de nada | Backend: db/types.ts, routes/vttPlatforms.ts. Frontend: useVttPlatforms.ts, PainelMestrePage.tsx | Pendente |
-| **086** | 100 | **parcialmente** | **Frequência detalhada em table_schedules:** Frequência foi movida para table_schedules (não mais em tables). migration_104 removeu tables.frequency. Já existe: frequency (semanal/quinzenal/mensal/avulsa) + day_of_week. Precisa adicionar: (1) campo times_per_month SMALLINT no schema (para frequency=quinzenal), (2) campo custom_notes TEXT (para frequency=mensal), (3) validações condicionais (times obrigatório se quinzenal, notes obrigatório se mensal), (4) UI no SessionRepeater. Ver sessões: 26-04-14_7 (BUG 3 resolvido), 26-04-15_1 (migration_104 aplicada). | Depende de nada | Backend: db/types.ts (ScheduleTable), routes/tableSchedules.ts. Frontend: SessionRepeater.tsx, validator.ts | Parcial |
-| **100** | 100 | **Pending** | **Campos Cenário (setting_name) + Estilos (setting_styles) no formulário:** Adicionar ao CreateTableForm: (1) campo "Cenário" (input texto livre, ex: "Forgotten Realms", "Eberron"), (2) campo "Estilos" (multi-select com chips, ex: ["Alta Fantasia", "Aventura Épica"]). Ao digitar no campo Cenário (debounce 500ms), chamar GET /settings/suggest-styles?setting=<valor> e pré-popular campo Estilos com sugestões. Exibir na MesaPage como "Cenário: X | Estilos: Y, Z". Requer: migration para adicionar setting_name e setting_styles na tabela tables, endpoint de sugestões. | Depende de 097 (migration), 098 (endpoint sugestões) | Backend: db/types.ts, routes/settingRoutes.ts. Frontend: PainelMestrePage.tsx, MesaPage.tsx, mapper.ts | Pendente |
+| **075** | 100 | **⏳ Parcial** | **Plataformas como tabelas (vtt + comm):** vtt_platforms existe (Migration 006) + GET /vtt-platforms + POST /suggest. **FALTA:** (1) CRUD admin para vtt_platforms (POST/PUT/DELETE), (2) criar tabela communication_platforms + endpoints CRUD. Campo `tables.communication_platform` é texto atualmente. | Depende de nada | Backend: db/types.ts, routes/vttPlatforms.ts, nova rota communication.ts. Frontend: PainelMestrePage.tsx, AdminPage | ↔ DEB-07 | ⏳ Parcial |
+| **086** | 100 | **⏳ Parcial** | **Frequência detalhada em table_schedules:** Já existe: frequency (semanal/quinzenal/mensal/avulsa) + day_of_week + start_time + end_time + slots_per_session + notes. **FALTA:** (1) campo times_per_month SMALLINT no schema (para frequency=quinzenal), (2) campo custom_notes TEXT (para frequency=mensal), (3) validações condicionais (times obrigatório se quinzenal, notes obrigatório se mensal), (4) UI no SessionRepeater. Ver sessões: 26-04-14_7, 26-04-15_1. | Depende de nada | Backend: db/types.ts (ScheduleTable), routes/tableSchedules.ts. Frontend: SessionRepeater.tsx, validator.ts | ↔ REQ-30 | ⏳ Parcial |
+| **100** | 100 | **✅ Implementado** | **Campos Cenário (setting_name) + Estilos (setting_styles):** Backend: tables.setting_name + setting_styles existem (types.ts). Endpoint GET /settings/suggest-styles existe (settings.ts). Frontend: CreateTableForm tem SettingStylesField.tsx, TableContent.tsx exibe. **100% implementado.** | — | Backend: db/types.ts, routes/settings.ts. Frontend: SettingStylesField.tsx, TableContent.tsx, mapper.ts | ↔ REQ-21 | ✅ Implementado |
 
 ### Média Prioridade (GUT 50-99)
 
-| ID | GUT |一步 | Descrição completa | Dependências | Arquivos | Status |
+| ID | GUT | Ação | Descrição completa | Dependências | Arquivos | BACKLOG ref | Status |
 |---|---|---|---|---|---|---|
-| **084** | 80 | **Pending** | **Faixa etária dropdown:** Campo age_rating existe como texto (livre/+10/+12/+14/+16/+18). Precisa: substituir input de texto livre por dropdown com opções fixas. Valor padrão: Livre. Exibir ícone visual ao lado de cada opção (🟢 Livre, 🟡 +10, 🟠 +14, 🔴 +18). UI presente no StepConfig. | Depende de nada | Frontend: StepConfig.tsx (age_rating), mapper.ts | Pendente |
-| **085** | 80 | **Pending** | **Nível mesa dropdown:** Campo level_range existe como texto. Precisa: substituir por dropdown com opções fixas: Iniciante, Intermediário, Avançado, Misto. Campo opcional. Exibir tooltip explicativo: "Iniciante: nunca jogou RPG. Intermediário: conhece as regras básica. Avançado: domina o sistema. Misto: aceita todos os níveis." UI presente no StepFinal. | Depende de nada | Frontend: StepFinal.tsx (level_range), mapper.ts | Pendente |
+| **084** | 80 | **⏳ Parcial** | **Faixa etária dropdown:** Backend: age_rating é enum (livre/10+/12+/14+/16+/18+) em types.ts. Frontend: StepConfig.tsx tem SelectField com 6 opções fixas. **FALTA:** ícones visuais (🟢 Livre, 🟡 +10, 🟠 +14, 🔴 +18) conforme especificação original. | — | Frontend: StepConfig.tsx, createTable.types.ts, mapper.ts | ↔ REQ-21 | ⏳ Parcial |
+| **085** | 80 | **❌ Pendente** | **Nível mesa dropdown:** Backend: level_range é texto livre (types.ts). Frontend: StepFinal.tsx usa InputField (texto livre), não SelectField. **PRECISA:** substituir por SelectField com opções fixas (Iniciante/Intermediário/Avançado/Misto) + tooltip explicativo. Campo opcional. | Depende de nada | Frontend: StepFinal.tsx (level_range), createTable.types.ts | ↔ REQ-26 | ❌ Pendente |
 | **089** | 80 | **Pending** | **Renderização markdown em MesaPage:** Description e rules_notes são salvos como markdown mas não são renderizados na MesaPage. Precisa: (1) verificar se backend já sanitiza (item 082), (2) usar react-markdown-editor-lite ou dangerouslySetInnerHTML para renderizar. Componente MarkdownEditor já existe. Depende de 082 (sanitização). | Depende de 082 (backend sanitizer) | Frontend: MesaPage.tsx, MarkdownEditor.tsx | Pendente |
 | **097** | 80 | **Pending** | **Migration cenário e estilos:** Adicionar colunas na tabela tables: (1) setting_name TEXT, (2) setting_styles TEXT[]. Criar tabela auxiliar setting_style_suggestions com colunas: id UUID PK, setting_name TEXT, suggested_styles TEXT[]. Mapeamento cenário → estilos sugeridos. | Depende de nada | database/migration_XX_setting_styles.sql | Pendente |
-| **098** | 80 | **Pending** | **Endpoint sugestões de estilo por cenário:** Criar rota GET /api/v1/settings/suggest-styles?setting=<nome> que retorna array de estilos sugeridos baseado em fuzzy match de setting_name na tabela setting_style_suggestions. Se não encontrar match, retornar array vazio. Exemplos: "Forgotten Realms" → ["Alta Fantasia", "Aventura Épica"], "Eberron" → ["Steampunk", "Magitech", "Noir"]. | Depende de 097 (migration) | Backend: routes/settingRoutes.ts | Pendente |
+| **098** | 80 | **✅ Done** | **Endpoint sugestões de estilo por cenário:** Criar rota GET /api/v1/settings/suggest-styles?setting=<nome> que retorna array de estilos sugeridos baseado em fuzzy match de setting_name na tabela setting_style_suggestions. Se não encontrar match, retornar array vazio. Exemplos: "Forgotten Realms" → ["Alta Fantasia", "Aventura Épica"], "Eberron" → ["Steampunk", "Magitech", "Noir"]. | Depende de 097 (migration) | Backend: routes/settingRoutes.ts | ✅ Implementado (backend/src/routes/settings.ts:11, tabela existe no banco) |
 
 ### Baixa Prioridade (GUT < 50)
 
-| ID | GUT |一步 | Descrição completa | Dependências | Arquivos | Status |
-|---|---|---|---|---|---|---|
-| **059** | 64 | **Implementar** | **Atalhos de teclado na gestão:** Implementar atalhos no modal de revisão de candidatos: 'A' para aprovar, 'R' para rejeitar, 'Esc' para fechar modal. Exibir legenda discreta no rodapé do modal. Aumenta eficiência para power users. Viola H7 (Eficiência). GUT: 64 | Depende de nada | Frontend: GestaoPage.tsx (modal de revisão) | Pendente |
+| ID | GUT | Ação | Descrição completa | Dependências | Arquivos | BACKLOG ref | Status |
+|---|---|---|---|---|---|---|---|
 | **060** | 64 | **Implementar** | **Busca por texto em candidatos:** Adicionar campo de busca que filtra candidatos por título ou sistema (case-insensitive). Busca client-side com debounce 300ms. Viola H7 (Eficiência). GUT: 64 | Depende de nada | Frontend: GestaoPage.tsx | Pendente |
 | **061** | 36 | **Implementar** | **Traduzir status para PT-BR:** Substituir status em inglês do banco: "awaiting_review" → "Aguardando Revisão", "accepted" → "Aceito", "rejected" → "Rejeitado" (com ícones: ⏳ ✅ ❌). Viola H2 (Correspondência com o mundo real). GUT: 36 | Depende de nada | Frontend: GestaoPage.tsx | Pendente |
 | **062** | 36 | **Implementar** | **Botão Cancelar explícito no modal:** Adicionar botão "Cancelar" ao lado de "Aprovar" no modal de revisão (além do "X" no canto). Viola H3 (Controle do usuário). GUT: 36 | Depende de nada | Frontend: GestaoPage.tsx | Pendente |
@@ -109,17 +107,17 @@ Cada item na FILA deve ter:
 | FILA ID | ↔ | BACKLOG ID | Conteúdo |
 |---|---|---|---|
 | 084 | ↔ | REQ-21 | Faixa etária dropdown |
-| 100, 097, 098 | ↔ | REQ-21 (parcial) | Cenário/Estilos |
-| 085 | ↔ | REQ-26 | Nível mesa dropdown |
-| 086 | ↔ | REQ-30 | Frequência detalhada |
+| 100, 097, 098 | ↔ | REQ-21 (parcial) | Cenário/Estilos (100 ✅, 097 ❌, 098 ✅) |
+| 085 | ↔ | DEB-09 | Nível mesa dropdown |
+| 086 | ↔ | DEB-08 | Frequência detalhada (schedules) |
+| 075 | ↔ | DEB-07 | Plataformas como tabelas |
 | DEB-06 | ↔ | REQ-29 | Auditoria API (mesmo item) |
-| 075 | ↔ | — | Plataformas como tabelas |
 | 015 | ↔ | OPS-04 | Imgur → Cloudinary |
 | 039 | ↔ | REQ-17 | Auditoria UX Nielsen |
 | 090 | ↔ | REQ-08, REQ-11 | Perfil announcer + badges |
 | 068 | ↔ | REQ-09 | Selos Covil + DDAL |
 | 025-026 | ↔ | REQ-07 | Admin + moderação |
-| 059-067 | ↔ | — | UX Gestão (itens técnicos) |
+| 060-067 | ↔ | — | UX Gestão (itens técnicos) |
 | 082, 089 | ↔ | — | Markdown (backend + render) |
 
 ---
@@ -133,6 +131,7 @@ _15/04/2026_
 - [x] **027-030**: engajamento → planejado (Fase 5) | BACKLOG: DEB-01
 - [x] **039**: Auditoria UX Nielsen → concluído | BACKLOG: REQ-17
 - [x] **045-054**: 10 itens admin → concluídos | BACKLOG: REQ-07
+- [x] **059**: Atalhos teclado → removido (descartado)
 - [x] **068**: is_covil → concluído | BACKLOG: REQ-09
 - [x] **069-073**: campos formulário → concluídos | BACKLOG: REQ-26
 - [x] **077**: level_range → concluído | BACKLOG: REQ-26
@@ -140,6 +139,7 @@ _15/04/2026_
 - [x] **087**: renomeado → concluído | BACKLOG: REQ-21
 - [x] **088**: editor rico → concluído | BACKLOG: REQ-21
 - [x] **090**: perfil announcer → concluído | BACKLOG: REQ-08, REQ-11
+- [x] **098**: Endpoint sugestões estilos → implementado | BACKLOG: REQ-21
 - [x] **143**: name_pt → concluído | BACKLOG: REQ-30
 
 _14/04/2026_

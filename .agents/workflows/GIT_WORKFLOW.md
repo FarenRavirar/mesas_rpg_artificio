@@ -80,7 +80,9 @@ git push origin HEAD:dev
 
 Somente quando o responsável autorizar explicitamente.
 
-Antes do push para `main`, executar o checklist canônico de promoção em `OPERACAO_PRODUCAO.md`, na seção `Playbook Canônico de Promoção dev -> main`.
+**Antes do push para `main`, executar obrigatoriamente:**
+1. `PRE_DEPLOY_CHECKLIST.md` — checklist completo de 4 fases (validação, migrations, backup, deploy)
+2. `OPERACAO_PRODUCAO.md` seção 10 — Playbook Canônico de Promoção dev -> main (método PR via GitHub)
 
 Se `git checkout main` ou `git checkout dev` estiver bloqueado por worktree (E071), usar push por refspec:
 

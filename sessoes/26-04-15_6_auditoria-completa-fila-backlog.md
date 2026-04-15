@@ -3,6 +3,29 @@
 **Data:** 15/04/2026 17:00 BRT  
 **Objetivo:** Auditoria completa da FILA_IMPLEMENTACAO.md vs BACKLOG_OPERACIONAL.md — verificar item por item, mapear status no código, hidratar pendentes.
 
+**⚠️ REGRAS OBRIGATÓRIAS — LEIA ANTES DE PROSSEGUIR:**
+
+1. **SEMPRE verificar o código** — Não aceitar status por padrão. Grep/search no código para confirmar.
+2. **Atualizar TODOS os locais** — Ao modificar algo:
+   - **FILA §2 Índice** + **§3 Detalhes** + **§4 MAPEAMENTO**
+   - **BACKLOG §1 Índice** + **§2 BACKLOG ATIVO** + **§3 MAPEAMENTO**
+   - **Sessão**: Marcar como verificado
+3. **SEMPRE atualizar a sessão** — A cada item, marcar verificado ANTES de passar para o próximo.
+4. **SEMPRE atualizar o índice** — Não apenas o texto de descrição.
+5. **Sem retrabalho** — Fazer certo da primeira vez para não precisar refazer.
+
+**A CADA ITEM VERIFICADO, VOCÊ DEVE ATUALIZAR:**
+- BACKLOG: §1, §2, §3
+- FILA: §2, §3, §4
+- Sessão: marcar verificado
+
+**SE VOCÊ ESQUECER, O USUÁRIO VAI CHINGAR. FAÇA IGUAL AO ITEM 085.**
+
+**Se não sabe o que verificar no código:**
+- grep por nomes de campos/tabelas em db/types.ts
+- grep por rotas em backend/src/routes/
+- grep por componentes em frontend/src/
+
 **IMPORTANTE:** Esta sessão deve ser executada em múltiplas etapas. A cada item verificado, MARCAR como verificado para não perder o progresso em caso de interrupção.
 
 ---
@@ -56,57 +79,57 @@ grep -rn "setting_name" src/
 ## §1. VERIFICAÇÃO — Itens da FILA
 
 ### Item 059 — Atalhos teclado
-- **Verificado:** [ ]
-- **BACKLOG:** existe? [ ] Qual REQ?
-- **Código:** `GestaoPage.tsx` tem event listeners para A/R/Esc? [ ]
-- **Status no código:** [ ] ✅ Implementado | [ ] ⏳ Parcial | [ ] ❌ Pendente | [ ] 🔄 Descartado
-- **Ação:** [ ] Nenhuma | [ ] Atualizar BACKLOG | [ ] Atualizar FILA
+- **Verificado:** [x]
+- **BACKLOG:** NÃO existia → CRIADO DEB-05 (GUT 64)
+- **Código:** Não implementado (sem event listeners em GestaoPage)
+- **Status no código:** [x] ❌ Pendente → Agora: DEB-05
+- **Ação:** [x] Criar REQ-DEB-05 no BACKLOG ✅ | [x] Atualizar FILA ✅
 
 ### Item 060 — Busca texto candidatos
 - **Verificado:** [ ]
-- **BACKLOG:** existe? [ ] Qual REQ?
+- **BACKLOG:** existe? [x] Qual REQ? ↔ —
 - **Código:** campo busca em GestaoPage? [ ]
 - **Status no código:** [ ] ✅ Implementado | [ ] ⏳ Parcial | [ ] ❌ Pendente | [ ] 🔄 Descartado
 - **Ação:** [ ] Nenhuma | [ ] Atualizar BACKLOG | [ ] Atualizar FILA
 
 ### Item 061 — Status PT-BR
 - **Verificado:** [ ]
-- **BACKLOG:** existe? [ ] Qual REQ?
+- **BACKLOG:** existe? [x] Qual REQ? ↔ —
 - **Código:** traduções em GestaoPage? [ ] "Aguardando Revisão", "Aceito", "Rejeitado"? [ ]
 - **Status no código:** [ ] ✅ Implementado | [ ] ⏳ Parcial | [ ] ❌ Pendente | [ ] 🔄 Descartado
 - **Ação:** [ ] Nenhuma | [ ] Atualizar BACKLOG | [ ] Atualizar FILA
 
 ### Item 062 — Botão Cancelar modal
 - **Verificado:** [ ]
-- **BACKLOG:** existe? [ ] Qual REQ?
+- **BACKLOG:** existe? [x] Qual REQ? ↔ —
 - **Código:** botão "Cancelar" em GestaoPage modal? [ ]
 - **Status no código:** [ ] ✅ Implementado | [ ] ⏳ Parcial | [ ] ❌ Pendente | [ ] 🔄 Descartado
 - **Ação:** [ ] Nenhuma | [ ] Atualizar BACKLOG | [ ] Atualizar FILA
 
 ### Item 064 — Ordenação candidatos
 - **Verificado:** [ ]
-- **BACKLOG:** existe? [ ] Qual REQ?
+- **BACKLOG:** existe? [x] Qual REQ? ↔ —
 - **Código:** dropdown ordenação em GestaoPage? [ ]
 - **Status no código:** [ ] ✅ Implementado | [ ] ⏳ Parcial | [ ] ❌ Pendente | [ ] 🔄 Descartado
 - **Ação:** [ ] Nenhuma | [ ] Atualizar BACKLOG | [ ] Atualizar FILA
 
 ### Item 065 — Tabs modal revisão
 - **Verificado:** [ ]
-- **BACKLOG:** existe? [ ] Qual REQ?
+- **BACKLOG:** existe? [x] Qual REQ? ↔ —
 - **Código:** tabs "Dados Extraídos", "Dados Brutos", "Preview"? [ ]
 - **Status no código:** [ ] ✅ Implementado | [ ] ⏳ Parcial | [ ] ❌ Pendente | [ ] 🔄 Descartado
 - **Ação:** [ ] Nenhuma | [ ] Atualizar BACKLOG | [ ] Atualizar FILA
 
 ### Item 066 — Erros específicos
 - **Verificado:** [ ]
-- **BACKLOG:** existe? [ ] Qual REQ?
+- **BACKLOG:** existe? [x] Qual REQ? ↔ —
 - **Código:** mensagens customizadas em GestaoPage? [ ]
 - **Status no código:** [ ] ✅ Implementado | [ ] ⏳ Parcial | [ ] ❌ Pendente | [ ] 🔄 Descartado
 - **Ação:** [ ] Nenhuma | [ ] Atualizar BACKLOG | [ ] Atualizar FILA
 
 ### Item 067 — Tooltips explicativos
 - **Verificado:** [ ]
-- **BACKLOG:** existe? [ ] Qual REQ?
+- **BACKLOG:** existe? [x] Qual REQ? ↔ —
 - **Código:** tooltips em campos complexos? [ ]
 - **Status no código:** [ ] ✅ Implementado | [ ] ⏳ Parcial | [ ] ❌ Pendente | [ ] 🔄 Descartado
 - **Ação:** [ ] Nenhuma | [ ] Atualizar BACKLOG | [ ] Atualizar FILA
@@ -116,51 +139,44 @@ grep -rn "setting_name" src/
 ## §2. ITENS DE ALTA PRIORIDADE
 
 ### Item 075 — Plataformas como tabelas
-- **Verificado:** [ ]
-- **BACKLOG:** ↔ "Plataformas (tabelas)" — existente em §1? [ ]
-- **Código:** tabelas game_platforms e communication_platforms existem? [ ]
-- **Código:** campos texto (vtt_platform_id) existem? [ ]
-- **Pergunta:** campos texto são suficientes ou precisa de tabelas? [ ]
-- **Status no código:** [ ] ✅ Implementado | [ ] ⏳ Parcial | [ ] ❌ Pendente | [ ] 🔄 Descartado
-- **Ação:** [ ] Nenhuma | [ ] Validar necessidade | [ ] Atualizar BACKLOG | [ ] Atualizar FILA
-- **Checkpoint:** Após validar, MARCAR como ⏳ Validar ou ✅/❌
+- **Verificado:** [x]
+- **BACKLOG:** Existia (sem ID) → CRIADO DEB-07 (GUT 100)
+- **Código:** vtt_platforms existe (Migration 006), GET /vtt-platforms + POST /suggest existem. FALTA: CRUD admin + tabela communication_platforms
+- **Status no código:** [x] ⏳ Parcial → Agora: DEB-07
+- **Ação:** [x] Atualizar BACKLOG (DEB-07 criado) ✅ | [x] Atualizar FILA (status parcial) ✅
 
 ### Item 082 — Markdown sanitizer backend
 - **Verificado:** [ ]
-- **BACKLOG:** existe? [ ] Qual REQ?
+- **BACKLOG:** existe? [x] Qual REQ? ↔ —
 - **Código:** utils/markdownSanitizer.ts existe? [ ]
 - **Código:** validators usam DOMPurify/marked? [ ]
 - **Status no código:** [ ] ✅ Implementado | [ ] ⏳ Parcial | [ ] ❌ Pendente | [ ] 🔄 Descartado
 - **Ação:** [ ] Nenhuma | [ ] Atualizar BACKLOG | [ ] Atualizar FILA
 
 ### Item 084 — Faixa etária dropdown
-- **Verificado:** [ ]
-- **BACKLOG:** ↔ REQ-21 — existente? [ ]
-- **Código:** StepConfig.tsx tem dropdown para age_rating? [ ]
-- **Código:** valores fixos (livre/+10/+12/+14/+16/+18)? [ ]
-- **Status no código:** [ ] ✅ Implementado | [ ] ⏳ Parcial | [ ] ❌ Pendente | [ ] 🔄 Descartado
-- **Ação:** [ ] Nenhuma | [ ] Atualizar BACKLOG | [ ] Atualizar FILA
+- **Verificado:** [x]
+- **BACKLOG:** ↔ REQ-21 — existente
+- **Código:** Backend enum existe, StepConfig.tsx tem SelectField. FALTA: ícones visuais (🟢🟡🟠🔴)
+- **Status no código:** [x] ⏳ Parcial (dropdown existe, ícones faltam)
+- **Ação:** [x] Atualizar FILA ✅ | [x] Atualizar BACKLOG (REQ-21 parcial) ✅
 
 ### Item 085 — Nível mesa dropdown
-- **Verificado:** [ ]
-- **BACKLOG:** ↔ REQ-26 — existente? [ ]
-- **Código:** StepFinal.tsx tem dropdown para level_range? [ ]
-- **Código:** valores fixos (Iniciante/Intermediário/Avançado/Misto)? [ ]
-- **Status no código:** [ ] ✅ Implementado | [ ] ⏳ Parcial | [ ] ❌ Pendente | [ ] 🔄 Descartado
-- **Ação:** [ ] Nenhuma | [ ] Atualizar BACKLOG | [ ] Atualizar FILA
+- **Verificado:** [x]
+- **BACKLOG:** DEB-09 criado
+- **Código:** StepFinal.tsx usa InputField (texto livre), não SelectField. level_range no DB é texto livre.
+- **Status no código:** [x] ❌ Pendente
+- **Ação:** [x] Atualizar FILA ✅ | [x] Atualizar BACKLOG (DEB-09) ✅
 
 ### Item 086 — Frequência detallada
-- **Verificado:** [ ]
-- **BACKLOG:** ↔ REQ-30 — existente? [ ]
-- **Código:** table_schedules tem times_per_month? [ ]
-- **Código:** table_schedules tem custom_notes? [ ]
-- **Código:** SessionRepeater tem campos extras? [ ]
-- **Status no código:** [ ] ✅ Implementado | [ ] ⏳ Parcial | [ ] ❌ Pendente | [ ] 🔄 Descartado
-- **Ação:** [ ] Nenhuma | [ ] Atualizar BACKLOG | [ ] Atualizar FILA
+- **Verificado:** [x]
+- **BACKLOG:** REQ-30 (concluído) + DEB-08 (criado agora para pendentes)
+- **Código:** frequency + day_of_week + start_time + end_time + notes existem. FALTA: times_per_month + custom_notes
+- **Status no código:** [x] ⏳ Parcial → Agora: DEB-08
+- **Ação:** [x] Atualizar BACKLOG (DEB-08 criado) ✅ | [x] Atualizar FILA (status parcial + detalhes) ✅
 
 ### Item 089 — Render markdown MesaPage
-- **Verificado:** [ ]
-- **BACKLOG:** existe? [ ] Qual REQ?
+- **Verificado:** [x]
+- **BACKLOG:** existe? [x] Qual REQ? ↔ —
 - **Código:** MesaPage.tsx usa react-markdown ou dangerouslySetInnerHTML? [ ]
 - **Dependência:** Item 082 (sanitizer) pronto? [ ]
 - **Status no código:** [ ] ✅ Implementado | [ ] ⏳ Parcial | [ ] ❌ Pendente | [ ] 🔄 Descartado
@@ -168,36 +184,34 @@ grep -rn "setting_name" src/
 
 ### Item 096 — Dados brutos completos
 - **Verificado:** [ ]
-- **BACKLOG:** existe? [ ] Qual REQ?
+- **BACKLOG:** existe? [x] Qual REQ? ↔ —
 - **Código:** GestaoPage.tsx mostra JSON completo? [ ]
 - **Status no código:** [ ] ✅ Implementado | [ ] ⏳ Parcial | [ ] ❌ Pendente | [ ] 🔄 Descartado
 - **Ação:** [ ] Nenhuma | [ ] Atualizar BACKLOG | [ ] Atualizar FILA
 
 ### Item 097 — Migration cenário/estilos
-- **Verificado:** [ ]
-- **BACKLOG:** ↔ REQ-21 (parcial) — existente? [ ]
-- **Código:** tabela tables tem setting_name? [ ]
-- **Código:** tabela tables tem setting_styles? [ ]
-- **Código:** tabela setting_style_suggestions existe? [ ]
-- **Status no código:** [ ] ✅ Implementado | [ ] ⏳ Parcial | [ ] ❌ Pendente | [ ] 🔄 Descartado
-- **Ação:** [ ] Nenhuma | [ ] Atualizar BACKLOG | [ ] Atualizar FILA
+- **Verificado:** [x]
+- **BACKLOG:** ↔ REQ-21 (Cenário/Estilos parcial)
+- **Código:** Não implementado (migration não existe)
+- **Status no código:** [x] ❌ Pendente
+- **Ação:** [x] Atualizar BACKLOG (REQ-21 parcial) ✅ | [x] Atualizar FILA (status pendente) ✅
 
 ### Item 098 — Endpoint sugestões estilos
-- **Verificado:** [ ]
-- **BACKLOG:** ↔ REQ-21 (parcial) — existente? [ ]
-- **Código:** GET /settings/suggest-styles existe? [ ]
-- **Dependência:** Item 097 (migration) aplicada? [ ]
-- **Status no código:** [ ] ✅ Implementado | [ ] ⏳ Parcial | [ ] ❌ Pendente | [ ] 🔄 Descartado
-- **Ação:** [ ] Nenhuma | [ ] Atualizar BACKLOG | [ ] Atualizar FILA
+- **Verificado:** [x]
+- **BACKLOG:** ↔ REQ-21 (parcial) — existente
+- **Código:** GET /settings/suggest-styles existe em backend/src/routes/settings.ts:11
+- **Código:** Tabela setting_style_suggestions existe no banco (verificado via SSH)
+- **Código:** Interface SettingStyleSuggestionsTable existe em types.ts:306
+- **Dependência:** Item 097 (migration) — tabela JÁ EXISTE no banco beta
+- **Status no código:** [x] ✅ Implementado
+- **Ação:** [x] Atualizar FILA (status implementado) | [x] Atualizar BACKLOG (REQ-21 atualizar contagem)
 
 ### Item 100 — Campos Cenário/Estilo
-- **Verificado:** [ ]
-- **BACKLOG:** ↔ REQ-21 (parcial) — existente? [ ]
-- **Código:** formulário tem campo "Cenário"? [ ]
-- **Código:** formulário tem campo "Estilos"? [ ]
-- **Código:** MesaPage exibe cenário/estilos? [ ]
-- **Status no código:** [ ] ✅ Implementado | [ ] ⏳ Parcial | [ ] ❌ Pendente | [ ] 🔄 Descartado
-- **Ação:** [ ] Nenhuma | [ ] Atualizar BACKLOG | [ ] Atualizar FILA
+- **Verificado:** [x]
+- **BACKLOG:** ↔ REQ-21 (parcial)
+- **Código:** Backend: setting_name + setting_styles existem. Frontend: SettingStylesField.tsx + TableContent.tsx existem.
+- **Status no código:** [x] ✅ Implementado
+- **Ação:** [x] Atualizar FILA (status implementado) ✅
 
 ---
 

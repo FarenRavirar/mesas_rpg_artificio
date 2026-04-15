@@ -13,29 +13,32 @@
 
 ### Alta Prioridade (GUT ≥ 100)
 
-| # | ID | GUT | Item |一步 | FILA ref |
+| # | ID | GUT | Item |Ação | FILA ref |
 |---|---|---|---|---|---|
 | 1 | REQ-21 | 125 | Faixa etária (dropdown) | Criar enum | ↔ 084 |
-| 2 | — | 100 | Plataformas como tabelas | Validar necessidade | ↔ 075 |
-| 3 | REQ-29 | 100 | Auditoria API + implementação | Atualizar MAPA | ↔ DEB-06 |
+| 2 | DEB-07 | 100 | Plataformas como tabelas | CRUD admin + comm_platform | ↔ 075 |
+| 3 | DEB-08 | 100 | Frequência detalhada schedules | Adicionar campos + UI | ↔ 086 |
+| 4 | REQ-29 | 100 | Auditoria API + implementação | Atualizar MAPA | ↔ DEB-06 |
 
 ### Média Prioridade (GUT 50-99)
 
-| # | ID | GUT | Item |一步 | FILA ref |
+| # | ID | GUT | Item |Ação | FILA ref |
 |---|---|---|---|---|---|
 | 1 | DEB-06 | 75 | Integração rotas API órfãs | Após REQ-29 | ↔ REQ-29 |
+| 2 | DEB-09 | 80 | Nível mesa dropdown | Substituir Input por Select | ↔ 085 |
 
 ### Baixa Prioridade (GUT < 50)
 
-| # | ID | GUT | Item |一步 | FILA ref |
+| # | ID | GUT | Item |Ação | FILA ref |
 |---|---|---|---|---|---|
 | 1 | DEB-01 | 36 | Engajamento social | Fase 5 | — |
 | 2 | DEB-02 | 18 | Paginação catálogo | Sem volume | — |
 | 3 | DEB-03 | 18 | SEO estruturado | Meta tags | — |
 | 4 | DEB-04 | 12 | Onboarding revisitável | UX secundária | — |
-| 5 | OPS-01 | 16 | Logs centralizados | Fase 1 | — |
-| 6 | OPS-02 | 20 | Backup Oracle→Drive | Herdado | — |
-| 7 | OPS-03 | 9 | Script dump PostgreSQL | — | — |
+| 5 | DEB-07 | 100 | Plataformas como tabelas | CRUD admin + comm_platform | ↔ 075 |
+| 6 | OPS-01 | 16 | Logs centralizados | Fase 1 | — |
+| 7 | OPS-02 | 20 | Backup Oracle→Drive | Herdado | — |
+| 8 | OPS-03 | 9 | Script dump PostgreSQL | — | — |
 
 ---
 
@@ -43,29 +46,31 @@
 
 ### Alta Prioridade (GUT ≥ 100)
 
-| ID | GUT | Descrição |一步 | FILA ref | Status |
+| ID | GUT | Descrição |Ação | FILA ref | Status |
 |---|---|---|---|---|---|
-| REQ-21 | 125 | **Faixa etária (enum):** Campo `age_rating` como dropdown com opções fixas (livre/+10/+12/+14/+16/+18). Ícones visuais: 🟢 Livre, 🟡 +10, 🟠 +14, 🔴 +18. | Criar campo no banco e frontend | ↔ 084 | Pendente |
-| — | 100 | **Plataformas como tabelas:** Criar tabelas `game_platforms` e `communication_platforms` no banco + endpoints CRUD. Diferente do REQ-21 (campos texto). | Validar necessidade real | ↔ 075 | Pendente |
+| REQ-21 | 125 | **Faixa etária (enum):** age_rating é enum (livre/10+/12+/14+/16+/18+). Dropdown existe no frontend (StepConfig.tsx). **FALTA:** ícones visuais (🟢 Livre, 🟡 +10, 🟠 +14, 🔴 +18). | Adicionar ícones ao dropdown | ↔ 084 | ⏳ Parcial |
+| DEB-07 | 100 | **Plataformas como tabelas:** vtt_platforms existe (Migration 006) + endpoints GET /vtt-platforms + POST /suggest. **FALTA:** (1) CRUD admin para vtt_platforms, (2) criar tabela communication_platforms + endpoints. | CRUD admin vtt + criar comm_platform | ↔ 075 | ⏳ Parcial |
 | REQ-29 | 100 | **Auditoria API + implementação:** Mapear endpoints via `MAPA_DE_API.md`, atualizar status, implementar UI para os 5 mais críticos. Endereça DEB-06. | Primeiro auditoria, segundo implementar | ↔ DEB-06 | Pendente |
 
 ### Média Prioridade (GUT 50-99)
 
-| ID | GUT | Descrição |一步 | FILA ref | Status |
+| ID | GUT | Descrição |Ação | FILA ref | Status |
 |---|---|---|---|---|---|
 | DEB-06 | 75 | **Integração Rotas API Órfãs:** 29 endpoints pendentes no MAPA_DE_API.md. | Após REQ-29 | ↔ REQ-29 | Pendente |
 
 ### Baixa Prioridade (GUT < 50)
 
-| ID | GUT | Descrição |一步 | Status |
-|---|---|---|---|---|
-| DEB-01 | 36 | **Engajamento social:** Q&A, reviews, bookmarks. | Fase 5 | Planejado |
-| DEB-02 | 18 | **Paginação catálogo:** Server-side se volume crescer. | Sem dados | Planejado |
-| DEB-03 | 18 | **SEO estruturado:** Open Graph, sitemap. | Meta tags | Planejado |
-| DEB-04 | 12 | **Onboarding revisitável:** Atualizar preferências. | UX secundária | Planejado |
-| OPS-01 | 16 | **Logs centralizados:** Morgan/Winston. | Fase 1 | Planejado |
-| OPS-02 | 20 | **Backup Oracle→Drive:** 3 backups retidos. | Herdado | Planejado |
-| OPS-03 | 9 | **Script dump PostgreSQL:** Backup manual. | — | Planejado |
+| ID | GUT | Descrição |Ação | FILA ref | Status |
+|---|---|---|---|---|---|
+| DEB-01 | 36 | **Engajamento social:** Q&A, reviews, bookmarks. | Fase 5 | — | Planejado |
+| DEB-02 | 18 | **Paginação catálogo:** Server-side se volume crescer. | Sem dados | — | Planejado |
+| DEB-03 | 18 | **SEO estruturado:** Open Graph, sitemap. | Meta tags | — | Planejado |
+| DEB-04 | 12 | **Onboarding revisitável:** Atualizar preferências. | UX secundária | — | Planejado |
+| DEB-09 | 80 | **Nível mesa dropdown:** level_range é texto livre. Frontend StepFinal.tsx usa InputField. **PRECISA:** SelectField (Iniciante/Intermediário/Avançado/Misto) + tooltip. | Substituir InputField por SelectField | ↔ 085 | ❌ Pendente |
+| DEB-08 | 100 | **Frequência detalhada (schedules):** frequency + day_of_week existem. **FALTA:** times_per_month (quinzenal) + custom_notes (mensal) + UI no SessionRepeater. | Adicionar campos + UI | ↔ 086 | ⏳ Parcial |
+| OPS-01 | 16 | **Logs centralizados:** Morgan/Winston. | Fase 1 | — | Planejado |
+| OPS-02 | 20 | **Backup Oracle→Drive:** 3 backups retidos. | Herdado | — | Planejado |
+| OPS-03 | 9 | **Script dump PostgreSQL:** Backup manual. | — | — | Planejado |
 
 ---
 
@@ -76,13 +81,14 @@
 | BACKLOG ID | ↔ | FILA ID | Conteúdo |
 |---|---|---|---|
 | REQ-21 | ↔ | 084 | Faixa etária dropdown |
-| REQ-21 | ↔ | 100, 097, 098 | Cenário/Estilos (parcial) |
+| REQ-21 | ↔ | 100, 097, 098 | Cenário/Estilos (parcial: 100 ✅ impl., 097 ❌ pend. migration, 098 ✅ impl.) |
 | REQ-26 | ↔ | 085 | Nível mesa dropdown |
-| REQ-29 | ↔ | DEB-06 | Auditoria API (mesmo item) |
 | REQ-30 | ↔ | 086 | Frequência detalhada |
-| — | ↔ | 075 | Plataformas como tabelas |
-| — | ↔ | 059-067, 089, 082 | UX Gestão + Markdown |
-| — | ↔ | 059 | Atalhos teclado |
+| DEB-07 | ↔ | 075 | Plataformas como tabelas |
+| DEB-07 | ↔ | 075 | Plataformas como tabelas |
+| DEB-08 | ↔ | 086 | Frequência detalhada (schedules) |
+| DEB-09 | ↔ | 085 | Nível mesa dropdown |
+| — | ↔ | 060-067, 089, 082 | UX Gestão + Markdown |
 | — | ↔ | 060 | Busca texto candidatos |
 | — | ↔ | 061 | Status PT-BR |
 | — | ↔ | 062 | Botão Cancelar modal |
