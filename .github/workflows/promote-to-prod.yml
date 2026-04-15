@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Versão da release (ex: v0.1.1)'
+        description: 'Versao da release (ex: v0.1.1)'
         required: true
         type: string
 
@@ -12,7 +12,33 @@ permissions:
   contents: write
 
 jobs:
+  # CORRECAO WF-TS-01 (promote): Validar TypeScript ANTES de mergear dev em main
+  # Se o build falhar aqui, o merge nao acontece e producao nao e afetada
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: TypeScript check (frontend)
+        run: npx tsc --noEmit
+        working-directory: frontend
+
   merge:
+    needs: typecheck
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -36,7 +62,7 @@ jobs:
           fi
 
           git push origin main
-          git push origin "${{ inputs.version }}" || echo "Tag já existe"
+          git push origin "${{ inputs.version }}" || echo "Tag ja existe"
 
   deploy:
     needs: merge
@@ -57,12 +83,21 @@ jobs:
 
             cd /opt/mesas
             git pull origin main
-            
-            # CORREÇÃO: Remover containers órfãos antes do down para evitar conflitos de nome
-            docker ps -a --filter "name=mesas-" --format "{{.Names}}" | grep -v -E "(mesas-frontend|mesas-api|mesas-db)$" | xargs -r docker rm -f || true
-            
-            docker compose -f docker-compose.prod.yml down
+
+            # CORRECAO WF-ROLLBACK-01 (promote): rollback automatico se build falhar apos o down
+            rollback() {
+              echo "ROLLBACK: tentando resubir containers de producao..."
+              docker compose -f docker-compose.prod.yml up -d --force-recreate || true
+              echo "AVISO: Rollback tentado. Verificar estado manualmente."
+            }
+            trap rollback ERR
+
+            # CORRECAO E144: NUNCA remover containers por prefixo global (name=mesas-)
+            # Isso derruba beta (mesas-beta-*) por colisao de prefixo.
+            docker compose -f docker-compose.prod.yml down --remove-orphans
             docker compose -f docker-compose.prod.yml build --no-cache
+            trap - ERR
+
             docker compose -f docker-compose.prod.yml up -d mesas-db
 
             MAX_RETRIES=30
@@ -71,38 +106,57 @@ jobs:
             until docker compose -f docker-compose.prod.yml exec -T mesas-db pg_isready -U admin -d mesas_rpg; do
               RETRIES=$((RETRIES+1))
               if [ $RETRIES -ge $MAX_RETRIES ]; then
-                echo "❌ Banco não ficou pronto"
+                echo "ERRO: Banco nao ficou pronto"
+                docker compose -f docker-compose.prod.yml logs mesas-db --tail=50
                 exit 1
               fi
               sleep 3
             done
 
+            bash ./scripts/deploy/apply_required_migrations.sh docker-compose.prod.yml mesas-db
+
             docker compose -f docker-compose.prod.yml up -d --force-recreate
-            sleep 20
 
-            # CORREÇÃO WF-06: Validar health da API antes de considerar deploy bem-sucedido
-            if ! docker compose -f docker-compose.prod.yml ps | grep "mesas-api" | grep -q "Up"; then
-              echo "❌ API não subiu"
-              docker compose -f docker-compose.prod.yml logs mesas-api --tail=50
-              exit 1
-            fi
+            # CORRECAO WF-06: Validar health da API (healthy, nao apenas Up)
+            API_CONTAINER="mesas-api"
+            MAX_API_RETRIES=20
+            API_RETRIES=0
+            until [ "$(docker inspect --format '{{.State.Health.Status}}' "$API_CONTAINER" 2>/dev/null || echo 'missing')" = "healthy" ]; do
+              API_RETRIES=$((API_RETRIES+1))
+              if [ $API_RETRIES -ge $MAX_API_RETRIES ]; then
+                echo "ERRO: API nao ficou healthy"
+                docker inspect "$API_CONTAINER" --format '{{json .State.Health}}' || true
+                docker compose -f docker-compose.prod.yml logs mesas-api --tail=100
+                exit 1
+              fi
+              sleep 3
+            done
 
-            # CORREÇÃO INT-03: Validar se frontend buildou com sucesso
-            if ! docker compose -f docker-compose.prod.yml logs mesas-frontend 2>&1 | grep -q "build completed"; then
-              echo "⚠️ Verificando logs do frontend para possíveis erros de build"
-              docker compose -f docker-compose.prod.yml logs mesas-frontend --tail=100
-            fi
+            # CORRECAO E145 + nome correto do container: mesas-app (nao mesas-frontend)
+            FRONTEND_CONTAINER="mesas-app"
+            MAX_FRONTEND_RETRIES=20
+            FRONTEND_RETRIES=0
+            until [ "$(docker inspect --format '{{.State.Health.Status}}' "$FRONTEND_CONTAINER" 2>/dev/null || echo 'missing')" = "healthy" ]; do
+              FRONTEND_RETRIES=$((FRONTEND_RETRIES+1))
+              if [ $FRONTEND_RETRIES -ge $MAX_FRONTEND_RETRIES ]; then
+                echo "ERRO: Frontend nao ficou healthy (E145)"
+                docker inspect "$FRONTEND_CONTAINER" --format '{{json .State.Health}}' || true
+                docker compose -f docker-compose.prod.yml logs mesas-app --tail=100
+                exit 1
+              fi
+              sleep 3
+            done
 
             docker compose -f docker-compose.prod.yml ps
             docker image prune -f
 
       - name: Notify Success
         if: success()
-        run: echo "✅ Promoção concluída! Versão ${{ inputs.version }}"
+        run: echo "Promocao concluida! Versao ${{ inputs.version }}"
 
       - name: Notify Failure
         if: failure()
-        run: echo "❌ Falha na promoção!"
+        run: echo "Falha na promocao!"
 
   release:
     needs: deploy
@@ -121,13 +175,13 @@ jobs:
       - name: Fetch tags
         run: git fetch --tags origin
 
-      # CORREÇÃO WF-05: Sincronizar com código deployado para garantir release notes corretas
+      # CORRECAO WF-05: Sincronizar com codigo deployado para garantir release notes corretas
       - name: Sync with deployed code
         run: |
           git fetch origin main --tags
           git checkout main
 
-      - name: Descobrir última release de produção
+      - name: Descobrir ultima release de producao
         id: previous
         run: |
           PREVIOUS_TAG=$(gh release list \
@@ -154,82 +208,82 @@ jobs:
           fi
 
           TOTAL_COMMITS=$(git rev-list --count "${RANGE}" 2>/dev/null || echo 0)
-          FEATURES=$(git log "${RANGE}" --pretty=format:'%s' | grep -Eci '^(feat)(\(.+\))?:' || true)
-          FIXES=$(git log "${RANGE}" --pretty=format:'%s' | grep -Eci '^(fix)(\(.+\))?:' || true)
-          REFACTORS=$(git log "${RANGE}" --pretty=format:'%s' | grep -Eci '^(refactor|perf)(\(.+\))?:' || true)
-          CHORES=$(git log "${RANGE}" --pretty=format:'%s' | grep -Eci '^(build|ci|chore|deps)(\(.+\))?:' || true)
+          FEATURES=$(git log "${RANGE}" --pretty=format:'''%s''' | grep -Eci '''^(feat)(\(.+\))?:''' || true)
+          FIXES=$(git log "${RANGE}" --pretty=format:'''%s''' | grep -Eci '''^(fix)(\(.+\))?:''' || true)
+          REFACTORS=$(git log "${RANGE}" --pretty=format:'''%s''' | grep -Eci '''^(refactor|perf)(\(.+\))?:''' || true)
+          CHORES=$(git log "${RANGE}" --pretty=format:'''%s''' | grep -Eci '''^(build|ci|chore|deps)(\(.+\))?:''' || true)
 
           {
-            echo "## Resumo da versão ${VERSION}"
+            echo "## Resumo da versao ${VERSION}"
             echo
 
             if [ -n "${PREVIOUS_TAG}" ]; then
-              echo "- Comparação: \`${PREVIOUS_TAG}\` → \`${VERSION}\`"
+              echo "- Comparacao: \`${PREVIOUS_TAG}\` -> \`${VERSION}\`"
             else
-              echo "- Primeira release publicada em produção"
+              echo "- Primeira release publicada em producao"
             fi
 
             echo "- Total de commits: ${TOTAL_COMMITS}"
             echo "- Features: ${FEATURES}"
-            echo "- Correções: ${FIXES}"
-            echo "- Refatorações/performance: ${REFACTORS}"
+            echo "- Correcoes: ${FIXES}"
+            echo "- Refatoracoes/performance: ${REFACTORS}"
             echo "- Infra/chore/deps: ${CHORES}"
             echo
-            echo "### Áreas impactadas"
+            echo "### Areas impactadas"
 
             FOUND_AREA=0
 
-            if grep -qE '^frontend/' changed_files.txt; then
+            if grep -qE '''^frontend/''' changed_files.txt; then
               echo "- Frontend"
               FOUND_AREA=1
             fi
 
-            if grep -qE '^backend/' changed_files.txt; then
+            if grep -qE '''^backend/''' changed_files.txt; then
               echo "- Backend"
               FOUND_AREA=1
             fi
 
-            if grep -qE '(^|/)(docker-compose|Dockerfile|\.github/workflows/)' changed_files.txt; then
+            if grep -qE '''(^|/)(docker-compose|Dockerfile|\.github/workflows/)''' changed_files.txt; then
               echo "- Infra e deploy"
               FOUND_AREA=1
             fi
 
-            if grep -qE '(^|/)(migrations/|prisma/|db/|.*\.sql$)' changed_files.txt; then
+            if grep -qE '''(^|/)(migrations/|prisma/|db/|.*\.sql$)''' changed_files.txt; then
               echo "- Banco de dados"
               FOUND_AREA=1
             fi
 
-            if grep -qE '(^|/)(auth/|oauth|session|jwt|discord|google)' changed_files.txt; then
-              echo "- Autenticação"
+            if grep -qE '''(^|/)(auth/|oauth|session|jwt|discord|google)''' changed_files.txt; then
+              echo "- Autenticacao"
               FOUND_AREA=1
             fi
 
-            if grep -qE '\.md$' changed_files.txt; then
-              echo "- Documentação"
+            if grep -qE '''\.md$''' changed_files.txt; then
+              echo "- Documentacao"
               FOUND_AREA=1
             fi
 
             if [ "$FOUND_AREA" -eq 0 ]; then
-              echo "- Escopo não identificado automaticamente"
+              echo "- Escopo nao identificado automaticamente"
             fi
 
             echo
-            echo "### Atenção operacional"
+            echo "### Atencao operacional"
 
             ATTENTION=0
 
-            if grep -qE '(^|/)(migrations/|prisma/|db/|.*\.sql$)' changed_files.txt; then
-              echo "- Há alterações que podem afetar banco de dados ou migrações."
+            if grep -qE '''(^|/)(migrations/|prisma/|db/|.*\.sql$)''' changed_files.txt; then
+              echo "- Ha alteracoes que podem afetar banco de dados ou migracoes."
               ATTENTION=1
             fi
 
-            if grep -qE '(^|/)(docker-compose|Dockerfile|\.github/workflows/)' changed_files.txt; then
-              echo "- Há alterações de infraestrutura ou deploy."
+            if grep -qE '''(^|/)(docker-compose|Dockerfile|\.github/workflows/)''' changed_files.txt; then
+              echo "- Ha alteracoes de infraestrutura ou deploy."
               ATTENTION=1
             fi
 
-            if grep -qE '(^|/)(auth/|oauth|session|jwt|discord|google)' changed_files.txt; then
-              echo "- Há alterações em autenticação, sessão ou permissões."
+            if grep -qE '''(^|/)(auth/|oauth|session|jwt|discord|google)''' changed_files.txt; then
+              echo "- Ha alteracoes em autenticacao, sessao ou permissoes."
               ATTENTION=1
             fi
 
@@ -239,10 +293,10 @@ jobs:
 
             echo
             echo "### Principais commits"
-            git log "${RANGE}" --pretty=format:'- %s (%h)' -n 15
+            git log "${RANGE}" --pretty=format:'''- %s (%h)''' -n 15
           } > executive_notes.md
 
-      - name: Gerar notas automáticas do GitHub
+      - name: Gerar notas automaticas do GitHub
         env:
           PREVIOUS_TAG: ${{ steps.previous.outputs.tag }}
         run: |
@@ -255,14 +309,14 @@ jobs:
               -f tag_name="${VERSION}" \
               -f target_commitish=main \
               -f previous_tag_name="${PREVIOUS_TAG}" \
-              --jq '.body' > github_notes.md
+              --jq '''.body''' > github_notes.md
           else
             gh api \
               repos/${{ github.repository }}/releases/generate-notes \
               -X POST \
               -f tag_name="${VERSION}" \
               -f target_commitish=main \
-              --jq '.body' > github_notes.md
+              --jq '''.body''' > github_notes.md
           fi
 
       - name: Consolidar release notes
@@ -289,4 +343,4 @@ jobs:
               --title "Production ${VERSION}" \
               --notes-file final_release_notes.md \
               --latest
-          fi
+          fi

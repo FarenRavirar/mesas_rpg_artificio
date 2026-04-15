@@ -3,6 +3,7 @@ import type { FormState, DdalFormState } from '../types/createTable.types';
 import type { SessionSchedule } from '../../../components/SessionRepeater';
 import type { ContactFormEntry } from '../../../components/ContactsFormBlock';
 import { formStateToPayload } from '../utils/mapper';
+import { validateAll } from '../utils/validation';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -46,8 +47,6 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
       day_of_week: 'segunda',
       start_time: '19:00',
       end_time: '22:00',
-      frequency: 'semanal',
-      slots_per_session: null,
       is_ongoing: false,
       notes: '',
       sort_order: 0,
@@ -79,6 +78,10 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
   // Finalização
   const [rulesNotes, setRulesNotes] = useState(initialData?.rulesNotes || '');
   const [bannerUrl, setBannerUrl] = useState(initialData?.bannerUrl || '');
+  const [bannerCropData, setBannerCropData] = useState<{ x: number; y: number; width: number; height: number } | null>(
+    initialData?.bannerCropData || null
+  );
+  const [gmAvatarUrl, setGmAvatarUrl] = useState(initialData?.gmAvatarUrl || '');
   const [isCovilMesa, setIsCovilMesa] = useState(initialData?.isCovilMesa || false);
   const [bannerError, setBannerError] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
@@ -161,6 +164,8 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
     contacts,
     rulesNotes,
     bannerUrl,
+    bannerCropData,
+    gmAvatarUrl,
     isCovilMesa,
     ddal,
     masterDisplayName,
@@ -216,8 +221,8 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
       const isEditing = !!(initialData as any)?.id;
       const method = isEditing ? 'PUT' : 'POST';
       const endpoint = isEditing 
-        ? `${API_BASE}/api/v1/gm/tables/${(initialData as any).id}` 
-        : `${API_BASE}/api/v1/gm/tables`;
+        ? `${API_BASE}/gm/tables/${(initialData as any).id}` 
+        : `${API_BASE}/gm/tables`;
 
       const res = await fetch(endpoint, {
         method,
@@ -278,8 +283,6 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
         day_of_week: 'segunda',
         start_time: '19:00',
         end_time: '22:00',
-        frequency: 'semanal',
-        slots_per_session: null,
         is_ongoing: false,
         notes: '',
         sort_order: 0,
@@ -303,7 +306,6 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
       setSubmitState('validating');
       
       // Validação completa usando validators
-      const { validateAll } = await import('../utils/validation');
       const errors = validateAll(formState);
       
       if (errors.length > 0) {
@@ -359,6 +361,10 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
     setRulesNotes,
     bannerUrl,
     setBannerUrl,
+    bannerCropData,
+    setBannerCropData,
+    gmAvatarUrl,
+    setGmAvatarUrl,
     bannerError,
     setBannerError,
     avatarError,

@@ -1,5 +1,13 @@
 [
   {
+    "id": "2026-04-14-upload-banner",
+    "title": "Nova forma de adicionar imagem na sua mesa",
+    "body": "Mudamos completamente a experiência de adicionar a imagem da sua mesa:\n\n• **Upload direto do seu computador** - Agora você pode selecionar a foto direto do seu computador ou celular, sem precisar copiar URLs complicadas\n• **Preview instantâneo** - Assim que você escolhe a imagem, você já vê como vai ficar na capa da mesa\n• **Mais fácil de usar** - Não precisa mais entender de hospedagem de imagens, tudo funciona automaticamente\n• **Powered by Cloudinary** - Agora as imagens são armazenadas de forma mais rápida e confiável\n\nExperimente criar ou editar uma mesa para ver a nova experiência! 🎲\n\n_Atualização publicada em 14/04/2026 às 03:30_",
+    "type": "app",
+    "published": true,
+    "created_at": "2026-04-14T03:30:00-03:00"
+  },
+  {
     "id": "2026-04-13-painel-mestre-melhorias",
     "title": "Painel do mestre ficou mais fácil de usar",
     "body": "Fizemos várias melhorias no painel do mestre para deixar tudo mais prático e organizado:\n\n• **Editar mesa funciona direitinho** - Corrigimos um problema que fazia o formulário de edição abrir vazio. Agora quando você clica em \"Editar\", todos os dados da sua mesa aparecem certinho para você modificar\n• **Ativar e desativar mesas** - O botão de ativar e desativar estava dando erro, mas agora funciona perfeitamente. Você pode pausar e reativar suas mesas sem problemas\n• **Mesas pausadas ficam mais claras** - Agora é muito mais fácil ver quais mesas estão ativas e quais estão pausadas: as mesas desativadas aparecem mais apagadas, com a imagem em preto e branco, e têm uma etiqueta \"⏸️ Desativada\" bem visível\n• **Organização melhor** - Com o visual diferenciado, você consegue gerenciar várias mesas ao mesmo tempo sem se confundir\n\nSeu painel agora está mais confiável e muito mais fácil de usar! 🎲\n\n_Atualização publicada em 13/04/2026 às 18:00_",

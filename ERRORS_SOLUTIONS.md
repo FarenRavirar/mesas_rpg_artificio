@@ -49,10 +49,10 @@ Use para localizar o erro sem varrer a tabela inteira:
 | Ferramentas automatizadas / Agentes | E045, E050, E051, E052, E053, E058, E060, E061, E062, E063, E066, E070, E073, E076, E085, E091, E094, E095, E096, E097, E099, E100 |
 | PowerShell — comandos Unix inexistentes / software externo | E085, E094 |
 | Backend / API / Rotas | E118 |
-| Autenticação / Sessão | E103, E105, E116 |
+| Autenticação / Sessão | E103, E105, E116, E147 |
 | Backend / API Node.js | E078, E087, E089, E098 |
 | Imgur / Upload de Imagens | E079, E080, E081 |
-| Autenticação / Sessão | E103, E105 |
+| Autenticação / Sessão | E103, E105, E116, E147 |
 | SSH / Conexão Remota | E102 |
 
 ---
@@ -66,7 +66,7 @@ Use para localizar o erro sem varrer a tabela inteira:
 | E040 | `rsync: connection unexpectedly closed (exit code 11)` | Diretório de destino não existe na máquina remota (VM) | Logs do GitHub Actions mostrando falha no rsync logo após mudar caminhos de pasta | Adicionar `ssh mkdir -p /path/to/dest` antes do passo de rsync no workflow YAML | Sempre garantir que o diretório pai existe antes de realizar rsync em caminhos complexos ou novos |
 | E055 | `unknown flag: --branch` ao executar `gh run list --branch dev` na VM | Versão do GitHub CLI instalada na VM não suporta o parâmetro `--branch` | Comando retorna `unknown flag: --branch` | Usar: `gh run list --repo FarenRavirar/mesas_rpg_artificio -L 5 --json databaseId,name,status,conclusion,headBranch,createdAt` | Validar flags com `gh run list --help` no ambiente alvo antes de automatizar |
 | E056 | `Unknown JSON field` ao executar `gh run list --json` com campos `displayTitle` ou `workflowName` | Versão do CLI da VM expõe schema reduzido | Comando falha listando campos permitidos | Usar apenas campos suportados: `conclusion`, `createdAt`, `databaseId`, `event`, `headBranch`, `headSha`, `name`, `status`, `updatedAt`, `url`, `workflowDatabaseId` | Validar schema exato com `gh run list --help` antes de usar `--json` |
-| E133 | Deploy via GitHub Actions copia arquivos mas containers não refletem mudanças — código atualizado no servidor mas runtime continua com versão antiga | **Causa raiz confirmada (07/04/2026 - 3ª ocorrência):** Workflow usa `docker compose up -d --build --remove-orphans` mas **sem `--force-recreate`**. Docker Compose com `--build` só reconstrói se detectar mudanças no Dockerfile ou contexto de build. Mudanças em arquivos `.tsx`/`.ts` podem ser ignoradas por cache de layers. Container fica desatualizado mesmo após rsync bem-sucedido | **Diagnóstico:** (1) `git log --oneline -1` no servidor mostra commit recente; (2) `docker ps --format '{{.CreatedAt}}'` mostra container criado **antes** do último deploy; (3) Código no servidor (`/opt/mesas-beta/`) está atualizado mas runtime não reflete mudanças; (4) Rebuild manual com `--force-recreate` resolve imediatamente | **Solução validada (07/04/2026):** Adicionar `--force-recreate` ao comando de deploy nos workflows: `docker compose -f docker-compose.beta.yml up -d --build --force-recreate --remove-orphans`. Aplicar em `deploy-beta.yml` (linha 43) e `deploy-production.yml` (linha 43). Commit e push para `dev` | **Prevenção obrigatória:** (1) Sempre usar `--force-recreate` em workflows de deploy para garantir que containers sejam recriados mesmo com cache; (2) Adicionar validação pós-deploy: comparar timestamp de criação do container com timestamp do commit; (3) Nunca assumir que `--build` sozinho garante atualização completa |
+| E133 | Deploy via GitHub Actions copia arquivos mas containers não refletem mudanças — código atualizado no servidor mas runtime continua com versão antiga | **Causa raiz confirmada (07/04/2026 - 3ª ocorrência):** Workflow usa `docker compose up -d --build --remove-orphans` mas **sem `--force-recreate`**. Docker Compose com `--build` só reconstrói se detectar mudanças no Dockerfile ou contexto de build. Mudanças em arquivos `.tsx`/`.ts` podem ser ignoradas por cache de layers. Container fica desatualizado mesmo após rsync bem-sucedido | **Diagnóstico:** (1) `git log --oneline -1` no servidor mostra commit recente; (2) `docker ps --format '{{.CreatedAt}}'` mostra container criado **antes** do último deploy; (3) Código no servidor (`/opt/mesas-beta/`) está atualizado mas runtime não reflete mudanças; (4) Rebuild manual com `--force-recreate` resolve imediatamente | **Solução validada (07/04/2026):** Adicionar `--force-recreate` ao comando de deploy nos workflows: `docker compose -f docker-compose.beta.yml up -d --build --force-recreate --remove-orphans`. Aplicar em `deploy-beta.yml` (linha 43) e `deploy-prod.yml` (linha 43). Commit e push para `dev` | **Prevenção obrigatória:** (1) Sempre usar `--force-recreate` em workflows de deploy para garantir que containers sejam recriados mesmo com cache; (2) Adicionar validação pós-deploy: comparar timestamp de criação do container com timestamp do commit; (3) Nunca assumir que `--build` sozinho garante atualização completa |
 
 ---
 
@@ -177,6 +177,11 @@ Use para localizar o erro sem varrer a tabela inteira:
 | ID | Sintoma | Causa provável | Diagnóstico rápido | Solução validada | Prevenção |
 |---|---|---|---|---|---|
 | E101 | `git merge` trava com "Deletion of directory 'X' failed. Should I try again? (y/n)" e não completa mesmo respondendo 'y' ou 'n' | Windows mantém lock em diretórios que foram deletados em uma branch mas ainda existem em outra; processo em background (IDE, antivírus, indexador) pode estar acessando o diretório | Comando `git merge` ou `git merge --squash` trava aguardando input infinitamente; diretórios como `backend/scripts`, `frontend/src/styles` aparecem na mensagem | **NUNCA tentar merge local com squash quando há deleção de diretórios.** Usar GitHub PR: `gh pr create --base dev --head feature/X --title "..." --body "..."` seguido de `gh pr merge <número> --squash --delete-branch`. O merge remoto no GitHub não sofre de locks do Windows | Sempre usar workflow via PR para merges que envolvem deleção de diretórios; evitar `git merge --squash` localmente no Windows; se necessário merge local, usar `git merge` sem squash e depois fazer squash no GitHub |
+| E143 | Arquivos desaparecem ao fazer `git checkout` entre branches — usuário vê arquivos sendo deletados e entra em pânico | **Causa raiz confirmada (13/04/2026):** Comportamento NORMAL do Git. Ao fazer `git checkout main` vindo de `dev`, o Git remove arquivos que existem em `dev` mas não em `main` para refletir o estado correto da branch `main`. Ao voltar para `dev` com `git checkout dev`, os arquivos são restaurados automaticamente. **Problema:** Usuário vê arquivos importantes desaparecendo (ex: `MAPA_DE_API.md`, `map_scratch.json`, `RESUMO_EXECUCAO.md`, `generateMap.js`) e acredita que foram perdidos permanentemente | Usuário executa `git checkout main` e vê arquivos sendo deletados; IDE mostra arquivos riscados ou ausentes; usuário reporta "arquivos foram excluídos" | **Solução imediata:** `git checkout dev` — todos os arquivos são restaurados automaticamente. **Nenhum arquivo é perdido.** Git apenas ajusta o working directory para refletir o estado de cada branch. **Prevenção:** NUNCA fazer `git checkout` entre branches para deploy — usar GitHub PR ao invés de merge local | **REGRA OBRIGATÓRIA PARA AGENTES:** NUNCA executar `git checkout <outra-branch>` durante deploy ou promoção de código. SEMPRE usar GitHub PR: `gh pr create --base main --head dev` + `gh pr merge <número>`. Se precisar verificar divergência, usar `git log origin/main..origin/dev` SEM fazer checkout. Adicionar aviso explícito em `OPERACAO_PRODUCAO.md` e `PRE_DEPLOY_CHECKLIST.md` |
+| E144 | Deploy de produção derruba ambiente beta (mesasbeta retorna 502 após deploy em main) | **Causa raiz confirmada (13/04/2026):** Workflow `deploy-prod.yml` executa limpeza destrutiva global: `docker ps -a --filter "name=mesas-" ... | xargs docker rm -f`. Esse filtro captura e remove também containers do beta (`mesas-beta-frontend`, `mesas-beta-api`, `mesas-beta-db`) porque todos começam com `mesas-`. Resultado: produção sobe, beta fica OFF | Após deploy de produção bem-sucedido, `https://mesasbeta.artificiorpg.com` retorna `502`; `docker ps -a --filter name=mesas-beta` não lista containers; logs do GitHub Actions mostram remoção explícita de `mesas-beta-frontend`, `mesas-beta-api`, `mesas-beta-db` | **Recuperação imediata validada:** `ssh ... "cd /opt/mesas-beta && git fetch origin dev && git reset --hard origin/dev && docker compose -f docker-compose.beta.yml up -d --force-recreate"` restaura beta em ~30s; healthcheck volta para 200 | **Prevenção obrigatória:** No `deploy-prod.yml`, remover limpeza global por nome. Se precisar remover órfãos, usar escopo de projeto compose (`docker compose -f docker-compose.prod.yml down --remove-orphans`) ou filtro estrito por labels do projeto de produção. Nunca usar `name=mesas-` em comandos destrutivos globais |
+| E145 | Frontend responde externamente com HTTP 200, mas container permanece `unhealthy` | Healthcheck do frontend usando `http://localhost:80` resolve para IPv6 (`[::1]`) no container; Nginx estava acessível em IPv4 loopback (`127.0.0.1`) e o probe falhava com `Connection refused` | `docker inspect <frontend> --format '{{json .State.Health}}'` mostra `Connecting to localhost:80 ([::1]:80)` + `Connection refused`; ao mesmo tempo `curl` no domínio retorna 200 | Ajustar healthcheck em `docker-compose.prod.yml` e `docker-compose.beta.yml` para `http://127.0.0.1:80`, recriar apenas os frontends (`mesas-app` e `mesas-beta-frontend`) e validar health `healthy` | Workflows `deploy-prod.yml` e `deploy-beta.yml` devem falhar deploy se frontend não atingir `healthy` no timeout; considerar deploy falho mesmo quando site externo responde 200 |
+| E146 | Deploy beta falha com `container name ... is already in use` durante criação do `mesas-beta-db` | Corrida entre execuções simultâneas do workflow `Deploy Beta` no mesmo host, ambas tentando executar `docker compose up -d` e recriar o mesmo conjunto de containers | Dois runs de `Deploy Beta` iniciados em sequência curta; um run falha com conflito de nome enquanto outro conclui; erro explícito no log: `Container mesas-beta-db ... already in use` | Reexecutar deploy após término do run concorrente e validar estado dos containers beta (`frontend`, `api`, `db`) como `healthy` | Serializar execução no workflow com `concurrency` (group por branch) e lock no host com `flock` (`/tmp/mesas-beta-deploy.lock`) para garantir exclusão mútua |
+
 
 ---
 
@@ -193,7 +198,7 @@ Use para localizar o erro sem varrer a tabela inteira:
 | ID | Sintoma | Causa provável | Diagnóstico rápido | Solução validada | Prevenção |
 |---|---|---|---|---|---|
 | E103 | Usuários sendo deslogados inesperadamente durante o uso da aplicação | **Causa raiz final (05/04/2026 - 3 tentativas):** JWT_EXPIRES_IN=15m estava hardcoded no docker-compose.beta.yml, sobrescrevendo o .env. Docker Compose prioriza variáveis no YAML sobre .env. **Por que demorou:** (1ª) Corrigiu código local - não resolveu; (2ª) Corrigiu .env + restart - compose ignorou; (3ª) Identificou hardcode no YAML + down/up - resolveu | Usuário relata logout após ~15 minutos de uso; logs do frontend mostram chamadas frequentes para `/api/v1/me`; `window.location.reload()` sendo chamado no storage listener. **Diagnóstico remoto:** `docker exec mesas-beta-api env \| grep JWT_EXPIRES_IN` retorna `JWT_EXPIRES_IN=15m` | **Solução validada (05/04/2026):** (1) Atualizar `.env` no servidor: `ssh faren "sed -i 's/JWT_EXPIRES_IN=15m/JWT_EXPIRES_IN=7d/' /opt/mesas-beta/.env"`; (2) Reiniciar container: `ssh faren "docker restart mesas-beta-api"`; (3) Validar: `docker exec mesas-beta-api env \| grep JWT_EXPIRES_IN` deve retornar `7d`. Modificações no código (`AuthContext.tsx` com validação inteligente) já estavam aplicadas desde 04/04/2026 | NUNCA hardcodar env vars no docker-compose.yml - sempre usar ${VARIAVEL}; Validar 3 locais: .env local, .env remoto, docker-compose.yml; Sempre usar down/up após mudanças no compose (restart não aplica mudanças do YAML) |
-
+| E147 | Login OAuth iniciado em `localhost` retorna para domínio incorreto ou sessão não persiste no frontend local | Backend beta não estava aceitando origem local em CORS e cookie estava com `SameSite` incompatível para fluxo cross-origin (`localhost` ↔ `mesasbeta`). Em paralelo, o redirect pós-login precisava respeitar `frontend_redirect` validado por allowlist | (1) Validar se `FRONTEND_URLS` inclui `http://localhost:5173` e `http://127.0.0.1:5173`; (2) validar `COOKIE_SAME_SITE=none` no ambiente beta; (3) confirmar em `backend/src/server.ts` uso de lista dinâmica de origens; (4) confirmar em `backend/src/routes/auth.ts` leitura de `frontend_redirect` com allowlist; (5) confirmar em `frontend/src/utils/auth.ts` envio de `frontend_redirect=window.location.origin` | **Solução validada (14/04/2026):** (1) Atualizar `/opt/mesas-beta/.env` com `FRONTEND_URLS` (localhost e 127.0.0.1) + `COOKIE_SAME_SITE=none`; (2) injetar variáveis no `docker-compose.beta.yml`; (3) recriar stack beta para aplicar envs; (4) manter CORS dinâmico por `FRONTEND_URLS` em `server.ts`; (5) manter callback OAuth retornando para origem permitida via `state` + `frontend_redirect` em `auth.ts` | Antes de validar OAuth local, sempre conferir allowlist (`FRONTEND_URLS`), política de cookie (`SameSite=None; Secure`) e parâmetro `frontend_redirect`. Sempre testar `/api/v1/me` com `credentials: 'include'` após callback para confirmar sessão ativa no frontend local |
 
 ---
 
@@ -517,5 +522,41 @@ docker exec mesas-db psql -U admin -d mesas_rpg -c 'SELECT COUNT(*) FROM systems
 
 **Data:** 09/04/2026
 
+---
 
+## E148 - Build TypeScript falha apos docker compose down deixando beta offline
 
+**Sintoma:**
+Ambiente beta (mesasbeta.artificiorpg.com) fica completamente offline apos push para `dev`. Containers `mesas-beta-frontend`, `mesas-beta-api` e `mesas-beta-db` nao existem mais. Volumes de dados preservados.
+
+**Causa raiz confirmada (14/04/2026):**
+Workflow `deploy-beta.yml` executava `docker compose down --remove-orphans` ANTES do `docker compose build`. Se o build falhar por qualquer motivo (erros TypeScript, dependencia ausente, etc.), os containers ja foram derrubados e nao ha rollback automatico.
+
+**Erros TypeScript que causaram o incidente (commit 4442a3d):**
+- `SessionRepeater.tsx`: `FREQUENCIES` declarado mas nunca usado (TS6133); bloco duplicado referenciando `DAYS` inexistente (TS2304)
+- `SystemTreeSelector.tsx`: `getDisplayName()` recebia `SystemTreeNode` mas esperava `FlattenedSystemNode` (TS2345, 4 ocorrencias); `selectedVariantId` nao declarado (TS2304)
+- `StepFinal.tsx`: `selectedScenarioName` declarado duas vezes na interface (TS2300)
+- `StepReview.tsx`, `CreateTableForm.tsx`, `useCreateTableForm.ts`: `frequency` e `slots_per_session` referenciados em `SessionSchedule` mas nao existem no tipo (TS2339, TS2353)
+
+**Diagnostico:**
+1. `gh run list --repo FarenRavirar/mesas_rpg_artificio --branch dev --limit 3 --json status,conclusion,databaseId,displayTitle`
+2. Identificar run com `conclusion: "failure"`
+3. `gh run view <id> --log-failed` - procurar por `error TS` no output
+4. `docker ps` na VM confirma ausencia dos containers beta
+
+**Solucao validada (14/04/2026):**
+1. Corrigir todos os erros TypeScript no codigo local
+2. Validar localmente: `npx tsc --noEmit` no diretorio `frontend/` deve retornar sem erros
+3. Push para `dev` - novo deploy sobe o beta automaticamente
+
+**Prevencao aplicada no workflow (commit 62f67db):**
+1. Step `TypeScript check (frontend)` adicionado no runner do GitHub Actions ANTES do step SSH. Se `npx tsc --noEmit` falhar, o deploy nem chega a VM e o beta permanece no ar
+2. `trap rollback ERR` no script SSH: se o build falhar apos o `down`, tenta resubir os containers automaticamente
+3. Lock timeout reduzido de 600s para 120s
+
+**Recuperacao manual (se necessario):**
+```powershell
+ssh -F C:\projetos\config faren "cd /opt/mesas-beta && docker compose -f docker-compose.beta.yml up -d --force-recreate"
+```
+
+**Data:** 14/04/2026

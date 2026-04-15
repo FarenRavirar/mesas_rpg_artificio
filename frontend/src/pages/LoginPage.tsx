@@ -3,8 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { LogIn, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { applySeo } from '../utils/seo';
-
-const API_BASE = import.meta.env.VITE_API_URL || '';
+import { getGoogleLoginUrl } from '../utils/auth';
 
 export const LoginPage = () => {
   const { isAuthenticated, user, isLoading } = useAuth();
@@ -28,7 +27,7 @@ export const LoginPage = () => {
   }, [isLoading, isAuthenticated, user?.role, navigate]);
 
   const handleLoginClick = () => {
-    window.location.assign(`${API_BASE}/api/v1/auth/google`);
+    window.location.assign(getGoogleLoginUrl());
   };
 
   return (

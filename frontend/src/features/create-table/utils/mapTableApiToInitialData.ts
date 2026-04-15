@@ -37,8 +37,6 @@ export function mapTableApiToInitialData(apiData: any): Partial<FormState> {
               day_of_week: 'segunda',
               start_time: '19:00',
               end_time: '22:00',
-              frequency: 'semanal',
-              slots_per_session: null,
               is_ongoing: false,
               notes: '',
               sort_order: 0,
@@ -57,7 +55,9 @@ export function mapTableApiToInitialData(apiData: any): Partial<FormState> {
     contacts: Array.isArray(apiData.contacts) ? apiData.contacts : [],
 
     rulesNotes: apiData.rules_notes ?? '',
-    bannerUrl: apiData.image_url ?? '',
+    bannerUrl: apiData.banner_url ?? apiData.image_url ?? '',
+    bannerCropData: apiData.banner_crop_data ?? null,
+    gmAvatarUrl: apiData.gm_avatar_url ?? '',
     isCovilMesa: apiData.is_covil_mesa ?? false,
 
     ddal: {

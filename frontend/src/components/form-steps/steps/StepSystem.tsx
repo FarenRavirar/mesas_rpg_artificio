@@ -3,6 +3,7 @@ import { Dice1 } from 'lucide-react';
 import { SystemTreeSelector } from '../../SystemTreeSelector';
 import { ScenarioSelector } from '../../ScenarioSelector';
 import { SystemSuggestionModal } from '../../SystemSuggestionModal';
+import { ScenarioSuggestionModal } from '../../ScenarioSuggestionModal';
 import type { SystemTreeNode } from '../../../types/systems';
 
 interface StepSystemProps {
@@ -28,6 +29,8 @@ export function StepSystem({
 }: StepSystemProps) {
   const [systemSearch, setSystemSearch] = useState('');
   const [showSuggestionModal, setShowSuggestionModal] = useState(false);
+  const [showScenarioSuggestionModal, setShowScenarioSuggestionModal] = useState(false);
+  const [scenarioRefreshKey, setScenarioRefreshKey] = useState(0);
 
   return (
     <div className="space-y-6">
@@ -69,14 +72,24 @@ export function StepSystem({
 
       {/* Cenário */}
       <div className="rounded-2xl border border-white/10 bg-[#13213f]/60 p-4 space-y-3">
-        <div>
-          <p className="text-sm font-semibold text-white">Cenário (opcional)</p>
-          <p className="text-xs text-white/60 mt-1">
-            Cenários são independentes de sistemas. Ex: Forgotten Realms pode ser jogado em D&D ou Pathfinder.
-          </p>
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="text-sm font-semibold text-white">Cenário (opcional)</p>
+            <p className="text-xs text-white/60 mt-1">
+              Cenários são independentes de sistemas. Ex: Forgotten Realms pode ser jogado em D&D ou Pathfinder.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowScenarioSuggestionModal(true)}
+            className="text-xs px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
+          >
+            + Sugerir Cenário
+          </button>
         </div>
 
         <ScenarioSelector
+          key={`scenario-selector-${scenarioRefreshKey}`}
           selectedScenarioId={selectedScenarioId}
           onSelect={setSelectedScenarioId}
           disabled={false}
@@ -89,6 +102,15 @@ export function StepSystem({
         onSuccess={() => {
           setShowSuggestionModal(false);
           onRefreshSystems();
+        }}
+      />
+
+      <ScenarioSuggestionModal
+        isOpen={showScenarioSuggestionModal}
+        onClose={() => setShowScenarioSuggestionModal(false)}
+        onSuccess={() => {
+          setShowScenarioSuggestionModal(false);
+          setScenarioRefreshKey((current) => current + 1);
         }}
       />
     </div>

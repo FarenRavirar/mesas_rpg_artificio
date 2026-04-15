@@ -159,10 +159,9 @@ router.get('/me', auth_1.authMiddleware, async (req, res) => {
             .where('gm_id', '=', gmProfile.id)
             .executeTakeFirst();
         const tablesCount = Number(tablesCountRow?.count ?? 0);
-        const { avatar_deletehash, banner_deletehash, ...safeProfile } = gmProfile;
         return res.json({
             data: {
-                ...safeProfile,
+                ...gmProfile,
                 tables_count: tablesCount,
                 avg_rating: null,
             },
@@ -495,6 +494,16 @@ router.patch('/tables/:id/status', auth_1.authMiddleware, async (req, res) => {
     const userRole = req.user.role;
     const { id } = req.params;
     const { status } = req.body;
+    // LOG TEMPORÁRIO: Diagnóstico do erro 401
+    console.log('[PATCH /tables/:id/status] Requisição recebida:', {
+        userId,
+        userRole,
+        tableId: id,
+        statusRequested: status,
+        hasAuthHeader: !!req.headers.authorization,
+        hasCookie: !!req.cookies?.am_session,
+        timestamp: new Date().toISOString()
+    });
     const validStatuses = ['active', 'full', 'cancelled', 'ended'];
     if (!validStatuses.includes(status)) {
         return res.status(400).json({ error: `Status inválido. Valores: ${validStatuses.join(', ')}` });

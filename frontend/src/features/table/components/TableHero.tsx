@@ -1,6 +1,7 @@
 import type { TableViewModel, TableHeroVariant } from '../types/tableView.types';
 import { getTableBadges, getBadgeClasses } from '../../../utils/tableBadges';
 import { getButtonStyle, handleCTA } from '../utils/uiHelpers';
+import bannerPlaceholder from '../../../assets/banner_placeholder.webp';
 
 interface TableHeroProps {
   vm: TableViewModel;
@@ -15,28 +16,29 @@ export function TableHero({ vm, variant = 'full' }: TableHeroProps) {
   const badges = getTableBadges({
     is_ddal: vm.certifications.ddal !== undefined,
     is_covil: vm.certifications.covil !== undefined,
-  } as any);
+  });
+
+  const cropStyle = vm.coverCropData
+    ? {
+        objectPosition: `${(vm.coverCropData.x / vm.coverCropData.width) * 100}% ${(vm.coverCropData.y / vm.coverCropData.height) * 100}%`,
+      }
+    : {};
 
   return (
     <div className="relative rounded-2xl overflow-hidden">
       {/* Cover Image */}
-      {vm.coverUrl ? (
-        <img 
-          src={vm.coverUrl} 
-          alt={vm.title}
-          className="w-full h-64 object-cover"
-        />
-      ) : (
-        /* Placeholder quando não há cover */
-        <div className="w-full h-64 bg-gradient-to-br from-[#1B2A4A] to-[#0B1628] flex items-center justify-center">
-          <div className="text-center text-white/40">
-            <svg className="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <p className="text-sm">Sem imagem de capa</p>
-          </div>
-        </div>
-      )}
+      <img 
+        src={vm.coverUrl || bannerPlaceholder}
+        alt={vm.title}
+        className="w-full aspect-[1200/650] object-cover"
+        style={cropStyle}
+        onError={(event) => {
+          const img = event.currentTarget;
+          if (img.dataset.fallbackApplied === 'true') return;
+          img.dataset.fallbackApplied = 'true';
+          img.src = bannerPlaceholder;
+        }}
+      />
       
       {/* Gradient Overlay */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />

@@ -470,7 +470,7 @@ function TabJogador() {
 
             <div className="playstyle-item">
               <label htmlFor="roleplay">
-                Roleplay
+                Socialização
                 <span>{playerProfile.playstyle?.roleplay || 3}</span>
               </label>
               <input

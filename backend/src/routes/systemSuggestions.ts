@@ -14,7 +14,7 @@ router.post('/', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Não autenticado.' });
     }
 
-    const { name, description, parent_id, suggestion_type } = req.body;
+    const { name, name_pt, description, parent_id, suggestion_type } = req.body;
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return res.status(400).json({ error: 'Nome é obrigatório.' });
@@ -41,6 +41,7 @@ router.post('/', async (req: Request, res: Response) => {
       .values({
         user_id: userId,
         name: name.trim(),
+        name_pt: typeof name_pt === 'string' && name_pt.trim().length > 0 ? name_pt.trim() : null,
         description: description?.trim() || null,
         parent_id: parent_id?.trim() || null,
         node_type: suggestion_type,

@@ -8,6 +8,7 @@ interface ScenarioEditModalProps {
   scenario: {
     id: string;
     name: string;
+    name_pt?: string | null;
     slug: string;
     subgenres: string[];
   } | null;
@@ -28,6 +29,7 @@ const slugify = (value: string): string => {
 
 export const ScenarioEditModal = ({ scenario, onClose, onSuccess }: ScenarioEditModalProps) => {
   const [name, setName] = useState('');
+  const [namePt, setNamePt] = useState('');
   const [slug, setSlug] = useState('');
   const [subgenres, setSubgenres] = useState<string[]>([]);
   const [subgenreInput, setSubgenreInput] = useState('');
@@ -36,9 +38,17 @@ export const ScenarioEditModal = ({ scenario, onClose, onSuccess }: ScenarioEdit
   useEffect(() => {
     if (scenario) {
       setName(scenario.name);
+      setNamePt(scenario.name_pt || '');
       setSlug(scenario.slug);
       setSubgenres(scenario.subgenres || []);
+      return;
     }
+
+    setName('');
+    setNamePt('');
+    setSlug('');
+    setSubgenres([]);
+    setSubgenreInput('');
   }, [scenario]);
 
   const handleNameChange = (value: string) => {
@@ -84,6 +94,7 @@ export const ScenarioEditModal = ({ scenario, onClose, onSuccess }: ScenarioEdit
         credentials: 'include',
         body: JSON.stringify({
           name,
+          name_pt: namePt.trim() || null,
           subgenres,
         }),
       });
@@ -129,6 +140,20 @@ export const ScenarioEditModal = ({ scenario, onClose, onSuccess }: ScenarioEdit
               className="w-full px-4 py-3 bg-[#0F1A2E] border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-blue-500"
               placeholder="Ex: Tormenta"
               required
+            />
+          </div>
+
+          {/* Nome em português */}
+          <div>
+            <label className="block text-sm font-semibold text-white mb-2">
+              Nome em português <span className="text-white/40 text-xs">(opcional)</span>
+            </label>
+            <input
+              type="text"
+              value={namePt}
+              onChange={(e) => setNamePt(e.target.value)}
+              className="w-full px-4 py-3 bg-[#0F1A2E] border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-blue-500"
+              placeholder="Ex: Reinos Esquecidos"
             />
           </div>
 

@@ -148,3 +148,21 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Cenário selecionado na etapa anterior */
+.setting-styles-field .selected-scenario-display {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.setting-styles-field .scenario-selected-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background: var(--color-artificio-orange, #e85a1b);
+  color: white;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 500;
+}

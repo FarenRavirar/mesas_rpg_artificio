@@ -79,6 +79,13 @@ const baseTableSchema = z.object({
   communication_platform: z.string().max(100).nullable().optional(),
   rules_notes: z.string().max(2000).nullable().optional(),
   banner_url: z.string().url().nullable().optional(),
+  banner_crop_data: z.object({
+    x: z.number(),
+    y: z.number(),
+    width: z.number(),
+    height: z.number(),
+  }).nullable().optional(),
+  gm_avatar_url: z.string().url().nullable().optional(),
   is_covil: z.boolean().default(false),
   master_display_name: z.string().max(100).nullable().optional(),
   campaign_length: z.string().max(100).nullable().optional(),

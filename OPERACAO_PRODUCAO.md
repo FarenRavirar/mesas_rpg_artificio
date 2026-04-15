@@ -338,11 +338,15 @@ GOOGLE_CALLBACK_URL=https://mesasbeta.artificiorpg.com/api/v1/auth/google/callba
 JWT_SECRET=...
 JWT_EXPIRES_IN=7d  # Atualizado em 04/04/2026 (era 15m)
 
-# Frontend
+# Frontend (origem principal + allowlist para CORS/OAuth)
 FRONTEND_URL=https://mesasbeta.artificiorpg.com
+FRONTEND_URLS=https://mesasbeta.artificiorpg.com,http://localhost:5173
+COOKIE_SAME_SITE=none
 
-# Imgur
-IMGUR_CLIENT_ID=...
+# Frontend build-time (upload direto Cloudinary)
+VITE_API_URL=https://mesasbeta.artificiorpg.com
+VITE_CLOUDINARY_CLOUD_NAME=...
+VITE_CLOUDINARY_UPLOAD_PRESET=...
 ```
 
 **Como editar `.env` no servidor:**
@@ -436,7 +440,7 @@ docker ps --filter 'name=mesas-beta' --format '{{.Names}}'
 
 O deploy ocorre exclusivamente via GitHub Actions:
 - Push autorizado em `dev` -> `deploy-beta.yml` -> ambiente beta
-- Push autorizado em `main` -> `deploy-production.yml` -> ambiente produção
+- Push autorizado em `main` -> `deploy-prod.yml` -> ambiente produção
 
 Comandos remotos atualmente esperados no workflow:
 
@@ -445,6 +449,9 @@ Comandos remotos atualmente esperados no workflow:
 set -e
 cd /opt/mesas-beta
 docker compose -f docker-compose.beta.yml up -d --build --remove-orphans
+until docker compose -f docker-compose.beta.yml exec -T mesas-beta-db pg_isready -U admin -d mesas_rpg; do sleep 2; done
+bash ./scripts/deploy/apply_required_migrations.sh docker-compose.beta.yml mesas-beta-db
+docker compose -f docker-compose.beta.yml up -d mesas-beta-api mesas-beta-frontend
 sleep 10
 docker compose -f docker-compose.beta.yml ps
 docker compose -f docker-compose.beta.yml logs --tail=30 mesas-beta-frontend
@@ -454,13 +461,29 @@ docker image prune -f
 # Produção
 set -e
 cd /opt/mesas
-docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
+docker compose -f docker-compose.prod.yml up -d mesas-db
+until docker compose -f docker-compose.prod.yml exec -T mesas-db pg_isready -U admin -d mesas_rpg; do sleep 2; done
+bash ./scripts/deploy/apply_required_migrations.sh docker-compose.prod.yml mesas-db
+docker compose -f docker-compose.prod.yml up -d --build --remove-orphans mesas-api mesas-app
 sleep 10
 docker compose -f docker-compose.prod.yml ps
 docker compose -f docker-compose.prod.yml logs --tail=30 mesas-app
 docker compose -f docker-compose.prod.yml logs --tail=30 mesas-api
 docker image prune -f
 ```
+
+Regras do gate de migrations (`apply_required_migrations.sh`):
+- Aplica apenas migrations pendentes registrando em `schema_migrations`
+- Usa classes explícitas:
+  - `ONLINE_SAFE_MIGRATIONS` (automáticas)
+  - `MANUAL_RISK_MIGRATIONS` (bloqueadas por padrão)
+- Bloqueia deploy automático se houver:
+  - mais pendências online-safe que `MAX_AUTO_PENDING`
+  - SQL destrutivo em migration classificada como online-safe
+  - migration de risco pendente sem autorização explícita (`ALLOW_MANUAL_MIGRATIONS=true`)
+- Em produção, migration de risco exige backup (`PROD_BACKUP_FILE`) quando `REQUIRE_PROD_BACKUP_FOR_MANUAL=true`
+- Configura proteção de lock/tempo via `LOCK_TIMEOUT` e `STATEMENT_TIMEOUT`
+- Valida schema mínimo ao final (`system_suggestions.name_pt` e `scenario_suggestions`)
 
 O que o agente NUNCA deve fazer no Oracle:
 - Alterar manualmente arquivos versionados em `/opt/mesas-beta/` ou `/opt/mesas/` como fluxo padrão de deploy
@@ -553,18 +576,34 @@ ssh ubuntu@137.131.250.231
    ```bash
    gh run list --repo FarenRavirar/mesas_rpg_artificio -L 3 --json databaseId,name,status,conclusion,headBranch,createdAt
    ```
-2. Confirmar se a publicação operacional em produção já existe antes de validar URL pública
-3. Após a primeira publicação operacional, testar:
+2. Confirmar no log da etapa de deploy a evidência do gate de migration:
+   - `[migrations] schema em conformidade para runtime.`
+3. Confirmar se a publicação operacional em produção já existe antes de validar URL pública
+4. Após a primeira publicação operacional, testar:
    - `https://mesas.artificiorpg.com`
    - healthcheck equivalente de produção
    - login via Google OAuth
    - containers de produção
-4. Logs de produção, quando houver runtime publicado:
+5. Logs de produção, quando houver runtime publicado:
    ```bash
    docker compose -f /opt/mesas/docker-compose.prod.yml ps
    docker compose -f /opt/mesas/docker-compose.prod.yml logs --tail=50 mesas-app
    docker compose -f /opt/mesas/docker-compose.prod.yml logs --tail=50 mesas-api
    ```
+
+### Execução controlada (apenas migrations de risco)
+
+> [!CAUTION]
+> Executar somente com autorização explícita e backup válido em produção.
+
+```bash
+# Exemplo (produção) com migration de risco liberada explicitamente
+cd /opt/mesas
+export ALLOW_MANUAL_MIGRATIONS=true
+export REQUIRE_PROD_BACKUP_FOR_MANUAL=true
+export PROD_BACKUP_FILE=/tmp/backup_YYYYMMDD_HHMMSS_pre_deploy.sql
+bash ./scripts/deploy/apply_required_migrations.sh docker-compose.prod.yml mesas-db
+```
 
 ---
 
@@ -656,6 +695,24 @@ Para correlação operacional, considerar `America/Araguaina` como referência l
 
 ## 10. Playbook canônico de promoção `dev` -> `main`
 
+> [!CAUTION]
+> **AVISO CRÍTICO — NUNCA USAR `git checkout` ENTRE BRANCHES DURANTE DEPLOY**
+>
+> **Problema:** Ao executar `git checkout main` vindo de `dev`, o Git remove temporariamente arquivos que existem em `dev` mas não em `main` (comportamento normal). Isso causa pânico no usuário que vê arquivos importantes desaparecendo (ex: `MAPA_DE_API.md`, `map_scratch.json`, `RESUMO_EXECUCAO.md`).
+>
+> **Regra obrigatória para agentes:**
+> - ❌ **NUNCA** executar `git checkout <outra-branch>` durante deploy
+> - ❌ **NUNCA** fazer merge local (`git merge dev`)
+> - ✅ **SEMPRE** usar GitHub PR: `gh pr create --base main --head dev`
+> - ✅ **SEMPRE** fazer merge via GitHub: `gh pr merge <número>`
+>
+> **Justificativa:** Merge via GitHub evita:
+> 1. Deleção temporária de arquivos (E143)
+> 2. Locks de diretório no Windows (E101)
+> 3. Problemas de permissão e conflitos locais
+>
+> **Ver:** `ERRORS_SOLUTIONS.md` E143 e E101
+
 > Sempre seguir este playbook antes de qualquer push para `main`.
 > Autorização explícita do responsável é obrigatória antes de iniciar.
 
@@ -674,12 +731,19 @@ Para correlação operacional, considerar `America/Araguaina` como referência l
 5. Confirmar que não haverá sobrescrita indevida de `.env` remoto
 6. Confirmar que a validação do beta foi concluída
 
-### 10.3 Comandos de referência
+### 10.3 Comandos de referência (SEM checkout)
 
 ```bash
+# Verificar divergência SEM fazer checkout
 git rev-parse --abbrev-ref HEAD
 git rev-list --left-right --count origin/main...origin/dev
-git worktree list
+git log origin/main..origin/dev --oneline
+
+# Criar PR via GitHub CLI (método correto)
+gh pr create --base main --head dev --title "chore: merge dev to main - descrição" --body "Detalhes do deploy"
+
+# Fazer merge via GitHub (evita problemas locais)
+gh pr merge <número> --merge --delete-branch=false
 ```
 
 ### 10.4 Regra final
@@ -687,6 +751,45 @@ git worktree list
 - Sem autorização explícita, não promover
 - Sem validação do beta, não promover
 - Sem consistência documental mínima, não promover
+- **Sem GitHub PR, não promover** — NUNCA fazer merge local
+- **Sem validação de isolamento beta, não promover** — obrigatório validar que beta continua 200 após deploy de produção (E144)
+
+### 10.5 Validação pós-deploy obrigatória (produção + beta)
+
+Após qualquer deploy em produção, executar imediatamente:
+
+```bash
+# Produção deve responder 200
+curl -s -o /dev/null -w "%{http_code}" https://mesas.artificiorpg.com
+curl -s https://mesas.artificiorpg.com/api/v1/health
+
+# Beta deve permanecer online (isolamento)
+curl -s -o /dev/null -w "%{http_code}" https://mesasbeta.artificiorpg.com
+curl -s https://mesasbeta.artificiorpg.com/api/v1/health
+
+# Containers beta devem continuar ativos
+ssh -F C:\projetos\config faren "docker ps --filter name=mesas-beta --format 'table {{.Names}}\t{{.Status}}'"
+
+# Frontend deve estar healthy nos dois ambientes
+ssh -F C:\projetos\config faren "docker inspect mesas-app --format '{{.State.Health.Status}}'"
+ssh -F C:\projetos\config faren "docker inspect mesas-beta-frontend --format '{{.State.Health.Status}}'"
+```
+
+**Critério de sucesso:**
+- Produção: HTTP 200 + health `status: ok`
+- Beta: HTTP 200 + health `status: ok`
+- Containers beta (`mesas-beta-frontend`, `mesas-beta-api`, `mesas-beta-db`) continuam ativos
+- Frontends `mesas-app` e `mesas-beta-frontend` com health `healthy` (E145)
+
+**Se beta cair após deploy de produção:**
+1. Registrar incidente `E144` em `ERRORS_SOLUTIONS.md`
+2. Recuperar beta imediatamente (`docker compose -f docker-compose.beta.yml up -d --force-recreate`)
+3. Corrigir workflow antes do próximo deploy
+
+**Se frontend ficar `unhealthy` com HTTP 200 externo (E145):**
+1. Inspecionar healthcheck do container: `docker inspect <container> --format '{{json .State.Health}}'`
+2. Se erro for `Connecting to localhost:80 ([::1]:80) ... Connection refused`, ajustar compose para `http://127.0.0.1:80`
+3. Recriar somente frontend (`docker compose -f <compose> up -d --force-recreate <frontend>`) e revalidar health
 
 ---
 

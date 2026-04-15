@@ -19,8 +19,6 @@ export function formStateToPayload(state: FormState): CreateTablePayload {
     day_of_week: s.day_of_week,
     start_time: s.start_time,
     end_time: s.end_time || undefined,
-    frequency: s.frequency,
-    slots_per_session: s.slots_per_session || null,
     is_ongoing: s.is_ongoing ?? false,
     notes: s.notes || undefined,
     sort_order: index,
@@ -44,6 +42,8 @@ export function formStateToPayload(state: FormState): CreateTablePayload {
     actual_gm_name: state.publisherRole === 'announcer' ? state.actualGmName : null,
     rules_notes: state.rulesNotes,
     banner_url: state.bannerUrl,
+    banner_crop_data: state.bannerCropData ?? undefined,
+    gm_avatar_url: state.gmAvatarUrl || undefined,
     is_covil: state.isCovilMesa,
     is_ddal: state.ddal.is_ddal,
     // CORREÇÃO REG-04, REG-05, REG-06: Adicionar campos ausentes

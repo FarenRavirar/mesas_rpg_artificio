@@ -69,7 +69,7 @@ function App() {
     const checkBackend = async () => {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || '';
-        const response = await fetch(`${apiUrl}/api/v1/health`, {
+        const response = await fetch(`${apiUrl}/health`, {
           method: 'GET',
           signal: AbortSignal.timeout(5000)
         });

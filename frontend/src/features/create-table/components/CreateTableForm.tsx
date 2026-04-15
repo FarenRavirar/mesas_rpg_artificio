@@ -185,17 +185,6 @@ export function CreateTableForm({
     }
   }, [isDdalEligibleSelection, formHook.ddal.is_ddal]);
 
-  // Sincronizar frequência global com sessão quando há apenas uma sessão
-  useEffect(() => {
-    if (
-      formHook.sessions.length === 1 && 
-      !formHook.frequency && 
-      formHook.sessions[0].frequency &&
-      (formHook.form.type === 'campanha' || formHook.form.type === 'oneshot-serie')
-    ) {
-      formHook.setFrequency(formHook.sessions[0].frequency as any);
-    }
-  }, [formHook.sessions, formHook.frequency, formHook.form.type]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -313,9 +302,12 @@ export function CreateTableForm({
             setRulesNotes={formHook.setRulesNotes}
             bannerUrl={formHook.bannerUrl}
             setBannerUrl={formHook.setBannerUrl}
+            bannerCropData={formHook.bannerCropData}
+            setBannerCropData={formHook.setBannerCropData}
             bannerError={formHook.bannerError}
             setBannerError={formHook.setBannerError}
-            gmAvatarUrl={initialData?.gm_avatar_url || ''}
+            gmAvatarUrl={formHook.gmAvatarUrl}
+            setGmAvatarUrl={formHook.setGmAvatarUrl}
             avatarError={formHook.avatarError}
             setAvatarError={formHook.setAvatarError}
             isCovilMesa={formHook.isCovilMesa}
@@ -351,6 +343,7 @@ export function CreateTableForm({
             setSettingName={formHook.setSettingName}
             settingStyles={formHook.settingStyles}
             setSettingStyles={formHook.setSettingStyles}
+            selectedScenarioName={selectedScenarioName}
             priceType={formHook.form.price_type}
             userRole={user?.role}
           />

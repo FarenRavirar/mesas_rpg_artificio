@@ -9,6 +9,7 @@ import gmPanelRoutes from './routes/gmPanel';
 import systemsRoutes from './routes/systems';
 import scenariosRoutes from './routes/scenarios';
 import systemSuggestionsRoutes from './routes/systemSuggestions';
+import scenarioSuggestionsRoutes from './routes/scenarioSuggestions';
 import systemSuggestionsAdminRoutes from './routes/systemSuggestionsAdmin';
 import notificationsRoutes from './routes/notifications';
 import meRoutes from './routes/me';
@@ -21,6 +22,7 @@ import adminSettingSuggestionsRoutes from './routes/adminSettingSuggestions';
 import vttPlatformsRoutes from './routes/vttPlatforms';
 import changelogRoutes from './routes/changelog';
 import adminTablesRoutes from './routes/adminTables';
+import uploadRoutes from './routes/upload';
 import 'express-async-errors';
 import { db } from './db';
 import { requestLogger } from './middleware/requestLogger';
@@ -35,14 +37,33 @@ for (const envName of requiredEnv) {
   }
 }
 
-const frontendUrl = process.env.FRONTEND_URL as string;
-const frontendOrigin = new URL(frontendUrl).origin;
+const frontendUrls = [
+  process.env.FRONTEND_URL,
+  ...(process.env.FRONTEND_URLS?.split(',') ?? []),
+]
+  .map((url) => url?.trim())
+  .filter((url): url is string => Boolean(url))
+  .map((url) => new URL(url).origin);
+
+const allowedFrontendOrigins = Array.from(new Set(frontendUrls));
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(cors({
-  origin: frontendOrigin,
+  origin: (origin, callback) => {
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+
+    if (allowedFrontendOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`[cors] Origin não permitida: ${origin}`));
+  },
   credentials: true,
 }));
 
@@ -81,6 +102,7 @@ app.use('/api/v1/tables', tablesRoutes);
 app.use('/api/v1/systems', systemsRoutes);
 app.use('/api/v1/scenarios', scenariosRoutes);
 app.use('/api/v1/system-suggestions', systemSuggestionsRoutes);
+app.use('/api/v1/scenario-suggestions', scenarioSuggestionsRoutes);
 app.use('/api/v1/notifications', notificationsRoutes);
 app.use('/api/v1/admin', adminTablesRoutes);
 app.use('/api/v1/admin', systemSuggestionsAdminRoutes);
@@ -90,6 +112,7 @@ app.use('/api/v1/settings', settingsRoutes);
 app.use('/api/v1/admin/setting-suggestions', adminSettingSuggestionsRoutes);
 app.use('/api/v1/vtt-platforms', vttPlatformsRoutes);
 app.use('/api/v1/changelog', changelogRoutes);
+app.use('/api/v1', uploadRoutes);
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('[Global Error]', err);

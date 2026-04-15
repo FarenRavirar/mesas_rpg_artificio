@@ -13,10 +13,12 @@ workspace_root: C:\projetos
 
 ```yaml
 current_local_branch: dev
-last_commit_validated: 98c8e2b
-last_commit_message: "docs: registra solução E102 para erro getsockname SSH (#3)"
+last_commit_validated: 5b09880
+last_commit_message: "ajuste rapido"
 beta_actions_deploy_after_push: success
-last_deploy_date: 2026-04-04T16:32Z
+last_deploy_date: 2026-04-14T06:02Z
+beta_containers_status: all_healthy
+beta_public_health: ok
 ```
 
 ## files_validated
@@ -96,6 +98,12 @@ frontend:
   builder_base: node:22-alpine
   runtime_base: nginx:alpine
   runtime_entrypoint: nginx -g "daemon off;"
+  build_args_configured:
+    - VITE_ENABLE_DEVTOOLS  # true em beta
+    - VITE_API_URL  # Obrigatório - URL base da API para o frontend
+    - VITE_CLOUDINARY_CLOUD_NAME  # Obrigatório - cloud name para componente de upload
+  nginx_static_root: /usr/share/nginx/html
+  nginx_build_copy: /app/dist → /usr/share/nginx/html
 ```
 
 ## frontend_runtime
@@ -137,6 +145,7 @@ routes:
   - /api/v1/system-suggestions
   - /api/v1/admin/system-suggestions
   - /api/v1/notifications
+  - /api/v1/upload  # upload de imagens via backend + Cloudinary signed
 
 health_behavior:
   checks_database_if_DATABASE_URL_present: true
@@ -318,10 +327,27 @@ remote_env_selected:
 
 ```env
 POSTGRES_USER=admin
+POSTGRES_PASSWORD=MesasRPG#2026!Xk9vPq
 POSTGRES_DB=mesas_rpg
 DATABASE_URL=postgresql://admin:MesasRPG%232026!Xk9vPq@mesas-beta-db:5432/mesas_rpg
+GOOGLE_CLIENT_ID=SEU_GOOGLE_CLIENT_ID_AQUI
+GOOGLE_CLIENT_SECRET=SEU_GOOGLE_CLIENT_SECRET_AQUI
 GOOGLE_CALLBACK_URL=https://mesasbeta.artificiorpg.com/api/v1/auth/google/callback
 FRONTEND_URL=https://mesasbeta.artificiorpg.com
+JWT_SECRET=a1f3c7e2b9d4f6a8c0e2b4d6f8a0c2e4b6d8f0a2c4e6b8d0f2a4c6e8b0d2f4a6
+JWT_REFRESH_SECRET=f6d4b2a0e8c6f4d2b0a8e6c4f2d0b8a6e4c2f0d8b6a4e2c0f8d6b4a2e0c8f6d4
+JWT_EXPIRES_IN=7d
+JWT_REFRESH_EXPIRES_IN=7d
+IMGUR_CLIENT_ID=SUBSTITUIR_DEPOIS  # não usado, sendo removido
+DISCORD_CLIENT_ID=1490592397950976162
+DISCORD_CLIENT_SECRET=-y9qOC4ICxVJ2l-iM9n81m110chyaNWH
+DISCORD_GUILD_ID=1258189767720304672
+DISCORD_REDIRECT_URI=https://mesasbeta.artificiorpg.com/auth/discord/callback
+FRONTEND_URLS=https://mesasbeta.artificiorpg.com,http://localhost:5173,http://127.0.0.1:5173
+COOKIE_SAME_SITE=none
+# FALTAM (necessárias para Cloudinary):
+# VITE_CLOUDINARY_CLOUD_NAME=
+# VITE_CLOUDINARY_UPLOAD_PRESET=
 ```
 
 container_env_effective:
@@ -339,15 +365,24 @@ runtime_stack_state_last_seen:
 mesas-beta-frontend:
   port_mapping: none
   internal_port: 80/tcp
-  status: running
+  status: Up 3 hours (healthy)
+  health_status: healthy
+  build_artifacts: /usr/share/nginx/html/
 
 mesas-beta-api:
   internal_port: 3000/tcp
-  status: running
+  status: Up 3 hours (healthy)
+  health_status: healthy
 
 mesas-beta-db:
   internal_port: 5432/tcp
-  status: running_healthy
+  status: Up 3 hours (healthy)
+  health_status: healthy
+
+deploy_lock_state:
+  file: /tmp/mesas-beta-deploy.lock
+  age: 3 hours
+  should_be_removed: true
 ```
 
 healthcheck_public:
@@ -426,6 +461,19 @@ prod_domain: mesas.artificiorpg.com -> http://mesas-app:80
 - healthcheck_with_wget_works: true
 - postgres_alpine_ignores_var_log_postgresql_mount: true
 - db_logs_volume_should_be_removed: true
+# Auditoria Cloudinary e Workflow 2026-04-14:
+- beta_containers_all_healthy: true
+- beta_nginx_serves_from_usr_share_nginx_html: true
+- beta_multistage_dockerfile_validated: true
+- cloudinary_build_args_configured_in_compose: true
+- cloudinary_env_vars_not_present_in_beta_env: true
+- imgur_being_removed_from_project: true
+- workflow_validates_nonexistent_cloudinary_vars: true  # BUG - causa falha
+- workflow_lock_timeout_excessive_10min: true  # BUG - deveria ser 2min
+- workflow_frontend_validation_wrong_path: true  # BUG - valida /app/dist ao invés de /usr/share/nginx/html
+- workflow_missing_automatic_rollback: true  # FALTA
+- deploy_lock_file_not_cleaned_after_deploy: true  # BUG - /tmp/mesas-beta-deploy.lock persiste
+- beta_disk_usage_healthy_16_percent: true
 ```
 
 ## database_tables_beta
@@ -494,6 +542,124 @@ architecture_validated:
   working_correctly: true
 
 
+## cloudinary_and_image_upload_audit_2026_04_14
+
+current_state:
+  docker_compose_has_cloudinary_args: true
+  build_args_present:
+    - VITE_CLOUDINARY_CLOUD_NAME
+    - VITE_CLOUDINARY_UPLOAD_PRESET
+  
+  remote_beta_env_status:
+    vite_cloudinary_cloud_name: not_present
+    vite_cloudinary_upload_preset: not_present
+    vite_api_url: not_present
+  
+  frontend_env_example:
+    vite_api_url: ""  # vazio
+    vite_cloudinary_cloud_name: ""  # vazio
+    vite_cloudinary_upload_preset: ""  # vazio
+  
+  local_frontend_env:
+    vite_api_url: ""  # apenas esta variável presente
+
+  imgur_references:
+    backend_env_imgur_client_id: "SUBSTITUIR_DEPOIS"  # placeholder não usado
+    status: being_removed
+    action_required: "Remover referências a Imgur do código e .env"
+
+banner_upload_implementation:
+  current_method: "URL input manual (usuário hospeda externamente)"
+  component: "frontend/src/components/form-steps/steps/StepFinal.tsx"
+  database_field: "tables.banner_url (string)"
+  
+  limitations:
+    - no_upload_capability: true
+    - no_webp_conversion: true
+    - no_resize_to_1200x650: true
+    - no_size_validation: true
+  
+  planned_solution:
+    provider: cloudinary
+    method: "Frontend upload direto (unsigned preset)"
+    conversion: "Server-side WebP 1200x650"
+    storage: "Permanente (sem expiração)"
+    free_tier: "25GB storage + 25GB bandwidth/mês"
+  
+  implementation_status:
+    dockerfile_args: ready
+    env_variables: pending
+    upload_component: pending
+    integration: pending
+
+workflow_deploy_beta_issues:
+  1_cloudinary_validation:
+    location: ".github/workflows/deploy-beta.yml linha 35-36"
+    problem: "Valida VITE_CLOUDINARY_* como obrigatórias mas não existem no .env"
+    impact: "Deploy falhará se variáveis não forem adicionadas"
+    action: "Tornar validação opcional até Cloudinary ser configurado"
+    severity: high
+  
+  2_lock_timeout_excessive:
+    location: "linha 19"
+    current: "flock -w 600  # 10 minutos"
+    problem: "Timeout muito alto para lock de deploy"
+    action: "Reduzir para 120 segundos (2 minutos)"
+    severity: medium
+  
+  3_frontend_validation_wrong_path:
+    location: "linha 109"
+    current: "grep 'build completed' em logs"
+    problem: "Validação fraca e path /app/dist incorreto"
+    real_path: "/usr/share/nginx/html/"
+    action: "Validar se index.html existe no path correto"
+    severity: medium
+  
+  4_recovery_logic_duplicated:
+    location: "linhas 88-106"
+    problem: "Lógica de recuperação automática duplicada para HTTP e Health"
+    action: "Criar função reutilizável validate_beta()"
+    severity: low
+  
+  5_no_automatic_rollback:
+    problem: "Deploy falho deixa ambiente quebrado"
+    action: "Implementar rollback automático em caso de falha"
+    severity: high
+  
+  6_image_prune_aggressive:
+    location: "linha 113"
+    current: "docker image prune -f  # remove TODAS imagens não usadas"
+    problem: "Pode afetar outros projetos no servidor"
+    action: "Filtrar por label do projeto: --filter label=com.docker.compose.project=mesas-beta"
+    severity: medium
+  
+  7_lock_file_not_cleaned:
+    location: "/tmp/mesas-beta-deploy.lock"
+    observed: "Lock file de 3h atrás ainda existe"
+    problem: "Lock não é removido ao final do deploy"
+    action: "Adicionar trap para remover lock em caso de erro"
+    severity: low
+
+deployment_facts_validated:
+  beta_nginx_serves_from: /usr/share/nginx/html/
+  beta_build_artifacts_present:
+    - index.html
+    - assets/
+    - favicon.svg
+    - icons.svg
+    - vtt-logos/
+  
+  beta_multistage_dockerfile: true
+  stage_1_builder: "node:22-alpine AS builder"
+  stage_2_runtime: "nginx:alpine AS production"
+  
+  disk_usage_healthy:
+    root_partition: "146G total, 23G used (16%), 123G available"
+    docker_images: "3.455GB (48% reclaimable)"
+    docker_volumes: "1.055GB (4% reclaimable)"
+    docker_build_cache: "894.8MB (100% reclaimable)"
+
+
 ## not_audited_yet
 
 ```yaml
@@ -538,54 +704,95 @@ curl.exe -I https://mesasbeta.artificiorpg.com/api/v1/auth/google
 check_beta_stack:
 
 ```powershell
-ssh -i "C:/projetos/mesas_rpg_artificio/ssh-key-2026-03-07privada.key" ubuntu@137.131.250.231 "docker compose -f /opt/mesas-beta/docker-compose.beta.yml ps"
+ssh -F C:\projetos\config faren "cd /opt/mesas-beta && docker compose -f docker-compose.beta.yml ps"
 ```
 
 check_beta_env_file:
 
 ```powershell
-ssh -i "C:/projetos/mesas_rpg_artificio/ssh-key-2026-03-07privada.key" ubuntu@137.131.250.231 "grep -E '^(DATABASE_URL|GOOGLE_CALLBACK_URL|FRONTEND_URL|POSTGRES_USER|POSTGRES_DB)=' /opt/mesas-beta/.env"
+ssh -F C:\projetos\config faren "cat /opt/mesas-beta/.env | grep -E 'VITE_|DATABASE_URL|GOOGLE_CALLBACK|FRONTEND_URL'"
 ```
 
 check_beta_container_env:
 
 ```powershell
-ssh -i "C:/projetos/mesas_rpg_artificio/ssh-key-2026-03-07privada.key" ubuntu@137.131.250.231 "docker exec mesas-beta-api printenv | grep -E '^(APP_ENV|GOOGLE_CALLBACK_URL|FRONTEND_URL|DATABASE_URL)='"
+ssh -F C:\projetos\config faren "docker exec mesas-beta-api printenv | grep -E '^(APP_ENV|GOOGLE_CALLBACK_URL|FRONTEND_URL|DATABASE_URL)='"
 ```
 
 check_beta_network:
 
 ```powershell
-ssh -i "C:/projetos/mesas_rpg_artificio/ssh-key-2026-03-07privada.key" ubuntu@137.131.250.231 "docker network inspect gerenciador_telegram_default --format '{{.Name}}'"
+ssh -F C:\projetos\config faren "docker network inspect gerenciador_telegram_default --format '{{.Name}}'"
 ```
 
 check_beta_volumes:
 
 ```powershell
-ssh -i "C:/projetos/mesas_rpg_artificio/ssh-key-2026-03-07privada.key" ubuntu@137.131.250.231 "docker volume ls --format '{{.Name}}' | grep -E 'mesas|pgdata'"
+ssh -F C:\projetos\config faren "docker volume ls --format '{{.Name}}' | grep -E 'mesas|pgdata'"
 ```
 
 check_beta_db_mounts:
 
 ```powershell
-ssh -i "C:/projetos/mesas_rpg_artificio/ssh-key-2026-03-07privada.key" ubuntu@137.131.250.231 "docker inspect mesas-beta-db --format '{{range .Mounts}}{{println .Type .Name .Destination}}{{end}}'"
+ssh -F C:\projetos\config faren "docker inspect mesas-beta-db --format '{{range .Mounts}}{{println .Type .Name .Destination}}{{end}}'"
 ```
 
 check_beta_api_logs:
 
 ```powershell
-ssh -i "C:/projetos/mesas_rpg_artificio/ssh-key-2026-03-07privada.key" ubuntu@137.131.250.231 "docker logs --tail 80 mesas-beta-api"
+ssh -F C:\projetos\config faren "docker logs --tail 80 mesas-beta-api"
 ```
 
 check_docker_cache:
 
 ```powershell
-ssh -i "C:/projetos/mesas_rpg_artificio/ssh-key-2026-03-07privada.key" ubuntu@137.131.250.231 "docker system df"
+ssh -F C:\projetos\config faren "docker system df"
 ```
 
 check_prod_remote_path_state:
 
 ```powershell
-ssh -i "C:/projetos/mesas_rpg_artificio/ssh-key-2026-03-07privada.key" ubuntu@137.131.250.231 "echo '===== /opt/mesas =====' && ls -la /opt/mesas && echo && echo '===== arquivos até 2 níveis =====' && find /opt/mesas -maxdepth 2 -type f | sort"
+ssh -F C:\projetos\config faren "echo '===== /opt/mesas =====' && ls -la /opt/mesas && echo && echo '===== arquivos até 2 níveis =====' && find /opt/mesas -maxdepth 2 -type f | sort"
 ```
 
+check_beta_frontend_files:
+
+```powershell
+ssh -F C:\projetos\config faren "docker compose -f /opt/mesas-beta/docker-compose.beta.yml exec -T mesas-beta-frontend ls -lh /usr/share/nginx/html/"
+```
+
+check_beta_deploy_lock:
+
+```powershell
+ssh -F C:\projetos\config faren "ls -lh /tmp/mesas-beta-deploy.lock 2>/dev/null || echo 'Lock não existe'"
+```
+
+check_beta_health_from_server:
+
+```powershell
+ssh -F C:\projetos\config faren "curl -s https://mesasbeta.artificiorpg.com/api/v1/health"
+```
+
+check_disk_usage:
+
+```powershell
+ssh -F C:\projetos\config faren "df -h / && docker system df"
+```
+
+add_cloudinary_to_beta_env:
+
+```powershell
+# EXECUTAR APÓS TER CREDENCIAIS CLOUDINARY
+ssh -F C:\projetos\config faren "cat >> /opt/mesas-beta/.env << 'EOF'
+
+# Cloudinary para upload de banners
+VITE_CLOUDINARY_CLOUD_NAME=seu_cloud_name_aqui
+VITE_CLOUDINARY_UPLOAD_PRESET=mesas_rpg_banners
+EOF"
+```
+
+remove_imgur_from_beta_env:
+
+```powershell
+ssh -F C:\projetos\config faren "sed -i '/IMGUR_CLIENT_ID/d' /opt/mesas-beta/.env"
+```

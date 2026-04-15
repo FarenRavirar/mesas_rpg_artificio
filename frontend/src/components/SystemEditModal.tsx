@@ -8,6 +8,7 @@ interface SystemEditModalProps {
   system: {
     id: string;
     name: string;
+    name_pt?: string | null;
     slug: string;
     node_type: 'system' | 'edition' | 'variant';
     parent_id: string | null;
@@ -31,6 +32,7 @@ const slugify = (value: string): string => {
 
 export const SystemEditModal = ({ system, systemsTree, onClose, onSuccess }: SystemEditModalProps) => {
   const [name, setName] = useState('');
+  const [namePt, setNamePt] = useState('');
   const [slug, setSlug] = useState('');
   const [nodeType, setNodeType] = useState<'system' | 'edition' | 'variant'>('system');
   const [parentId, setParentId] = useState<string>('');
@@ -41,11 +43,21 @@ export const SystemEditModal = ({ system, systemsTree, onClose, onSuccess }: Sys
   useEffect(() => {
     if (system) {
       setName(system.name);
+      setNamePt(system.name_pt || '');
       setSlug(system.slug);
       setNodeType(system.node_type);
       setParentId(system.parent_id || '');
       setAliases(system.aliases || []);
+      return;
     }
+
+    setName('');
+    setNamePt('');
+    setSlug('');
+    setNodeType('system');
+    setParentId('');
+    setAliases([]);
+    setAliasInput('');
   }, [system]);
 
   const handleNameChange = (value: string) => {
@@ -96,6 +108,7 @@ export const SystemEditModal = ({ system, systemsTree, onClose, onSuccess }: Sys
         credentials: 'include',
         body: JSON.stringify({
           name,
+          name_pt: namePt.trim() || null,
           node_type: nodeType,
           parent_id: parentId || null,
           aliases,
@@ -159,6 +172,20 @@ export const SystemEditModal = ({ system, systemsTree, onClose, onSuccess }: Sys
               className="w-full px-4 py-3 bg-[#0F1A2E] border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-blue-500"
               placeholder="Ex: Dungeons & Dragons"
               required
+            />
+          </div>
+
+          {/* Nome em português */}
+          <div>
+            <label className="block text-sm font-semibold text-white mb-2">
+              Nome em português <span className="text-white/40 text-xs">(opcional)</span>
+            </label>
+            <input
+              type="text"
+              value={namePt}
+              onChange={(e) => setNamePt(e.target.value)}
+              className="w-full px-4 py-3 bg-[#0F1A2E] border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-blue-500"
+              placeholder="Ex: Vampiro: A Máscara"
             />
           </div>
 

@@ -102,11 +102,7 @@ export interface GmProfilesTable {
   nickname: string | null;
   bio_long: string | null;
   avatar_url: string | null;
-  avatar_deletehash: string | null;
-  avatar_imgur_id: string | null;
   banner_url: string | null;
-  banner_deletehash: string | null;
-  banner_imgur_id: string | null;
   languages: Generated<string[]>;
   specialties: Generated<string[]>;
   badges: Generated<string[]>;
@@ -139,6 +135,7 @@ export type GmProfileUpdate = Updateable<GmProfilesTable>;
 export interface SystemsTable {
   id: Generated<string>;
   name: string;
+  name_pt: string | null;
   slug: string;
   description: string | null;
   parent_id: string | null;
@@ -174,6 +171,7 @@ export interface PlatformsTable {
 export interface ScenariosTable {
   id: Generated<string>;
   name: string;
+  name_pt: string | null;
   slug: string;
   subgenres: Generated<string[]>;
   created_at: Generated<Date>;
@@ -205,8 +203,6 @@ export interface TablesTable {
   title: string;
   description: string | null;
   cover_url: string | null;
-  cover_deletehash: string | null;
-  cover_imgur_id: string | null;
   status: Generated<TableStatus>;
   type: TableType;
   audience: Generated<TableAudience>;
@@ -254,6 +250,7 @@ export interface TablesTable {
   frequency_custom: string | null;
   rules_notes: string | null;
   banner_url: string | null;
+  banner_crop_data: { x: number; y: number; width: number; height: number } | null;
   master_display_name: string | null;
   campaign_length: string | null;
   level_range: string | null;
@@ -328,6 +325,7 @@ export interface SystemSuggestionsTable {
   id: Generated<string>;
   user_id: string;
   name: string;
+  name_pt: string | null;
   node_type: SystemNodeType;
   parent_id: string | null;
   description: string | null;
@@ -344,6 +342,25 @@ export interface SystemSuggestionsTable {
 export type SystemSuggestion = Selectable<SystemSuggestionsTable>;
 export type NewSystemSuggestion = Insertable<SystemSuggestionsTable>;
 export type SystemSuggestionUpdate = Updateable<SystemSuggestionsTable>;
+
+export interface ScenarioSuggestionsTable {
+  id: Generated<string>;
+  user_id: string;
+  name: string;
+  name_pt: string | null;
+  description: string | null;
+  status: Generated<SuggestionStatus>;
+  reviewed_by: string | null;
+  reviewed_at: Date | null;
+  rejection_reason: string | null;
+  user_notified: Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export type ScenarioSuggestion = Selectable<ScenarioSuggestionsTable>;
+export type NewScenarioSuggestion = Insertable<ScenarioSuggestionsTable>;
+export type ScenarioSuggestionUpdate = Updateable<ScenarioSuggestionsTable>;
 
 export type NotificationType = 'suggestion_approved' | 'suggestion_rejected' | 'suggestion_edited' | 'system';
 
@@ -425,6 +442,7 @@ export interface Database {
   systems: SystemsTable;
   system_aliases: SystemAliasesTable;
   system_suggestions: SystemSuggestionsTable;
+  scenario_suggestions: ScenarioSuggestionsTable;
   notifications: NotificationsTable;
   tags: TagsTable;
   platforms: PlatformsTable;

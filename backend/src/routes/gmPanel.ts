@@ -195,10 +195,9 @@ router.get('/me', authMiddleware, async (req: Request, res: Response) => {
 
     const tablesCount = Number(tablesCountRow?.count ?? 0);
 
-    const { avatar_deletehash, banner_deletehash, ...safeProfile } = gmProfile;
     return res.json({
       data: {
-        ...safeProfile,
+        ...gmProfile,
         tables_count: tablesCount,
         avg_rating: null,
       },

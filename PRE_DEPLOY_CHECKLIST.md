@@ -14,6 +14,7 @@ Antes sequer de cogitar enviar código novo para produção, o agente DEVE garan
 - [ ] **Mergulho pré-deploy:** Ler `AGENTS.md`, `RESUMO_EXECUCAO.md` e consultar este checklist.
 - [ ] **Paridade Testada no Beta:** O código que vai para produção já foi submetido via push/merge para a branch `dev` e os containers do `mesas-beta` iniciaram com sucesso?
 - [ ] **Migrations Foram Executadas no Beta:** Se houve nova Migration `.sql`, ela subiu pro banco Beta sem quebrar os dados preexistentes?
+- [ ] **Classificação das migrations atualizada:** Toda migration nova foi classificada em `scripts/deploy/apply_required_migrations.sh` como `ONLINE_SAFE_MIGRATIONS` ou `MANUAL_RISK_MIGRATIONS` antes do deploy?
 - [ ] **Teste de Ponta-a-Ponta no Beta:** Interfaces impactadas foram checadas manualmente (seja pelo usuário ou log do agente via `curl`/terminal)? Todo deploy pressupõe a aprovação unânime do comportamento em `mesasbeta.artificiorpg.com`.
 
 ## 🛑 FASE 2: PREVENÇÃO DE DESASTRE DE SCHEMA
@@ -42,15 +43,61 @@ ssh -i "C:/projetos/Secrets/ssh-key-2026-03-07privada.key" ubuntu@137.131.250.23
 
 ## 🛑 FASE 4: PROCEDIMENTO DE DEPLOY NA VM
 
+> [!CAUTION]
+> **REGRA CRÍTICA — NUNCA USAR `git checkout` ENTRE BRANCHES**
+>
+> **Proibido durante deploy:**
+> - ❌ `git checkout main` (deleta arquivos temporariamente)
+> - ❌ `git merge dev` (causa locks no Windows)
+> - ❌ Qualquer operação local de merge
+>
+> **Método obrigatório:**
+> - ✅ Criar PR via GitHub CLI: `gh pr create --base main --head dev`
+> - ✅ Fazer merge via GitHub: `gh pr merge <número> --merge`
+>
+> **Motivo:** `git checkout` entre branches remove temporariamente arquivos que existem em uma branch mas não em outra, causando pânico no usuário. Ver `ERRORS_SOLUTIONS.md` E143.
+>
+> **Regra adicional de isolamento (E144):** Workflow de produção NUNCA pode remover containers do beta.
+> - ❌ Proibido usar limpeza global: `docker ps -a --filter "name=mesas-" | ... | docker rm -f`
+> - ✅ Obrigatório usar escopo compose: `docker compose -f docker-compose.prod.yml down --remove-orphans`
+> - ✅ Obrigatório validar pós-deploy: `mesasbeta.artificiorpg.com` deve continuar retornando 200
+
 A Produção (`mesas.artificiorpg.com`) reflete os arquivos em `/opt/mesas/` servindo pela branch `main`.
 
-1. **Sincronização:** Atualize ou alterne (via Git push pra main ou build customizado) os arquivos em Produção para equivaler ao Beta perfeitamente aprovado. Nenhuma modificação solta local é permitida saltar pra cá sem ir pro Git.
-2. **Reboot dos Containers:** Suba os containers envolvidos (`docker compose up -d`).
-3. **Verificação de Healthcheck (em menos de 1 min):** Utilize validações silentes em vez de interações manuais excludentes. 
+**Fluxo correto de promoção:**
+
+1. **Criar PR via GitHub CLI:**
+   ```bash
+   gh pr create --base main --head dev --title "chore: merge dev to main - descrição" --body "Detalhes do deploy"
+   ```
+
+2. **Fazer merge via GitHub:**
+   ```bash
+   gh pr merge <número> --merge --delete-branch=false
+   ```
+
+3. **Aguardar workflow automático:** O GitHub Actions executará `deploy-prod.yml` automaticamente após o merge.
+
+4. **Verificação de Healthcheck (em menos de 1 min):** Utilize validações silentes em vez de interações manuais excludentes. 
    - [ ] Confirmar Logs: `docker logs mesas-api --since 1m` ou `tail` nas linhas mais recentes em busca explícita por erros (`grep -i 'error\|exception\|fatal'`).
    - [ ] Ping na Rota: `wget -qO- http://localhost:3000/api/v1/health`
-4. **Verificação Visual do Healthcheck Completo:**
+5. **Verificação Visual do Healthcheck Completo:**
    - [ ] Testou se a API retornou um Code `200` com `{ status: 'ok' }` e `db: 'connected'`?
+6. **Verificação obrigatória do gate de migration (apply_required_migrations.sh):**
+   - [ ] Run do workflow contém log `[migrations] schema em conformidade para runtime.`
+   - [ ] Se houve migration classificada como `MANUAL_RISK_MIGRATIONS` em produção: backup confirmado + evidência de execução controlada
+7. **Verificação obrigatória de isolamento Beta (E144):**
+   - [ ] `curl -s -o /dev/null -w "%{http_code}" https://mesasbeta.artificiorpg.com` retorna `200`
+   - [ ] `curl -s https://mesasbeta.artificiorpg.com/api/v1/health` retorna `{"status":"ok","environment":"beta","db":"connected"...}`
+   - [ ] `docker ps --filter name=mesas-beta` mostra `mesas-beta-frontend`, `mesas-beta-api`, `mesas-beta-db` ativos
+8. **Verificação obrigatória de saúde real do frontend (E145):**
+   - [ ] `docker inspect mesas-app --format '{{.State.Health.Status}}'` retorna `healthy`
+   - [ ] `docker inspect mesas-beta-frontend --format '{{.State.Health.Status}}'` retorna `healthy`
+   - [ ] Se algum frontend estiver `unhealthy`, deploy deve ser tratado como falho mesmo com HTTP 200 externo
+9. **Verificação anti-corrida de deploy beta (E146):**
+   - [ ] Confirmar no GitHub Actions que não há dois runs `Deploy Beta` ativos ao mesmo tempo para `dev`
+   - [ ] `deploy-beta.yml` deve conter `concurrency` com `cancel-in-progress: false`
+   - [ ] Script remoto do deploy beta deve adquirir lock exclusivo (`flock /tmp/mesas-beta-deploy.lock`)
 
 ## 🚨 PROTOCOLO GERAL DE EMERGÊNCIA (ROLLBACK)
 

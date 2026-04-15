@@ -4,7 +4,15 @@ import { Crown, ShieldCheck } from 'lucide-react';
 import { SettingStylesField } from '../../SettingStylesField';
 import { ContactsFormBlock, type ContactFormEntry } from '../../ContactsFormBlock';
 import { RichTextArea } from '../../RichTextArea';
-import type { ChangeEvent, InputHTMLAttributes } from 'react';
+import { ImageUploader } from '../../ImageUploader';
+import { AvatarUploader } from '../../AvatarUploader';
+import type {
+  ChangeEvent,
+  InputHTMLAttributes,
+  ReactNode,
+  SelectHTMLAttributes,
+} from 'react';
+
 
 interface DdalFormState {
   is_ddal: boolean;
@@ -20,13 +28,17 @@ interface DdalFormState {
 }
 
 interface StepFinalProps {
+  selectedScenarioName?: string | null;
   rulesNotes: string;
   setRulesNotes: (notes: string) => void;
   bannerUrl: string;
   setBannerUrl: (url: string) => void;
+  bannerCropData: { x: number; y: number; width: number; height: number } | null;
+  setBannerCropData: (data: { x: number; y: number; width: number; height: number } | null) => void;
   bannerError: boolean;
   setBannerError: (error: boolean) => void;
   gmAvatarUrl: string;
+  setGmAvatarUrl: (url: string) => void;
   avatarError: boolean;
   setAvatarError: (error: boolean) => void;
   isCovilMesa: boolean;
@@ -87,7 +99,12 @@ function InputField({ label, id, ...props }: InputHTMLAttributes<HTMLInputElemen
   );
 }
 
-function SelectField({ label, id, children, ...props }: any) {
+function SelectField({
+  label,
+  id,
+  children,
+  ...props
+}: SelectHTMLAttributes<HTMLSelectElement> & { label: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
       <label htmlFor={id} className="text-sm font-medium text-white/70">{label}</label>
@@ -129,47 +146,41 @@ export function StepFinal(props: StepFinalProps) {
       />
 
       {/* Banner */}
-      <InputField
-        label="URL do Banner da Mesa (opcional)"
-        id="banner_url"
-        name="banner_url"
+      <ImageUploader
+        idPrefix="stepfinal-banner"
+        manualInputId="banner_url"
+        label="Banner da Mesa (opcional)"
         value={props.bannerUrl}
-        onChange={(e) => {
-          props.setBannerUrl(e.target.value);
+        onChange={(url) => {
+          props.setBannerUrl(url);
           props.setBannerError(false);
         }}
-        placeholder="https://exemplo.com/banner.jpg"
+        onError={props.setBannerError}
+        hasError={props.bannerError}
+        initialCropData={props.bannerCropData}
+        onCropChange={props.setBannerCropData}
       />
 
-      {/* Preview do banner */}
-      {props.bannerUrl && !props.bannerError ? (
-        <div className="overflow-hidden rounded-xl border border-white/10">
-          <img
-            src={props.bannerUrl}
-            alt="Preview do banner"
-            onError={() => props.setBannerError(true)}
-            className="w-full max-h-48 object-cover"
-          />
-        </div>
-      ) : null}
-
-      {/* REMOVIDO: Avatar do mestre (modo review desacoplado) */}
+      {/* Avatar do mestre */}
+      <AvatarUploader
+        label="Foto do Mestre (opcional)"
+        value={props.gmAvatarUrl}
+        onChange={props.setGmAvatarUrl}
+        onError={props.setAvatarError}
+        hasError={props.avatarError}
+        idPrefix="stepfinal-avatar"
+      />
 
       {/* Rules Notes */}
-      <div className="flex flex-col gap-1">
-        <label htmlFor="rules_notes" className="text-sm font-medium text-white/70">
-          Regras/Observações da Mesa (opcional)
-        </label>
-        <textarea
-          id="rules_notes"
-          name="rules_notes"
-          value={props.rulesNotes}
-          onChange={(e) => props.setRulesNotes(e.target.value)}
-          rows={3}
-          placeholder="Ex: Usamos regras homebrew para combate, proibido PvP, etc."
-          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all resize-none"
-        />
-      </div>
+      <RichTextArea
+        id="rules_notes"
+        label="Regras/Observações da Mesa (opcional)"
+        value={props.rulesNotes}
+        onChange={props.setRulesNotes}
+        placeholder="Ex: Usamos regras homebrew para combate, proibido PvP, etc."
+        rows={3}
+        maxLength={1500}
+      />
 
       {/* Toggle Campos Avançados */}
       <button
@@ -287,19 +298,15 @@ export function StepFinal(props: StepFinalProps) {
           {/* Requisitos técnicos */}
           <div className="space-y-3">
             <p className="text-sm font-semibold text-white/80">Requisitos Técnicos</p>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="technical_requirements" className="text-sm font-medium text-white/70">
-                Requisitos Detalhados (opcional)
-              </label>
-              <textarea
-                id="technical_requirements"
-                value={props.technicalRequirements}
-                onChange={(e) => props.setTechnicalRequirements(e.target.value)}
-                rows={2}
-                placeholder="Ex: Roll20 + Discord, Foundry VTT com módulos X, Y"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all resize-none"
-              />
-            </div>
+            <RichTextArea
+              id="technical_requirements"
+              label="Requisitos Detalhados (opcional)"
+              value={props.technicalRequirements}
+              onChange={props.setTechnicalRequirements}
+              placeholder="Ex: Roll20 + Discord, Foundry VTT com módulos X, Y"
+              rows={2}
+              maxLength={1000}
+            />
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <input
@@ -348,6 +355,7 @@ export function StepFinal(props: StepFinalProps) {
               settingStyles={props.settingStyles}
               onSettingNameChange={props.setSettingName}
               onSettingStylesChange={props.setSettingStyles}
+              selectedScenarioName={props.selectedScenarioName}
             />
           </div>
         </section>

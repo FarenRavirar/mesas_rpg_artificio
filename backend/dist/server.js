@@ -26,6 +26,7 @@ const adminSettingSuggestions_1 = __importDefault(require("./routes/adminSetting
 const vttPlatforms_1 = __importDefault(require("./routes/vttPlatforms"));
 const changelog_1 = __importDefault(require("./routes/changelog"));
 const adminTables_1 = __importDefault(require("./routes/adminTables"));
+const upload_1 = __importDefault(require("./routes/upload"));
 require("express-async-errors");
 const db_1 = require("./db");
 const requestLogger_1 = require("./middleware/requestLogger");
@@ -36,12 +37,28 @@ for (const envName of requiredEnv) {
         throw new Error(`[startup] Variável obrigatória ausente: ${envName}`);
     }
 }
-const frontendUrl = process.env.FRONTEND_URL;
-const frontendOrigin = new URL(frontendUrl).origin;
+const frontendUrls = [
+    process.env.FRONTEND_URL,
+    ...(process.env.FRONTEND_URLS?.split(',') ?? []),
+]
+    .map((url) => url?.trim())
+    .filter((url) => Boolean(url))
+    .map((url) => new URL(url).origin);
+const allowedFrontendOrigins = Array.from(new Set(frontendUrls));
 const app = (0, express_1.default)();
 const port = process.env.PORT || 3000;
 app.use((0, cors_1.default)({
-    origin: frontendOrigin,
+    origin: (origin, callback) => {
+        if (!origin) {
+            callback(null, true);
+            return;
+        }
+        if (allowedFrontendOrigins.includes(origin)) {
+            callback(null, true);
+            return;
+        }
+        callback(new Error(`[cors] Origin não permitida: ${origin}`));
+    },
     credentials: true,
 }));
 app.use((0, cookie_parser_1.default)());
@@ -86,6 +103,7 @@ app.use('/api/v1/settings', settings_1.default);
 app.use('/api/v1/admin/setting-suggestions', adminSettingSuggestions_1.default);
 app.use('/api/v1/vtt-platforms', vttPlatforms_1.default);
 app.use('/api/v1/changelog', changelog_1.default);
+app.use('/api/v1', upload_1.default);
 app.use((err, req, res, next) => {
     console.error('[Global Error]', err);
     res.status(500).json({ error: 'Erro interno no servidor.' });

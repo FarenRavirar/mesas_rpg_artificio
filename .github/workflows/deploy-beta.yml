@@ -5,6 +5,10 @@ on:
     branches:
       - dev
 
+concurrency:
+  group: deploy-beta-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   deploy-beta:
     runs-on: ubuntu-latest
@@ -12,6 +16,23 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      # CORRECAO WF-TS-01: Validar TypeScript ANTES de derrubar containers na VM
+      # Se o build falhar aqui, o deploy nao chega ao SSH e o beta permanece no ar
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: TypeScript check (frontend)
+        run: npx tsc --noEmit
+        working-directory: frontend
 
       - name: Deploy to Beta Server
         uses: appleboy/ssh-action@v1.0.0
@@ -21,52 +42,126 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           envs: GH_TOKEN
           script: |
-            # CORREÇÃO WF-03: Adicionar fail-fast para evitar erros silenciosos
             set -euo pipefail
+
+            if ! command -v flock >/dev/null 2>&1; then
+              echo "ERRO: flock nao disponivel"
+              exit 1
+            fi
+            exec 9>/tmp/mesas-beta-deploy.lock
+            if ! flock -w 120 9; then
+              echo "ERRO: Timeout aguardando lock de deploy beta (E146)"
+              exit 1
+            fi
+
             export GH_TOKEN="${{ secrets.GH_TOKEN }}"
             cd /opt/mesas-beta
+
+            if [ ! -f .env ]; then
+              echo "ERRO: /opt/mesas-beta/.env nao encontrado"
+              exit 1
+            fi
+
+            for required_key in VITE_CLOUDINARY_CLOUD_NAME VITE_CLOUDINARY_UPLOAD_PRESET; do
+              required_value=$(awk -F= -v k="$required_key" '$1==k{print substr($0, index($0, "=")+1)}' .env | tail -n1 | tr -d '\r')
+              if [ -z "$required_value" ]; then
+                echo "ERRO: Variavel obrigatoria ausente no .env: $required_key"
+                exit 1
+              fi
+            done
+
             git fetch https://$GH_TOKEN@github.com/FarenRavirar/mesas_rpg_artificio.git dev
             git reset --hard FETCH_HEAD
-            
-            # CORREÇÃO: Remover containers órfãos antes do down para evitar conflitos de nome
-            docker ps -a --filter "name=mesas-beta" --format "{{.Names}}" | grep -v -E "(mesas-beta-frontend|mesas-beta-api|mesas-beta-db)$" | xargs -r docker rm -f || true
-            
-            # CORREÇÃO WF-04: Forçar remoção de containers existentes antes de recriar
+
+            # CORRECAO WF-ROLLBACK-01: rollback automatico se build falhar apos o down
+            rollback() {
+              echo "ROLLBACK: tentando resubir containers..."
+              docker compose -f docker-compose.beta.yml up -d --force-recreate || true
+              echo "AVISO: Rollback tentado. Verificar estado manualmente."
+            }
+            trap rollback ERR
+
             docker compose -f docker-compose.beta.yml down --remove-orphans
-            docker rm -f mesas-beta-db mesas-beta-api mesas-beta-frontend 2>/dev/null || true
-            docker compose -f docker-compose.beta.yml build --no-cache
-            docker compose -f docker-compose.beta.yml up -d
+            docker compose -f docker-compose.beta.yml build
+            trap - ERR
+            docker compose -f docker-compose.beta.yml up -d --force-recreate
+
             MAX_RETRIES=30
             RETRIES=0
             until docker compose -f docker-compose.beta.yml exec -T mesas-beta-db pg_isready -U admin -d mesas_rpg; do
               RETRIES=$((RETRIES+1))
               if [ $RETRIES -ge $MAX_RETRIES ]; then
-                echo "❌ Banco não ficou pronto"
+                echo "ERRO: Banco nao ficou pronto"
                 docker compose -f docker-compose.beta.yml logs mesas-beta-db --tail=50
                 exit 1
               fi
               sleep 3
             done
-            sleep 20
-            if ! docker compose -f docker-compose.beta.yml ps | grep "mesas-beta-api" | grep -q "Up"; then
-              echo "❌ API não subiu"
-              docker compose -f docker-compose.beta.yml logs mesas-beta-api --tail=50
-              exit 1
+
+            bash ./scripts/deploy/apply_required_migrations.sh docker-compose.beta.yml mesas-beta-db
+
+            API_CONTAINER="mesas-beta-api"
+            MAX_API_RETRIES=20
+            API_RETRIES=0
+            until [ "$(docker inspect --format '{{.State.Health.Status}}' "$API_CONTAINER" 2>/dev/null || echo 'missing')" = "healthy" ]; do
+              API_RETRIES=$((API_RETRIES+1))
+              if [ $API_RETRIES -ge $MAX_API_RETRIES ]; then
+                echo "ERRO: API beta nao ficou healthy (E147)"
+                docker inspect "$API_CONTAINER" --format '{{json .State.Health}}' || true
+                docker compose -f docker-compose.beta.yml logs mesas-beta-api --tail=100
+                exit 1
+              fi
+              sleep 3
+            done
+
+            FRONTEND_CONTAINER="mesas-beta-frontend"
+            MAX_FRONTEND_RETRIES=20
+            FRONTEND_RETRIES=0
+            until [ "$(docker inspect --format '{{.State.Health.Status}}' "$FRONTEND_CONTAINER" 2>/dev/null || echo 'missing')" = "healthy" ]; do
+              FRONTEND_RETRIES=$((FRONTEND_RETRIES+1))
+              if [ $FRONTEND_RETRIES -ge $MAX_FRONTEND_RETRIES ]; then
+                echo "ERRO: Frontend beta nao ficou healthy (E145)"
+                docker inspect "$FRONTEND_CONTAINER" --format '{{json .State.Health}}' || true
+                docker compose -f docker-compose.beta.yml logs mesas-beta-frontend --tail=100
+                exit 1
+              fi
+              sleep 3
+            done
+
+            BETA_HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://mesasbeta.artificiorpg.com)
+            if [ "$BETA_HTTP_CODE" != "200" ]; then
+              echo "AVISO: Beta nao respondeu HTTP 200. Tentando recuperacao automatica..."
+              docker compose -f docker-compose.beta.yml up -d --force-recreate
+              sleep 20
+              BETA_HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://mesasbeta.artificiorpg.com)
+              if [ "$BETA_HTTP_CODE" != "200" ]; then
+                echo "ERRO: Beta permaneceu fora apos recuperacao automatica"
+                docker compose -f docker-compose.beta.yml ps
+                docker compose -f docker-compose.beta.yml logs --tail=120 mesas-beta-frontend mesas-beta-api mesas-beta-db
+                exit 1
+              fi
             fi
-            
-            # CORREÇÃO INT-03: Validar se frontend buildou com sucesso
-            if ! docker compose -f docker-compose.beta.yml logs mesas-beta-frontend 2>&1 | grep -q "build completed"; then
-              echo "⚠️ Verificando logs do frontend para possíveis erros de build"
-              docker compose -f docker-compose.beta.yml logs mesas-beta-frontend --tail=100
+
+            if ! curl -fsS https://mesasbeta.artificiorpg.com/api/v1/health | grep -q '"status":"ok"'; then
+              echo "AVISO: Health publico do beta nao retornou status ok. Tentando recuperacao..."
+              docker compose -f docker-compose.beta.yml up -d --force-recreate
+              sleep 20
+              if ! curl -fsS https://mesasbeta.artificiorpg.com/api/v1/health | grep -q '"status":"ok"'; then
+                echo "ERRO: Health publico do beta segue invalido apos recuperacao"
+                docker compose -f docker-compose.beta.yml ps
+                docker compose -f docker-compose.beta.yml logs --tail=120 mesas-beta-frontend mesas-beta-api mesas-beta-db
+                exit 1
+              fi
             fi
-            
+
             docker compose -f docker-compose.beta.yml ps
             docker image prune -f
+            docker builder prune -f --filter "until=168h"
 
       - name: Notify Success
         if: success()
-        run: echo "✅ Deploy em beta concluído!"
+        run: echo "Deploy em beta concluido com sucesso!"
 
       - name: Notify Failure
         if: failure()
-        run: echo "❌ Deploy em beta falhou!"
+        run: echo "Deploy em beta falhou!"

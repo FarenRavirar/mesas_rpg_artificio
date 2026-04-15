@@ -27,6 +27,36 @@ const FRONTEND_URL = process.env.FRONTEND_URL as string;
 const JWT_SECRET = process.env.JWT_SECRET as string;
 const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+const COOKIE_SAME_SITE = (process.env.COOKIE_SAME_SITE || 'lax').toLowerCase();
+
+type CookieSameSite = 'lax' | 'strict' | 'none';
+
+const resolveCookieSameSite = (): CookieSameSite => {
+  if (COOKIE_SAME_SITE === 'none') return 'none';
+  if (COOKIE_SAME_SITE === 'strict') return 'strict';
+  return 'lax';
+};
+
+const ALLOWED_FRONTEND_ORIGINS = Array.from(
+  new Set(
+    [FRONTEND_URL, ...(process.env.FRONTEND_URLS?.split(',') ?? [])]
+      .map((url) => url.trim())
+      .filter((url) => url.length > 0)
+      .map((url) => new URL(url).origin)
+  )
+);
+const DEFAULT_FRONTEND_ORIGIN = new URL(FRONTEND_URL).origin;
+
+const getAllowedFrontendOrigin = (candidate?: string): string | null => {
+  if (!candidate) return null;
+
+  try {
+    const origin = new URL(candidate).origin;
+    return ALLOWED_FRONTEND_ORIGINS.includes(origin) ? origin : null;
+  } catch {
+    return null;
+  }
+};
 
 const oauth2Client = new OAuth2Client(
   GOOGLE_CLIENT_ID,
@@ -35,8 +65,17 @@ const oauth2Client = new OAuth2Client(
 );
 
 router.get('/google', (req: Request, res: Response) => {
+  const requestedFrontendOrigin =
+    typeof req.query.frontend_redirect === 'string'
+      ? getAllowedFrontendOrigin(req.query.frontend_redirect)
+      : null;
+
   const state = jwt.sign(
-    { nonce: crypto.randomUUID(), timestamp: Date.now() },
+    {
+      nonce: crypto.randomUUID(),
+      timestamp: Date.now(),
+      frontendRedirectOrigin: requestedFrontendOrigin,
+    },
     JWT_SECRET,
     { expiresIn: '10m' }
   );
@@ -65,8 +104,16 @@ router.get('/google/callback', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'State inválido.' });
   }
 
+  let frontendRedirectOrigin: string | null = null;
+
   try {
-    jwt.verify(state, JWT_SECRET);
+    const decodedState = jwt.verify(state, JWT_SECRET) as {
+      nonce: string;
+      timestamp: number;
+      frontendRedirectOrigin?: string | null;
+    };
+
+    frontendRedirectOrigin = getAllowedFrontendOrigin(decodedState.frontendRedirectOrigin ?? undefined);
   } catch (error) {
     console.error('[OAuth] State inválido ou expirado:', error);
     return res.status(400).json({ error: 'State inválido ou expirado.' });
@@ -181,11 +228,12 @@ router.get('/google/callback', async (req: Request, res: Response) => {
       '/';
 
     const isProd = process.env.NODE_ENV === 'production';
+    const sameSite = resolveCookieSameSite();
 
     const cookieOptions = {
       httpOnly: true,
-      secure: isProd,
-      sameSite: 'lax' as const,
+      secure: sameSite === 'none' ? true : isProd,
+      sameSite,
       path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000,
       ...(COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {}),
@@ -201,7 +249,8 @@ router.get('/google/callback', async (req: Request, res: Response) => {
       timestamp: new Date().toISOString(),
     });
 
-    const redirectUrl = `${FRONTEND_URL.replace(/\/$/, '')}${redirectPath}`;
+    const redirectOrigin = frontendRedirectOrigin || DEFAULT_FRONTEND_ORIGIN;
+    const redirectUrl = `${redirectOrigin.replace(/\/$/, '')}${redirectPath}`;
     new URL(redirectUrl);
 
     return res.redirect(redirectUrl);
@@ -213,6 +262,7 @@ router.get('/google/callback', async (req: Request, res: Response) => {
 
 router.post('/logout', authMiddleware, async (req: Request, res: Response) => {
   const isProd = process.env.NODE_ENV === 'production';
+  const sameSite = resolveCookieSameSite();
 
   try {
     await db
@@ -231,8 +281,8 @@ router.post('/logout', authMiddleware, async (req: Request, res: Response) => {
 
   res.clearCookie('am_session', {
     httpOnly: true,
-    secure: isProd,
-    sameSite: 'lax',
+    secure: sameSite === 'none' ? true : isProd,
+    sameSite,
     path: '/',
     ...(COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {}),
   });
