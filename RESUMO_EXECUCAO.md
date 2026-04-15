@@ -18,7 +18,7 @@
 - `migration_101` idempotente (`IF NOT EXISTS`)
 - Gate de migration validado em run real beta/prod com schema mínimo conforme (`system_suggestions.name_pt`, `scenario_suggestions`)
 - `migration_104_drop_tables_frequency_columns.sql` confirmada como aplicada em beta e produção (`frequency_cols=0`, `migration104_applied=yes`)
-- **Auditoria TODO_OPERACIONAL.md concluída:** 8 itens movidos para Histórico de Conclusão (incluindo REQ-03 Cloudinary), 1 item removido (OPS-05), 14 itens mantidos no backlog ativo
+- **Auditoria TODO_OPERACIONAL.md concluída:** 10+ itens movidos para Histórico de Conclusão, índice criado com prioridade GUT, backlog limpo (10 itens restantes)
 - **Verificação GUT ≥ 100 concluída:** 8 itens verificados (código, FILA, sessões), 6 confirmados no backlog ativo, 2 já concluídos (REQ-30, REQ-03)
 
 ---

@@ -105,7 +105,7 @@ Se o mesmo erro ocorrer 3 vezes consecutivas sem solução:
 ## Atualização de documentos ao concluir tarefa
 
 - FILA_IMPLEMENTACAO.md → marcar item como concluido com data
-- TODO_OPERACIONAL.md → atualizar status do REQ, mover para "Concluídos Recentes" se fechado
+- TODO_OPERACIONAL.md → atualizar status do REQ, mover para Histórico de Conclusão se fechado
 - ERRORS_SOLUTIONS.md → registrar erros novos encontrados durante a execução
 - MAPA_DE_API.md → obrigatório se qualquer rota foi criada, removida ou alterada
 - RESUMO_EXECUCAO.md → atualizar próxima ação
@@ -146,7 +146,7 @@ Quando APENAS arquivos .md são modificados (nenhum .ts, .tsx, .js, .py ou .yml)
 - Manter apenas itens pendente e em_execucao na área ativa
 
 ### TODO_OPERACIONAL.md
-- REQ com status Concluído em Concluídos Recentes há mais de 30 dias → remover
+- REQ concluído → mover para Histórico de Conclusão (manter índice limpo)
 - REQ com status Em validação beta sem atualização por mais de 2 sessões → marcar [REVISAR]
 
 ### MAPA_DE_API.md

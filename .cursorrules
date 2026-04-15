@@ -114,7 +114,7 @@ Parar completamente e registrar em ERRORS_SOLUTIONS.md quando:
 - ERRORS_SOLUTIONS.md → registrar com causa raiz e solução validada
 
 ### Se REQ do TODO foi concluído:
-- TODO_OPERACIONAL.md → mover para Concluídos Recentes com data
+- TODO_OPERACIONAL.md → mover para Histórico de Conclusão com data e resumo curto
 
 ### Se docker-compose ou Dockerfile foi alterado:
 - ARQUITETURA_PROJETO.md §3 → atualizar apenas trecho afetado
@@ -131,7 +131,7 @@ via PR separado para revisão humana.
 
 ### Limpeza a cada 5 itens concluídos:
 - FILA_IMPLEMENTACAO.md → mover lotes inteiros concluídos para seção Histórico
-- TODO_OPERACIONAL.md → remover REQs em Concluídos Recentes com mais de 30 dias
+- TODO_OPERACIONAL.md → mover REQs concluídos para Histórico de Conclusão (manter índice limpo)
 
 ---
 

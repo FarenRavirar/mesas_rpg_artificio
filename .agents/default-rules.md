@@ -198,7 +198,7 @@ Se o mesmo erro ocorrer 3 vezes consecutivas sem solução:
 ## Atualização de documentos ao concluir tarefa
 
 - FILA_IMPLEMENTACAO.md → marcar item como concluido com data
-- TODO_OPERACIONAL.md → atualizar status do REQ, mover para "Concluídos Recentes" se fechado
+- TODO_OPERACIONAL.md → atualizar status do REQ, mover para Histórico de Conclusão se fechado
 - ERRORS_SOLUTIONS.md → registrar erros novos encontrados durante a execução
 - MAPA_DE_API.md → obrigatório se qualquer rota foi criada, removida ou alterada
 - RESUMO_EXECUCAO.md → atualizar próxima ação e arquivo de sessão mais recente
@@ -217,8 +217,8 @@ Se o mesmo erro ocorrer 3 vezes consecutivas sem solução:
 - Manter apenas pendente e em_execucao na área ativa
 
 ### TODO_OPERACIONAL.md
-- REQs em Concluídos Recentes com mais de 30 dias → remover
-- REQs com status Em validação beta sem atualização por mais de 2 sessões → marcar [REVISAR]
+- REQ concluído → mover para Histórico de Conclusão (manter índice limpo)
+- REQ com status Em validação beta sem atualização por mais de 2 sessões → marcar [REVISAR]
 
 ### MAPA_DE_API.md
 - Rotas marcadas Pendente/Front que forem implementadas → atualizar para Em Uso

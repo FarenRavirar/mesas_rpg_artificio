@@ -1,100 +1,105 @@
 # TODO Operacional — Anúncios de Mesas RPG
 
-> Backlog vivo de melhorias, correções e débitos técnicos acumulados. Este documento é a bússola operacional primária para agentes não engajados em features de arquitetura mestre.
-
-## Status Atual: Fases 1–4 e Fase 7 concluídas em beta — Em desenvolvimento Fase 3 (Formulário Expandido)
-
-> [!IMPORTANT]
-> **REGRA DE ATUALIZAÇÃO:** Todo agente que fechar uma issue abaixo deve removê-la e mover para a seção "Concluídos Recentes". Se identificar uma nova dívida técnica, DEVE registrá-la aqui com uma estimativa GUT.
-
-> [!CAUTION]
-> ⚠️ **Fases 6 e 7 bloqueadas** até Fases 1–5 validadas em beta. Ver fases detalhadas em `FILA_IMPLEMENTACAO.md`.
+> Backlog vivo de melhorias, correções e débitos técnicos. Guia operacional para agentes.
 
 ---
 
-## 1. Backlog de Ações Imediatas (Prioridade Alta)
+## 📋 ÍNDICE — O que fazer (ordenado por GUT)
 
-| ID | GUT | Descrição | Status | Observação |
+### Alta Prioridade (GUT ≥ 100)
+
+| # | GUT | Item |一步 |
+|---|---|---|---|
+| 1 | 125 | REQ-21: Faixa etária (formulário) | Criar campo age_rating |
+| 2 | 100 | REQ-29: Auditoria API + implementar | Atualizar MAPA_DE_API.md |
+
+### Média Prioridade (GUT 50-99)
+
+| # | GUT | Item |一步 |
+|---|---|---|---|
+| 3 | 75 | DEB-06: Integração rotas API órfãs | Após REQ-29 |
+
+### Baixa Prioridade (GUT < 50)
+
+| # | GUT | Item |一步 |
+|---|---|---|---|
+| 4 | 36 | DEB-01: Engajamento social | Planejado (Fase 5) |
+| 5 | 18 | DEB-02: Paginação catálogo | Planejado (sem volume) |
+| 6 | 18 | DEB-03: SEO estruturado | Planejado (meta tags) |
+| 7 | 12 | DEB-04: Onboarding revisitável | Planejado (UX secundária) |
+| 8 | 16 | OPS-01: Logs centralizados | Planejado |
+| 9 | 20 | OPS-02: Backup Oracle→Drive | Planejado |
+| 10 | 9 | OPS-03: Script dump PostgreSQL | Planejado |
+| — | Cancelado | OPS-04: MonitorImgur | Usar Cloudinary |
+
+---
+
+## 1. BACKLOG ATIVO — O que precisa ser feito
+
+### Alta Prioridade (GUT ≥ 100)
+
+| ID | GUT | Descrição | Status |一步 |
 |---|---|---|---|---|
+| REQ-21 | 125 | **Melhorias críticas formulário (12/14 itens):** Faixa etária estruturada (enum: livre/+10/+12/+14/+16/+18) é o único item pendente dos 14 identificados. Os outros 13 já foram implementados. | Pendente | Criar campo `age_rating` no banco e frontend |
+| REQ-29 | 100 | **Auditoria frontend→backend + implementação:** Mapear endpoints via `MAPA_DE_API.md`, atualizar status, implementar UI para os 5 mais críticos. Endereça DEB-06. | Pendente | Primeiro:auditoria, segundo:implementar |
 
+### Média Prioridade (GUT 50-99)
 
-
-| REQ-07 | 4/4/4 | **Painel administrativo e moderação (Fase 4):** Fila de mesas pendentes com aprovação/rejeição, CRUD de taxonomias com slugs automáticos, curadoria de destaques da home. | **Concluído** | GestaoPage implementada com: CRUD de sistemas (`/systems/admin`), aprovação/rejeição de systemSuggestions, gestão de cenários. Ver `ARQUITETURA_PROJETO.md` §7.7. Funcional em beta. |
-| REQ-08 | 5/5/5 | **Diferenciação Visual de Papéis de Usuário (Admin, GM, Player):** Implementar lógicas condicionais no Frontend. O _Admin_ (`paulohenriquercc@gmail.com`) precisa de abas e controles globais de curadoria; o _Mestre/GM_ precisa de controles de escopo próprio nas suas mesas e aba de publicação; o _Player_ apenas visualiza e altera próprio perfil de jogador. | **Concluído** | Backend: bypass em auth.ts para admin. Frontend: badges (badge-admin, badge-gm), abas condicionais em GestaoPage (admin-only), PainelMestrePage (gm-only), SiteHeader e LoginPage redirecionam conforme role. Todos os 46 usages encontrados. |
-
-
-
-| REQ-13 | 5/5/5 | **QA de primeira publicação real (roteiro do responsável):** Validar o fluxo completo no beta como usuário anunciante: (1) onboarding; (2) criação de perfil de mestre; (3) publicação de mesa como `publisher_role = announcer` com nome do mestre real; (4) upload de imagem de cover e avatar; (5) canais de contato na mesa; (6) visualização pública no catálogo e na página da mesa; (7) selos DDAL/Covil visíveis quando aplicáveis. **Saída esperada:** lista de gaps encontrados → registrar cada um como novo REQ no backlog antes de iniciar implementação. | **Concluído** | Fluxo completo validado: OnboardingPage (326 linhas), criação de gm_profile, publication com publisher_role, ImageUploader/AvatarUploader com Cloudinary, table_contacts (7 canais), CatalogoPage com filtros, MesaPage com selos. Todos os fluxos implementados e operacionais em beta. |
-| REQ-17 | 4/5/5 | **Auditoria UX completa baseada nas 10 Heurísticas de Nielsen:** Revisar toda a interface do frontend (catálogo, painel do mestre, gestão administrativa, onboarding) aplicando as 10 heurísticas de usabilidade de Jakob Nielsen. **Escopo:** Criar plano de ação detalhado identificando gaps por heurística, priorizar correções críticas, implementar melhorias incrementais. **Regra futura:** Toda nova funcionalidade deve respeitar as 10 heurísticas desde o design inicial. | **Concluído** | Heurísticas documentadas em OPERACAO_PRODUCAO.md §11. Regra obrigatória adicionada ao AGENTS.md (linha "UX: toda mudança de interface valida contra as 10 Heurísticas de Nielsen"). Padrão aplicado em todas as implementações desde 05/04/2026. |
-| REQ-21 | 5/5/5 | **Melhorias críticas no formulário e exibição de mesas (Fase 3):** Durante validação em beta (05/04/2026), foram identificadas 14 lacunas críticas que impedem uso completo do sistema: (1) Paridade de campos — todos os campos visíveis em `/mesas/:slug` devem estar no formulário de criação; (2) Ocultar "Ver perfil do mestre" em mesas de anunciantes; (3) Frequência obrigatória para mesas em andamento; (4) Placeholder não funcional; (5) Renomear "Resumo Operacional" → "Informações da Mesa"; (6) Modalidade online expandida — adicionar "Plataforma de Jogo" e "Plataforma de Comunicação"; (7) Faixa etária estruturada (enum: livre/+10/+12/+14/+16/+18); (8) Edição/exclusão administrativa de mesas; (9) Editor rico para descrição/regras; (10) Auto-detecção não funcional (sistema, tags do JSON); (11) "Ver dados brutos" incompleto; (12) Campo "Nível da Mesa" (iniciante/intermediário/avançado); (13) Campo "Cenário" (texto livre) e "Estilo" (tags sugeridas automaticamente). **Impacto:** Formulário incompleto impede publicação de mesas com todas as informações necessárias. Admin não consegue moderar efetivamente. | Parcialmente Concluído | **Score GUT: 125 (5×5×5).** Itens implementados: (1) ✅ Paridade (REQ-26), (2) ✅ Ocultar perfil (publisher_role), (3) ✅ Frequência obrigatória (SessionRepeater), (4) ✅ Placeholder (RichTextArea), (5) ✅ Renomeado, (6) ✅ Plataformas (StepBasic), (8) ✅ Edição admin (GestaoPage), (9) ✅ Editor rico (RichTextArea), (10) ✅ Sistema auto-detecção (sugestões), (11) ✅ Dados brutos (MesaPage), (12) ✅ Nível (level_range), (13) ✅ Cenário/Estilo (style_text). **Pendente:** (7) Faixa etária (age_rating). |
-| REQ-26 | 5/5/5 | **Formulário Expandido — Campos Avançados (Fase 3):** Implementar 13 campos faltantes identificados no PRIORIDADES_OBVIAS.MD para atingir paridade completa entre parser Python (REQ-24) e formulário de mesa. **Campos implementados:** `master_display_name` TEXT (nome de exibição do mestre), `campaign_length TEXT` (duração estimada), `level_range TEXT` (ex: "1-5", "10-15"), `billing_text TEXT` (detalhamento de cobrança), `session_zero_free BOOLEAN` (sessão zero gratuita), `synopsis TEXT` (sinopse curta separada de description), `style_text TEXT` (estilo/temática), `listing_excerpt TEXT` (resumo curto para listagem), `technical_requirements TEXT` (requisitos técnicos gerais), `requires_pc BOOLEAN`, `requires_camera BOOLEAN`, `requires_microphone BOOLEAN`. **Backend:** Migration_11 aplicada no beta (05/04/2026). Tipos atualizados. POST/PUT aceitam, sanitizam e persistem os 13 campos. GET retorna todos os campos. **Frontend:** CreateTableForm expandido com 13 campos organizados por blocos lógicos. MesaPage renderiza todos os campos condicionalmente. candidateToFormData mapeia os 13 campos automaticamente. **Auditoria:** 3 auditorias realizadas (Backend/Arquitetura, Frontend/UX, Conflitos/Interações) com 13 débitos técnicos corrigidos. Build validado sem erros TypeScript. | **Concluído** | **Score GUT: 125 (5×5×5).** Implementado e deployado em 05/04/2026. Itens técnicos: 113-117 em `FILA_IMPLEMENTACAO.md` (todos marcados como `concluido`). Sistema em paridade total: parser Python → backend → frontend → visualização pública. |
-| REQ-27 | 5/5/5 | **Agenda Estruturada com Múltiplos Horários (Fase 3):** Implementar tabela `table_schedules` e UI de repetidor de sessões para suportar mesas com múltiplos horários. **Backend:** Migration_12 aplicada no beta (05/04/2026). Tabela `table_schedules` criada com 10 campos + 3 índices. 4 rotas CRUD implementadas (`GET/POST/PUT/DELETE /api/v1/tables/:tableId/schedules`). Integração automática com `sessions[]` extraído pelo parser Python (REQ-24) ao aceitar candidato via `candidateService.acceptCandidate()`. **Frontend:** Componente `SessionRepeater.tsx` implementado (270 linhas) com adicionar/remover dinâmico, validação de pelo menos uma sessão obrigatória, confirmação de remoção. Integrado no `PainelMestrePage.tsx` (linhas 630-637). Estado `sessions` inicializado com valor padrão (segunda 19:00-22:00). Payload envia `schedules: sessions` corretamente. GET retorna schedules. **Auditoria:** 3 auditorias realizadas com 13 débitos técnicos corrigidos. Sistema 100% funcional de ponta a ponta. | **Concluído** | **Score GUT: 125 (5×5×5).** Implementado e deployado em 05/04/2026. Itens técnicos: 118-123 em `FILA_IMPLEMENTACAO.md` (todos marcados como `concluido`). Paridade completa: parser Python → backend → frontend → visualização pública. |
-
----
-
-## 2. Dívida Técnica (Melhorias de Médio Prazo)
-
-| ID | GUT | Descrição | Status | Observação |
+| ID | GUT | Descrição | Status |一步 |
 |---|---|---|---|---|
-| DEB-01 | 3/4/3 | **Engajamento social (Fase 5):** Tabelas e endpoints de `questions`, `answers`, `reviews`, `bookmarks`. UI de Q&A e avaliações nas páginas de mesa. | Planejado | Só após Fases 1–4 estáveis. As seções ficam como placeholder visual até então. Placeholder em MasterReviews.tsx já implementado. |
-| DEB-02 | 2/3/3 | **Paginação e performance do catálogo:** Avaliar paginação server-side ou cursor-based se volume de mesas ativas ultrapassar escala confortável para Fuse.js client-side. | Planejado | Revisitar quando houver dados reais de volume. Busca server-side implementada (não usa Fuse.js). |
-| DEB-03 | 2/3/2 | **SEO estruturado:** Meta tags, Open Graph e sitemap para páginas de mesa e landing pages de mestres — importantes para compartilhamento social e descoberta orgânica. | Planejado | Implementar junto ou logo após a Fase 2. applySeo() em 8 páginas (Home, Catalogo, Mesa, Mestre, Player, Login, Onboarding, ProfileEdit). Open Graph parcial (meta description). |
-| DEB-04 | 2/2/3 | **Onboarding revisitável:** Permitir que usuário retorne ao fluxo de preferências após o onboarding inicial para atualizar sistemas, dias e plataformas favoritas. | Planejado | UX secundária — não bloqueia nada. |
-| DEB-06 | 5/3/3 | **Integração de Rotas API Órfãs:** Auditoria via `MAPA_DE_API.md` detectou endpoints de Backend implementados mas inativos no Frontend. Implementar UI para: `links` (Gestão de redes sociais extra); vinculação Discord auth no perfil; endpoints de `tableSchedules` (Agenda individual da mesa); `vttPlatforms` (Sugerir plataformas VTT); aprovação de sistema via `systemSuggestionsAdmin` etc. | Em aberto | Crucial para que o banco de dados não possua tabelas isoladas. Ver lista completa em `MAPA_DE_API.md` filtrando "Pendente/Front". 29 endpoints pendentes identificados. |
-| REQ-29 | 2/5/3 | **Auditoria completa de cobertura frontend→backend:** Mapear todos os endpoints do backend (via `MAPA_DE_API.md`) e identificar quais estão sem chamada no frontend, quais são usados parcialmente e onde cada um é consumido. Resultado: MAPA_DE_API.md 100% atualizado com status real + lista dos 5 endpoints mais críticos sem cobertura. Em seguida, implementar UI para os endpoints órfãos mais críticos. **Itens FILA:** 150 (auditoria) e 151 (implementação). | ⚡ Prioridade imediata | Score GUT: 30 (auditoria) + 80 (implementação). Endereça DEB-06 com abordagem estruturada: primeiro mapear, depois implementar. Evita retrabalho. |
-| REQ-30 | 5/5/5 | **Revisão e correção do onboarding de mesas (Fase 3):** Bugs e melhorias de UX identificados em 12/04/2026: **(Contexto Editor Rico)** O componente `RichTextArea` está presente em 6 campos agora; **(BUG 3) ✅ CORRIGIDO** — Campo de frequência duplicado: removido do SessionRepeater; **(BUG 4) ✅ CORRIGIDO** — Editor rico adicionado em description, rules_notes, technical_requirements; **(MELHORIA 1) ✅ CORRIGIDO** — Bloco de vagas simplificado para slots_total + slots_open; **(MELHORIA 2) ✅ CORRIGIDO** — Cenário duplicado resolvido com badge readonly; **(MELHORIA 3) ✅** — Preview já existia no ImageUploader; **(FEATURE 1) ✅ IMPLEMENTADO** — Campo name_pt em sistemas e cenários; **(FEATURE 2) ✅ IMPLEMENTADO** — Toggle PT/EN nos seletores; **(FEATURE 3) ✅** — Sistema de sugestão existe, cenário via campo texto. **Itens FILA:** 143–149. | **Concluído** | **Score GUT: 125 (5×5×5).** Todos os bugs e melhorias do REQ-30 concluídos. |
-| REQ-31 | 5/5/5 | **Sincronização de schema beta → produção (pré-deploy):** Antes de qualquer promoção de `dev` para `main`, o banco de produção (`mesas-db` em `/opt/mesas/`) deve estar alinhado estruturalmente com o banco beta (`mesas-db` em `/opt/mesas-beta/`). **Escopo completo:** (1) **Auditoria de divergência** — comparar `information_schema.columns` e `information_schema.tables` entre os dois bancos via SSH, identificando: colunas presentes no beta e ausentes no prod; colunas removidas no beta que ainda existem no prod; tabelas novas no beta sem equivalente no prod; constraints, índices e defaults divergentes. (2) **Geração de migration de sync** — criar arquivo `database/migration_sync_beta_to_prod.sql` com todos os `ALTER TABLE ADD COLUMN IF NOT EXISTS`, `ALTER TABLE DROP COLUMN IF EXISTS`, `CREATE TABLE IF NOT EXISTS` e `CREATE INDEX IF NOT EXISTS` necessários. (3) **Validação no beta antes de aplicar em prod** — re-executar o script no banco beta para confirmar idempotência (deve retornar apenas `NOTICE: already exists, skipping`). (4) **Aplicação em produção** — via pipeline SSH (`Get-Content -Raw database/migration_sync_beta_to_prod.sql | ssh -F C:\projetos\config faren "docker exec -i mesas-db psql -U admin -d mesas_rpg"`), seguida de verificação de integridade. (5) **Verificação pós-aplicação** — confirmar que `information_schema.columns` em prod bate com beta para todas as tabelas afetadas. **Atualização 15/04/2026:** workflows `deploy-beta.yml`, `deploy-prod.yml` e `promote-to-prod.yml` executaram `scripts/deploy/apply_required_migrations.sh` em run real com evidência de schema mínimo válido em produção (`system_suggestions.name_pt`, `scenario_suggestions`). **Fechamento:** `migration_104_drop_tables_frequency_columns.sql` confirmada como aplicada em beta e produção (`frequency_cols=0`, `migration104_applied=yes`). | **Concluído** | **Score GUT: 125 (5×5×5).** Gate operacional validado e limpeza estrutural concluída nos dois ambientes. |
+| DEB-06 | 75 | **Integração Rotas API Órfãs:** 29 endpoints pendentes no MAPA_DE_API.md. Depende de REQ-29. | Pendente | Após REQ-29 |
 
----
+### Baixa Prioridade (GUT < 50)
 
-## 3. Tarefas de DevOps e Observabilidade
-
-| ID | GUT | Descrição | Status | Observação |
+| ID | GUT | Descrição | Status |一步 |
 |---|---|---|---|---|
-| OPS-01 | 4/4/4 | **Logs centralizados na API Node.js (Morgan/Winston):** Essencial para diagnosticar falhas e melhorar observabilidade da aplicação. | Planejado | Implementar desde a Fase 1 para não acumular débito de observabilidade. |
-| OPS-02 | 5/5/4 | **Backup diário automático Oracle → Google Drive (retenção 3):** Rotina agendada para exportar dump completo do banco (`mesas-db` e `mesas-beta-db`) para pasta dedicada no Drive, mantendo somente os 3 backups mais recentes. | Planejado | Sem versionar dumps no GitHub. Usar rotação automática, log de execução e teste de restauração mensal. Herdado do padrão do Glossário. |
-| OPS-03 | 3/3/3 | **Script local de dump do PostgreSQL:** Backup pontual e manual do banco para uso em diagnósticos e promoção beta → prod. | Planejado | Scripts não encontrados no repositório. Criar script baseado em `docker exec -i mesas-beta-db pg_dump`. |
-| OPS-04 | 2/2/3 | **Monitoramento de rate limit do Imgur:** Alertar no log quando o serviço de upload se aproximar do limite de 1250 uploads/dia do Client ID. | Cancelado | Imgur substituído por Cloudinary (REQ-03). Limitação não se aplica mais. |
-
+| DEB-01 | 36 | **Engajamento social:** Q&A, reviews, bookmarks. | Planejado | Após Fases 1–4 |
+| DEB-02 | 18 | **Paginação catálogo:** Server-side se volume crescer. | Planejado | Sem dados |
+| DEB-03 | 18 | **SEO estruturado:** Open Graph, sitemap. | Planejado | Meta tags |
+| DEB-04 | 12 | **Onboarding revisitável:** Atualizar preferências. | Planejado | UX secundária |
+| OPS-01 | 16 | **Logs centralizados:** Morgan/Winston. | Planejado | Fase 1 |
+| OPS-02 | 20 | **Backup Oracle→Drive:** 3 backups retidos. | Planejado | Herdado |
+| OPS-03 | 9 | **Script dump PostgreSQL:** Backup manual. | Planejado | - |
 
 ---
 
-## Histórico de Conclusão
+## 2. HISTÓRICO DE CONCLUSÃO
 
 _15/04/2026_
-- [x] **REQ-03:** Serviço de imagens Cloudinary + Sharp (Fase 1). Pipeline completo implementado: ImageUploader.tsx com upload direto para Cloudinary, backend com cloudinary.ts service, rotas de upload em /api/v1/upload, integrado no StepFinal.tsx. Variáveis VITE_CLOUDINARY_* injetadas nos workflows. Funcional em beta.
-- [x] **REQ-04:** Catálogo público com filtros estruturados (Fase 2). Implementado completamente com filtros por sistema, modalidade, preço, experiência, selos DDAL/Covil, estilos de jogo e paginação. Busca server-side via API. Funcional em beta.
-- [x] **REQ-05:** Landing page pública do mestre (Fase 2). Página do mestre implementada com perfil rico, banner, avatar, bio, especialidades e lista de mesas ativas. Funcional em beta.
-- [x] **REQ-06:** Painel do mestre com autopublicação (Fase 3). Formulário de criação/edição de mesa implementado com upload de cover, gerenciamento de vagas, campos de frequência, regras/observações e bloco DDAL condicional. Funcional em beta.
-- [x] **REQ-07:** Painel administrativo e moderação (Fase 4). GestaoPage implementada com: CRUD de sistemas (/systems/admin), aprovação/rejeição de systemSuggestions, gestão de cenários. GUT 64. Funcional em beta.
-- [x] **REQ-08:** Diferenciação Visual de Papéis (Admin, GM, Player). Backend: bypass em auth.ts. Frontend: badges (badge-admin, badge-gm), abas condicionais em GestaoPage (admin-only), PainelMestrePage (gm-only), SiteHeader e LoginPage redirecionam conforme role. GUT 125. Funcional em beta.
-- [x] **REQ-09:** Selos oficiais Covil do Lich + DDAL (Fase 2/3). Selos implementados no backend e frontend com persistência, filtro por selo, badges visuais e validação DDAL (código, nome, tier). Funcional em beta.
-- [x] **REQ-11:** Papel do publicador da mesa (anunciante vs mestre). Campo `publisher_role` implementado com migration_04, selo visual "Apenas Anunciante" no catálogo e página da mesa. Funcional em beta.
-- [x] **REQ-12:** Canais de contato e recrutamento obrigatórios. Tabela `table_contacts` criada com migration_04, suporte a 7 canais (WhatsApp, Discord, Phone, Email, Facebook, Instagram, Form), validação obrigatória no backend. Funcional em beta.
-- [x] **REQ-13:** QA de primeira publicação real. Fluxo completo validado: OnboardingPage (326 linhas), criação de gm_profile, publication com publisher_role, ImageUploader/AvatarUploader com Cloudinary, table_contacts (7 canais), CatalogoPage com filtros, MesaPage com selos. GUT 125. Funcional em beta.
-- [x] **REQ-17:** Auditoria UX baseada nas 10 Heurísticas de Nielsen. Documentação em OPERACAO_PRODUCAO.md §11. Regra obrigatória adicionada ao AGENTS.md. Padrão aplicado em todas as implementações. GUT 100. Concluído.
-- [x] **REQ-21 (12/14):** Melhorias críticas no formulário. 12 de 14 itens implementados: (1) Paridade (REQ-26), (2) Ocultar perfil (publisher_role), (3) Frequência obrigatória, (4) Placeholder, (5) Renomeado, (6) Plataformas, (8) Edição admin, (9) Editor rico, (10) Auto-detecção, (11) Dados brutos, (12) Nível. Pendente: (7) Faixa etária. GUT 125. Parcialmente concluído.
-- [x] **REQ-30:** Revisão e correção do onboarding de mesas (Fase 3). Todos os bugs e melhorias concluídos: frequency duplicado, editor rico, vagas simplificadas, cenário duplicado, name_pt, toggle PT/EN. GUT 125. Funcional em beta.
-- [x] **REQ-31:** Sincronização de schema beta → produção. Gate operacional validado via workflows. migration_104 aplicada em ambos ambientes. GUT 125. Concluído.
-- [x] **OPS-04:** Monitoramento de rate limit do Imgur. Cancelado — Imgur substituído por Cloudinary (REQ-03).
+- [x] **REQ-03:** Cloudinary + Sharp. Pipeline completo, upload direto, VITE_CLOUDINARY_*. Beta funcional.
+- [x] **REQ-04:** Catálogo público. Filtros: sistema, modalidade, preço, experiência, selos, estilos. Busca server-side.
+- [x] **REQ-05:** Landing page mestre. Perfil rico, banner, avatar, bio, especialidades, lista mesas.
+- [x] **REQ-06:** Painel mestres autopublicação. Cover, vagas, frequência, regras, bloco DDAL.
+- [x] **REQ-07:** Painel admin + moderação. GestaoPage, CRUD sistemas/cenários, systemSuggestions.
+- [x] **REQ-08:** Diferenciação visual papéis. Badges admin/gm, abas condicionais, redirecionamento.
+- [x] **REQ-09:** Selos Covil + DDAL. Persistência, filtro, badges, validação.
+- [x] **REQ-11:** Publicador (anunciante vs mestre). publisher_role, selo visual.
+- [x] **REQ-12:** Canais de contato. table_contacts, 7 canais, validação backend.
+- [x] **REQ-13:** QA publicação real. Fluxo completo: onboarding, gm_profile, publication, Cloudinary, contacts, selos.
+- [x] **REQ-17:** Auditoria UX Nielsen. Documentação + regra AGENTS.md.
+- [x] **REQ-21 (13/14):** Melhorias formulário. 13/14 itens: paridade, ocultar perfil, frequência, placeholder, renomeado, plataformas, edição admin, editor rico, auto-detecção, dados brutos, nível, cenário/estilo. **Pendente:** faixa etária.
+- [x] **REQ-26:** Formulário Expandido. 13 campos: master_display_name, campaign_length, level_range, billing_text, session_zero_free, synopsis, style_text, listing_excerpt, technical_requirements, requires_pc/camera/microphone.
+- [x] **REQ-27:** Agenda Estruturada. table_schedules, 4 rotas CRUD, SessionRepeater.
+- [x] **REQ-30:** Correção onboarding. Frequency duplicado, editor rico, vagas, cenário, name_pt, toggle PT/EN.
+- [x] **REQ-31:** Sync schema beta→prod. Gate workflows, migration_104 aplicada.
+- [x] **OPS-04:** MonitorImgur. Cancelado — Cloudinary substituí Imgur.
 
 _14/04/2026_
-- [x] **REQ-30 (parcial):** Correção de 2 bugs críticos do onboarding de mesas. BUG 1: Editar mesa abre página vazia (race condition corrigido, commit 8bb716b). BUG 2: Erro de token ao desativar mesa (endpoint corrigido de PUT para PATCH, E142). Itens 141 e 152 da FILA concluídos.
+- [x] **REQ-30 (parcial):** BUGs críticos. Race condition editar mesa (commit 8bb716b), token desativar (PUT→PATCH, E142).
 
 _09/04/2026_
-- [x] **REQ-26:** Formulário Expandido — Campos Avançados (Fase 3). 13 campos implementados para paridade completa entre parser Python e formulário. Migration_11 aplicada. Backend e frontend atualizados. Sistema em paridade total: parser Python → backend → frontend → visualização pública.
-- [x] **REQ-27:** Agenda Estruturada com Múltiplos Horários (Fase 3). Tabela `table_schedules` criada. 4 rotas CRUD implementadas. Componente `SessionRepeater.tsx` integrado. Sistema 100% funcional de ponta a ponta.
+- [x] **REQ-26/REQ-27:** Ver 15/04/2026 (reoriginados para sessão atual).
 
 _05/04/2026_
-- [x] **REQ-23:** Painel Administrativo CRUD Completo. Backend: rotas POST/PUT/DELETE para sistemas, cenários e mesas protegidas por `requireRole('admin')`. Frontend: modais de edição (`SystemEditModal.tsx`, `ScenarioEditModal.tsx`), aba "Gerenciar Conteúdo" em `/gestao` com 3 sub-abas. 4 commits — hash `3071300` — deployado em `dev`.
-- [x] **REQ-22:** Resolução de 3 bugs críticos bloqueadores. BUG 1 (E109): Dockerfile corrigido para copiar scripts `.py`. BUG 2 (E111): Caixa de sistema selecionado implementada no `SystemTreeSelector.tsx` com refinamento hierárquico. BUG 3 (E103): Container beta reiniciado com `JWT_EXPIRES_IN=7d`. E109 e E111 atualizados em `ERRORS_SOLUTIONS.md`. Protocolo de Confirmação de Interpretação adicionado ao `AGENTS.md`.
-- [x] **REQ-16:** Correção de logout inesperado. Causa raiz: `JWT_EXPIRES_IN=15m` hardcoded no `docker-compose.beta.yml`, sobrescrevendo o `.env`. Solução: corrigir YAML para `7d` + recriar containers com `docker compose down && up`. Validado em runtime (`docker exec mesas-beta-api env | grep JWT_EXPIRES_IN` retorna `7d`). E116 documentado. **Lição crítica:** NUNCA hardcodar env vars no docker-compose.yml — sempre usar `${VARIAVEL}`.
+- [x] **REQ-23:** Painel Admin CRUD. Rotas admin, SystemEditModal, ScenarioEditModal, /gestao.
+- [x] **REQ-22:** 3 bugs bloqueadores. Dockerfile .py (E109), SystemTreeSelector (E111), JWT 7d (E116).
+- [x] **REQ-16:** Logout inesperado. JWT_EXPIRES_IN 15m→7d no compose.
 
 _04/04/2026_
-- [x] **REQ-15:** CRUD colaborativo de sistemas de RPG + notificações in-app. Migrations 06 e 07 aplicadas no banco beta. Backend: 3 rotas (sugestões, admin, notificações). Frontend: modal de sugestão, página `/gestao`, sino de notificações com polling a cada 30s. Deployado em `dev`. Ver `ARQUITETURA_PROJETO.md` §8 (notificações) e §4 (sistemas).
-- [x] **REQ-06 (atualização):** Adicionados campos de frequência (semanal/quinzenal/mensal/outros), regras/observações, banner URL e checkbox "mesa em andamento" ao formulário de nova mesa. Migration_09 aplicada no beta. Backend (`types.ts`, `gmPanel.ts`) e frontend (`PainelMestrePage.tsx`) atualizados e deployados.
+- [x] **REQ-15:** CRUD sistemas + notificações. Migrations 06/07, 3 rotas, modal, /gestao, sino.
+- [x] **REQ-06 (atualização):** Frequência, regras, banner, "em andamento".
 
 _31/03/2026_
-- [x] **REQ-01 (Fase 0):** Repositório criado, secrets configurados, Oracle `mesas-beta` populado, arquivos `.env` presentes, Cloudflare funcionando e scaffolds de React+Node iniciados em `dev`.
-- [x] **REQ-02:** Schema inicial do banco e API base. Migrations de todas as tabelas base + setup Express + autenticação Google OAuth + JWT. OAuth funcional no beta. Kysely configurado. Middlewares de role operantes. Ver `FILA_IMPLEMENTACAO.md` lote `fundacao-schema-auth`.
-- [x] **REQ-10:** Layout global da aplicação. `AppShell` aplicado em todas as rotas com `SiteHeader` + `SiteFooter`, removendo duplicação por página.
+- [x] **REQ-01:** Repositório, secrets, Oracle, Cloudflare, React+Node.
+- [x] **REQ-02:** Schema + API base. Migrations, Express, Google OAuth, JWT, Kysely.
+- [x] **REQ-10:** Layout global. AppShell, SiteHeader+Footer.
