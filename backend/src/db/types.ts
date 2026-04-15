@@ -246,8 +246,6 @@ export interface TablesTable {
   ddal_rules_notes: string | null;
   is_covil: Generated<boolean>;
   imported_expires_at: Date | null;
-  frequency: 'semanal' | 'quinzenal' | 'mensal' | 'outros' | null;
-  frequency_custom: string | null;
   rules_notes: string | null;
   banner_url: string | null;
   banner_crop_data: { x: number; y: number; width: number; height: number } | null;

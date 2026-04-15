@@ -96,8 +96,6 @@ export interface TableDetail extends TableCard {
   scenario_name?: string | null;
   scenario_subgenres?: string[];
   schedules?: TableSchedule[];
-  frequency?: string | null; // CORREÇÃO C05: Frequência das sessões
-  frequency_custom?: string | null; // CORREÇÃO C05: Frequência customizada
   // VTT Platform (Migration 006)
   vtt_platform?: {
     id: string;

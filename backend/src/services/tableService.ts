@@ -108,8 +108,6 @@ export class TableService {
             ddal_org_code: data.is_ddal ? data.ddal_org_code : null,
             ddal_setting: data.is_ddal ? data.ddal_setting : null,
             ddal_rules_notes: data.is_ddal ? data.ddal_rules_notes : null,
-            frequency: data.frequency,
-            frequency_custom: data.frequency === 'outros' ? data.frequency_custom : null,
             vtt_platform_id: vttPlatformUuid,
             game_platform_custom: data.vtt_platform_id === 'custom' ? data.game_platform_custom : null,
             communication_platform: data.communication_platform ?? null,

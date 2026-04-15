@@ -112,8 +112,6 @@ export interface TableViewModel {
 
   // Horários
   schedules: TableSchedule[];
-  frequency?: string; // CORREÇÃO C05: Frequência das sessões
-  frequencyCustom?: string; // CORREÇÃO C05: Frequência customizada
 
   // Plataformas (online/híbrida)
   vttPlatform?: {

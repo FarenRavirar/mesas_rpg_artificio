@@ -542,7 +542,14 @@ ssh ubuntu@137.131.250.231
 ### Beta (`dev`)
 1. Confirmar conclusão do run no GitHub Actions:
    ```bash
-   gh run list --repo FarenRavirar/mesas_rpg_artificio -L 3 --json databaseId,name,status,conclusion,headBranch,createdAt
+   # Disparar e aguardar — deploy leva ~100s. Aguarde antes de fazer polling.
+   gh run list --workflow "Deploy Beta" --limit 1
+
+   # Aguardar 100s antes de verificar (tempo normal de um deploy completo)
+   sleep 100
+
+   # Então verificar status
+   gh run view <RUN_ID> --json status,conclusion,attempt,url
    ```
 2. Confirmar acesso à URL: `https://mesasbeta.artificiorpg.com`
 3. Testar healthcheck:
@@ -574,7 +581,14 @@ ssh ubuntu@137.131.250.231
 ### Produção (`main`)
 1. Confirmar conclusão do run no GitHub Actions:
    ```bash
-   gh run list --repo FarenRavirar/mesas_rpg_artificio -L 3 --json databaseId,name,status,conclusion,headBranch,createdAt
+   # Deploy de produção leva ~100s. Aguarde antes de fazer polling.
+   gh run list --workflow "Deploy Production" --limit 1
+
+   # Aguardar 100s antes de verificar (tempo normal de um deploy completo)
+   sleep 100
+
+   # Então verificar status
+   gh run view <RUN_ID> --json status,conclusion,attempt,url
    ```
 2. Confirmar no log da etapa de deploy a evidência do gate de migration:
    - `[migrations] schema em conformidade para runtime.`

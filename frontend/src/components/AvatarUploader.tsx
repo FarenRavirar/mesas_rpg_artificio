@@ -33,7 +33,7 @@ export function AvatarUploader({
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const cloudName = (import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '').trim();
-  const uploadEndpoint = (import.meta.env.VITE_API_URL || '').replace(/\/api\/v1$/, '') + '/api/v1';
+  const uploadEndpoint = (import.meta.env.VITE_API_URL || '').replace(/\/api\/v1$/, '') + '/api/v1/upload';
 
   const isCloudinaryConfigured = cloudName.length > 0;
   const previewSource = value.trim() || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="50" fill="%23334"/%3E%3Ccircle cx="50" cy="38" r="18" fill="%23666"/%3E%3Ccircle cx="50" cy="85" r="25" fill="%23666"/%3E%3C/svg%3E';

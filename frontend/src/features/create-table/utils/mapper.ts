@@ -14,11 +14,27 @@ export function formStateToPayload(state: FormState): CreateTablePayload {
       discord_server_url: c.discord_server_url || '',
     }));
 
+  const normalizeScheduleFrequency = (
+    value?: string | null
+  ): 'semanal' | 'quinzenal' | 'mensal' | 'avulsa' => {
+    if (value === 'semanal' || value === 'quinzenal' || value === 'mensal' || value === 'avulsa') {
+      return value;
+    }
+
+    if (value === 'outros') {
+      return 'avulsa';
+    }
+
+    return 'semanal';
+  };
+
   // CORREÇÃO REG-01: Renomear sessions para schedules e mapear estrutura correta
   const schedules = state.sessions.map((s, index) => ({
     day_of_week: s.day_of_week,
     start_time: s.start_time,
     end_time: s.end_time || undefined,
+    frequency: normalizeScheduleFrequency(s.frequency),
+    slots_per_session: typeof s.slots_per_session === 'number' ? s.slots_per_session : null,
     is_ongoing: s.is_ongoing ?? false,
     notes: s.notes || undefined,
     sort_order: index,
@@ -54,8 +70,6 @@ export function formStateToPayload(state: FormState): CreateTablePayload {
     state: state.form.state || undefined,
     content_warnings: state.form.content_warnings || undefined,
     safety_tools: state.form.safety_tools || undefined,
-    frequency: state.frequency || undefined,
-    frequency_custom: state.form.frequency_custom || undefined,
     // VTT Platform: enviar ID ou null se "custom"
     vtt_platform_id: (state.vttPlatformId && state.vttPlatformId !== 'custom') ? state.vttPlatformId : undefined,
     game_platform_custom: (state.vttPlatformId === 'custom' && state.gamePlatformCustom) ? state.gamePlatformCustom : undefined,

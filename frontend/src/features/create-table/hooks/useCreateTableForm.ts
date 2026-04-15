@@ -47,13 +47,12 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
       day_of_week: 'segunda',
       start_time: '19:00',
       end_time: '22:00',
+      frequency: 'semanal',
       is_ongoing: false,
       notes: '',
       sort_order: 0,
     }]
   );
-  const [frequency, setFrequency] = useState(initialData?.frequency || '');
-  const [frequencyCustom, setFrequencyCustom] = useState(initialData?.frequencyCustom || ''); // CORREÇÃO B01: Restaurar do rascunho
   const [vttPlatformId, setVttPlatformId] = useState(initialData?.vttPlatformId || '');
   const [gamePlatformCustom, setGamePlatformCustom] = useState(initialData?.gamePlatformCustom || '');
   const [communicationPlatform, setCommunicationPlatform] = useState(initialData?.communicationPlatform || '');
@@ -154,8 +153,6 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
     selectedSystemId,
     selectedScenarioId,
     sessions,
-    frequency,
-    frequencyCustom, // CORREÇÃO B01: Incluir no formState
     vttPlatformId,
     gamePlatformCustom,
     communicationPlatform,
@@ -283,6 +280,7 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
         day_of_week: 'segunda',
         start_time: '19:00',
         end_time: '22:00',
+        frequency: 'semanal',
         is_ongoing: false,
         notes: '',
         sort_order: 0,
@@ -333,10 +331,6 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
     // Sessões
     sessions,
     setSessions,
-    frequency,
-    setFrequency,
-    frequencyCustom,
-    setFrequencyCustom,
     vttPlatformId,
     setVttPlatformId,
     gamePlatformCustom,

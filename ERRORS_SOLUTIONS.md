@@ -560,3 +560,72 @@ ssh -F C:\projetos\config faren "cd /opt/mesas-beta && docker compose -f docker-
 ```
 
 **Data:** 14/04/2026
+
+---
+
+## E149 - Deploy de producao bloqueado por variaveis Cloudinary ausentes no .env
+
+**Sintoma:**
+Workflow `Deploy Production` falha no step SSH antes de executar o gate de migrations. O run termina com erro de variavel obrigatoria ausente.
+
+**Causa raiz confirmada (15/04/2026):**
+O arquivo `/opt/mesas/.env` em producao nao possui `VITE_CLOUDINARY_CLOUD_NAME` e `VITE_CLOUDINARY_UPLOAD_PRESET`. O workflow `deploy-prod.yml` valida essas chaves no inicio e aborta quando estao ausentes.
+
+**Diagnostico:**
+1. Run de producao apos merge do PR #56: `24430796276` (status `failure`)
+2. Log do run contem: `ERRO: Variavel obrigatoria ausente no .env: VITE_CLOUDINARY_CLOUD_NAME`
+3. Verificacao remota confirmou ausencia no `.env`:
+   - `VITE_CLOUDINARY_CLOUD_NAME=missing`
+   - `VITE_CLOUDINARY_UPLOAD_PRESET=missing`
+
+**Solucao validada:**
+1. Inserir as duas variaveis no `/opt/mesas/.env` com valores corretos de producao
+2. Disparar novo deploy de producao
+3. Confirmar no log do run a execucao de `apply_required_migrations.sh` e a linha `[migrations] schema em conformidade para runtime.`
+
+**Prevenção obrigatoria:**
+1. Antes de merge `dev -> main`, validar obrigatoriamente no servidor de producao a presenca de todas as env vars exigidas por `deploy-prod.yml`
+2. Manter checklist de preflight de envs sensiveis (Cloudinary, OAuth, JWT) como gate previo ao merge
+3. Se o deploy falhar antes do gate de migrations, bloquear avanco do Passo 3 ate rerun bem-sucedido com evidencias de log
+
+**Data:** 15/04/2026
+
+---
+
+## Incidente E148 — Frontend de produção exibe "Backend não disponível" (VITE_API_URL apontando para beta)
+
+**ID:** E148
+
+**Sintoma:** Ao acessar `https://mesas.artificiorpg.com`, o frontend exibe a tela de erro "Backend não disponível — O servidor backend não está respondendo. Tente novamente em alguns instantes." mesmo com todos os containers de produção em estado `healthy`.
+
+**Causa raiz confirmada (15/04/2026):**
+O arquivo `/opt/mesas/.env` foi sincronizado a partir do beta sem ajuste da variável `VITE_API_URL`. O valor copiado era `https://mesasbeta.artificiorpg.com` (URL do beta). O frontend de produção foi buildado com esse valor via `docker-compose.prod.yml` (arg `VITE_API_URL`). O `App.tsx` faz `fetch(${VITE_API_URL}/health)` no startup — como a URL apontava para o beta, o healthcheck do frontend de produção dependia da disponibilidade do ambiente beta. Quando o beta estava fora ou com latência, o frontend de produção exibia o erro.
+
+**Diagnóstico rápido:**
+```bash
+ssh -F C:\projetos\config faren "grep 'VITE_API_URL' /opt/mesas/.env"
+# Resultado incorreto: VITE_API_URL=https://mesasbeta.artificiorpg.com
+# Resultado correto esperado: VITE_API_URL=https://mesas.artificiorpg.com
+```
+
+**Solução validada (15/04/2026):**
+1. Corrigir `/opt/mesas/.env`:
+```bash
+ssh -F C:\projetos\config faren 'set -e; PROD_ENV=/opt/mesas/.env; ts=$(date +%Y%m%d_%H%M%S); cp "$PROD_ENV" "${PROD_ENV}.backup_${ts}"; grep -Ev "^VITE_API_URL=" "$PROD_ENV" > /tmp/prod_env_next; printf "VITE_API_URL=https://mesas.artificiorpg.com" >> /tmp/prod_env_next; echo >> /tmp/prod_env_next; mv /tmp/prod_env_next "$PROD_ENV"; grep "^VITE_API_URL=" "$PROD_ENV"'
+```
+2. Reexecutar `Deploy Production` para rebuild do frontend com a URL correta:
+```bash
+gh run rerun <run_id>
+```
+3. Validar após deploy:
+```bash
+ssh -F C:\projetos\config faren "docker exec mesas-app wget -qO- http://127.0.0.1:80/api/v1/health 2>&1"
+# Esperado: {"status":"ok","environment":"production",...}
+```
+
+**Prevenção obrigatória:**
+1. Ao sincronizar `.env` de beta para produção, NUNCA copiar `VITE_API_URL` diretamente — ajustar para o domínio de produção antes de salvar.
+2. Adicionar ao checklist de preflight de produção: verificar que `VITE_API_URL` em `/opt/mesas/.env` aponta para `https://mesas.artificiorpg.com` e não para `mesasbeta`.
+3. Considerar separar variáveis de ambiente por ambiente em arquivos distintos (`.env.prod`, `.env.beta`) para evitar cópia acidental.
+
+**Data:** 15/04/2026

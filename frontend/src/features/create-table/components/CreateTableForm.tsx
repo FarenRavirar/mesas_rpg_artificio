@@ -268,10 +268,6 @@ export function CreateTableForm({
             setSessions={formHook.setSessions}
             form={formHook.form}
             setForm={formHook.setForm}
-            frequency={formHook.frequency as any}
-            setFrequency={formHook.setFrequency as any}
-            frequencyCustom={formHook.frequencyCustom}
-            setFrequencyCustom={formHook.setFrequencyCustom}
           />
         )}
 

@@ -82,7 +82,7 @@ jobs:
             trap rollback ERR
 
             docker compose -f docker-compose.beta.yml down --remove-orphans
-            docker compose -f docker-compose.beta.yml build
+            docker compose -f docker-compose.beta.yml build --no-cache
             trap - ERR
             docker compose -f docker-compose.beta.yml up -d --force-recreate
 

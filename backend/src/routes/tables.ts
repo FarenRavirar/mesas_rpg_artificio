@@ -344,9 +344,6 @@ router.get('/:slug', async (req: Request, res: Response) => {
         't.synopsis_narrative',
         't.benefits_text',
         't.table_gm_bio',
-        // CORREÇÃO A03: Retornar frequency e frequency_custom
-        't.frequency',
-        't.frequency_custom',
         // CORREÇÃO A01: Retornar campos de VTT Platform
         't.game_platform_custom',
         't.communication_platform',

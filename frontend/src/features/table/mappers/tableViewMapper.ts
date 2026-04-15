@@ -235,8 +235,6 @@ export function mapTableToView(table: TableDetail): TableViewModel {
 
     // Horários
     schedules: table.schedules ?? [],
-    frequency: table.frequency ?? undefined, // CORREÇÃO C05
-    frequencyCustom: table.frequency_custom ?? undefined, // CORREÇÃO C05
 
     // Plataformas
     vttPlatform: table.vtt_platform ? {

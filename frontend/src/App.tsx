@@ -96,10 +96,10 @@ function App() {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'white', backgroundColor: '#1a1a1a' }}>
         <div style={{ textAlign: 'center', maxWidth: '500px', padding: '32px' }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
-          <div style={{ fontSize: '24px', marginBottom: '16px', fontWeight: 'bold' }}>Backend não disponível</div>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
+          <div style={{ fontSize: '24px', marginBottom: '16px', fontWeight: 'bold' }}>Atualização sendo executada</div>
           <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '24px' }}>
-            O servidor backend não está respondendo. Tente novamente em alguns instantes.
+            Estamos trazendo a versão beta para a principal, aguarde um instante para terminarmos.
           </div>
           <button 
             onClick={() => window.location.reload()} 
