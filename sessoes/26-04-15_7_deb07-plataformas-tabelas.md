@@ -69,8 +69,12 @@
 - [x] `MAPA_DE_API.md` revisado para refletir payload real de `vtt_platform` (incluindo `logo_filename`) em `/api/v1/tables` e `/api/v1/gm/tables`, além de campos de comunicação resolvidos.
 - [x] `ARQUITETURA_PROJETO.md` revisado em §§4, 12 e 16 para documentar `vtt_platforms`, `communication_platforms`, campos estruturados em `tables` e regras de renderização de logos por superfície.
 - [x] Build de validação executado com sucesso: `backend` (`npm run build`) e `frontend` (`npm run build`).
-- [ ] Migration 106 aplicada no banco (pendente aprovação para execução SQL de UPDATE em ambiente).
-- [ ] Validação manual beta (listagem catálogo + painel + detalhe da mesa) após aplicação da migration.
+- [x] `migration_106` aplicada no banco beta e validada com `SELECT slug, logo_filename FROM vtt_platforms ORDER BY slug;`.
+- [x] Gate de deploy atualizado: `migration_105_communication_platforms.sql` e `migration_106_vtt_logo_filenames.sql` classificadas em `ONLINE_SAFE_MIGRATIONS`.
+- [x] Entrada obrigatória de mudança visível adicionada em `database/changelogs.json` (`2026-04-15-plataformas-online-e-logos`).
+- [x] Deploy beta executado pela branch `dev` com sucesso (run `24483615951`) e evidência de gate: `[migrations] schema em conformidade para runtime.`.
+- [x] Pós-deploy validado: homepage beta HTTP `200`, health `{"status":"ok","environment":"beta","db":"connected","usersSampled":true}` e `schema_migrations` contendo `migration_105`/`migration_106`.
+- [ ] Validação manual beta (create/edit/list/detail com dados legados de comunicação) pendente.
 
 ## Checklist da sessão
 - [x] Ler `RESUMO_EXECUCAO.md`
@@ -94,7 +98,12 @@
 - [x] Exibir logo VTT no painel (`TableCardDashboard`)
 - [x] Ajustar `TableHero` para online/híbrida com VTT
 - [x] Validar build backend/frontend
-- [ ] Aplicar `migration_106` no banco
+- [x] Classificar `migration_105` e `migration_106` no gate de deploy
+- [x] Adicionar changelog obrigatório para mudança visível
+- [x] Aplicar `migration_106` no banco
+- [x] Executar deploy beta via `dev`
+- [x] Validar health do beta (`/` e `/api/v1/health`)
+- [x] Validar registro de `migration_105`/`migration_106` em `schema_migrations`
 - [ ] Validar fluxo create/edit/list/detail com dados legados
 - [x] Atualizar `RESUMO_EXECUCAO.md`
 - [x] Atualizar `index.md`
@@ -126,6 +135,8 @@
 - `ARQUITETURA_PROJETO.md`
 - `FILA_IMPLEMENTACAO.md`
 - `BACKLOG_OPERACIONAL.md`
+- `scripts/deploy/apply_required_migrations.sh`
+- `database/changelogs.json`
 
 ## Critério de conclusão explícito
 1. CRUD admin de VTT funcional e protegido por role.
@@ -137,3 +148,4 @@
 7. `migration_106_vtt_logo_filenames.sql` aplicada e validada com `SELECT slug, logo_filename FROM vtt_platforms ORDER BY slug;`.
 8. Exibição de logo VTT confirmada no catálogo/homepage, painel e página da mesa.
 9. `MAPA_DE_API.md` e `ARQUITETURA_PROJETO.md` refletindo o contrato real de payload/rotas da feature de logos VTT.
+10. Deploy beta concluído com sucesso para `dev` e evidência do gate de migrations registrada.

@@ -146,20 +146,23 @@ export function TableCardComponent({ table }: { table: TableCard }) {
 
       {/* BLOCO 2: CONTENT (Título + Sistema/Modalidade) */}
       <div className="h-[252px] p-4 flex flex-col">
-        <div className="flex gap-2 mb-3">
+        <div className="flex items-center gap-2 mb-3 min-h-[34px]">
           {table.system_name && (
-            <span className="flex items-center gap-1 px-2 py-1 bg-[#13213f] rounded-md text-xs font-semibold text-[var(--color-artificio-orange)] border border-white/10">
-              <Dice1 className="w-3 h-3" />
-              {table.system_name}
+            <span
+              className="flex min-w-0 max-w-[72%] items-center gap-1 px-2 py-1 bg-[#13213f] rounded-md text-xs font-semibold text-[var(--color-artificio-orange)] border border-white/10"
+              title={table.system_name}
+            >
+              <Dice1 className="w-3 h-3 shrink-0" />
+              <span className="truncate whitespace-nowrap">{table.system_name}</span>
             </span>
           )}
-          <span className="flex items-center gap-1 px-2 py-1 bg-[#13213f] rounded-md text-xs font-semibold text-white/80 border border-white/10">
+          <span className="shrink-0 whitespace-nowrap flex items-center gap-1 px-2 py-1 bg-[#13213f] rounded-md text-xs font-semibold text-white/80 border border-white/10">
             {table.modality === 'online' ? <Globe className="w-3 h-3" /> : <MapPin className="w-3 h-3" />}
             {modalityLabels[table.modality] ?? table.modality}
           </span>
         </div>
 
-        <h3 className="text-lg font-bold text-white group-hover:text-[var(--color-artificio-orange)] transition-colors line-clamp-2 leading-tight mb-4">
+        <h3 className="shrink-0 min-h-[3.25rem] text-lg font-bold text-white group-hover:text-[var(--color-artificio-orange)] transition-colors line-clamp-2 leading-tight mb-4">
           {table.title}
         </h3>
 
