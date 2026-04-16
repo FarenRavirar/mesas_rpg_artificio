@@ -26,7 +26,7 @@ router.get('/', async (req, res) => {
     try {
         let query = db_1.db
             .selectFrom('scenarios')
-            .select(['id', 'name', 'slug', 'subgenres'])
+            .select(['id', 'name', 'name_pt', 'slug', 'subgenres'])
             .orderBy('name', 'asc');
         // Busca full-text se houver query
         if (search.trim().length > 0) {
@@ -54,7 +54,7 @@ router.get('/:id', async (req, res) => {
     try {
         const scenario = await db_1.db
             .selectFrom('scenarios')
-            .select(['id', 'name', 'slug', 'subgenres'])
+            .select(['id', 'name', 'name_pt', 'slug', 'subgenres'])
             .where('id', '=', id)
             .executeTakeFirst();
         if (!scenario) {
@@ -72,7 +72,7 @@ router.get('/:id', async (req, res) => {
 // =============================================================================
 // POST /api/v1/admin/scenarios — Criar novo cenário
 router.post('/admin', auth_1.authMiddleware, (0, auth_1.requireRole)('admin'), async (req, res) => {
-    const { name, subgenres } = req.body;
+    const { name, name_pt, subgenres } = req.body;
     if (!name) {
         return res.status(400).json({ error: 'Nome é obrigatório.' });
     }
@@ -94,10 +94,11 @@ router.post('/admin', auth_1.authMiddleware, (0, auth_1.requireRole)('admin'), a
             .insertInto('scenarios')
             .values({
             name,
+            name_pt: name_pt || null,
             slug,
             subgenres: subgenresArray,
         })
-            .returning(['id', 'name', 'slug', 'subgenres'])
+            .returning(['id', 'name', 'name_pt', 'slug', 'subgenres'])
             .executeTakeFirst();
         return res.status(201).json({ data: newScenario });
     }
@@ -109,7 +110,7 @@ router.post('/admin', auth_1.authMiddleware, (0, auth_1.requireRole)('admin'), a
 // PUT /api/v1/admin/scenarios/:id — Editar cenário
 router.put('/admin/:id', auth_1.authMiddleware, (0, auth_1.requireRole)('admin'), async (req, res) => {
     const { id } = req.params;
-    const { name, subgenres } = req.body;
+    const { name, name_pt, subgenres } = req.body;
     if (!name) {
         return res.status(400).json({ error: 'Nome é obrigatório.' });
     }
@@ -141,11 +142,12 @@ router.put('/admin/:id', auth_1.authMiddleware, (0, auth_1.requireRole)('admin')
             .updateTable('scenarios')
             .set({
             name,
+            name_pt: name_pt || null,
             slug,
             subgenres: subgenresArray,
         })
             .where('id', '=', id)
-            .returning(['id', 'name', 'slug', 'subgenres'])
+            .returning(['id', 'name', 'name_pt', 'slug', 'subgenres'])
             .executeTakeFirst();
         return res.json({ data: updated });
     }

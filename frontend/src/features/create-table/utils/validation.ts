@@ -104,6 +104,14 @@ export function validateStep(step: number, data: FormState): string[] {
     if (data.publisherRole === 'announcer' && !data.actualGmName) {
       errors.push('Nome do mestre obrigatório quando você é apenas anunciante');
     }
+
+    if (data.vttPlatformId === 'custom' && !data.gamePlatformCustom.trim()) {
+      errors.push('Informe a plataforma de jogo personalizada');
+    }
+
+    if (data.communicationPlatformId === 'custom' && !data.communicationPlatformCustom.trim()) {
+      errors.push('Informe a plataforma de comunicação personalizada');
+    }
   }
 
   if (step === 5) {

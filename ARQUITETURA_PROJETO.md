@@ -16,7 +16,7 @@ Definir a arquitetura oficial, os contratos estruturais e o plano de execução 
 **NATUREZA DESTE PROJETO E ESTRATÉGIA DE LANÇAMENTO:**
 1. **Projeto nativo:** Não é um fork de plugin WordPress. É um webapp próprio, construído do zero com a mesma stack e os mesmos princípios do Grande Glossário de RPG.
 2. **Ecossistema Artifício:** Compartilha identidade visual, infraestrutura on-premise e filosofia comunitária com o Glossário. Os dois projetos são independentes mas coirmãos.
-3. **Ambientes previstos:** O beta roda em `mesasbeta.artificiorpg.com` e a produção permanece prevista para `mesas.artificiorpg.com`, ainda não publicada operacionalmente nesta rodada.
+3. **Ambientes ativos:** Beta em `mesasbeta.artificiorpg.com` e produção em `mesas.artificiorpg.com` com deploy via workflows dedicados.
 4. **Missão declarada:** Facilitar que qualquer membro da comunidade brasileira de RPG encontre ou divulgue mesas com autonomia, consistência e sem barreiras de acesso.
 
 ---
@@ -57,7 +57,7 @@ Os recursos principais arquitetados incluem:
 | Ambiente | URL | Branch | Container | Exposição atual |
 |---|---|---|---|---|
 | **Beta (Deploy Contínuo)** | `mesasbeta.artificiorpg.com` | `dev` | `mesas-beta-frontend` | Cloudflare Tunnel via `mesas-beta-frontend:80`, sem porta pública dedicada no host |
-| **Produção** | `mesas.artificiorpg.com` | `main` | `mesas-app` | Ainda não publicada operacionalmente nesta rodada |
+| **Produção** | `mesas.artificiorpg.com` | `main` | `mesas-app` | Ativa, com gate de migrations no workflow `Deploy Production` |
 
 ### 3.1 Credenciais e Nomes Canônicos do PostgreSQL
 
@@ -309,16 +309,20 @@ Se configurar ambiente local for complexo, testar diretamente em:
 - `gm_profiles` — Extensão pública do perfil para mestres: banner, bio longa, especialidades, estatísticas acumuladas.
 - `systems` — Catálogo de sistemas de RPG (D&D, Pathfinder, Tormenta etc.) com slug.
 - `tags` — Taxonomia livre de temas/estilos (Fantasia, Horror, Mistério etc.).
-- `platforms` — Plataformas de jogo (Discord, Foundry VTT, Roll20, presencial etc.).
+- `platforms` — **Legado** de plataformas genéricas (mantido por compatibilidade histórica).
+- `vtt_platforms` — Catálogo estruturado de plataformas VTT (`name`, `slug`, `logo_filename`, `website_url`, `is_active`, `sort_order`).
+- `communication_platforms` — Catálogo estruturado de plataformas de comunicação (`name`, `slug`, `website_url`, `is_active`, `sort_order`).
+- `vtt_platform_suggestions` — Sugestões de novas VTTs enviadas por usuários autenticados, com fluxo de revisão admin.
 - `tables` — Entidade central do anúncio de mesa (ver 4.2).
 - `table_schedules` — Horários recorrentes ou pontuais vinculados a uma mesa.
-- `table_platforms` — Relação N:N entre mesas e plataformas.
+- `table_platforms` — Relação N:N **legada** entre mesas e plataformas (substituída no runtime por campos estruturados em `tables`).
 - `table_tags` — Relação N:N entre mesas e tags.
 - `questions` — Perguntas públicas de jogadores sobre uma mesa.
 - `answers` — Respostas do mestre a perguntas.
 - `reviews` — Avaliações de jogadores após participação.
 - `bookmarks` — Mesas salvas por usuários.
 - `system_suggestions` — Sugestões colaborativas de novos sistemas enviadas por usuários (migration_06).
+- `scenario_suggestions` — Sugestões colaborativas de novos cenários enviadas por usuários (migration_103).
 - `notifications` — Notificações in-app para usuários (migration_07).
 - `imgur_cleanup_log` — Registro de tentativas de limpeza de imagens hospedadas externamente.
 - `user_preferences` — Preferências estruturadas (sistemas, temas, idiomas, plataformas, dias).
@@ -337,6 +341,10 @@ Se configurar ambiente local for complexo, testar diretamente em:
 | `slots_total` e `slots_filled` | Vagas totais e preenchidas |
 | `language` | Idioma da mesa |
 | `modality` | `online`, `presencial`, `hibrida` |
+| `vtt_platform_id` | FK para `vtt_platforms` (plataforma VTT estruturada) |
+| `game_platform_custom` | Texto livre quando a opção de VTT é personalizada |
+| `communication_platform_id` | FK para `communication_platforms` |
+| `communication_platform` | Campo legado de texto livre para compatibilidade de dados antigos |
 | `source_url` | URL de origem (para anúncios importados) |
 | `source_id` | FK para `sources` |
 | `gm_id` | FK para `gm_profiles` (null se importado sem vínculo) |
@@ -345,8 +353,8 @@ Se configurar ambiente local for complexo, testar diretamente em:
 | `banner_url` | URL canônica de banner/capa da mesa (aceita URL pública externa, incluindo `secure_url` do Cloudinary) |
 | `banner_crop_data` | JSONB — Coordenadas de crop visual `{x, y, width, height}` para display via CSS `object-position` (migration_101) |
 | `gm_avatar_url` | URL canônica de foto de perfil do mestre (Cloudinary, Google ou URL externa) |
-| `frequency` | Frequência das sessões: `semanal`, `quinzenal`, `mensal`, `avulsa` (migration_09) |
-| `frequency_custom` | Descrição livre de frequência quando `frequency = 'avulsa'` (migration_09) |
+| `frequency` | **Removida do schema** pela `migration_104_drop_tables_frequency_columns.sql`; frequência global descontinuada em favor de `table_schedules.frequency` |
+| `frequency_custom` | **Removida do schema** pela `migration_104_drop_tables_frequency_columns.sql`; texto de frequência global descontinuado |
 | `rules_notes` | Regras, avisos ou notas especiais da mesa (migration_09) |
 | `is_ddal` | Mesa vinculada ao programa D&D Adventurers League (DDAL) |
 | `ddal_code`, `ddal_name`, `ddal_tier` | Metadados DDAL — obrigatórios quando `is_ddal = true` |
@@ -610,9 +618,10 @@ O contêiner de API Node.js só inicializa se conseguir bater porta e sincroniza
 
 ### Política de Migrations
 
-- Toda migration de banco deve ser versionada via arquivo sequencial em `db/migrations/`.
-- Migrations destrutivas (DROP, ALTER que remove coluna) requerem aprovação explícita e backup prévio.
-- O Backend não executa migrations automaticamente em produção — deploy de migration é etapa manual e documentada.
+- Toda migration de banco deve ser versionada via arquivo sequencial em `database/`.
+- Workflows de deploy (`deploy-beta.yml`, `deploy-prod.yml`, `promote-to-prod.yml`) executam `scripts/deploy/apply_required_migrations.sh` antes de subir a aplicação.
+- Migrations em `ONLINE_SAFE_MIGRATIONS` podem ser aplicadas automaticamente pelo gate.
+- Migrations em `MANUAL_RISK_MIGRATIONS` (ex.: `migration_104_drop_tables_frequency_columns.sql`) exigem execução manual controlada, backup prévio e autorização explícita.
 
 ---
 
@@ -631,34 +640,44 @@ Referência rápida das rotas estruturais da API. Todas as rotas mutáveis exige
 ### Mesas
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
-| `GET` | `/api/v1/tables` | — | Listagem pública com filtros via query params |
-| `GET` | `/api/v1/tables/:slug` | — | Página individual da mesa |
-| `POST` | `/api/v1/tables` | `gm` | Criar nova mesa |
-| `PUT` | `/api/v1/tables/:id` | `gm` (própria) | Editar mesa |
-| `PATCH` | `/api/v1/tables/:id/status` | `gm` / `admin` | Alterar status |
-| `POST` | `/api/v1/tables/:id/bookmark` | `player` | Salvar mesa |
-| `POST` | `/api/v1/tables/:id/export` | — | Gerar texto de exportação, previsto para fase posterior |
+| `GET` | `/api/v1/tables` | — | Listagem pública com filtros via query params; retorna `cover_url` (alias de `banner_url`) e objeto `vtt_platform` quando aplicável |
+| `GET` | `/api/v1/tables/:slug` | — | Página individual da mesa; retorna `vtt_platform` e plataforma de comunicação resolvida (`COALESCE(cp.name, t.communication_platform)`) |
+| `POST` | `/api/v1/tables/:slug/view` | — | Incrementa métrica de visualização |
+| `POST` | `/api/v1/tables/:slug/click` | — | Incrementa métrica de clique |
 
-### Mestres
+### Painel do Mestre (`/api/v1/gm`)
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
 | `GET` | `/api/v1/gm/:slug` | — | Perfil público do mestre |
-| `POST` | `/api/v1/gm/profile` | `player` | Criar gm_profile (eleva role) |
-| `PUT` | `/api/v1/gm/profile` | `gm` | Editar gm_profile |
+| `POST` | `/api/v1/gm/profile` | autenticado | Criar `gm_profile` (eleva role no backend quando necessário) |
+| `PUT` | `/api/v1/gm/profile` | autenticado | Editar `gm_profile` |
+| `GET` | `/api/v1/gm/me` | autenticado | Retorna perfil de mestre do usuário logado |
+| `GET` | `/api/v1/gm/tables` | autenticado | Listagem de mesas do mestre com `image_url`, `vtt_platform` (inclui `logo_filename`) e comunicação resolvida |
+| `GET` | `/api/v1/gm/tables/:id` | autenticado | Detalhe de mesa própria para edição |
+| `POST` | `/api/v1/gm/tables` | autenticado | Criar nova mesa |
+| `PUT` | `/api/v1/gm/tables/:id` | autenticado (mesa própria) | Editar mesa |
+| `PATCH` | `/api/v1/gm/tables/:id/status` | autenticado (mesa própria) | Alterar status (`active`, `full`, `cancelled`, `ended`) |
+| `DELETE` | `/api/v1/gm/tables/:id` | autenticado (mesa própria) | Excluir mesa |
 
-### Perguntas e Avaliações
+### Catálogos de Plataformas
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
-| `GET` | `/api/v1/tables/:id/questions` | — | Listar perguntas públicas |
-| `POST` | `/api/v1/tables/:id/questions` | `player` | Enviar pergunta |
-| `POST` | `/api/v1/questions/:id/answer` | `gm` (própria mesa) | Responder pergunta |
-| `POST` | `/api/v1/tables/:id/reviews` | `player` | Avaliar mesa |
+| `GET` | `/api/v1/vtt-platforms` | — | Lista VTTs ativas para formulário e catálogo; inclui `logo_filename` |
+| `POST` | `/api/v1/vtt-platforms/suggest` | autenticado | Envio de sugestão de nova VTT |
+| `GET` | `/api/v1/vtt-platforms/admin` | `admin` | Lista administrativa de VTTs |
+| `POST` | `/api/v1/vtt-platforms/admin` | `admin` | Cria VTT |
+| `PUT` | `/api/v1/vtt-platforms/admin/:id` | `admin` | Atualiza VTT |
+| `DELETE` | `/api/v1/vtt-platforms/admin/:id` | `admin` | Remove VTT |
+| `GET` | `/api/v1/communication-platforms` | — | Lista plataformas de comunicação ativas |
+| `GET` | `/api/v1/communication-platforms/admin` | `admin` | Lista administrativa de comunicação |
+| `POST` | `/api/v1/communication-platforms/admin` | `admin` | Cria plataforma de comunicação |
+| `PUT` | `/api/v1/communication-platforms/admin/:id` | `admin` | Atualiza plataforma de comunicação |
+| `DELETE` | `/api/v1/communication-platforms/admin/:id` | `admin` | Remove plataforma de comunicação |
 
 ### Admin
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
-| `GET` | `/api/v1/admin/tables/pending` | `admin` | Mesas aguardando moderação |
-| `PATCH` | `/api/v1/admin/tables/:id/moderate` | `admin` | Aprovar ou rejeitar mesa |
+| `PUT` | `/api/v1/admin/tables/:id` | `admin` | Atualização administrativa de mesa |
 | `DELETE` | `/api/v1/admin/tables/:id` | `admin` | Deletar mesa (hard delete com cascade) |
 | `POST` | `/api/v1/admin/systems` | `admin` | Criar sistema |
 | `PUT` | `/api/v1/admin/systems/:id` | `admin` | Editar sistema |
@@ -951,6 +970,11 @@ Ver `CatalogoPage.tsx` (refatorado em Abril/2026) como referência de uso corret
 O runtime atual separa imagem em três grupos:
 
 **Imagens estáticas da interface** — empacotadas no build do frontend e servidas por Nginx.
+- Inclui logos VTT em `frontend/public/vtt-logos/`.
+- Uso no frontend:
+  - Catálogo/home (`TableCard`): exibe somente a logo para mesas `online`/`hibrida` quando `vtt_platform.logo_filename` existe.
+  - Painel (`TableCardDashboard`): exibe somente a logo para mesas `online`/`hibrida`.
+  - Página da mesa (`TableHero`): exibe logo + nome da VTT para mesas `online`/`hibrida`.
 
 **Imagem de mesa** — persistida no campo canônico `tables.banner_url`.
 - Entrada de criação/edição: `banner_url` (payload de `POST/PUT /api/v1/gm/tables`)

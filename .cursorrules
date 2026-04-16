@@ -10,7 +10,7 @@ Leia nesta ordem antes de qualquer ação:
 1. AGENTS.md (na íntegra)
 2. RESUMO_EXECUCAO.md (estado atual e próxima ação)
 3. FILA_IMPLEMENTACAO.md (próximo item com status pendente)
-4. TODO_OPERACIONAL.md (REQ correspondente ao item)
+4. BACKLOG_OPERACIONAL.md (REQ correspondente ao item)
 
 Por situação específica, consulte também:
 - Erro encontrado → ERRORS_SOLUTIONS.md (antes de tentar corrigir)
@@ -28,7 +28,7 @@ Consulte apenas a seção indicada pelo roteamento abaixo.
 
 | Situação | Documento | Seção |
 |----------|-----------|-------|
-| O que fazer (produto) | TODO_OPERACIONAL.md | — |
+| O que fazer (produto) | BACKLOG_OPERACIONAL.md | — |
 | Como fazer (técnico) | FILA_IMPLEMENTACAO.md | — |
 | Banco, modelo de dados | ARQUITETURA_PROJETO.md | §4 |
 | Roles e permissões | ARQUITETURA_PROJETO.md | §5 e §6 |
@@ -114,7 +114,7 @@ Parar completamente e registrar em ERRORS_SOLUTIONS.md quando:
 - ERRORS_SOLUTIONS.md → registrar com causa raiz e solução validada
 
 ### Se REQ do TODO foi concluído:
-- TODO_OPERACIONAL.md → mover para Concluídos Recentes com data
+- BACKLOG_OPERACIONAL.md → mover para Histórico de Conclusão com data e resumo curto
 
 ### Se docker-compose ou Dockerfile foi alterado:
 - ARQUITETURA_PROJETO.md §3 → atualizar apenas trecho afetado
@@ -131,7 +131,7 @@ via PR separado para revisão humana.
 
 ### Limpeza a cada 5 itens concluídos:
 - FILA_IMPLEMENTACAO.md → mover lotes inteiros concluídos para seção Histórico
-- TODO_OPERACIONAL.md → remover REQs em Concluídos Recentes com mais de 30 dias
+- BACKLOG_OPERACIONAL.md → mover REQs concluídos para Histórico de Conclusão (manter índice limpo)
 
 ---
 

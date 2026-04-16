@@ -9,7 +9,7 @@
 Antes de qualquer ação, leia nesta ordem exata:
 1. AGENTS.md — governança completa (leia na íntegra)
 2. RESUMO_EXECUCAO.md — estado atual e próxima ação
-3. TODO_OPERACIONAL.md — backlog de produto (REQ-xx, score GUT)
+3. BACKLOG_OPERACIONAL.md — backlog de produto (REQ-xx, score GUT)
 4. FILA_IMPLEMENTACAO.md — fila técnica de execução (lotes e fases)
 
 Por situação específica, consulte também:
@@ -27,7 +27,7 @@ Nunca leia ARQUITETURA_PROJETO.md na íntegra — consulte apenas a seção rele
 
 | Situação | Documento |
 |----------|-----------|
-| O que fazer (produto, prioridade) | TODO_OPERACIONAL.md |
+| O que fazer (produto, prioridade) | BACKLOG_OPERACIONAL.md |
 | Como fazer (técnico, lote, fase) | FILA_IMPLEMENTACAO.md |
 | Erro encontrado | ERRORS_SOLUTIONS.md |
 | Rotas de API existentes | MAPA_DE_API.md |
@@ -43,14 +43,14 @@ Nunca leia ARQUITETURA_PROJETO.md na íntegra — consulte apenas a seção rele
 ## Fluxo de trabalho por tarefa
 
 1. Identificar o próximo item da FILA_IMPLEMENTACAO.md com status pendente e maior score GUT
-2. Verificar o REQ correspondente no TODO_OPERACIONAL.md
+2. Verificar o REQ correspondente no BACKLOG_OPERACIONAL.md
 3. Consultar ERRORS_SOLUTIONS.md para erros conhecidos relacionados
 4. Criar branch: feature/<escopo> a partir de dev
 5. Criar arquivo de sessão em /sessoes/resumo_[dia-mes]_[escopo].md com plano e checklist
 6. Implementar com mudança mínima e incremental
 7. Rodar npm run build — se falhar, corrigir antes de continuar (máximo 3 tentativas)
 8. Atualizar status na FILA_IMPLEMENTACAO.md: pendente → em_execucao → concluido + data
-9. Atualizar status no TODO_OPERACIONAL.md se o REQ foi concluído
+9. Atualizar status no BACKLOG_OPERACIONAL.md se o REQ foi concluído
 10. Atualizar MAPA_DE_API.md se rotas foram adicionadas, removidas ou alteradas
 11. Registrar erros novos em ERRORS_SOLUTIONS.md
 12. Atualizar RESUMO_EXECUCAO.md com estado atual e próxima ação
@@ -105,7 +105,7 @@ Se o mesmo erro ocorrer 3 vezes consecutivas sem solução:
 ## Atualização de documentos ao concluir tarefa
 
 - FILA_IMPLEMENTACAO.md → marcar item como concluido com data
-- TODO_OPERACIONAL.md → atualizar status do REQ, mover para "Concluídos Recentes" se fechado
+- BACKLOG_OPERACIONAL.md → atualizar status do REQ, mover para Histórico de Conclusão se fechado
 - ERRORS_SOLUTIONS.md → registrar erros novos encontrados durante a execução
 - MAPA_DE_API.md → obrigatório se qualquer rota foi criada, removida ou alterada
 - RESUMO_EXECUCAO.md → atualizar próxima ação
@@ -145,8 +145,8 @@ Quando APENAS arquivos .md são modificados (nenhum .ts, .tsx, .js, .py ou .yml)
 - Lotes inteiros com todos os itens concluidos → mover para seção ## Histórico no final
 - Manter apenas itens pendente e em_execucao na área ativa
 
-### TODO_OPERACIONAL.md
-- REQ com status Concluído em Concluídos Recentes há mais de 30 dias → remover
+### BACKLOG_OPERACIONAL.md
+- REQ concluído → mover para Histórico de Conclusão (manter índice limpo)
 - REQ com status Em validação beta sem atualização por mais de 2 sessões → marcar [REVISAR]
 
 ### MAPA_DE_API.md

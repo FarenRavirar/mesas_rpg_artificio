@@ -55,7 +55,8 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
   );
   const [vttPlatformId, setVttPlatformId] = useState(initialData?.vttPlatformId || '');
   const [gamePlatformCustom, setGamePlatformCustom] = useState(initialData?.gamePlatformCustom || '');
-  const [communicationPlatform, setCommunicationPlatform] = useState(initialData?.communicationPlatform || '');
+  const [communicationPlatformId, setCommunicationPlatformId] = useState(initialData?.communicationPlatformId || '');
+  const [communicationPlatformCustom, setCommunicationPlatformCustom] = useState(initialData?.communicationPlatformCustom || '');
 
   // Configuração
   const [publisherRole, setPublisherRole] = useState<'gm' | 'announcer'>(
@@ -155,7 +156,8 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
     sessions,
     vttPlatformId,
     gamePlatformCustom,
-    communicationPlatform,
+    communicationPlatformId,
+    communicationPlatformCustom,
     publisherRole,
     actualGmName,
     contacts,
@@ -335,8 +337,10 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
     setVttPlatformId,
     gamePlatformCustom,
     setGamePlatformCustom,
-    communicationPlatform,
-    setCommunicationPlatform,
+    communicationPlatformId,
+    setCommunicationPlatformId,
+    communicationPlatformCustom,
+    setCommunicationPlatformCustom,
     
     // Configuração
     publisherRole,

@@ -4,6 +4,10 @@
 > **CHECKLIST OBRIGATÓRIO ANTES DE QUALQUER DEPLOY EM PRODUÇÃO**
 >
 > Este checklist constitui a principal barreira de defesa contra corrupção do banco de dados e downtime da Produção. A Produção é a Única Fonte de Dados Reais do sistema. Qualquer agente que subverter essa lista será responsabilizado por perda de dados críticos.
+>
+> **Documentos relacionados:**
+> - `GIT_WORKFLOW.md` seção 3d — Fluxo de promoção para produção
+> - `OPERACAO_PRODUCAO.md` seção 10 — Playbook canônico de promoção dev -> main
 
 ---
 

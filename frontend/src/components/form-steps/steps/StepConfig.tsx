@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import type { ChangeEvent, InputHTMLAttributes, SelectHTMLAttributes } from 'react';
 import { useVttPlatforms } from '../../../hooks/useVttPlatforms'; // CORREÇÃO B02: Import hook VTT
+import { useCommunicationPlatforms } from '../../../hooks/useCommunicationPlatforms';
 
 interface StepConfigProps {
   form: {
@@ -25,8 +26,10 @@ interface StepConfigProps {
   setVttPlatformId: (id: string) => void;
   gamePlatformCustom: string;
   setGamePlatformCustom: (name: string) => void;
-  communicationPlatform: string;
-  setCommunicationPlatform: (platform: string) => void;
+  communicationPlatformId: string;
+  setCommunicationPlatformId: (id: string) => void;
+  communicationPlatformCustom: string;
+  setCommunicationPlatformCustom: (platform: string) => void;
 }
 
 function InputField({ label, id, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string }) {
@@ -68,11 +71,18 @@ export function StepConfig({
   setVttPlatformId,
   gamePlatformCustom,
   setGamePlatformCustom,
-  communicationPlatform,
-  setCommunicationPlatform,
+  communicationPlatformId,
+  setCommunicationPlatformId,
+  communicationPlatformCustom,
+  setCommunicationPlatformCustom,
 }: StepConfigProps) {
   // CORREÇÃO B02: Consumir hook para renderizar VTTs dinamicamente
-  const { platforms, loading: loadingVtts, error: errorVtts } = useVttPlatforms();
+  const { platforms: vttPlatforms, loading: loadingVtts, error: errorVtts } = useVttPlatforms();
+  const {
+    platforms: communicationPlatforms,
+    loading: loadingCommunicationPlatforms,
+    error: errorCommunicationPlatforms,
+  } = useCommunicationPlatforms();
 
   // CORREÇÃO G05: Resetar vttPlatformId se erro ao carregar VTTs
   useEffect(() => {
@@ -81,6 +91,32 @@ export function StepConfig({
       setVttPlatformId('');
     }
   }, [errorVtts, vttPlatformId, setVttPlatformId]);
+
+  // Compatibilidade edição: API pode retornar UUID em vtt_platform_id,
+  // enquanto o select de VTT usa slug.
+  useEffect(() => {
+    if (!vttPlatformId || vttPlatformId === 'custom') return;
+    if (loadingVtts || vttPlatforms.length === 0) return;
+
+    const alreadySlug = vttPlatforms.some((platform) => platform.slug === vttPlatformId);
+    if (alreadySlug) return;
+
+    const matchedById = vttPlatforms.find((platform) => platform.id === vttPlatformId);
+    if (matchedById) {
+      setVttPlatformId(matchedById.slug);
+    }
+  }, [vttPlatformId, loadingVtts, vttPlatforms, setVttPlatformId]);
+
+  useEffect(() => {
+    if (errorCommunicationPlatforms && communicationPlatformId && communicationPlatformId !== 'custom') {
+      console.warn('[StepConfig] Erro ao carregar plataformas de comunicação, resetando seleção');
+      setCommunicationPlatformId('');
+    }
+  }, [
+    errorCommunicationPlatforms,
+    communicationPlatformId,
+    setCommunicationPlatformId,
+  ]);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -182,7 +218,7 @@ export function StepConfig({
                 {loadingVtts ? 'Carregando plataformas...' : 'Selecione a plataforma'}
               </option>
               {/* CORREÇÃO B02: Renderizar VTTs dinamicamente do banco */}
-              {!loadingVtts && !errorVtts && platforms.map((platform) => (
+              {!loadingVtts && !errorVtts && vttPlatforms.map((platform) => (
                 <option 
                   key={platform.id} 
                   value={platform.slug}
@@ -221,14 +257,53 @@ export function StepConfig({
               </>
             )}
 
-            <InputField
+            <SelectField
               label="Plataforma de Comunicação"
-              id="communication_platform"
-              name="communication_platform"
-              value={communicationPlatform}
-              onChange={(e) => setCommunicationPlatform(e.target.value)}
-              placeholder="Ex: Discord, Zoom, Google Meet"
-            />
+              id="communication_platform_id"
+              name="communication_platform_id"
+              value={communicationPlatformId}
+              onChange={(e) => setCommunicationPlatformId(e.target.value)}
+              disabled={loadingCommunicationPlatforms}
+            >
+              <option value="">
+                {loadingCommunicationPlatforms ? 'Carregando plataformas...' : 'Selecione a plataforma'}
+              </option>
+              {!loadingCommunicationPlatforms && !errorCommunicationPlatforms && communicationPlatforms.map((platform) => (
+                <option
+                  key={platform.id}
+                  value={platform.id}
+                  title={platform.name}
+                >
+                  {platform.name}
+                </option>
+              ))}
+              <option value="custom" title="Plataforma personalizada ou outra não listada">✏️ Personalizado</option>
+            </SelectField>
+
+            {errorCommunicationPlatforms && (
+              <p className="text-xs text-red-400 mt-1">
+                ⚠️ Erro ao carregar plataformas de comunicação. Você pode usar a opção "Personalizado".
+              </p>
+            )}
+
+            {communicationPlatformId === 'custom' && (
+              <>
+                <InputField
+                  label="Plataforma de Comunicação Personalizada"
+                  id="communication_platform_custom"
+                  name="communication_platform_custom"
+                  value={communicationPlatformCustom}
+                  onChange={(e) => setCommunicationPlatformCustom(e.target.value)}
+                  placeholder="Ex: Discord da comunidade, TeamSpeak"
+                  required
+                />
+                {!communicationPlatformCustom && (
+                  <p className="text-xs text-amber-400 mt-1">
+                    ⚠️ Este campo é obrigatório quando você seleciona "Personalizado"
+                  </p>
+                )}
+              </>
+            )}
           </>
         )}
 

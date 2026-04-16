@@ -326,22 +326,23 @@ compose_file: /opt/mesas-beta/docker-compose.beta.yml
 remote_env_selected:
 
 ```env
+# ATENÇÃO: credenciais reais removidas deste arquivo por segurança.
+# Variáveis presentes no .env de beta (apenas nomes — sem valores):
 POSTGRES_USER=admin
-POSTGRES_PASSWORD=MesasRPG#2026!Xk9vPq
+POSTGRES_PASSWORD=<REDACTED>
 POSTGRES_DB=mesas_rpg
-DATABASE_URL=postgresql://admin:MesasRPG%232026!Xk9vPq@mesas-beta-db:5432/mesas_rpg
-GOOGLE_CLIENT_ID=SEU_GOOGLE_CLIENT_ID_AQUI
-GOOGLE_CLIENT_SECRET=SEU_GOOGLE_CLIENT_SECRET_AQUI
+DATABASE_URL=postgresql://admin:<REDACTED>@mesas-beta-db:5432/mesas_rpg
+GOOGLE_CLIENT_ID=<REDACTED>
+GOOGLE_CLIENT_SECRET=<REDACTED>
 GOOGLE_CALLBACK_URL=https://mesasbeta.artificiorpg.com/api/v1/auth/google/callback
 FRONTEND_URL=https://mesasbeta.artificiorpg.com
-JWT_SECRET=a1f3c7e2b9d4f6a8c0e2b4d6f8a0c2e4b6d8f0a2c4e6b8d0f2a4c6e8b0d2f4a6
-JWT_REFRESH_SECRET=f6d4b2a0e8c6f4d2b0a8e6c4f2d0b8a6e4c2f0d8b6a4e2c0f8d6b4a2e0c8f6d4
+JWT_SECRET=<REDACTED>
+JWT_REFRESH_SECRET=<REDACTED>
 JWT_EXPIRES_IN=7d
 JWT_REFRESH_EXPIRES_IN=7d
-IMGUR_CLIENT_ID=SUBSTITUIR_DEPOIS  # não usado, sendo removido
-DISCORD_CLIENT_ID=1490592397950976162
-DISCORD_CLIENT_SECRET=-y9qOC4ICxVJ2l-iM9n81m110chyaNWH
-DISCORD_GUILD_ID=1258189767720304672
+DISCORD_CLIENT_ID=<REDACTED>
+DISCORD_CLIENT_SECRET=<REDACTED>
+DISCORD_GUILD_ID=<REDACTED>
 DISCORD_REDIRECT_URI=https://mesasbeta.artificiorpg.com/auth/discord/callback
 FRONTEND_URLS=https://mesasbeta.artificiorpg.com,http://localhost:5173,http://127.0.0.1:5173
 COOKIE_SAME_SITE=none
@@ -353,7 +354,7 @@ COOKIE_SAME_SITE=none
 container_env_effective:
 
 ```env
-DATABASE_URL=postgresql://admin:MesasRPG%232026!Xk9vPq@mesas-beta-db:5432/mesas_rpg
+DATABASE_URL=postgresql://admin:<REDACTED>@mesas-beta-db:5432/mesas_rpg
 APP_ENV=beta
 GOOGLE_CALLBACK_URL=https://mesasbeta.artificiorpg.com/api/v1/auth/google/callback
 FRONTEND_URL=https://mesasbeta.artificiorpg.com
@@ -503,10 +504,10 @@ pending_migrations:
 compose_read: true
 workflow_read: true
 remote_path_expected: /opt/mesas/
-remote_path_current_state: only_env_file_present
+remote_path_current_state: deployed_and_active
 remote_env_present: true
-runtime_deployed: false
-health_validated: false
+runtime_deployed: true  # atualizado 15/04/2026 — produção ativa em mesas.artificiorpg.com
+health_validated: true
 oauth_validated: false
 db_volume_validated: false
 logs_validated: false

@@ -20,6 +20,13 @@ interface MyTableEnhanced {
   system_name: string | null;
   image_url?: string | null;
   metrics?: TableMetrics;
+  vtt_platform?: {
+    id: string;
+    name: string;
+    slug: string;
+    logo_filename: string | null;
+    website_url: string | null;
+  } | null;
 }
 
 interface TableCardDashboardProps {
@@ -64,7 +71,7 @@ export function TableCardDashboard({
       {/* IMAGE */}
       <a 
         href={`/mesas/${table.slug}`}
-        className={`block h-32 rounded-lg overflow-hidden bg-white/10 hover:opacity-90 transition-opacity cursor-pointer ${
+        className={`relative block h-32 rounded-lg overflow-hidden bg-white/10 hover:opacity-90 transition-opacity cursor-pointer ${
           isInactive ? 'grayscale' : '' // Desativada: imagem em escala de cinza
         }`}
       >
@@ -79,6 +86,22 @@ export function TableCardDashboard({
             img.src = bannerPlaceholder;
           }}
         />
+
+        {(table.modality === 'online' || table.modality === 'hibrida') && table.vtt_platform?.logo_filename && (
+          <span
+            className="absolute bottom-2 right-2 h-8 min-w-8 px-1.5 rounded-md bg-black/55 border border-white/20 backdrop-blur-sm inline-flex items-center justify-center"
+            title={table.vtt_platform.name}
+          >
+            <img
+              src={`/vtt-logos/${table.vtt_platform.logo_filename}`}
+              alt={table.vtt_platform.name}
+              className="h-[18px] w-auto object-contain"
+              onError={(event) => {
+                event.currentTarget.parentElement?.classList.add('hidden');
+              }}
+            />
+          </span>
+        )}
       </a>
 
       {/* TITLE */}

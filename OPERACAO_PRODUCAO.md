@@ -729,6 +729,8 @@ Para correlação operacional, considerar `America/Araguaina` como referência l
 
 > Sempre seguir este playbook antes de qualquer push para `main`.
 > Autorização explícita do responsável é obrigatória antes de iniciar.
+>
+> **IMPORTANTE:** Este playbook deve ser executado em conjunto com `PRE_DEPLOY_CHECKLIST.md` (4 fases obrigatórias: validação, migrations, backup, deploy).
 
 ### 10.1 Objetivo da promoção
 
@@ -737,6 +739,8 @@ Para correlação operacional, considerar `America/Araguaina` como referência l
 - Evitar divergência entre ambiente remoto e fluxo versionado
 
 ### 10.2 Checklist de GO/NO-GO
+
+**Pré-requisito obrigatório:** Executar `PRE_DEPLOY_CHECKLIST.md` completo antes de prosseguir.
 
 1. Confirmar autorização explícita no chat
 2. Confirmar branch candidata e divergência entre refs

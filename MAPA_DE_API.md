@@ -46,10 +46,10 @@
 | **POST** | `/profile` | ✅ Em Uso | PainelMestrePage.tsx (CreateGmProfileForm) |
 | **PUT** | `/profile` | ❌ Pendente/Front | - (sem consumidor ativo no frontend) |
 | **GET** | `/me` | ✅ Em Uso | PainelMestrePage.tsx |
-| **GET** | `/tables/:id` | ✅ Em Uso | PainelMestrePage.tsx — retorno atual inclui `banner_url` e campos legados da tabela (incluindo `cover_url`), sem alias `image_url`; integração de edição usa fallback `banner_url ?? image_url` no mapper |
-| **POST** | `/tables` | ✅ Em Uso | useCreateTableForm.ts, PainelMestrePage.tsx |
-| **PUT** | `/tables/:id` | ✅ Em Uso | useCreateTableForm.ts, PainelMestrePage.tsx |
-| **GET** | `/tables` | ✅ Em Uso | PainelMestrePage.tsx — retorna `image_url` (alias de `banner_url`) para cards do painel |
+| **GET** | `/tables/:id` | ✅ Em Uso | PainelMestrePage.tsx — retorno inclui campos canônicos/legados da tabela (`banner_url`, `cover_url`), `vtt_platform_id`, `game_platform_custom`, `communication_platform_id` e `communication_platform` resolvida (`COALESCE(cp.name, t.communication_platform)`); não inclui alias `image_url` |
+| **POST** | `/tables` | ✅ Em Uso | useCreateTableForm.ts, PainelMestrePage.tsx — submit corrigido em 15/04 para `${API_BASE}/api/v1/gm/tables` |
+| **PUT** | `/tables/:id` | ✅ Em Uso | useCreateTableForm.ts, PainelMestrePage.tsx — submit corrigido em 15/04 para `${API_BASE}/api/v1/gm/tables/:id` |
+| **GET** | `/tables` | ✅ Em Uso | PainelMestrePage.tsx, TableCardDashboard.tsx — retorna `image_url` (alias de `banner_url`) e objeto `vtt_platform` (`id`, `name`, `slug`, `logo_filename`, `website_url`) para cards do painel; inclui `communication_platform` resolvida |
 | **PATCH** | `/tables/:id/status` | ✅ Em Uso | PainelMestrePage.tsx (handleToggleTableStatus) - **Aceita apenas:** 'active', 'full', 'cancelled', 'ended' |
 | **DELETE** | `/tables/:id` | ✅ Em Uso | uiHelpers.ts, PainelMestrePage.tsx |
 | **POST** | `/tables/:slug/view` | ❌ Pendente/Front | - |
@@ -146,8 +146,8 @@
 ### TABLES (`routes/tables.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
 |---|---|---|---|
-| **GET** | `/` | ✅ Em Uso | TableCard.tsx, uiHelpers.ts, useFetchTables.ts, GestaoPage.tsx, MesaPage.tsx, PainelMestrePage.tsx, catalogService.ts — retorna `cover_url` (alias de `banner_url` em `routes/tables.ts`) |
-| **GET** | `/:slug` | ✅ Em Uso | TableCard.tsx, uiHelpers.ts, useFetchTables.ts, GestaoPage.tsx, MesaPage.tsx, PainelMestrePage.tsx, catalogService.ts — retorna `cover_url` (alias de `banner_url` em `routes/tables.ts`) |
+| **GET** | `/` | ✅ Em Uso | TableCard.tsx, uiHelpers.ts, useFetchTables.ts, GestaoPage.tsx, MesaPage.tsx, PainelMestrePage.tsx, catalogService.ts — retorna `cover_url` (alias de `banner_url`) + objeto `vtt_platform` (`logo_filename` incluso) para render da logo no catálogo |
+| **GET** | `/:slug` | ✅ Em Uso | TableCard.tsx, uiHelpers.ts, useFetchTables.ts, GestaoPage.tsx, MesaPage.tsx, PainelMestrePage.tsx, catalogService.ts — retorna `cover_url` (alias de `banner_url`), `vtt_platform` completo e comunicação resolvida (`COALESCE(cp.name, t.communication_platform)`) |
 | **POST** | `/:slug/view` | ✅ Em Uso | TableCard.tsx, useFetchTables.ts, GestaoPage.tsx, MesaPage.tsx, PainelMestrePage.tsx, catalogService.ts |
 | **POST** | `/:slug/click` | ✅ Em Uso | TableCard.tsx, uiHelpers.ts, useFetchTables.ts, GestaoPage.tsx, MesaPage.tsx, PainelMestrePage.tsx, catalogService.ts |
 
@@ -159,11 +159,24 @@
 | **PUT** | `/:tableId/schedules/:id` | ❌ Pendente/Front | - |
 | **DELETE** | `/:tableId/schedules/:id` | ❌ Pendente/Front | - |
 
+### COMMUNICATIONPLATFORMS (`routes/communicationPlatforms.ts`)
+| Metodo | Endpoint | Status | Chamado por (Frontend) |
+|---|---|---|---|
+| **GET** | `/` | ✅ Em Uso | useCommunicationPlatforms.ts, StepConfig.tsx, CreateTableForm.tsx |
+| **GET** | `/admin` | ✅ Em Uso | PlatformsPage.tsx (GestaoPage.tsx > subaba Plataformas) |
+| **POST** | `/admin` | ✅ Em Uso | PlatformsPage.tsx (criação) |
+| **PUT** | `/admin/:id` | ✅ Em Uso | PlatformsPage.tsx (edição + toggle de status) |
+| **DELETE** | `/admin/:id` | ✅ Em Uso | PlatformsPage.tsx (remoção) |
+
 ### VTTPLATFORMS (`routes/vttPlatforms.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
 |---|---|---|---|
-| **GET** | `/` | ❌ Pendente/Front | - |
+| **GET** | `/` | ✅ Em Uso | useVttPlatforms.ts, StepConfig.tsx, CreateTableForm.tsx, PlatformsPage.tsx — catálogo retorna `logo_filename` para render da identidade visual (`/vtt-logos/{logo_filename}`) |
 | **POST** | `/suggest` | ❌ Pendente/Front | - |
+| **GET** | `/admin` | ✅ Em Uso | PlatformsPage.tsx (GestaoPage.tsx > subaba Plataformas) |
+| **POST** | `/admin` | ✅ Em Uso | PlatformsPage.tsx (criação) |
+| **PUT** | `/admin/:id` | ✅ Em Uso | PlatformsPage.tsx (edição + toggle de status) |
+| **DELETE** | `/admin/:id` | ✅ Em Uso | PlatformsPage.tsx (remoção) |
 
 ### UPLOAD (`routes/upload.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |

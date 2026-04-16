@@ -19,7 +19,7 @@ Leia nesta ordem:
 2. RESUMO_EXECUCAO.md (estado atual)
 3. docs/sync-patches/ (patches pendentes de aplicar)
 4. FILA_IMPLEMENTACAO.md (itens concluídos sem limpeza)
-5. TODO_OPERACIONAL.md (REQs com status desatualizado)
+5. BACKLOG_OPERACIONAL.md (REQs com status desatualizado)
 
 ---
 
@@ -49,7 +49,7 @@ Execute nesta ordem a cada sessão:
 4. Manter apenas itens pendente e em_execucao na área ativa
 5. Commit: "docs: limpa itens concluídos da FILA [data]"
 
-### Tarefa 3 — Limpar TODO_OPERACIONAL.md
+### Tarefa 3 — Limpar BACKLOG_OPERACIONAL.md
 
 1. Identificar REQs em "Concluídos Recentes" com data
 2. REQs com mais de 30 dias → remover
@@ -121,7 +121,7 @@ Execute nesta ordem a cada sessão:
 A sessão termina quando:
 - Todos os patches em docs/sync-patches/ foram processados
 - FILA_IMPLEMENTACAO.md está limpa (sem lotes inteiros concluídos)
-- TODO_OPERACIONAL.md está limpa (sem REQs expirados)
+- BACKLOG_OPERACIONAL.md está limpa (sem REQs expirados)
 - MAPA_DE_API.md está atualizado com sessões recentes
 - RESUMO_EXECUCAO.md está atualizado
 - PR de documentação foi aberto

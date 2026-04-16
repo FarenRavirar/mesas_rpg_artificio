@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { SystemsPage } from '../modules/admin/systems/SystemsPage';
+import { PlatformsPage } from '../modules/admin/platforms/PlatformsPage';
 import { ScenarioEditModal } from '../components/ScenarioEditModal';
 import { Edit, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -29,7 +30,7 @@ export const GestaoPage = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
   const [activeTab, setActiveTab] = useState<'systems' | 'crud'>('crud');
-  const [crudSubTab, setCrudSubTab] = useState<'systems' | 'scenarios' | 'tables'>('systems');
+  const [crudSubTab, setCrudSubTab] = useState<'systems' | 'platforms' | 'scenarios' | 'tables'>('systems');
   const [scenarioEditModal, setScenarioEditModal] = useState<any>(null);
   const [allScenarios, setAllScenarios] = useState<any[]>([]);
   const [allTables, setAllTables] = useState<any[]>([]);
@@ -335,6 +336,16 @@ export const GestaoPage = () => {
                 Sistemas
               </button>
               <button
+                onClick={() => setCrudSubTab('platforms')}
+                className={`px-4 py-2 rounded-lg transition-all ${
+                  crudSubTab === 'platforms'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white/5 text-white/60 hover:bg-white/10'
+                }`}
+              >
+                Plataformas
+              </button>
+              <button
                 onClick={() => setCrudSubTab('scenarios')}
                 className={`px-4 py-2 rounded-lg transition-all ${
                   crudSubTab === 'scenarios'
@@ -357,6 +368,7 @@ export const GestaoPage = () => {
             </div>
 
             {crudSubTab === 'systems' && <SystemsPage />}
+            {crudSubTab === 'platforms' && <PlatformsPage />}
 
             {crudSubTab === 'scenarios' && (
               <div>

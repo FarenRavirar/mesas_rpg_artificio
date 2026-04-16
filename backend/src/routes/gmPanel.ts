@@ -288,8 +288,20 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
     }
 
     const vttPlatformUuid = await TableService.validateVttPlatform(data.vtt_platform_id ?? null);
+    const communicationPlatformResolved = await TableService.validateCommunicationPlatform(
+      data.communication_platform_id ?? null,
+      data.communication_platform ?? null
+    );
     const slug = TableService.generateSlug(data.title);
-    const tableData = TableService.prepareTableData(data, gmProfile.id, vttPlatformUuid, slug, userRole);
+    const tableData = TableService.prepareTableData(
+      data,
+      gmProfile.id,
+      vttPlatformUuid,
+      communicationPlatformResolved.id,
+      communicationPlatformResolved.legacy,
+      slug,
+      userRole
+    );
 
     // Persistência usando Repository
     const newTable = await TableRepository.createTableWithRelations(
@@ -302,7 +314,7 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('[POST /gm/tables]', error);
 
-    if (error.message === 'Plataforma VTT inválida') {
+    if (error.message === 'Plataforma VTT inválida' || error.message === 'Plataforma de comunicação inválida') {
       return res.status(400).json({ error: error.message });
     }
 
@@ -368,6 +380,21 @@ router.put('/tables/:id', authMiddleware, async (req: Request, res: Response) =>
       }
     }
 
+    const hasVttPlatformField = Object.prototype.hasOwnProperty.call(data, 'vtt_platform_id');
+    const vttPlatformUuid = hasVttPlatformField
+      ? await TableService.validateVttPlatform(data.vtt_platform_id ?? null)
+      : undefined;
+
+    const hasCommunicationPlatformIdField = Object.prototype.hasOwnProperty.call(data, 'communication_platform_id');
+    const hasCommunicationPlatformLegacyField = Object.prototype.hasOwnProperty.call(data, 'communication_platform');
+
+    const communicationPlatformResolved = (hasCommunicationPlatformIdField || hasCommunicationPlatformLegacyField)
+      ? await TableService.validateCommunicationPlatform(
+          data.communication_platform_id ?? null,
+          data.communication_platform ?? null
+        )
+      : null;
+
     // Preparar dados de atualização
     const updateData: any = {
       title: data.title,
@@ -402,9 +429,12 @@ router.put('/tables/:id', authMiddleware, async (req: Request, res: Response) =>
       ddal_org_code: data.is_ddal ? data.ddal_org_code : undefined,
       ddal_setting: data.is_ddal ? data.ddal_setting : undefined,
       ddal_rules_notes: data.is_ddal ? data.ddal_rules_notes : undefined,
-      vtt_platform_id: data.vtt_platform_id,
-      game_platform_custom: data.game_platform_custom,
-      communication_platform: data.communication_platform,
+      vtt_platform_id: vttPlatformUuid,
+      game_platform_custom: hasVttPlatformField
+        ? (data.vtt_platform_id === 'custom' ? data.game_platform_custom : null)
+        : data.game_platform_custom,
+      communication_platform_id: communicationPlatformResolved ? communicationPlatformResolved.id : undefined,
+      communication_platform: communicationPlatformResolved ? communicationPlatformResolved.legacy : undefined,
       rules_notes: data.rules_notes,
       banner_url: data.banner_url,
       master_display_name: data.master_display_name,
@@ -441,6 +471,11 @@ router.put('/tables/:id', authMiddleware, async (req: Request, res: Response) =>
     return res.json({ data: updated });
   } catch (error: any) {
     console.error('[PUT /gm/tables/:id]', error);
+
+    if (error.message === 'Plataforma VTT inválida' || error.message === 'Plataforma de comunicação inválida') {
+      return res.status(400).json({ error: error.message });
+    }
+
     return res.status(500).json({ error: 'Erro ao editar mesa.' });
   }
 });
@@ -462,6 +497,8 @@ router.get('/tables', authMiddleware, async (req: Request, res: Response) => {
       .selectFrom('tables as t')
       .leftJoin('systems as s', 's.id', 't.system_id')
       .leftJoin('table_metrics as tm', 'tm.table_id', 't.id')
+      .leftJoin('vtt_platforms as vtt', 'vtt.id', 't.vtt_platform_id')
+      .leftJoin('communication_platforms as cp', 'cp.id', 't.communication_platform_id')
       .select([
         't.id',
         't.slug',
@@ -513,7 +550,20 @@ router.get('/tables', authMiddleware, async (req: Request, res: Response) => {
         't.table_gm_bio',
         't.vtt_platform_id',
         't.game_platform_custom',
-        't.communication_platform',
+        sql<any>`
+          CASE WHEN vtt.id IS NOT NULL THEN
+            json_build_object(
+              'id', vtt.id,
+              'name', vtt.name,
+              'slug', vtt.slug,
+              'logo_filename', vtt.logo_filename,
+              'website_url', vtt.website_url
+            )
+          ELSE NULL
+          END
+        `.as('vtt_platform'),
+        't.communication_platform_id',
+        sql<string | null>`COALESCE(cp.name, t.communication_platform)`.as('communication_platform'),
         's.name as system_name',
         sql<number>`COALESCE(tm.views_count, 0)`.as('metrics_views'),
         sql<number>`COALESCE(tm.clicks_count, 0)`.as('metrics_clicks'),
