@@ -25,6 +25,7 @@ ONLINE_SAFE_MIGRATIONS=(
   "migration_103_scenario_suggestions.sql"
   "migration_105_communication_platforms.sql"
   "migration_106_vtt_logo_filenames.sql"
+  "migration_107_gm_public_profile_v2.sql"
 )
 
 # Migrations classificadas como risco/execucao manual.

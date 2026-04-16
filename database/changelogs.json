@@ -1,5 +1,13 @@
 [
   {
+    "id": "2026-04-16-perfil-publico-mestre-v2",
+    "title": "Perfil público do mestre ficou mais claro para visitantes e mais privado para você",
+    "body": "Atualizamos a página pública do mestre para equilibrar apresentação e privacidade:\n\n• **Perfil mais organizado para visitantes** - A página mostra informações essenciais sem expor dados sensíveis\n• **Insights visíveis só para quem pode ver** - Dados de desempenho ficam restritos ao próprio mestre e à administração\n• **Navegação mais confiável por tipo de acesso** - A visualização muda corretamente para visitante, dono do perfil e admin\n\n_Atualização publicada em 16/04/2026 às 18:15_",
+    "type": "app",
+    "published": true,
+    "created_at": "2026-04-16T18:15:00-03:00"
+  },
+  {
     "id": "2026-04-16-faixa-etaria-visual",
     "title": "Faixa etária das mesas ficou mais clara de entender",
     "body": "A seleção de faixa etária no cadastro de mesas ficou mais fácil de interpretar:\n\n• **Classificação com cores e símbolos** - Agora cada opção tem um marcador visual para leitura rápida\n• **Mais segurança ao preencher o anúncio** - Fica mais simples evitar escolher uma classificação errada\n• **Experiência mais direta no formulário** - Você identifica a opção certa com menos dúvida\n\n_Atualização publicada em 16/04/2026 às 01:50_",

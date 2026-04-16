@@ -26,7 +26,7 @@ interface CreateLinkInput {
 }
 
 interface UserLinkWithMetadata extends UserLinks {
-  embed_url?: string;
+  embed_url: string | null;
 }
 
 /**
@@ -175,7 +175,7 @@ export async function getUserLinks(userId: string): Promise<UserLinkWithMetadata
   // Adicionar embed_url para cada link
   return links.map((link: UserLinks) => ({
     ...link,
-    embed_url: generateEmbedUrl(link.url, link.type as LinkType) || undefined,
+    embed_url: generateEmbedUrl(link.url, link.type as LinkType),
   }));
 }
 
@@ -228,7 +228,7 @@ export async function createUserLink(userId: string, input: CreateLinkInput): Pr
   
   return {
     ...link,
-    embed_url: generateEmbedUrl(link.url, type) || undefined,
+    embed_url: generateEmbedUrl(link.url, type),
   };
 }
 

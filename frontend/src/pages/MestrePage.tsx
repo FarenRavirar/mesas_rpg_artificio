@@ -23,6 +23,10 @@ interface GmProfilePayload {
     avg_rating: number | null;
     reviews_count: number;
     created_at: string;
+    viewer_context?: {
+      is_owner: boolean;
+      is_admin: boolean;
+    };
     // Novos campos do perfil completo
     discord_connected?: boolean;
     discord_username?: string | null;
@@ -37,10 +41,32 @@ interface GmProfilePayload {
   };
 }
 
+interface GmInsightsPayload {
+  data: {
+    metrics: Array<{
+      id: string;
+      slug: string;
+      title: string;
+      views: number;
+      clicks: number;
+      contacts: number;
+      favorites: number;
+    }>;
+    recommendations: Array<{
+      table_slug: string;
+      severity: 'high' | 'medium' | 'low';
+      message: string;
+    }>;
+  };
+}
+
 export const MestrePage = () => {
   const { slug } = useParams<{ slug: string }>();
   const [profile, setProfile] = useState<GmProfilePayload['data'] | null>(null);
   const [links, setLinks] = useState<UserLink[]>([]);
+  const [insights, setInsights] = useState<string[]>([]);
+  const [recommendations, setRecommendations] = useState<string[]>([]);
+  const [insightsLoading, setInsightsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,7 +84,10 @@ export const MestrePage = () => {
       setError(null);
 
       try {
-        const res = await fetch(`/api/v1/gm/${slug}`, { signal: controller.signal });
+        const res = await fetch(`/api/v1/gm/${slug}`, {
+          signal: controller.signal,
+          credentials: 'include',
+        });
 
         if (res.status === 404) {
           setError('Mestre não encontrado.');
@@ -92,40 +121,15 @@ export const MestrePage = () => {
     );
   }, [profile]);
 
-  // Sistema de score automático
-  function calculateTableScore(table: any): number {
-    const views = table.metrics_views ?? 0;
-    const contacts = table.metrics_contacts ?? 0;
-    const favorites = table.metrics_favorites ?? 0;
-
-    const conversionRate = views > 0 ? contacts / views : 0;
-
-    return (
-      views * 0.1 +
-      contacts * 5 +
-      favorites * 3 +
-      conversionRate * 100
-    );
-  }
-
   const mappedTables = useMemo(() => {
     if (!profile) return [] as TableCard[];
 
-    return profile.tables
-      .map((table: any) => ({
-        ...table,
-        gm_slug: profile.slug,
-        gm_avatar_url: profile.avatar_url,
-        gm_display_name: profile.display_name,
-        metrics: {
-          views: table.metrics_views ?? 0,
-          clicks: table.metrics_clicks ?? 0,
-          contacts: table.metrics_contacts ?? 0,
-          favorites: table.metrics_favorites ?? 0,
-        },
-        score: calculateTableScore(table)
-      }))
-      .sort((a: any, b: any) => b.score - a.score); // Ranking automático
+    return profile.tables.map((table: any) => ({
+      ...table,
+      gm_slug: profile.slug,
+      gm_avatar_url: profile.avatar_url,
+      gm_display_name: profile.display_name,
+    }));
   }, [profile]);
 
   const totalOpenSlots = useMemo(() => {
@@ -135,62 +139,58 @@ export const MestrePage = () => {
     );
   }, [mappedTables]);
 
-  // Insights automáticos
-  function generateInsights(tables: TableCard[]) {
-    const insights: string[] = [];
+  const canSeeInsights = !!profile?.viewer_context?.is_owner || !!profile?.viewer_context?.is_admin;
 
-    tables.forEach((table) => {
-      const views = table.metrics?.views ?? 0;
-      const contacts = table.metrics?.contacts ?? 0;
+  useEffect(() => {
+    const controller = new AbortController();
 
-      if (views > 50 && contacts === 0) {
-        insights.push(`⚠️ "${table.title}" tem muitas visualizações mas zero contatos.`);
+    const loadInsights = async () => {
+      if (!slug || !canSeeInsights) {
+        setInsights([]);
+        setRecommendations([]);
+        return;
       }
 
-      if (contacts > 5) {
-        insights.push(`🔥 "${table.title}" está performando muito bem.`);
-      }
+      setInsightsLoading(true);
 
-      if (views < 10) {
-        insights.push(`👀 "${table.title}" tem pouca visibilidade.`);
-      }
-    });
+      try {
+        const res = await fetch(`/api/v1/gm/${slug}/insights`, {
+          signal: controller.signal,
+          credentials: 'include',
+        });
 
-    return insights;
-  }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-  // Recomendações automáticas
-  function generateRecommendations(tables: TableCard[]) {
-    const recommendations: string[] = [];
+        const json = (await res.json()) as GmInsightsPayload;
 
-    tables.forEach((table) => {
-      const views = table.metrics?.views ?? 0;
-      const contacts = table.metrics?.contacts ?? 0;
-
-      if (views > 50 && contacts === 0) {
-        recommendations.push(
-          `Melhore a descrição ou imagem da mesa "${table.title}" para aumentar conversão.`
+        const metricsInsights = (json.data?.metrics ?? []).map(
+          (metric) =>
+            `${metric.title}: ${metric.views} visualizações, ${metric.contacts} contatos e ${metric.favorites} favoritos.`
         );
+
+        const recs = (json.data?.recommendations ?? []).map((rec) => {
+          const prefix = rec.severity === 'high'
+            ? '🔴'
+            : rec.severity === 'medium'
+              ? '🟡'
+              : '🟢';
+          return `${prefix} ${rec.message}`;
+        });
+
+        setInsights(metricsInsights);
+        setRecommendations(recs);
+      } catch (err: any) {
+        if (err.name === 'AbortError') return;
+        setInsights([]);
+        setRecommendations([]);
+      } finally {
+        setInsightsLoading(false);
       }
+    };
 
-      if (views < 10) {
-        recommendations.push(
-          `Divulgue a mesa "${table.title}" para aumentar visibilidade.`
-        );
-      }
-
-      if (contacts > 5) {
-        recommendations.push(
-          `Considere aumentar o preço ou criar nova mesa similar a "${table.title}".`
-        );
-      }
-    });
-
-    return recommendations;
-  }
-
-  const insights = useMemo(() => generateInsights(mappedTables), [mappedTables]);
-  const recommendations = useMemo(() => generateRecommendations(mappedTables), [mappedTables]);
+    loadInsights();
+    return () => controller.abort();
+  }, [slug, canSeeInsights]);
 
   if (loading) {
     return (
@@ -398,27 +398,37 @@ export const MestrePage = () => {
         </section>
       )}
 
-      {/* Insights Automáticos */}
-      {insights.length > 0 && (
+      {/* Insights protegidos (somente dono/admin) */}
+      {canSeeInsights && (insightsLoading || insights.length > 0) && (
         <section className="insights-section" style={{ background: 'rgba(249, 115, 22, 0.05)', padding: '3rem 0', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
           <div className="container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1.5rem' }}>
             <h2 className="section-title">📊 Insights das suas mesas</h2>
-            <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: '1rem' }}>
-              {insights.map((insight, i) => (
-                <li key={i} style={{ background: 'rgba(255,255,255,0.05)', padding: '1rem 1.5rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                  {insight}
-                </li>
-              ))}
-            </ul>
+            <p style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.75)', marginBottom: '1rem' }}>
+              🔒 Visível apenas para você
+            </p>
+            {insightsLoading ? (
+              <p style={{ color: 'rgba(255,255,255,0.75)' }}>Carregando insights...</p>
+            ) : (
+              <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: '1rem' }}>
+                {insights.map((insight, i) => (
+                  <li key={i} style={{ background: 'rgba(255,255,255,0.05)', padding: '1rem 1.5rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    {insight}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </section>
       )}
 
-      {/* Recomendações Automáticas */}
-      {recommendations.length > 0 && (
+      {/* Recomendações protegidas (somente dono/admin) */}
+      {canSeeInsights && recommendations.length > 0 && (
         <section className="recommendations-section" style={{ background: 'rgba(34, 197, 94, 0.05)', padding: '3rem 0', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
           <div className="container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1.5rem' }}>
             <h2 className="section-title">🚀 Recomendações</h2>
+            <p style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.75)', marginBottom: '1rem' }}>
+              🔒 Visível apenas para você
+            </p>
             <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: '1rem' }}>
               {recommendations.map((rec, i) => (
                 <li key={i} style={{ background: 'rgba(255,255,255,0.05)', padding: '1rem 1.5rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>

@@ -78,7 +78,21 @@ async function shouldCountMetric(
 // POST /api/v1/gm/profile — Cria perfil de mestre
 router.post('/profile', authMiddleware, async (req: Request, res: Response) => {
   const userId = (req as any).user.userId;
-  const { slug, nickname, bio_long, languages, specialties, badges } = req.body;
+  const {
+    slug,
+    nickname,
+    bio_long,
+    languages,
+    specialties,
+    badges,
+    tagline,
+    promo_badge_text,
+    selling_points,
+    closed_group_enabled,
+    closed_group_systems,
+    closed_group_description,
+    closed_group_min_price_cents,
+  } = req.body;
 
   if (!slug || typeof slug !== 'string' || !/^[a-z0-9-]+$/.test(slug)) {
     return res.status(400).json({ error: 'Slug inválido. Use apenas letras minúsculas, números e hífens.' });
@@ -91,6 +105,30 @@ router.post('/profile', authMiddleware, async (req: Request, res: Response) => {
   const safeLanguages = Array.isArray(languages) ? languages.filter(v => typeof v === 'string') : [];
   const safeSpecialties = Array.isArray(specialties) ? specialties.filter(v => typeof v === 'string') : [];
   const safeBadges = Array.isArray(badges) ? badges.filter(v => typeof v === 'string') : [];
+  const safeTagline = typeof tagline === 'string' ? tagline.trim().slice(0, 200) : null;
+  const safePromoBadgeText = typeof promo_badge_text === 'string' ? promo_badge_text.trim().slice(0, 120) : null;
+  const safeSellingPoints = Array.isArray(selling_points)
+    ? selling_points.filter((point) => {
+        if (!point || typeof point !== 'object') return false;
+        const p = point as Record<string, unknown>;
+        return (
+          typeof p.icon === 'string' &&
+          typeof p.title === 'string' &&
+          typeof p.description === 'string'
+        );
+      })
+    : [];
+  const safeClosedGroupEnabled = typeof closed_group_enabled === 'boolean' ? closed_group_enabled : false;
+  const safeClosedGroupSystems = Array.isArray(closed_group_systems)
+    ? closed_group_systems.filter(
+        (value) => typeof value === 'string' && /^[0-9a-fA-F-]{36}$/.test(value)
+      )
+    : [];
+  const safeClosedGroupDescription = typeof closed_group_description === 'string' ? closed_group_description.trim() : null;
+  const safeClosedGroupMinPriceCents =
+    typeof closed_group_min_price_cents === 'number' && Number.isInteger(closed_group_min_price_cents) && closed_group_min_price_cents >= 0
+      ? closed_group_min_price_cents
+      : null;
 
   try {
     const existing = await db
@@ -113,8 +151,33 @@ router.post('/profile', authMiddleware, async (req: Request, res: Response) => {
         languages: safeLanguages,
         specialties: safeSpecialties,
         badges: safeBadges,
+        tagline: safeTagline,
+        promo_badge_text: safePromoBadgeText,
+        selling_points: safeSellingPoints,
+        closed_group_enabled: safeClosedGroupEnabled,
+        closed_group_systems: safeClosedGroupSystems,
+        closed_group_description: safeClosedGroupDescription,
+        closed_group_min_price_cents: safeClosedGroupMinPriceCents,
       })
-      .returning(['id', 'slug', 'nickname', 'bio_long', 'avatar_url', 'languages', 'specialties', 'badges', 'created_at'])
+      .returning([
+        'id',
+        'slug',
+        'nickname',
+        'bio_long',
+        'avatar_url',
+        'banner_url',
+        'languages',
+        'specialties',
+        'badges',
+        'tagline',
+        'promo_badge_text',
+        'selling_points',
+        'closed_group_enabled',
+        'closed_group_systems',
+        'closed_group_description',
+        'closed_group_min_price_cents',
+        'created_at',
+      ])
       .execute();
 
     await db
@@ -134,11 +197,63 @@ router.post('/profile', authMiddleware, async (req: Request, res: Response) => {
 // PUT /api/v1/gm/profile — Edita perfil do mestre logado
 router.put('/profile', authMiddleware, async (req: Request, res: Response) => {
   const userId = (req as any).user.userId;
-  const { bio_long, languages, specialties, badges, avatar_url, banner_url } = req.body;
+  const {
+    bio_long,
+    languages,
+    specialties,
+    badges,
+    avatar_url,
+    banner_url,
+    tagline,
+    promo_badge_text,
+    selling_points,
+    closed_group_enabled,
+    closed_group_systems,
+    closed_group_description,
+    closed_group_min_price_cents,
+  } = req.body;
 
   const safeLanguages = Array.isArray(languages) ? languages.filter((v) => typeof v === 'string') : undefined;
   const safeSpecialties = Array.isArray(specialties) ? specialties.filter((v) => typeof v === 'string') : undefined;
   const safeBadges = Array.isArray(badges) ? badges.filter((v) => typeof v === 'string') : undefined;
+  const safeTagline = typeof tagline === 'string' ? tagline.trim().slice(0, 200) : tagline === null ? null : undefined;
+  const safePromoBadgeText =
+    typeof promo_badge_text === 'string'
+      ? promo_badge_text.trim().slice(0, 120)
+      : promo_badge_text === null
+        ? null
+        : undefined;
+  const safeSellingPoints = Array.isArray(selling_points)
+    ? selling_points.filter((point) => {
+        if (!point || typeof point !== 'object') return false;
+        const p = point as Record<string, unknown>;
+        return (
+          typeof p.icon === 'string' &&
+          typeof p.title === 'string' &&
+          typeof p.description === 'string'
+        );
+      })
+    : undefined;
+  const safeClosedGroupEnabled = typeof closed_group_enabled === 'boolean' ? closed_group_enabled : undefined;
+  const safeClosedGroupSystems = Array.isArray(closed_group_systems)
+    ? closed_group_systems.filter(
+        (value) => typeof value === 'string' && /^[0-9a-fA-F-]{36}$/.test(value)
+      )
+    : undefined;
+  const safeClosedGroupDescription =
+    typeof closed_group_description === 'string'
+      ? closed_group_description.trim()
+      : closed_group_description === null
+        ? null
+        : undefined;
+  const safeClosedGroupMinPriceCents =
+    typeof closed_group_min_price_cents === 'number' &&
+    Number.isInteger(closed_group_min_price_cents) &&
+    closed_group_min_price_cents >= 0
+      ? closed_group_min_price_cents
+      : closed_group_min_price_cents === null
+        ? null
+        : undefined;
 
   try {
     const gmProfile = await db
@@ -160,9 +275,33 @@ router.put('/profile', authMiddleware, async (req: Request, res: Response) => {
         badges: safeBadges,
         avatar_url: avatar_url ?? undefined,
         banner_url: banner_url ?? undefined,
+        tagline: safeTagline,
+        promo_badge_text: safePromoBadgeText,
+        selling_points: safeSellingPoints,
+        closed_group_enabled: safeClosedGroupEnabled,
+        closed_group_systems: safeClosedGroupSystems,
+        closed_group_description: safeClosedGroupDescription,
+        closed_group_min_price_cents: safeClosedGroupMinPriceCents,
       })
       .where('id', '=', gmProfile.id)
-      .returning(['id', 'slug', 'bio_long', 'avatar_url', 'banner_url', 'languages', 'specialties', 'badges', 'updated_at'])
+      .returning([
+        'id',
+        'slug',
+        'bio_long',
+        'avatar_url',
+        'banner_url',
+        'languages',
+        'specialties',
+        'badges',
+        'tagline',
+        'promo_badge_text',
+        'selling_points',
+        'closed_group_enabled',
+        'closed_group_systems',
+        'closed_group_description',
+        'closed_group_min_price_cents',
+        'updated_at',
+      ])
       .execute();
 
     return res.json({ data: updated });

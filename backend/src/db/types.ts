@@ -124,6 +124,14 @@ export interface GmProfilesTable {
   gm_style: unknown | null; // { narrative: number, tactical: number, sandbox: number, railroad: number }
   tools: unknown | null; // string[] - ["Foundry VTT", "Discord", "Roll20"]
   game_format: unknown | null; // { session_length: string, frequency: string, group_size: string }
+  // Perfil público v2
+  tagline: string | null;
+  promo_badge_text: string | null;
+  selling_points: unknown; // JSONB: Array<{ icon, title, description, highlight? }>
+  closed_group_enabled: Generated<boolean>;
+  closed_group_systems: Generated<string[]>; // UUID[]
+  closed_group_description: string | null;
+  closed_group_min_price_cents: number | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -267,6 +275,7 @@ export interface TablesTable {
   style_tags: string[] | null;
   synopsis_narrative: string | null;
   benefits_text: string | null;
+  features: unknown; // JSONB: string[]
   table_gm_bio: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
@@ -385,6 +394,7 @@ export interface UserLinksTable {
   type: string;
   title: string | null;
   description: string | null;
+  embed_url: string | null;
   thumbnail_url: string | null;
   sort_order: Generated<number>;
   created_at: Generated<Date>;

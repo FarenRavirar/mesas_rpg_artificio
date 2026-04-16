@@ -38,7 +38,8 @@
 ### GM (`routes/gm.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
 |---|---|---|---|
-| **GET** | `/:slug` | ✅ Em Uso | useCreateTableForm.ts, uiHelpers.ts, MestrePage.tsx, PainelMestrePage.tsx — perfil retorna `gm.banner_url`; mesas públicas neste endpoint usam `cover_url` (legado) |
+| **GET** | `/:slug` | ✅ Em Uso | useCreateTableForm.ts, uiHelpers.ts, MestrePage.tsx, PainelMestrePage.tsx — `optionalAuth` aplicado; retorna `viewer_context { is_owner, is_admin }`, `closed_group`, `selling_points`, `features` em `tables`; NÃO retorna `metrics_*` |
+| **GET** | `/:slug/insights` | ✅ Em Uso | (pronto para consumo em MestrePage/hooks dedicados) — protegido por `authMiddleware`; retorna `metrics` e `recommendations`; acesso apenas para dono/admin |
 
 ### GMPANEL (`routes/gmPanel.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
