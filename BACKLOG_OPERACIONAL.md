@@ -15,10 +15,8 @@
 
 | # | ID | GUT | Item |Ação | FILA ref |
 |---|---|---|---|---|---|
-| 1 | REQ-21 | 125 | Faixa etária (dropdown) | Criar enum | ↔ 084 |
-| 2 | DEB-07 | 100 | Plataformas como tabelas | ✅ Concluído e validado (beta + produção) | ↔ 075 |
-| 3 | DEB-08 | 100 | Frequência detalhada schedules | Adicionar campos + UI | ↔ 086 |
-| 4 | REQ-29 | 100 | Auditoria API + implementação | Atualizar MAPA | ↔ DEB-06 |
+| 1 | DEB-08 | 100 | Frequência detalhada schedules | Adicionar campos + UI | ↔ 086 |
+| 2 | REQ-29 | 100 | Auditoria API + implementação | Atualizar MAPA | ↔ DEB-06 |
 
 ### Média Prioridade (GUT 50-99)
 
@@ -35,10 +33,9 @@
 | 2 | DEB-02 | 18 | Paginação catálogo | Sem volume | — |
 | 3 | DEB-03 | 18 | SEO estruturado | Meta tags | — |
 | 4 | DEB-04 | 12 | Onboarding revisitável | UX secundária | — |
-| 5 | DEB-07 | 100 | Plataformas como tabelas | ✅ Concluído e validado (beta + produção) | ↔ 075 |
-| 6 | OPS-01 | 16 | Logs centralizados | Fase 1 | — |
-| 7 | OPS-02 | 20 | Backup Oracle→Drive | Herdado | — |
-| 8 | OPS-03 | 9 | Script dump PostgreSQL | — | — |
+| 5 | OPS-01 | 16 | Logs centralizados | Fase 1 | — |
+| 6 | OPS-02 | 20 | Backup Oracle→Drive | Herdado | — |
+| 7 | OPS-03 | 9 | Script dump PostgreSQL | — | — |
 
 ---
 
@@ -48,8 +45,6 @@
 
 | ID | GUT | Descrição |Ação | FILA ref | Status |
 |---|---|---|---|---|---|
-| REQ-21 | 125 | **Faixa etária (enum):** age_rating é enum (livre/10+/12+/14+/16+/18+). Dropdown existe no frontend (StepConfig.tsx). **FALTA:** ícones visuais (🟢 Livre, 🟡 +10, 🟠 +14, 🔴 +18). | Adicionar ícones ao dropdown | ↔ 084 | ⏳ Parcial |
-| DEB-07 | 100 | **Plataformas como tabelas:** `vtt_platforms` com catálogo público e CRUD admin completo (`GET/POST/PUT/DELETE /admin`), `communication_platforms` criada com endpoints públicos/admin (`GET /`, `GET/POST/PUT/DELETE /admin`), integração frontend concluída (formulário + gestão administrativa), logos VTT ativas nas superfícies e deploy concluído. | Encerrado — validação de create/edit/list/detail concluída em beta e produção | ↔ 075 | ✅ Validado |
 | REQ-29 | 100 | **Auditoria API + implementação:** Mapear endpoints via `MAPA_DE_API.md`, atualizar status, implementar UI para os 5 mais críticos. Endereça DEB-06. | Primeiro auditoria, segundo implementar | ↔ DEB-06 | Pendente |
 
 ### Média Prioridade (GUT 50-99)
@@ -105,6 +100,7 @@
 
 _16/04/2026_
 - [x] **DEB-07:** Plataformas como tabelas validadas ponta a ponta (create/edit/list/detail), com deploy em produção e health OK. | FILA: 075
+- [x] **REQ-21:** Faixa etária concluída com ícones visuais no dropdown (`StepConfig.tsx`). | FILA: 084
 
 _15/04/2026_
 - [x] **REQ-03:** Cloudinary + Sharp. Pipeline completo, upload direto, VITE_CLOUDINARY_*. Beta funcional. | FILA: —
@@ -118,7 +114,7 @@ _15/04/2026_
 - [x] **REQ-12:** Canais de contato. table_contacts, 7 canais, validação backend. | FILA: —
 - [x] **REQ-13:** QA publicação real. Fluxo completo: onboarding, gm_profile, publication, Cloudinary, contacts, selos. | FILA: —
 - [x] **REQ-17:** Auditoria UX Nielsen. Documentação + regra AGENTS.md. | FILA: 039
-- [x] **REQ-21 (13/14):** Melhorias formulário. 13/14 itens: paridade, ocultar perfil, frequência, placeholder, renomeado, plataformas (campos texto), edição admin, editor rico, auto-detecção, dados brutos, nível, cenário/estilo. **Pendente:** faixa etária. | FILA: 084, 100, 097, 098 (parcial)
+- [x] **REQ-21 (13/14):** Melhorias formulário. 13/14 itens: paridade, ocultar perfil, frequência, placeholder, renomeado, plataformas (campos texto), edição admin, editor rico, auto-detecção, dados brutos, nível, cenário/estilo. **Item remanescente (faixa etária) concluído em 16/04/2026.** | FILA: 084, 100, 097, 098 (parcial)
 - [x] **REQ-26:** Formulário Expandido. 13 campos: master_display_name, campaign_length, level_range, billing_text, session_zero_free, synopsis, style_text, listing_excerpt, technical_requirements, requires_pc/camera/microphone. | FILA: 085 (parcial)
 - [x] **REQ-27:** Agenda Estruturada. table_schedules, 4 rotas CRUD, SessionRepeater. | FILA: —
 - [x] **REQ-30:** Correção onboarding. Frequency duplicado, editor rico, vagas, cenário, name_pt, toggle PT/EN. | FILA: 086

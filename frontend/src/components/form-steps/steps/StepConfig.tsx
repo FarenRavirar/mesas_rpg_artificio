@@ -308,12 +308,12 @@ export function StepConfig({
         )}
 
         <SelectField label="Faixa Etária *" id="age_rating" name="age_rating" value={form.age_rating} onChange={handleChange}>
-          <option value="livre">Livre (Todos os públicos)</option>
-          <option value="+10">+10 anos</option>
-          <option value="+12">+12 anos</option>
-          <option value="+14">+14 anos</option>
-          <option value="+16">+16 anos</option>
-          <option value="+18">+18 anos</option>
+          <option value="livre">🟢 Livre (Todos os públicos)</option>
+          <option value="+10">🟡 +10 anos</option>
+          <option value="+12">🟡 +12 anos</option>
+          <option value="+14">🟠 +14 anos</option>
+          <option value="+16">🟠 +16 anos</option>
+          <option value="+18">🔴 +18 anos</option>
         </SelectField>
 
         <SelectField label="Cobrança" id="price_type" name="price_type" value={form.price_type} onChange={handleChange}>

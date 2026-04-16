@@ -11,8 +11,10 @@ Execute nesta ordem, sem pular etapas:
 
 1. Ler `RESUMO_EXECUCAO.md` — estado atual e próxima ação (arquivo completo, é curto)
 2. Ler este arquivo (`AGENTS.md`) na íntegra
-3. Criar arquivo de sessão em `/sessoes/resumo_[dia-mes]_[escopo].md` com plano e checklist
-4. Só iniciar trabalho após concluir os três passos acima
+3. Verificar se existe sessão ativa com checklist incompleta em `/sessoes/`
+4. **Se existir sessão ativa incompleta:** continuar nela; **é proibido criar nova sessão**
+5. **Só criar nova sessão** quando houver pedido explícito do usuário **ou** quando a sessão ativa estiver 100% concluída e o usuário autorizar avançar
+6. Só iniciar trabalho após concluir os passos acima
 
 ---
 

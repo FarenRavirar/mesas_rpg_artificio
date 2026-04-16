@@ -33,19 +33,15 @@ Cada item na FILA deve ter:
 
 | # | ID | GUT | Item | Ação | BACKLOG ref |
 |---|---|---|---|---|---|
-| 1 | 075 | 100 | Plataformas como tabelas | ✅ Validado (beta + produção) | ↔ DEB-07 |
-| 2 | 086 | 100 | Frequência detallada | ⏳ Parcial (times_per_month+custom_notes faltam) | ↔ DEB-08 |
-| 3 | 100 | 100 | Campos Cenário/Estilo | ✅ Implementado (setting_name+styles no DB + endpoint suggest-styles existe) | ↔ REQ-21 |
+| 1 | 086 | 100 | Frequência detallada | ⏳ Parcial (times_per_month+custom_notes faltam) | ↔ DEB-08 |
 
 ### Média Prioridade (GUT 50-99)
 
 | # | ID | GUT | Item | Ação | BACKLOG ref |
 |---|---|---|---|---|---|
-| 1 | 084 | 80 | Faixa etária dropdown | ⏳ Parcial (dropdown existe, ícones faltam) | ↔ REQ-21 |
-| 2 | 085 | 80 | Nível mesa dropdown | ❌ Pendente (é InputField, não dropdown) | ↔ DEB-09 |
-| 3 | 089 | 80 | Render markdown MesaPage | ❌ Pendente (descrição e rules_notes não renderizados como markdown) | ↔ — |
-| 4 | 097 | 80 | Migration cenário/estilos | ❌ Pendente (migration não existe) | ↔ REQ-21 |
-| 5 | 098 | 80 | Endpoint sugestões estilos | ✅ Done | ↔ REQ-21 |
+| 1 | 085 | 80 | Nível mesa dropdown | ❌ Pendente (é InputField, não dropdown) | ↔ DEB-09 |
+| 2 | 089 | 80 | Render markdown MesaPage | ❌ Pendente (descrição e rules_notes não renderizados como markdown) | ↔ — |
+| 3 | 097 | 80 | Migration cenário/estilos | ❌ Pendente (migration não existe) | ↔ REQ-21 |
 
 ### Baixa Prioridade (GUT < 50)
 
@@ -69,19 +65,15 @@ Cada item na FILA deve ter:
 
 | ID | GUT | Ação | Descrição completa | Dependências | Arquivos | BACKLOG ref | Status |
 |---|---|---|---|---|---|---|
-| **075** | 100 | **✅ Validado** | **Plataformas como tabelas (vtt + comm):** vtt_platforms com GET `/` + POST `/suggest` + CRUD admin completo (`GET/POST/PUT/DELETE /admin`). `communication_platforms` criada (migration_105), endpoints públicos/admin ativos (`GET /`, `GET/POST/PUT/DELETE /admin`), integração frontend concluída (hook `useCommunicationPlatforms`, StepConfig com select dinâmico/fallback custom, admin `PlatformsPage` em `GestaoPage`), logos VTT validadas nas superfícies e deploy em produção concluído. | Depende de nada | Backend: db/types.ts, routes/vttPlatforms.ts, routes/communicationPlatforms.ts, migration_105. Frontend: StepConfig.tsx, mapper.ts, mapTableApiToInitialData.ts, PlatformsPage.tsx, GestaoPage.tsx, TableCard.tsx, TableCardDashboard.tsx | ↔ DEB-07 | ✅ Validado |
 | **086** | 100 | **⏳ Parcial** | **Frequência detalhada em table_schedules:** Já existe: frequency (semanal/quinzenal/mensal/avulsa) + day_of_week + start_time + end_time + slots_per_session + notes. **FALTA:** (1) campo times_per_month SMALLINT no schema (para frequency=quinzenal), (2) campo custom_notes TEXT (para frequency=mensal), (3) validações condicionais (times obrigatório se quinzenal, notes obrigatório se mensal), (4) UI no SessionRepeater. Ver sessões: 26-04-14_7, 26-04-15_1. | Depende de nada | Backend: db/types.ts (ScheduleTable), routes/tableSchedules.ts. Frontend: SessionRepeater.tsx, validator.ts | ↔ REQ-30 | ⏳ Parcial |
-| **100** | 100 | **✅ Implementado** | **Campos Cenário (setting_name) + Estilos (setting_styles):** Backend: tables.setting_name + setting_styles existem (types.ts). Endpoint GET /settings/suggest-styles existe (settings.ts). Frontend: CreateTableForm tem SettingStylesField.tsx, TableContent.tsx exibe. **100% implementado.** | — | Backend: db/types.ts, routes/settings.ts. Frontend: SettingStylesField.tsx, TableContent.tsx, mapper.ts | ↔ REQ-21 | ✅ Implementado |
 
 ### Média Prioridade (GUT 50-99)
 
 | ID | GUT | Ação | Descrição completa | Dependências | Arquivos | BACKLOG ref | Status |
 |---|---|---|---|---|---|---|
-| **084** | 80 | **⏳ Parcial** | **Faixa etária dropdown:** Backend: age_rating é enum (livre/10+/12+/14+/16+/18+) em types.ts. Frontend: StepConfig.tsx tem SelectField com 6 opções fixas. **FALTA:** ícones visuais (🟢 Livre, 🟡 +10, 🟠 +14, 🔴 +18) conforme especificação original. | — | Frontend: StepConfig.tsx, createTable.types.ts, mapper.ts | ↔ REQ-21 | ⏳ Parcial |
 | **085** | 80 | **❌ Pendente** | **Nível mesa dropdown:** Backend: level_range é texto livre (types.ts). Frontend: StepFinal.tsx usa InputField (texto livre), não SelectField. **PRECISA:** substituir por SelectField com opções fixas (Iniciante/Intermediário/Avançado/Misto) + tooltip explicativo. Campo opcional. | Depende de nada | Frontend: StepFinal.tsx (level_range), createTable.types.ts | ↔ REQ-26 | ❌ Pendente |
 | **089** | 80 | **Pending** | **Renderização markdown em MesaPage:** Description e rules_notes são salvos como markdown mas não são renderizados na MesaPage. Precisa: (1) verificar se backend já sanitiza (item 082), (2) usar react-markdown-editor-lite ou dangerouslySetInnerHTML para renderizar. Componente MarkdownEditor já existe. Depende de 082 (sanitização). | Depende de 082 (backend sanitizer) | Frontend: MesaPage.tsx, MarkdownEditor.tsx | Pendente |
 | **097** | 80 | **Pending** | **Migration cenário e estilos:** Adicionar colunas na tabela tables: (1) setting_name TEXT, (2) setting_styles TEXT[]. Criar tabela auxiliar setting_style_suggestions com colunas: id UUID PK, setting_name TEXT, suggested_styles TEXT[]. Mapeamento cenário → estilos sugeridos. | Depende de nada | database/migration_XX_setting_styles.sql | Pendente |
-| **098** | 80 | **✅ Done** | **Endpoint sugestões de estilo por cenário:** Criar rota GET /api/v1/settings/suggest-styles?setting=<nome> que retorna array de estilos sugeridos baseado em fuzzy match de setting_name na tabela setting_style_suggestions. Se não encontrar match, retornar array vazio. Exemplos: "Forgotten Realms" → ["Alta Fantasia", "Aventura Épica"], "Eberron" → ["Steampunk", "Magitech", "Noir"]. | Depende de 097 (migration) | Backend: routes/settingRoutes.ts | ✅ Implementado (backend/src/routes/settings.ts:11, tabela existe no banco) |
 
 ### Baixa Prioridade (GUT < 50)
 
@@ -126,6 +118,8 @@ Cada item na FILA deve ter:
 
 _16/04/2026_
 - [x] **075**: plataformas como tabelas validadas ponta a ponta (create/edit/list/detail), com deploy em produção concluído | BACKLOG: DEB-07
+- [x] **100**: campos cenário/estilos implementados e removidos da área ativa da fila | BACKLOG: REQ-21
+- [x] **084**: faixa etária concluída com ícones visuais no dropdown (`StepConfig.tsx`) | BACKLOG: REQ-21
 
 _15/04/2026_
 - [x] **015**: Imgur → descartado (Cloudinary substituiu) | BACKLOG: OPS-04
@@ -138,7 +132,6 @@ _15/04/2026_
 - [x] **068**: is_covil → concluído | BACKLOG: REQ-09
 - [x] **069-073**: campos formulário → concluídos | BACKLOG: REQ-26
 - [x] **077**: level_range → concluído | BACKLOG: REQ-26
-- [x] **084**: faixa etária parcialmente (campo existe) | BACKLOG: REQ-21
 - [x] **087**: renomeado → concluído | BACKLOG: REQ-21
 - [x] **088**: editor rico → concluído | BACKLOG: REQ-21
 - [x] **090**: perfil announcer → concluído | BACKLOG: REQ-08, REQ-11

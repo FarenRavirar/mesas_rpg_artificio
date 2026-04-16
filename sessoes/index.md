@@ -1,6 +1,15 @@
 # Índice de Sessões
 
-Última atualização: 15/04/2026 19:48 BRT
+Última atualização: 16/04/2026 01:46 BRT
+
+---
+
+## 16/04/2026 (2 sessões)
+
+| # | Arquivo |
+|---|---|
+| 1 | `26-04-16_1_limpeza-fila-backlog-concluidos.md` |
+| 2 | `26-04-16_2_req21-faixa-etaria-dropdown.md` |
 
 ---
 
@@ -69,7 +78,7 @@
 
 ## Sessão Mais Recente
 
-`26-04-15_7_deb07-plataformas-tabelas.md`
+`26-04-16_2_req21-faixa-etaria-dropdown.md`
 
 ---
 
@@ -85,4 +94,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-04-16_1_*`
+**Próxima sessão:** `26-04-16_3_*`

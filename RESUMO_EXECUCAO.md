@@ -1,6 +1,6 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 16/04/2026 00:56 BRT
+**Última atualização:** 16/04/2026 01:44 BRT
 
 ---
 
@@ -21,8 +21,8 @@
 - **DEB-07 / FILA 075 validado em beta e produção:** CRUD admin VTT, `communication_platforms` + endpoints públicos/admin, seletor dinâmico no formulário, `PlatformsPage` integrado em `GestaoPage`.
 - **Logos VTT integradas em superfícies estratégicas:** `TableCard` (catálogo/homepage), `TableCardDashboard` (painel) e `TableHero` (detalhe da mesa online/híbrida).
 - **Payload GM atualizado:** `GET /api/v1/gm/tables` agora retorna objeto `vtt_platform` com `logo_filename`.
-- **Build validado:** `npm run build` em `backend` e `frontend` sem erros.
-- **Concluído operacionalmente:** `migration_106_vtt_logo_filenames.sql` aplicada e validada, com health OK em beta e produção.
+- **REQ-21 / FILA 084 concluído:** dropdown de faixa etária atualizado com ícones visuais em `StepConfig.tsx`, mantendo compatibilidade de `age_rating`.
+- **Build validado:** `npm run build` em `frontend` sem erros.
 
 
 ---
@@ -30,12 +30,26 @@
 ## Próxima Ação
 
 1. Priorizar item 086 (frequência detalhada: `times_per_month` + `custom_notes` + validações condicionais).
-2. Manter monitoramento operacional padrão de health/deploy em produção.
+2. Priorizar item 085 (substituir `InputField` por dropdown em nível da mesa).
+3. Manter monitoramento operacional padrão de health/deploy em produção.
 
 
 ---
 
 ## Última Sessão
+
+**Data:** 16/04/2026 01:44 BRT  
+**Tipo:** Implementação dedicada REQ-21/FILA-084 (faixa etária)  
+**Arquivo:** `sessoes/26-04-16_2_req21-faixa-etaria-dropdown.md`  
+**O que foi feito:**
+- `frontend/src/components/form-steps/steps/StepConfig.tsx` atualizado: opções de `age_rating` agora exibem ícones visuais (🟢/🟡/🟠/🔴) sem alterar os values
+- `FILA_IMPLEMENTACAO.md` atualizado: item `084` removido da área ativa e registrado no histórico de conclusão em 16/04/2026
+- `BACKLOG_OPERACIONAL.md` atualizado: `REQ-21` removido da área ativa e registrado no histórico de conclusão em 16/04/2026
+- Build de validação executado com sucesso em `frontend` (`npm run build`)
+
+**Status:** ✅ REQ-21/FILA-084 concluído e documentação operacional sincronizada.
+
+---
 
 **Data:** 16/04/2026 00:56 BRT  
 **Tipo:** Fechamento DEB-07/FILA-075 com validação completa e promoção para produção  

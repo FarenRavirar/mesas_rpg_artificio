@@ -49,11 +49,6 @@ export const validators = {
       if (!contact.value || contact.value.trim().length === 0) {
         return `Contato ${i + 1}: valor obrigatório`;
       }
-      
-      // Validação específica por canal
-      if (contact.channel === 'discord' && !contact.discord_server_url) {
-        return `Contato ${i + 1}: URL do servidor Discord obrigatória`;
-      }
     }
     
     return null;
