@@ -1,6 +1,6 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 16/04/2026 01:44 BRT
+**Última atualização:** 16/04/2026 19:56 BRT
 
 ---
 
@@ -22,32 +22,40 @@
 - **Logos VTT integradas em superfícies estratégicas:** `TableCard` (catálogo/homepage), `TableCardDashboard` (painel) e `TableHero` (detalhe da mesa online/híbrida).
 - **Payload GM atualizado:** `GET /api/v1/gm/tables` agora retorna objeto `vtt_platform` com `logo_filename`.
 - **REQ-21 / FILA 084 concluído:** dropdown de faixa etária atualizado com ícones visuais em `StepConfig.tsx`, mantendo compatibilidade de `age_rating`.
-- **Build validado:** `npm run build` em `frontend` sem erros.
+- **Etapa 1 da reformulação do mestre validada manualmente:** tela pública refeita e insights confirmados apenas para owner/admin.
+- **Etapa 2 avançada (frontend):** `MestrePage.tsx` consolidada como orquestradora com hooks (`useMestre`, `useMestreInsights`) e seções extraídas em componentes dedicados.
+- **Componentes extraídos da página pública:** `MestreSkeleton`, `MestreError`, `MestreNotFound`, `MestreHero`, `MestreTablesSection`, `MestreWhySection`, `MestreInsightsSection`, `MestreRecommendationsSection`, `MestreFinalCta`.
+- **Padronização visual aplicada:** inline styles removidos de insights/recomendações e migrados para classes no `MestrePage.css`.
+- **Documentação de reformulação sincronizada:** `docs/Reformulacao_mestre.md` atualizado com bloco de andamento da implementação.
+- **Build validado:** `npm run build` em `frontend` sem erros após a refatoração.
 
 
 ---
 
 ## Próxima Ação
 
-1. Priorizar item 086 (frequência detalhada: `times_per_month` + `custom_notes` + validações condicionais).
-2. Priorizar item 085 (substituir `InputField` por dropdown em nível da mesa).
-3. Manter monitoramento operacional padrão de health/deploy em produção.
+1. Executar validação manual funcional da página pública do mestre em três contextos: visitante, owner e admin.
+2. Confirmar responsividade visual (desktop/mobile) após extração dos componentes e migração de estilos.
+3. Registrar no `docs/Reformulacao_mestre.md` e na sessão qualquer regressão encontrada, com severidade e correção aplicada.
 
 
 ---
 
 ## Última Sessão
 
-**Data:** 16/04/2026 01:44 BRT  
-**Tipo:** Implementação dedicada REQ-21/FILA-084 (faixa etária)  
-**Arquivo:** `sessoes/26-04-16_2_req21-faixa-etaria-dropdown.md`  
+**Data:** 16/04/2026 19:56 BRT  
+**Tipo:** Etapa 2 — Reformulação do perfil público de mestre (componentização completa dos blocos de página)  
+**Arquivo:** `sessoes/26-04-16_4_reformulacao-mestre-etapa2.md`  
 **O que foi feito:**
-- `frontend/src/components/form-steps/steps/StepConfig.tsx` atualizado: opções de `age_rating` agora exibem ícones visuais (🟢/🟡/🟠/🔴) sem alterar os values
-- `FILA_IMPLEMENTACAO.md` atualizado: item `084` removido da área ativa e registrado no histórico de conclusão em 16/04/2026
-- `BACKLOG_OPERACIONAL.md` atualizado: `REQ-21` removido da área ativa e registrado no histórico de conclusão em 16/04/2026
-- Build de validação executado com sucesso em `frontend` (`npm run build`)
+- Criado `frontend/src/hooks/useMestre.ts` para centralizar carga e derivação dos dados públicos (`profile`, `links`, `mappedTables`, `totalOpenSlots`, `canSeeInsights`)
+- Criado `frontend/src/hooks/useMestreInsights.ts` para encapsular o fetch autenticado de `/api/v1/gm/:slug/insights`
+- `frontend/src/pages/MestrePage.tsx` refatorada para orquestrar hooks e reduzir acoplamento de lógica
+- Criados componentes em `frontend/src/components/mestre/`: `MestreSkeleton`, `MestreError`, `MestreNotFound`, `MestreHero`, `MestreTablesSection`, `MestreWhySection`, `MestreInsightsSection`, `MestreRecommendationsSection`, `MestreFinalCta`
+- Removidos inline styles de insights/recomendações e consolidado CSS em `frontend/src/pages/MestrePage.css`
+- Atualizado `docs/Reformulacao_mestre.md` com andamento consolidado da implementação
+- Build de validação executado com sucesso (`npm run build` no frontend)
 
-**Status:** ✅ REQ-21/FILA-084 concluído e documentação operacional sincronizada.
+**Status:** ⏳ Etapa 2 estável e avançada; pendente validação manual visual/funcional final para encerramento do ciclo.
 
 ---
 

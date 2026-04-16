@@ -1,5 +1,13 @@
 [
   {
+    "id": "2026-04-16-perfil-mestre-componentizado",
+    "title": "Página pública do mestre ficou mais organizada e clara",
+    "body": "Melhoramos a experiência da página pública do mestre para deixar a navegação mais fluida:\n\n• **Leitura da página mais simples** - As seções ficaram melhor distribuídas para encontrar informações com menos esforço\n• **Privacidade preservada para dados sensíveis** - Informações internas continuam visíveis apenas para quem tem permissão\n• **Visual mais consistente em toda a tela** - Blocos de informação seguem o mesmo padrão de aparência\n\n_Atualização publicada em 16/04/2026 às 20:08_",
+    "type": "app",
+    "published": true,
+    "created_at": "2026-04-16T20:08:00-03:00"
+  },
+  {
     "id": "2026-04-16-perfil-publico-mestre-v2",
     "title": "Perfil público do mestre ficou mais claro para visitantes e mais privado para você",
     "body": "Atualizamos a página pública do mestre para equilibrar apresentação e privacidade:\n\n• **Perfil mais organizado para visitantes** - A página mostra informações essenciais sem expor dados sensíveis\n• **Insights visíveis só para quem pode ver** - Dados de desempenho ficam restritos ao próprio mestre e à administração\n• **Navegação mais confiável por tipo de acesso** - A visualização muda corretamente para visitante, dono do perfil e admin\n\n_Atualização publicada em 16/04/2026 às 18:15_",

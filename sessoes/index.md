@@ -4,12 +4,14 @@
 
 ---
 
-## 16/04/2026 (2 sessões)
+## 16/04/2026 (4 sessões)
 
 | # | Arquivo |
 |---|---|
 | 1 | `26-04-16_1_limpeza-fila-backlog-concluidos.md` |
 | 2 | `26-04-16_2_req21-faixa-etaria-dropdown.md` |
+| 3 | `26-04-16_3_reformulacao-mestre-etapa1.md` |
+| 4 | `26-04-16_4_reformulacao-mestre-etapa2.md` |
 
 ---
 
@@ -78,7 +80,7 @@
 
 ## Sessão Mais Recente
 
-`26-04-16_2_req21-faixa-etaria-dropdown.md`
+`26-04-16_4_reformulacao-mestre-etapa2.md`
 
 ---
 
@@ -94,4 +96,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-04-16_3_*`
+**Próxima sessão:** `26-04-16_5_*`
