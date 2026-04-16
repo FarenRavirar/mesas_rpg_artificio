@@ -102,6 +102,13 @@ A Produção (`mesas.artificiorpg.com`) reflete os arquivos em `/opt/mesas/` ser
    - [ ] Confirmar no GitHub Actions que não há dois runs `Deploy Beta` ativos ao mesmo tempo para `dev`
    - [ ] `deploy-beta.yml` deve conter `concurrency` com `cancel-in-progress: false`
    - [ ] Script remoto do deploy beta deve adquirir lock exclusivo (`flock /tmp/mesas-beta-deploy.lock`)
+10. **Verificação obrigatória de rotas críticas + auto-recuperação (E150):**
+   - [ ] Beta: `GET /api/v1/tables?limit=1` deve retornar `200`
+   - [ ] Beta: `GET /auth/google?frontend_redirect=...` deve retornar `302` com header `Location` apontando para `https://accounts.google.com/o/oauth2/v2/auth`
+   - [ ] Produção: `GET /api/v1/tables?limit=1` deve retornar `200`
+   - [ ] Produção: `GET /auth/google?frontend_redirect=...` deve retornar `302` com header `Location` válido do Google OAuth
+   - [ ] Se alguma rota crítica falhar após containers estarem `healthy`, o deploy deve executar `docker restart` no frontend do ambiente, aguardar health `healthy` e revalidar uma vez
+   - [ ] Se a segunda validação falhar, o deploy deve ser marcado como falho
 
 ## 🚨 PROTOCOLO GERAL DE EMERGÊNCIA (ROLLBACK)
 
