@@ -74,7 +74,10 @@
 - [x] Entrada obrigatória de mudança visível adicionada em `database/changelogs.json` (`2026-04-15-plataformas-online-e-logos`).
 - [x] Deploy beta executado pela branch `dev` com sucesso (run `24483615951`) e evidência de gate: `[migrations] schema em conformidade para runtime.`.
 - [x] Pós-deploy validado: homepage beta HTTP `200`, health `{"status":"ok","environment":"beta","db":"connected","usersSampled":true}` e `schema_migrations` contendo `migration_105`/`migration_106`.
-- [ ] Validação manual beta (create/edit/list/detail com dados legados de comunicação) pendente.
+- [x] Correção CSS aplicada em `frontend/src/components/TableCard.tsx` para evitar clipping do título quando badges superiores ocupam largura excessiva.
+- [x] Promoção para produção executada com sucesso via `promote-to-prod.yml` (run `24489704489`, versão `v1.1.1`).
+- [x] Pós-deploy de produção validado: `https://mesas.artificiorpg.com/` HTTP `200`, `GET /api/v1/health` com `{"status":"ok","environment":"production","db":"connected","usersSampled":true}` e servidor em `/opt/mesas` no commit `12261cc`.
+- [x] Validação manual beta (create/edit/list/detail com dados legados de comunicação) concluída.
 
 ## Checklist da sessão
 - [x] Ler `RESUMO_EXECUCAO.md`
@@ -104,7 +107,10 @@
 - [x] Executar deploy beta via `dev`
 - [x] Validar health do beta (`/` e `/api/v1/health`)
 - [x] Validar registro de `migration_105`/`migration_106` em `schema_migrations`
-- [ ] Validar fluxo create/edit/list/detail com dados legados
+- [x] Corrigir CSS de clipping do título no card público (`TableCard`)
+- [x] Executar promoção para produção (`promote-to-prod.yml`, `v1.1.1`)
+- [x] Validar produção pós-deploy (`/`, `/api/v1/health`, commit em `/opt/mesas`)
+- [x] Validar fluxo create/edit/list/detail com dados legados
 - [x] Atualizar `RESUMO_EXECUCAO.md`
 - [x] Atualizar `index.md`
 
@@ -149,3 +155,4 @@
 8. Exibição de logo VTT confirmada no catálogo/homepage, painel e página da mesa.
 9. `MAPA_DE_API.md` e `ARQUITETURA_PROJETO.md` refletindo o contrato real de payload/rotas da feature de logos VTT.
 10. Deploy beta concluído com sucesso para `dev` e evidência do gate de migrations registrada.
+11. Promoção para produção concluída com sucesso para `main`, com verificação de health e commit do servidor de produção.

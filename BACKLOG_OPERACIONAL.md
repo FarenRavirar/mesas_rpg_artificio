@@ -16,7 +16,7 @@
 | # | ID | GUT | Item |Ação | FILA ref |
 |---|---|---|---|---|---|
 | 1 | REQ-21 | 125 | Faixa etária (dropdown) | Criar enum | ↔ 084 |
-| 2 | DEB-07 | 100 | Plataformas como tabelas | ✅ Concluído (CRUD admin + comm_platform) | ↔ 075 |
+| 2 | DEB-07 | 100 | Plataformas como tabelas | ✅ Concluído e validado (beta + produção) | ↔ 075 |
 | 3 | DEB-08 | 100 | Frequência detalhada schedules | Adicionar campos + UI | ↔ 086 |
 | 4 | REQ-29 | 100 | Auditoria API + implementação | Atualizar MAPA | ↔ DEB-06 |
 
@@ -35,7 +35,7 @@
 | 2 | DEB-02 | 18 | Paginação catálogo | Sem volume | — |
 | 3 | DEB-03 | 18 | SEO estruturado | Meta tags | — |
 | 4 | DEB-04 | 12 | Onboarding revisitável | UX secundária | — |
-| 5 | DEB-07 | 100 | Plataformas como tabelas | ✅ Concluído (CRUD admin + comm_platform) | ↔ 075 |
+| 5 | DEB-07 | 100 | Plataformas como tabelas | ✅ Concluído e validado (beta + produção) | ↔ 075 |
 | 6 | OPS-01 | 16 | Logs centralizados | Fase 1 | — |
 | 7 | OPS-02 | 20 | Backup Oracle→Drive | Herdado | — |
 | 8 | OPS-03 | 9 | Script dump PostgreSQL | — | — |
@@ -49,7 +49,7 @@
 | ID | GUT | Descrição |Ação | FILA ref | Status |
 |---|---|---|---|---|---|
 | REQ-21 | 125 | **Faixa etária (enum):** age_rating é enum (livre/10+/12+/14+/16+/18+). Dropdown existe no frontend (StepConfig.tsx). **FALTA:** ícones visuais (🟢 Livre, 🟡 +10, 🟠 +14, 🔴 +18). | Adicionar ícones ao dropdown | ↔ 084 | ⏳ Parcial |
-| DEB-07 | 100 | **Plataformas como tabelas:** `vtt_platforms` com catálogo público e CRUD admin completo (`GET/POST/PUT/DELETE /admin`), `communication_platforms` criada com endpoints públicos/admin (`GET /`, `GET/POST/PUT/DELETE /admin`) e integração frontend concluída (formulário + gestão administrativa). | Monitorar regressão create/edit/list/detail em dados legados e manter mapa da API sincronizado | ↔ 075 | ✅ Implementado |
+| DEB-07 | 100 | **Plataformas como tabelas:** `vtt_platforms` com catálogo público e CRUD admin completo (`GET/POST/PUT/DELETE /admin`), `communication_platforms` criada com endpoints públicos/admin (`GET /`, `GET/POST/PUT/DELETE /admin`), integração frontend concluída (formulário + gestão administrativa), logos VTT ativas nas superfícies e deploy concluído. | Encerrado — validação de create/edit/list/detail concluída em beta e produção | ↔ 075 | ✅ Validado |
 | REQ-29 | 100 | **Auditoria API + implementação:** Mapear endpoints via `MAPA_DE_API.md`, atualizar status, implementar UI para os 5 mais críticos. Endereça DEB-06. | Primeiro auditoria, segundo implementar | ↔ DEB-06 | Pendente |
 
 ### Média Prioridade (GUT 50-99)
@@ -85,7 +85,6 @@
 | REQ-26 | ↔ | 085 | Nível mesa dropdown |
 | REQ-30 | ↔ | 086 | Frequência detalhada |
 | DEB-07 | ↔ | 075 | Plataformas como tabelas |
-| DEB-07 | ↔ | 075 | Plataformas como tabelas |
 | DEB-08 | ↔ | 086 | Frequência detalhada (schedules) |
 | DEB-09 | ↔ | 085 | Nível mesa dropdown |
 | — | ↔ | 060-067, 089, 082 | UX Gestão + Markdown |
@@ -103,6 +102,9 @@
 ---
 
 ## §4. HISTÓRICO DE CONCLUSÃO
+
+_16/04/2026_
+- [x] **DEB-07:** Plataformas como tabelas validadas ponta a ponta (create/edit/list/detail), com deploy em produção e health OK. | FILA: 075
 
 _15/04/2026_
 - [x] **REQ-03:** Cloudinary + Sharp. Pipeline completo, upload direto, VITE_CLOUDINARY_*. Beta funcional. | FILA: —

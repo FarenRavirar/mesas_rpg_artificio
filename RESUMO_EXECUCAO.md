@@ -1,6 +1,6 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 15/04/2026 19:47 BRT
+**Última atualização:** 16/04/2026 00:56 BRT
 
 ---
 
@@ -10,36 +10,35 @@
 **Ambiente Produção:** `mesas.artificiorpg.com` — ativa com gate de migration via `deploy-prod.yml`  
 **Branch ativa:** `dev`
 
-**Status técnico mais recente (15/04/2026):**
-- Deploy beta concluído com sucesso (run `24435524262`)
-- Deploy produção concluído com sucesso (run `24435590034`)
+**Status técnico mais recente (16/04/2026):**
+- Deploy beta concluído com sucesso (run `24483615951`)
+- Deploy produção concluído com sucesso via promoção (run `24489704489`, versão `v1.1.1`)
 - Correção aplicada no fluxo de publicação de mesa: submit de create/edit usa `/api/v1/gm/tables` (resolve `405 Method Not Allowed`)
 - Build compilado sem dependência de `t.frequency` / `t.frequency_custom` no runtime do painel
 - `migration_101` idempotente (`IF NOT EXISTS`)
 - Gate de migration validado em run real beta/prod com schema mínimo conforme (`system_suggestions.name_pt`, `scenario_suggestions`)
 - `migration_104_drop_tables_frequency_columns.sql` confirmada como aplicada em beta e produção (`frequency_cols=0`, `migration104_applied=yes`)
-- **DEB-07 / FILA 075 implementado no código:** CRUD admin VTT, `communication_platforms` + endpoints públicos/admin, seletor dinâmico no formulário, `PlatformsPage` integrado em `GestaoPage`.
+- **DEB-07 / FILA 075 validado em beta e produção:** CRUD admin VTT, `communication_platforms` + endpoints públicos/admin, seletor dinâmico no formulário, `PlatformsPage` integrado em `GestaoPage`.
 - **Logos VTT integradas em superfícies estratégicas:** `TableCard` (catálogo/homepage), `TableCardDashboard` (painel) e `TableHero` (detalhe da mesa online/híbrida).
 - **Payload GM atualizado:** `GET /api/v1/gm/tables` agora retorna objeto `vtt_platform` com `logo_filename`.
 - **Build validado:** `npm run build` em `backend` e `frontend` sem erros.
-- **Pendente operacional:** aplicar `migration_106_vtt_logo_filenames.sql` no banco e validar manualmente no beta.
+- **Concluído operacionalmente:** `migration_106_vtt_logo_filenames.sql` aplicada e validada, com health OK em beta e produção.
 
 
 ---
 
 ## Próxima Ação
 
-1. Aplicar `database/migration_106_vtt_logo_filenames.sql` no banco (UPDATE em `vtt_platforms.logo_filename`).
-2. Validar manualmente create/edit/list/detail de mesas com dados legados (`communication_platform` texto) no ambiente beta.
-3. Priorizar item 086 (frequência detalhada: `times_per_month` + `custom_notes` + validações condicionais).
+1. Priorizar item 086 (frequência detalhada: `times_per_month` + `custom_notes` + validações condicionais).
+2. Manter monitoramento operacional padrão de health/deploy em produção.
 
 
 ---
 
 ## Última Sessão
 
-**Data:** 15/04/2026 19:47 BRT  
-**Tipo:** Continuidade DEB-07/FILA-075 (vínculo e exposição de logos VTT no backend/frontend)  
+**Data:** 16/04/2026 00:56 BRT  
+**Tipo:** Fechamento DEB-07/FILA-075 com validação completa e promoção para produção  
 **Arquivo:** `sessoes/26-04-15_7_deb07-plataformas-tabelas.md`  
 **O que foi feito:**
 - Criada `database/migration_106_vtt_logo_filenames.sql` para preencher `logo_filename` em `vtt_platforms` por `slug` (idempotente)
@@ -49,7 +48,7 @@
 - `frontend/src/features/table/components/TableHero.tsx` atualizado para cobrir `hibrida` na exibição de VTT com logo + nome
 - Build de validação executado com sucesso em backend/frontend (`npm run build`)
 
-**Status:** ✅ Código e UI atualizados para logos VTT nos pontos estratégicos. Pendente aplicação da migration 106 no banco e validação manual no beta.
+**Status:** ✅ DEB-07/FILA-075 validado ponta a ponta em beta e produção, com migration aplicada, deploy concluído e health operacional OK.
 
 ---
 
