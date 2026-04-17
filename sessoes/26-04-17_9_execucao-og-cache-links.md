@@ -358,6 +358,25 @@ WHERE thumbnail_url IS NOT NULL
 
 **Status:** ✅ Esperado (não requer correção)
 
+### Bug 3: Falta botão de upload de imagem no campo "Foto de Perfil"
+**URL:** `https://mesasbeta.artificiorpg.com/perfil`  
+**Seção:** Informações Básicas → Foto de Perfil  
+**Descrição:** Campo "Foto de Perfil" só oferece "Remover foto" e "Usar URL manual", mas não tem opção de fazer upload de nova imagem.
+
+**Comportamento atual:**
+- ✅ "Remover foto" (botão vermelho)
+- ✅ "Usar URL manual" (dropdown)
+- ❌ **Falta:** Botão "Enviar nova imagem" (upload via Cloudinary)
+
+**Comportamento esperado:**
+- Botão primário "Enviar nova imagem" que abre modal de upload
+- Opção secundária "Usar URL manual" para casos avançados
+- Botão "Remover foto" para limpar
+
+**Impacto:** Usuário não consegue fazer upload direto de avatar, precisa usar URL externa ou imagem do Google OAuth.
+
+**Status:** 🔴 Bug confirmado - falta implementar botão de upload
+
 ---
 
 ## Próximos passos
