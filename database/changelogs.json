@@ -1,11 +1,11 @@
 [
   {
     "id": "2026-04-17-atualizacoes-do-dia",
-    "title": "Perfil de mestre e links ficaram mais completos e instantâneos",
-    "body": "Publicamos melhorias importantes para o painel de mestres do ecossistema:\n\n• **Cadastro de links instantâneo** - Adicionar redes sociais e sites não sofre mais travamentos.\n• **Carregamento mais limpo e rápido** - Seus links agora carregam mais padronizados, respeitando a identidade flexível do seu perfil em tempo recorde.\n• **Edição do perfil de mestre mais completa** - Agora ficou mais fácil atualizar apresentação, benefícios e detalhes de atendimento para grupos fechados\n• **Compartilhamento de perfil com prévia mais confiável** - A exibição de título, descrição e imagem ficou mais estável ao compartilhar links\n• **Navegação do painel com atalho para editar perfil** - O acesso à edição ficou mais direto dentro do painel\n\n_Atualização unificada publicada em 17/04/2026 às 10:07_",
+    "title": "Perfil de mestre e gerenciamento de fotos ficaram mais completos",
+    "body": "Publicamos melhorias importantes para o painel de mestres e gerenciamento de perfil:\n\n• **Upload de foto direto no perfil** - Agora você pode enviar sua foto de perfil direto do computador ou celular, sem precisar de links externos\n• **Usar foto do Google com um clique** - Botão para aplicar automaticamente a foto da sua conta Google\n• **Foto de mestre separada da foto de usuário** - Você pode ter uma foto diferente para quando estiver mestrando (configurável na aba Mestre do perfil)\n• **Textos explicativos mais claros** - Cada campo de foto explica onde ela aparece e para que serve\n• **Cadastro de links instantâneo** - Adicionar redes sociais e sites não sofre mais travamentos\n• **Carregamento de links mais limpo e rápido** - Seus links agora carregam mais padronizados, respeitando a identidade do seu perfil\n• **Compartilhamento de perfil com prévia mais confiável** - A exibição de título, descrição e imagem ficou mais estável ao compartilhar links\n\n_Atualização unificada publicada em 17/04/2026 às 12:14_",
     "type": "app",
     "published": true,
-    "created_at": "2026-04-17T10:07:00-03:00"
+    "created_at": "2026-04-17T12:14:00-03:00"
   },
   {
     "id": "2026-04-16-atualizacoes-do-dia",
