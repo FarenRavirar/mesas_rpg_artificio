@@ -1,6 +1,6 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 17/04/2026 12:47 BRT
+**Última atualização:** 17/04/2026 17:20 BRT
 
 ---
 
@@ -25,7 +25,7 @@
 - **Etapa 1 da reformulação do mestre validada manualmente:** tela pública refeita e insights confirmados apenas para owner/admin.
 - **Etapa 2 concluída (frontend):** `MestrePage.tsx` consolidada como orquestradora com hooks (`useMestre`, `useMestreInsights`) e seções extraídas em componentes dedicados.
 - **Etapa 3 concluída (backend/contrato + documentação):** `GET /api/v1/gm/:slug` com `optionalAuth`, `viewer_context`, `closed_group`, `selling_points`, `features` e sem `metrics_*`; `GET /api/v1/gm/:slug/insights` protegido por `authMiddleware` com gate owner/admin.
-- **Compatibilidade de painel validada:** `PainelMestrePage.tsx` permanece consumindo métricas por `GET /api/v1/gm/tables` (`gmPanel.ts`).
+- **Compatibilidade de painel validada:** `PainelMestrePage.tsx` permanece consumindo métricas por `GET /api/v1/gm/tables` (`gmPanel.ts`)`.
 - **Sincronização documental da Etapa 3 concluída:** `MAPA_DE_API.md`, `ARQUITETURA_PROJETO.md` (§12), `docs/Reformulacao_mestre.md`, `sessoes/26-04-16_5_reformulacao-mestre-etapa3.md` e `sessoes/index.md` atualizados.
 - **REQ-29 / DEB-06 iniciado (auditoria API):** `MAPA_DE_API.md` sincronizado com consumo real para blocos `LINKS` e `DISCORD`; sessão `26-04-16_6_definicao-proximo-escopo.md` aberta e indexada.
 - **V4 em execução (Passos 1–3 concluídos):** criado `frontend/public/og-default.png` (1200x630), aplicada deduplicação de recomendações em `backend/src/routes/gm.ts`, reescrito `frontend/src/hooks/useMestreInsights.ts` com `metrics/recommendations` estruturados e ajuste mínimo de compatibilidade em `frontend/src/pages/MestrePage.tsx`; typecheck backend/frontend sem erros.
@@ -33,35 +33,35 @@
 - **V4 em execução (Passos 6–7 concluídos):** `TableCard.tsx` ajustado (layout flexível + badge de lotação + remoção de CTA morto), `LinksDisplay.tsx` atualizado com Lucide/meta de categoria e iframes com `loading/referrerPolicy`, e `MestrePage.css` recebeu o bloco completo de classes do Patch 16; frontend typecheck sem erros.
 - **V4 em execução (Passo 8 concluído):** arquivo órfão `frontend/src/components/mestre/MestreWhySection.tsx` removido e busca de referências residuais retornando zero; frontend typecheck sem erros.
 - **V4 em execução (Passos 9–10 concluídos tecnicamente):** rota OG (`backend/src/routes/og.ts`) registrada em `backend/src/server.ts`, `frontend/nginx.conf` com proxy condicional para crawler, `docker-compose.beta.yml` e `docker-compose.prod.yml` com volume compartilhado `frontend_dist_*` + `INDEX_HTML_PATH`/`PUBLIC_SITE_URL`, `frontend/index.html` com fallback SEO/OG/Twitter e novo `EditGmProfileForm` integrado ao `PainelMestrePage`; typecheck backend/frontend sem erros.
+- **✅ Sessão 10 concluída (17/04/2026 17:20):** Resolvidas todas as 3 pendências da Reformulação V4: PENDÊNCIA 1 (CTA dinâmico + Central de Ajuda com 8 seções), PENDÊNCIA 2 (TableCard altura fluida - `min-h-[420px]` removido), PENDÊNCIA 3 (Rota OG extensível `/:type/:slug` com switch case). Documentação técnica 100% sincronizada (`MAPA_DE_API.md`, `ARQUITETURA_PROJETO.md` §17, `Reformulacao_mestre_v4.md` com status 21/21 patches). Changelog atualizado. **Reformulação V4 100% completa.**
 
 
 ---
 
 ## Próxima Ação
 
-1. Executar validação operacional do OG dinâmico em ambiente real (Facebook Debugger, WhatsApp e Discord) após deploy dos serviços atualizados.
-2. Executar teste funcional manual do fluxo `Editar perfil` no painel (edição de `tagline`, `selling_points` e `closed_group_*`) em beta.
-3. Consolidar checklist final da seção 8 da V4 item a item após validação de runtime.
+1. Deploy para beta das alterações da sessão 10 (Central de Ajuda, TableCard fluido, validações finais).
+2. Validação operacional do OG dinâmico em ambiente real (Facebook Debugger, WhatsApp e Discord).
+3. Teste funcional manual da Central de Ajuda no painel do mestre.
 
 
 ---
 
+
 ## Última Sessão
 
-**Data:** 17/04/2026 12:47 BRT  
-**Tipo:** Execução Completa — Cache OG de Links Externos + Upload de Avatar  
-**Arquivo:** `sessoes/26-04-17_9_execucao-og-cache-links.md`  
+**Data:** 17/04/2026 17:20 BRT  
+**Tipo:** Resolução de Pendências — Reformulação V4 Finalizada  
+**Arquivo:** `sessoes/26-04-17_10_pendencias-reformulacao-v4.md`  
 **O que foi feito:**
-- Implementada migration 109 com campos de metadata em `user_links` (status, timestamps, fail_count, retry).
-- Criado worker assíncrono (`processLinkMetadataJobs.ts`) com retry escalonado (1h → 6h → 1d → 3d → 1w → 2w).
-- Criado script de cleanup (`cleanupLinkMetadataCache.ts`) com políticas de 30 dias (inatividade) e 60 dias (obsolescência).
-- Implementado trigger "fire-and-forget" em `createUserLink`, `getUserLinks` e `GET /gm/:slug`.
-- Throttle de 6h para atualização de `metadata_last_accessed_at`.
-- Filtro de thumbnails de redes sociais protegidas (`fbcdn.net`, `cdninstagram.com`, `twimg.com`, `tiktokcdn.com`).
-- WhatsApp movido para categoria "Contato" (separado de "Presença").
-- Description removida de redes sociais no frontend (Instagram, Facebook, Twitter, TikTok).
-- Container `mesas-cron` configurado apenas em produção.
-- URLs completas no frontend (sem abreviar).
+- Resolvida PENDÊNCIA 1: CTA dinâmico implementado + Central de Ajuda criada com 8 seções didáticas.
+- Resolvida PENDÊNCIA 2: Removido `min-h-[420px]` do TableCard.tsx (altura fluida baseada em conteúdo).
+- Resolvida PENDÊNCIA 3: Rota OG refatorada para `/:type/:slug` genérica com switch case extensível.
+- Atualizado `Reformulacao_mestre_v4.md` com status 21/21 patches (100% completo).
+- Sincronizada documentação técnica: `MAPA_DE_API.md`, `ARQUITETURA_PROJETO.md` §17.
+- Atualizado `database/changelogs.json` com nova funcionalidade (Central de Ajuda).
+- Validação final: zero pendências abertas, todas as buscas retornam resultados limpos.
+- **Reformulação V4 100% completa e pronta para deploy.**
 - Changelog unificado (diretriz de consolidação por dia aplicada).
 - Validação manual em beta: cache OG funcionando, WhatsApp na categoria correta, erro 403 eliminado.
 - Limpeza de thumbnails antigas via SQL (1 link atualizado).

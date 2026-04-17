@@ -1210,17 +1210,24 @@ Servir meta tags Open Graph dinâmicas para páginas de perfil de mestre (`/mest
 
 **Rota:** `backend/src/routes/og.ts`
 
-**Endpoint principal:** `GET /og/mestre/:slug`
+**Endpoint principal:** `GET /og/:type/:slug` (extensível)
+
+**Tipos suportados:**
+- `mestre` — Perfil de mestre (`/og/mestre/:slug`)
+- Futuros: `mesa`, `evento`, etc.
 
 **Lógica:**
-1. Consulta `gm_profiles` JOIN `users` JOIN `profiles` pelo slug
-2. Extrai dados: `display_name`, `tagline`, `bio_long`, `avatar_url`, `banner_url`
-3. Carrega `index.html` do frontend (via `INDEX_HTML_PATH`)
-4. Remove meta tags OG/Twitter duplicadas do index.html estático
-5. Injeta meta tags dinâmicas no `<head>`
-6. Retorna HTML completo
+1. Extrai `type` e `slug` dos parâmetros da rota
+2. Switch case baseado no `type`:
+   - **`mestre`**: Consulta `gm_profiles` JOIN `users` JOIN `profiles` pelo slug
+   - **`default`**: Retorna fallback genérico para tipos não suportados
+3. Extrai dados específicos do tipo (ex: `display_name`, `tagline`, `bio_long`, `avatar_url`, `banner_url`)
+4. Carrega `index.html` do frontend (via `INDEX_HTML_PATH`)
+5. Remove meta tags OG/Twitter duplicadas do index.html estático
+6. Injeta meta tags dinâmicas no `<head>`
+7. Retorna HTML completo
 
-**Meta tags injetadas:**
+**Meta tags injetadas (tipo `mestre`):**
 - `og:type`: `profile`
 - `og:title`: `{display_name} — Mestre de RPG | Artifício Mesas`
 - `og:description`: Truncado de `tagline` ou `bio_long` (máx 200 chars)

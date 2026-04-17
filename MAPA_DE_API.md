@@ -202,3 +202,22 @@
 |---|---|---|---|
 | **POST** | `/` | ✅ Em Uso | ImageUploader.tsx — upload de imagem via backend com Cloudinary signed (substitui upload direto unsigned) |
 
+### OG (`routes/og.ts`)
+| Metodo | Endpoint | Status | Chamado por (Frontend) |
+|---|---|---|---|
+| **GET** | `/:type/:slug` | ✅ Em Uso | Crawlers de redes sociais (Facebook, Twitter, WhatsApp, Discord) via proxy Nginx — rota extensível com switch case para diferentes tipos de entidades |
+| **GET** | `*` | ✅ Em Uso | Fallback para rotas não mapeadas — retorna meta tags genéricas do site |
+
+**Tipos suportados em `/:type/:slug`:**
+- `mestre` — Perfil de mestre (`/og/mestre/:slug`) — consulta `gm_profiles` e injeta meta tags OG dinâmicas
+- Futuros: `mesa`, `evento`, etc.
+
+**Fluxo:**
+1. Nginx detecta user-agent de crawler (facebookexternalhit, Twitterbot, etc.)
+2. Nginx redireciona `/mestre/:slug` → `/og/mestre/:slug` via proxy
+3. Backend consulta banco de dados baseado no `type`
+4. Backend injeta meta tags Open Graph dinâmicas no `index.html`
+5. Retorna HTML completo com meta tags personalizadas
+
+**Referência:** Ver `ARQUITETURA_PROJETO.md` §17 para detalhes completos da implementação.
+

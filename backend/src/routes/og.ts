@@ -114,69 +114,84 @@ function getFallbackMeta(pathname = '/'): MetaFields {
   };
 }
 
-router.get('/mestre/:slug', async (req: Request, res: Response) => {
-  const { slug } = req.params;
+router.get('/:type/:slug', async (req: Request, res: Response) => {
+  const { type, slug } = req.params;
 
   try {
-    const gm = await db
-      .selectFrom('gm_profiles as gm')
-      .innerJoin('users as u', 'u.id', 'gm.user_id')
-      .innerJoin('profiles as p', 'p.user_id', 'u.id')
-      .select([
-        sql<string>`COALESCE(gm.nickname, p.display_name)`.as('display_name'),
-        'gm.bio_long',
-        'gm.tagline',
-        sql<string>`COALESCE(gm.avatar_url, p.avatar_url)`.as('avatar_url'),
-        'gm.banner_url',
-        'gm.slug',
-      ])
-      .where('gm.slug', '=', slug)
-      .executeTakeFirst();
-
     const html = await loadIndexHtml();
 
-    if (!gm) {
-      const htmlNotFound = injectMetaTags(html, {
-        ...getFallbackMeta(`/mestre/${slug}`),
-        title: 'Mestre não encontrado — Artifício Mesas',
-      });
+    // Switch para diferentes tipos de entidades
+    switch (type) {
+      case 'mestre': {
+        const gm = await db
+          .selectFrom('gm_profiles as gm')
+          .innerJoin('users as u', 'u.id', 'gm.user_id')
+          .innerJoin('profiles as p', 'p.user_id', 'u.id')
+          .select([
+            sql<string>`COALESCE(gm.nickname, p.display_name)`.as('display_name'),
+            'gm.bio_long',
+            'gm.tagline',
+            sql<string>`COALESCE(gm.avatar_url, p.avatar_url)`.as('avatar_url'),
+            'gm.banner_url',
+            'gm.slug',
+          ])
+          .where('gm.slug', '=', slug)
+          .executeTakeFirst();
 
-      return res.status(200).type('html').send(htmlNotFound);
+        if (!gm) {
+          const htmlNotFound = injectMetaTags(html, {
+            ...getFallbackMeta(`/mestre/${slug}`),
+            title: 'Mestre não encontrado — Artifício Mesas',
+          });
+
+          return res.status(200).type('html').send(htmlNotFound);
+        }
+
+        const displayName = gm.display_name || 'Mestre de RPG';
+        const title = `${displayName} — Mestre de RPG | ${SITE_NAME}`;
+        const description = truncate(
+          gm.tagline ||
+            gm.bio_long ||
+            `Conheça o perfil do mestre ${displayName} e descubra suas mesas ativas no ${SITE_NAME}.`,
+          200
+        );
+        
+        // Aumenta tamanho de imagens do Google para atender requisitos do Facebook (mínimo 200x200)
+        let imageUrl = gm.avatar_url || gm.banner_url || DEFAULT_OG_IMAGE;
+        if (imageUrl && imageUrl.includes('googleusercontent.com')) {
+          imageUrl = imageUrl.replace(/=s\d+-c$/, '=s400-c');
+        }
+
+        const output = injectMetaTags(html, {
+          title,
+          description,
+          imageUrl,
+          canonicalUrl: `${SITE_URL}/mestre/${encodeURIComponent(gm.slug)}`,
+          ogType: 'profile',
+          extraProfile: {
+            'profile:username': gm.slug,
+          },
+        });
+
+        return res.status(200).type('html').send(output);
+      }
+
+      // Futuros tipos podem ser adicionados aqui:
+      // case 'mesa': { ... }
+      // case 'evento': { ... }
+
+      default: {
+        // Tipo não suportado - retorna fallback
+        const htmlFallback = injectMetaTags(html, getFallbackMeta(`/${type}/${slug}`));
+        return res.status(200).type('html').send(htmlFallback);
+      }
     }
-
-    const displayName = gm.display_name || 'Mestre de RPG';
-    const title = `${displayName} — Mestre de RPG | ${SITE_NAME}`;
-    const description = truncate(
-      gm.tagline ||
-        gm.bio_long ||
-        `Conheça o perfil do mestre ${displayName} e descubra suas mesas ativas no ${SITE_NAME}.`,
-      200
-    );
-    
-    // Aumenta tamanho de imagens do Google para atender requisitos do Facebook (mínimo 200x200)
-    let imageUrl = gm.avatar_url || gm.banner_url || DEFAULT_OG_IMAGE;
-    if (imageUrl && imageUrl.includes('googleusercontent.com')) {
-      imageUrl = imageUrl.replace(/=s\d+-c$/, '=s400-c');
-    }
-
-    const output = injectMetaTags(html, {
-      title,
-      description,
-      imageUrl,
-      canonicalUrl: `${SITE_URL}/mestre/${encodeURIComponent(gm.slug)}`,
-      ogType: 'profile',
-      extraProfile: {
-        'profile:username': gm.slug,
-      },
-    });
-
-    return res.status(200).type('html').send(output);
   } catch (error: any) {
-    console.error('[GET /og/mestre/:slug]', error);
+    console.error(`[GET /og/${type}/:slug]`, error);
 
     try {
       const html = await loadIndexHtml();
-      const output = injectMetaTags(html, getFallbackMeta(`/mestre/${slug}`));
+      const output = injectMetaTags(html, getFallbackMeta(`/${type}/${slug}`));
       return res.status(200).type('html').send(output);
     } catch {
       return res.status(500).send('Internal error');

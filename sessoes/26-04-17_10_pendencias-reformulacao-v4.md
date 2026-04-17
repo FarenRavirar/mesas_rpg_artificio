@@ -22,14 +22,20 @@
 - [x] Confirmar pendências abertas no `Reformulacao_mestre_v4.md`
 - [x] Implementar correção da PENDÊNCIA 1 em `MestreFinalCta.tsx`
 - [x] Validar PENDÊNCIA 1 (comportamento + tipagem)
-- [ ] Implementar correção da PENDÊNCIA 2 em `TableCard.tsx`
-- [ ] Validar PENDÊNCIA 2 (layout fluido)
-- [ ] Implementar correção da PENDÊNCIA 3 em `backend/src/routes/og.ts`
-- [ ] Validar PENDÊNCIA 3 (rota extensível e fallback)
-- [ ] Atualizar `docs/Reformulacao_mestre_v4.md` com status final
-- [ ] Executar busca final com zero pendências abertas
-- [ ] Atualizar RESUMO_EXECUCAO.md
-- [ ] Atualizar index.md
+- [x] **EXTRA:** Implementar Central de Ajuda completa com 8 seções no painel
+- [x] **EXTRA:** Mover CTA dinâmico para antes da seção de mesas
+- [x] **EXTRA:** Atualizar changelog com todas as funcionalidades
+- [x] Deploy beta da PENDÊNCIA 1 + extras concluído
+- [x] Implementar correção da PENDÊNCIA 2 em `TableCard.tsx`
+- [x] Validar PENDÊNCIA 2 (layout fluido)
+- [x] Implementar correção da PENDÊNCIA 3 em `backend/src/routes/og.ts`
+- [x] Validar PENDÊNCIA 3 (rota extensível e fallback)
+- [x] Atualizar MAPA_DE_API.md com nova rota OG extensível
+- [x] Atualizar ARQUITETURA_PROJETO.md §17 com nova estrutura
+- [x] Atualizar `docs/Reformulacao_mestre_v4.md` com status final
+- [x] Executar busca final com zero pendências abertas
+- [x] Atualizar RESUMO_EXECUCAO.md
+- [x] Atualizar index.md
 
 ## Arquivos que serão modificados
 - `frontend/src/components/mestre/MestreFinalCta.tsx`

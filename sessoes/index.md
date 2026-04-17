@@ -1,6 +1,6 @@
 # Índice de Sessões
 
-Última atualização: 17/04/2026 11:47 BRT
+Última atualização: 17/04/2026 17:20 BRT
 
 ---
 

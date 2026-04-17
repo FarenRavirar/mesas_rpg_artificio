@@ -94,6 +94,13 @@ router.get('/:slug', auth_1.optionalAuth, async (req, res) => {
         if (!gm) {
             return res.status(404).json({ error: 'Mestre não encontrado.' });
         }
+        // Aumenta qualidade de imagens do Google (mesmo tratamento do og.ts)
+        if (gm.avatar_url && gm.avatar_url.includes('googleusercontent.com')) {
+            gm.avatar_url = gm.avatar_url.replace(/=s\d+-c$/, '=s400-c');
+        }
+        if (gm.banner_url && gm.banner_url.includes('googleusercontent.com')) {
+            gm.banner_url = gm.banner_url.replace(/=s\d+-c$/, '=s400-c');
+        }
         const viewer_context = {
             is_owner: req.user?.userId === gm.user_id,
             is_admin: req.user?.role === 'admin',
