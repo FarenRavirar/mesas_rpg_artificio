@@ -1175,6 +1175,157 @@ A tabela `imgur_cleanup_log` permanece como legado/histórico e não representa 
 
 O upload direto para Cloudinary depende de variáveis `VITE_*` em tempo de build do frontend. Se elas não estiverem configuradas, o `ImageUploader` mantém apenas o fallback por URL manual.
 
+## 17. Open Graph Dinâmico
+
+> **Palavras-chave para busca:** Open Graph, OG, meta tags, preview, compartilhamento, Facebook, Twitter, WhatsApp, Discord, SEO, crawler
+
+### 17.1 Objetivo
+
+Servir meta tags Open Graph dinâmicas para páginas de perfil de mestre (`/mestre/:slug`), permitindo previews ricos ao compartilhar links em redes sociais (Facebook, Twitter, WhatsApp, Discord).
+
+### 17.2 Arquitetura
+
+**Fluxo para crawlers:**
+```
+[Crawler acessa /mestre/:slug]
+    → Nginx detecta user-agent (facebookexternalhit, Twitterbot, etc)
+    → Nginx retorna erro 418 (teapot)
+    → error_page 418 redireciona para @og_proxy
+    → @og_proxy faz rewrite: /mestre/:slug → /og/mestre/:slug
+    → Proxy para backend (mesas-beta-api:3000)
+    → Backend consulta banco (gm_profiles + users + profiles)
+    → Backend injeta meta tags dinâmicas no index.html
+    → Retorna HTML completo com meta tags personalizadas
+```
+
+**Fluxo para usuários normais:**
+```
+[Usuário acessa /mestre/:slug]
+    → Nginx detecta user-agent normal
+    → Serve index.html estático
+    → React Router renderiza página
+```
+
+### 17.3 Implementação Backend
+
+**Rota:** `backend/src/routes/og.ts`
+
+**Endpoint principal:** `GET /og/mestre/:slug`
+
+**Lógica:**
+1. Consulta `gm_profiles` JOIN `users` JOIN `profiles` pelo slug
+2. Extrai dados: `display_name`, `tagline`, `bio_long`, `avatar_url`, `banner_url`
+3. Carrega `index.html` do frontend (via `INDEX_HTML_PATH`)
+4. Remove meta tags OG/Twitter duplicadas do index.html estático
+5. Injeta meta tags dinâmicas no `<head>`
+6. Retorna HTML completo
+
+**Meta tags injetadas:**
+- `og:type`: `profile`
+- `og:title`: `{display_name} — Mestre de RPG | Artifício Mesas`
+- `og:description`: Truncado de `tagline` ou `bio_long` (máx 200 chars)
+- `og:image`: `avatar_url` ou `banner_url` ou fallback `og-default.png`
+- `og:url`: URL canônica da página
+- `profile:username`: slug do mestre
+- Twitter Cards equivalentes
+
+**Tratamento de imagens do Google:**
+- URLs do Google (`googleusercontent.com`) são automaticamente ajustadas de `s96-c` para `s400-c`
+- Motivo: Facebook exige mínimo 200x200 pixels
+- Regex: `imageUrl.replace(/=s\d+-c$/, '=s400-c')`
+
+### 17.4 Configuração Nginx
+
+**Arquivo:** `frontend/nginx.conf`
+
+**Mapa de detecção de crawlers:**
+```nginx
+map $http_user_agent $is_crawler {
+    default 0;
+    ~*facebookexternalhit 1;
+    ~*Facebot 1;
+    ~*Twitterbot 1;
+    ~*WhatsApp 1;
+    ~*Discordbot 1;
+    # ... outros crawlers
+}
+```
+
+**Location principal:**
+```nginx
+location / {
+    if ($is_crawler = 1) {
+        return 418;
+    }
+    try_files $uri $uri/ /index.html;
+}
+```
+
+**Proxy para backend:**
+```nginx
+location @og_proxy {
+    rewrite ^/(.*)$ /og/$1 break;
+    proxy_pass http://${API_UPSTREAM}:3000;
+    # ... headers padrão
+}
+```
+
+### 17.5 Variáveis de Ambiente
+
+**Backend:**
+- `PUBLIC_SITE_URL`: URL base do site (ex: `https://mesasbeta.artificiorpg.com`)
+- `INDEX_HTML_PATH`: Caminho para `index.html` do frontend (ex: `/app/frontend-dist/index.html`)
+
+**Docker Compose:**
+- Volume compartilhado `frontend_dist_beta` ou `frontend_dist_prod`
+- Montado em `/app/frontend-dist` no container do backend
+- Permite backend ler `index.html` compilado do frontend
+
+### 17.6 Fallback e Tratamento de Erros
+
+**Mestre não encontrado:**
+- Retorna HTML com meta tags genéricas
+- Título: "Mestre não encontrado — Artifício Mesas"
+- Imagem: `og-default.png`
+
+**Erro no backend:**
+- Retorna HTML com meta tags de fallback
+- Não quebra a experiência do usuário
+
+**Rotas não mapeadas:**
+- `GET /og/*` (catch-all) retorna meta tags genéricas do site
+
+### 17.7 Imagem Padrão
+
+**Arquivo:** `frontend/public/og-default.png`
+- Dimensões: 1200x630 pixels (padrão Open Graph)
+- Usado quando mestre não tem avatar/banner
+- Usado como fallback em todas as outras páginas
+
+### 17.8 Validação
+
+**Ferramentas de teste:**
+- Facebook Debugger: https://developers.facebook.com/tools/debug/
+- Twitter Card Validator: https://cards-dev.twitter.com/validator
+- LinkedIn Post Inspector: https://www.linkedin.com/post-inspector/
+
+**Comando de teste local:**
+```bash
+curl -A "facebookexternalhit/1.1" https://mesasbeta.artificiorpg.com/mestre/:slug
+```
+
+### 17.9 Limitações Conhecidas
+
+1. **Cache de redes sociais:** Facebook/Twitter podem cachear previews por até 7 dias
+2. **Imagens pequenas:** Avatares do Google < 200x200 geram aviso no Facebook (resolvido com s400-c)
+3. **Sem SSR completo:** Apenas meta tags são dinâmicas, o conteúdo da página ainda é SPA
+
+### 17.10 Próximos Passos (Fora de Escopo V4)
+
+- Open Graph dinâmico para páginas de mesa (`/mesa/:slug`)
+- Geração de imagens OG personalizadas via Canvas/Puppeteer
+- Cache de HTML renderizado para reduzir latência
+
 ## 18. Referências e Documentos Relacionados
 
 | Documento | Finalidade |

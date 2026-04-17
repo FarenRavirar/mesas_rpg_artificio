@@ -145,6 +145,7 @@ BLOQUEANTE — nunca executar sem aprovação:
 - npm run build (no servidor)
 - git commit
 - git push origin dev ou main
+- git push origin --delete (deletar branches remotos)
 - psql com INSERT, UPDATE, DELETE, DROP, ALTER
 - Reiniciar containers ou serviços
 - Copiar ou sobrescrever arquivos em produção

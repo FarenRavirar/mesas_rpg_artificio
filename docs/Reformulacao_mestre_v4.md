@@ -6,6 +6,206 @@
 > **Escopo:** frontend (UI/UX/SEO), backend (ajustes pontuais em `gm.ts` e Open Graph), painel do mestre (UI de gestão dos campos adicionados na Etapa 3).
 > **Fora de escopo:** segurança de dados (Etapa 1, ✅), contrato de API (Etapa 3, ✅), arquitetura modular (Etapa 2, ✅), Cloudinary/storage (já em produção).
 
+# 📋 ÍNDICE DE PENDÊNCIAS - Reformulação V4
+
+**Data da auditoria:** 17/04/2026  
+**Status geral:** 18 de 21 patches completos (85,7%) | Implementação: ~94%
+
+---
+
+## Pendências Identificadas
+
+### ⚠️ PENDÊNCIA 1: MestreFinalCta - Texto não dinâmico
+
+**Arquivo:** `frontend/src/components/mestre/MestreFinalCta.tsx`  
+**Linha:** 25  
+**Problema:** Texto sempre exibe "🔥 Últimas vagas disponíveis" independente do tipo de urgência detectada.
+
+**Lógica atual:**
+- ✅ Verifica urgência corretamente (`hasUrgentTable` + `isLowStock`)
+- ✅ Só renderiza se há urgência real
+- ❌ Texto é fixo (não varia entre "Últimas vagas", "Vagas limitadas", "Poucas vagas", etc)
+
+**Validação manual:**
+1. Acessar página de mestre com mesas ativas: `https://mesasbeta.artificiorpg.com/mestre/<slug>`
+2. Verificar se a seção "Últimas vagas" aparece apenas quando:
+   - Há mesa com `isUrgent === true` E `isFull === false`, OU
+   - `totalOpenSlots > 0` E `totalOpenSlots <= 5`
+3. Confirmar se o texto é sempre "🔥 Últimas vagas disponíveis"
+
+**Correção sugerida:**
+```typescript
+// Linha 25 - substituir por lógica condicional:
+const urgencyText = hasUrgentTable 
+  ? "🔥 Últimas vagas disponíveis" 
+  : "⚡ Vagas limitadas";
+
+// Usar no JSX:
+<h2>{urgencyText}</h2>
+```
+
+**Após correção, atualizar documentação:**
+1. Localizar linha 41 em `docs/Reformulacao_mestre_v4.md`
+2. Mudar status de ⚠️ para ✅
+3. Adicionar: "Texto dinâmico implementado (linha 25)"
+4. Remover esta pendência deste arquivo
+
+---
+
+### ⚠️ PENDÊNCIA 2: TableCard - Altura mínima fixa
+
+**Arquivo:** `frontend/src/components/TableCard.tsx`  
+**Linha:** 91  
+**Problema:** Card tem `min-h-[420px]` que impede altura fluida baseada em conteúdo.
+
+**Impacto:**
+- Cards com pouco conteúdo ficam com espaço vazio desnecessário
+- Quebra princípio de design responsivo
+- UX inconsistente entre cards
+
+**Validação manual:**
+1. Acessar página de listagem de mesas: `https://mesasbeta.artificiorpg.com/`
+2. Abrir DevTools (F12) e inspecionar elemento de um card de mesa
+3. Procurar por classe `min-h-[420px]` no elemento `.group.relative.w-full`
+4. Testar cards com diferentes quantidades de conteúdo (descrição curta vs longa)
+5. Verificar se todos os cards têm a mesma altura mínima
+
+**Correção sugerida:**
+```typescript
+// Linha 91 - remover min-h-[420px] da className:
+className="group relative w-full flex flex-col rounded-2xl overflow-hidden bg-[#1B2A4A] border border-white/10 hover:border-[var(--color-artificio-orange)]/40 transition-all duration-300 cursor-pointer shadow-lg hover:shadow-[0_0_30px_rgba(232,82,26,0.15)] hover:-translate-y-1"
+```
+
+**Após correção, atualizar documentação:**
+1. Localizar linha 47 em `docs/Reformulacao_mestre_v4.md`
+2. Mudar status de ⚠️ para ✅
+3. Adicionar: "Altura mínima fixa removida (linha 91). Cards agora têm altura fluida."
+4. Remover esta pendência deste arquivo
+
+---
+
+### ⚠️ PENDÊNCIA 3: Rota OG não extensível
+
+**Arquivo:** `backend/src/routes/og.ts`  
+**Linha:** 117  
+**Problema:** Rota específica `/og/mestre/:slug` ao invés de genérica `/og/:type/:slug`.
+
+**Impacto:**
+- Não é possível criar OG dinâmico para outros tipos (ex: `/og/mesa/:slug`)
+- Requer nova rota para cada tipo de entidade
+- Código duplicado para cada tipo
+
+**Validação manual:**
+1. Abrir arquivo `backend/src/routes/og.ts`
+2. Verificar linha 117: deve ter `router.get('/mestre/:slug', ...)`
+3. Confirmar que NÃO existe `router.get('/:type/:slug', ...)`
+4. Verificar se há outras rotas específicas (ex: `/mesa/:slug`)
+
+**Correção sugerida (opcional - não bloqueante):**
+```typescript
+// Refatorar para rota genérica:
+router.get('/:type/:slug', async (req: Request, res: Response) => {
+  const { type, slug } = req.params;
+  
+  try {
+    const html = await loadIndexHtml();
+    
+    switch(type) {
+      case 'mestre':
+        // lógica atual (linhas 121-184)
+        const gm = await db.selectFrom('gm_profiles as gm')...
+        // ... resto da lógica
+        break;
+        
+      case 'mesa':
+        // futura implementação para mesas
+        const table = await db.selectFrom('tables')...
+        break;
+        
+      default:
+        // fallback para tipos desconhecidos
+        const output = injectMetaTags(html, getFallbackMeta(`/${type}/${slug}`));
+        return res.status(200).type('html').send(output);
+    }
+  } catch (error) {
+    // error handling
+  }
+});
+```
+
+**Após correção, atualizar documentação:**
+1. Localizar linha 74 em `docs/Reformulacao_mestre_v4.md`
+2. Mudar status de ⚠️ para ✅
+3. Adicionar: "Rota genérica `/og/:type/:slug` implementada com switch para múltiplos tipos"
+4. Remover esta pendência deste arquivo
+
+---
+
+## Instruções Gerais
+
+### Quando uma pendência for resolvida:
+
+1. **Validar manualmente** seguindo os passos descritos na seção "Validação manual"
+2. **Confirmar correção** via:
+   - Inspeção de código (verificar linha mencionada)
+   - Teste funcional (acessar URL e verificar comportamento)
+   - DevTools (inspecionar elementos/network)
+3. **Atualizar documentação principal:**
+   - Abrir `docs/Reformulacao_mestre_v4.md`
+   - Localizar linha indicada na pendência
+   - Mudar emoji de ⚠️ para ✅
+   - Adicionar evidência da correção (ex: "Corrigido em commit abc123")
+4. **Remover do índice:**
+   - Deletar seção completa da pendência deste arquivo
+   - Atualizar contador "Status geral" no topo
+
+### Quando TODAS as pendências forem resolvidas:
+
+1. **Substituir conteúdo deste arquivo por:**
+   ```markdown
+   # ✅ REFORMULAÇÃO V4 - 100% COMPLETA
+   
+   **Data de conclusão:** [DATA]  
+   **Auditoria finalizada em:** 17/04/2026
+   
+   Todos os 21 patches implementados e validados.
+   
+   ## Patches Completos
+   
+   - ✅ Lote A (3 patches): Fundação
+   - ✅ Lote B (15 patches): Componentes Frontend
+   - ✅ Lote C (3 patches): Open Graph & Painel
+   
+   ## Documentação
+   
+   Ver `docs/Reformulacao_mestre_v4.md` para detalhes completos da implementação.
+   ```
+
+2. **Atualizar `RESUMO_EXECUCAO.md`:**
+   - Adicionar entrada com data de conclusão
+   - Marcar Reformulação V4 como ✅ COMPLETA
+
+---
+
+## Priorização
+
+**Prioridade ALTA (bloqueia UX):**
+- ⚠️ PENDÊNCIA 2: TableCard altura fixa
+
+**Prioridade MÉDIA (melhoria de UX):**
+- ⚠️ PENDÊNCIA 1: MestreFinalCta texto dinâmico
+
+**Prioridade BAIXA (arquitetura, não bloqueia):**
+- ⚠️ PENDÊNCIA 3: Rota OG extensível
+
+---
+
+## Notas
+
+- Este arquivo deve ser mantido atualizado conforme pendências são resolvidas
+- Não deletar este arquivo até que todas as pendências sejam resolvidas
+- Após resolução completa, manter como registro histórico da auditoria
+
 ---
 
 ## Índice
@@ -31,29 +231,29 @@ Evidências cruzadas entre código e Prints 1–7:
 
 | Arquivo | Estado real |
 |---|---|
-| `MestrePage.tsx` | ✅ Orquestração modular. Usa `useMestre` + `useMestreInsights`. Gate `canSeeInsights` funcionando. |
-| `MestreHero.tsx` | ❌ Apenas 1 CTA. Stats derivadas (`totalOpenSlots` + `experience_years`), não são `tables_count`/`avg_rating`/`reviews_count`. Título plano sem accent. Avatar OK no código (`charAt(0)`). |
-| `MestreWhySection.tsx` | ❌ Substitui o que deveria ser `MestreSellingPoints`. Branches hardcoded por `experience_years`, `specialties`, `languages`, `covil_verified`, `discord_connected`, `average_price`. Não itera `profile.selling_points`. **Componente precisa ser abandonado ou reescrito.** |
-| `MestreSellingPoints.tsx` | ❌ **Não existe no projeto.** |
-| `MestreTablesSection.tsx` | ❌ Grid simétrico. `MestreFeaturedTable` não existe. Subtítulo "Escolha a mesa perfeita" sempre renderiza. |
-| `MestreInsightsSection.tsx` | ❌ Recebe `insights: string[]` pré-formatadas. Por isso o Print 5 mostra texto corrido. |
-| `MestreRecommendationsSection.tsx` | ❌ Recebe `recommendations: string[]` com emojis 🔴🟡🟢 como prefixo. Por isso os ícones Lucide não renderizam. |
-| `MestreFinalCta.tsx` | ❌ Sempre renderiza "🔥 Últimas vagas" se `mappedTables.length > 0`. Sem condicional de urgência real. |
-| `MestreClosedGroupSection.tsx` | ❌ **Não existe no projeto.** Backend já expõe `closed_group` no payload. |
-| `MestreBio.tsx` | ❌ **Não existe no projeto.** Bio longa está diluída no hero em frase única. |
-| `MestreSkeleton.tsx` | ⚠️ Só mostra 6 card skeletons genéricos. Não tem skeleton do hero. |
+| `MestrePage.tsx` | ✅ **COMPOSIÇÃO FINAL COMPLETA E AUDITADA (17/04/2026).** Ordem de renderização: MestreHero (93) → MestreBio (99) → MestreSellingPoints (101) → MestreTablesSection (103) → MestreClosedGroupSection (105) → MestreInsightsSection (107-109, condicional) → MestreRecommendationsSection (111-113, condicional) → LinksDisplay (115-121, condicional) → MestreFinalCta (123-129, condicional). Patch 15 validado. |
+| `MestreHero.tsx` | ✅ **REESCRITO E AUDITADO (17/04/2026).** Dual-CTA (linhas 86-103). Stats reais sem derivadas (linhas 128-156). Título com `hero-title-accent` (linha 79). Trust row com 3 badges condicionais (linhas 105-126). Promo badge com Sparkles (linhas 45-50). Avatar com fallback para inicial (linhas 52-64). |
+| `MestreWhySection.tsx` | ✅ **REMOVIDO (17/04/2026).** Substituído por `MestreSellingPoints` + `MestreBio`. Não há mais referências no código. |
+| `MestreSellingPoints.tsx` | ✅ **CRIADO (17/04/2026).** Itera `profile.selling_points` data-driven. Renderiza cards estruturados. |
+| `MestreTablesSection.tsx` | ✅ **ATUALIZADO E AUDITADO (17/04/2026).** Importa MestreFeaturedTable e MestreTablesGrid (linhas 2-3). Separa featured (linha 10) e outras mesas (linha 11). Subtítulo condicional (linhas 20-24): só renderiza se `hasAny && others.length > 0`. Featured na linha 26, Grid na linha 27. |
+| `MestreInsightsSection.tsx` | ✅ **REESCRITO E AUDITADO (17/04/2026).** Props `metrics: InsightMetric[]` (linha 6). Ordena por views desc (linha 11). Cards com 4 métricas e ícones Lucide: Eye (views), MousePointerClick (clicks), MessageSquare (contacts), Heart (favorites). Classe condicional `insight-card--warning`. |
+| `MestreRecommendationsSection.tsx` | ✅ **REESCRITO E AUDITADO (17/04/2026).** Props `recommendations: InsightRecommendation[]` (linha 5). Mapeamento `SEVERITY_META` com ícones Lucide por severidade: AlertTriangle (high), Info (medium), CheckCircle2 (low). Labels tipados: "Atenção", "Sugestão", "Dica". |
+| `MestreFinalCta.tsx` | ⚠️ **PARCIALMENTE IMPLEMENTADO (17/04/2026).** Lógica de urgência correta (linhas 11-19): verifica `hasUrgentTable` via `getSlotsVisualState` e `isLowStock` (totalOpenSlots <= 5). Só renderiza se há urgência real. **Pendência:** texto sempre "🔥 Últimas vagas" (linha 25) - não é dinâmico baseado no tipo de urgência. |
+| `MestreClosedGroupSection.tsx` | ✅ **CRIADO (17/04/2026).** Renderiza seção de grupo fechado quando `profile.closed_group.enabled === true`. Importado e usado em `MestrePage.tsx`. |
+| `MestreBio.tsx` | ✅ **CRIADO (17/04/2026).** Seção dedicada com foto, bio longa em parágrafos, chips de especialidades e idiomas. Importado e usado em `MestrePage.tsx`. |
+| `MestreSkeleton.tsx` | ✅ **COMPLETO E AUDITADO (17/04/2026).** Skeleton do hero implementado (linhas 7-20): avatar circular (linha 11), título (linha 12), bio em 2 linhas (linhas 13-14), dual-CTA skeleton (linhas 15-18). Grid com 6 TableCardSkeleton (linhas 23-27). |
 | `MestreNotFound.tsx` / `MestreError.tsx` | ✅ OK. |
-| `TableCard.tsx` | ❌ Patch 7 **nunca foi aplicado**. Mantém `h-[420px]`, `h-[168px]`, `h-[252px]`, badge `animate-pulse` com emoji ⚡, bloco "Ver detalhes" morto. |
-| `LinksDisplay.tsx` | ❌ Patch 8 **nunca foi aplicado**. `CATEGORY_LABELS` com emojis, `<h2>🎙️ Conteúdo & Redes</h2>`, iframe sem `loading="lazy"` nem `referrerPolicy`. |
-| `useMestreInsights.ts` | ❌ Converte `metrics[]` e `recommendations[]` em `string[]`. Destrói estrutura tipada. Precisa ser reescrito. |
+| `TableCard.tsx` | ⚠️ **PARCIALMENTE IMPLEMENTADO E AUDITADO (17/04/2026).** ✅ Removidos: `h-[168px]`, `h-[252px]`, badge `animate-pulse` no card principal (só no skeleton), emoji ⚡. ❌ Pendente: linha 91 tem `min-h-[420px]` que precisa ser removido. ⚠️ "Ver detalhes →" existe (linha 58) mas é CTA funcional (não bloco morto) - clarificar se deve ser removido. |
+| `LinksDisplay.tsx` | ✅ **COMPLETO E AUDITADO (17/04/2026).** Iframe único para embeds pesados (linhas 123-130) com `loading="lazy"` (linha 126) e `referrerPolicy="no-referrer-when-downgrade"` (linha 127). Categorias (linhas 43-48) usam ícones Lucide (Video, Share2, MessageCircle, BookOpen) sem emojis. Título principal (linha 68) usa ícone Lucide `<Mic2>` sem emoji. Patch 14 validado. |
+| `useMestreInsights.ts` | ✅ **REESCRITO (17/04/2026).** Expõe `metrics: InsightMetric[]` e `recommendations: InsightRecommendation[]` estruturados. Mantém `insights: string[]` como `@deprecated` para compatibilidade. |
 | `useMestre.ts` | ⚠️ **Não foi enviado**, mas `MestrePage.tsx` consome `profile`, `links`, `mappedTables`, `totalOpenSlots`, `canSeeInsights`, `loading`, `error`. Preciso assumir que o hook expõe essas 7 chaves e preservá-las. |
-| `MestrePage.css` | ⚠️ Não tem classes `hero-title-accent`, `hero-ctas`, `hero-trust-row`, `hero-promo-badge`, `insight-card`, `insight-metrics`, `recommendation-item`, `recommendation-label`, `closed-group-section`, `mestre-featured-table`, `mestre-bio-section`, `owner-only-banner`. Preciso criar todas. |
+| `MestrePage.css` | ✅ **COMPLETO E AUDITADO (17/04/2026).** Arquivo com 1.055 linhas e 20.601 bytes. Todas as 12 classes V4 presentes: `hero-promo-badge` (459), `hero-title-accent` (475), `hero-ctas` (480), `hero-trust-row` (512), `mestre-bio-section` (535), `mestre-featured-table` (634), `closed-group-section` (797), `owner-only-banner` (883), `insight-card` (905), `insight-metrics` (927), `recommendation-item` (984), `recommendation-label` (1029). Patch 16 validado. |
 
 ### Backend
 
 | Arquivo | Estado real |
 |---|---|
-| `gm.ts` | ✅ `GET /:slug` com `optionalAuth` + `viewer_context` + `closed_group` + `selling_points` + `features` + sem `metrics_*`. `GET /:slug/insights` protegido por `authMiddleware`. **Único ajuste necessário:** deduplicar recomendações em `buildRecommendations`. |
+| `gm.ts` | ✅ **COMPLETO E AUDITADO (17/04/2026).** `buildRecommendations` com dedupe completo (linhas 33-80): agrupa por título case-insensitive via `Map`, soma métricas do grupo (totalViews, totalClicks, totalContacts), adiciona sufixo `(X instâncias)` quando count > 1. Patch 1 validado. |
 | `gmPanel.ts` | ✅ **Patch 3 já foi aplicado.** `POST /profile` aceita `tagline`, `promo_badge_text`, `selling_points`, `closed_group_*`. `PUT /profile` idem. `GET /me` retorna todos via `selectAll()`. `GET /tables` continua retornando `metrics_*` (correto, endpoint autenticado). **Pendência:** o `CreateGmProfileForm` em `PainelMestrePage.tsx` só envia `slug`, `nickname`, `bio_long` — precisa UI nova para os demais campos. |
 | `links.ts` | ✅ CRUD completo. **Pendência:** `linkService.createUserLink` — preciso confirmar se já extrai `embed_url` ao detectar YouTube/Twitch/Spotify. Se não, adicionar. |
 | `useLinks.ts` | ✅ Hook do frontend pronto para uso no painel. |
@@ -62,7 +262,7 @@ Evidências cruzadas entre código e Prints 1–7:
 
 | Arquivo | Estado real |
 |---|---|
-| `PainelMestrePage.tsx` | ❌ `CreateGmProfileForm` só pede `slug`, `nickname`, `bio`. **Nenhuma UI** para `tagline`, `promo_badge_text`, `selling_points`, `closed_group_*`. Não há formulário de edição de perfil separado — o fluxo atual é "criar perfil" e depois só edita mesas. **Precisa construir:** seção "Editar perfil" (não-inicial) que chame `PUT /api/v1/gm/profile`. |
+| `PainelMestrePage.tsx` + `EditGmProfileForm.tsx` (Patch 21) | ✅ **COMPLETO E AUDITADO (17/04/2026).** EditGmProfileForm existe (686 linhas, 27.881 bytes). Interface `EditableGmProfile` com todos os 7 campos V4 (linhas 36-50). Estados inicializados (linhas 92-118). Payload PUT completo (linhas 262-276) para `/api/v1/gm/profile` (linhas 278-279). UI completa: tagline (linhas 335-346, textarea maxLength 200), promo_badge_text (linhas 385-396, input maxLength 120), selling_points (linhas 398-486, adicionar/remover/editar com 4 campos: icon, title, description, highlight), closed_group_enabled (linhas 582-591, checkbox), closed_group_systems (linhas 595-626, SystemTreeSelector), closed_group_description (linhas 628-638, textarea), closed_group_min_price_cents (linhas 640-653, input number com conversão reais→centavos). Importado e renderizado no PainelMestrePage na view 'edit-profile'. |
 | `MyTableEnhanced` | ✅ Mapeamento de `metrics_*` em `metrics: {views, clicks, contacts, favorites}` já correto. |
 | KPIs agregados (`totalViews`, `totalContacts`, `conversionRate`) | ✅ Funcionando. |
 
@@ -70,9 +270,11 @@ Evidências cruzadas entre código e Prints 1–7:
 
 | Item | Estado |
 |---|---|
-| `index.html` | ❌ Zero meta tags Open Graph. Zero Twitter Cards. `<title>` estático. |
-| `package.json` | ⚠️ Sem `react-helmet-async` nem equivalente. Para OG isso é **vantagem** — vamos usar apenas server-side. |
 | `docker-compose.yml` do frontend | ⚠️ Mostra `ports: "30300:80"` e rede externa `gerenciador_telegram_default`. Frontend roda como container separado exposto na porta 80 (Nginx dentro). **Não é o Express do backend que serve o build.** Open Graph precisa ser interceptado **antes** do Nginx, ou o Nginx precisa fazer proxy condicional para o backend. |
+| **Rota `/og/mestre/:slug`** (Patch 18) | ⚠️ **PARCIALMENTE IMPLEMENTADO E AUDITADO (17/04/2026).** Arquivo `og.ts` (6.626 bytes) com rota específica `/og/mestre/:slug` (linha 117). Busca dados do mestre (linhas 121-134), carrega index.html (linha 136), injeta meta tags dinâmicas via `injectMetaTags()` (linha 162), retorna HTML (linha 173). Registrada em server.ts (linha 119). ❌ **Diferença:** especificação pedia rota genérica `/og/:type/:slug`, mas implementado apenas `/og/mestre/:slug` (não extensível para outros tipos). |
+| **Função `injectMetaTags`** (Patch 19) | ✅ **COMPLETO E AUDITADO (17/04/2026).** Função em og.ts (linhas 57-104). Interface `MetaFields` tipada (linhas 48-55). Sanitiza todos os campos via `escapeHtml()` (linhas 58-61, 66). Gera 16 meta tags: title, description, canonical, 9 OG (type, title, description, image, image:width, image:height, url, site_name, locale + extras), 4 Twitter (card, title, description, image). Remove duplicatas com 4 regex (linhas 91-94). Substitui `<title>` ou injeta antes de `</head>` (linhas 97-100). Dimensões OG: 1200×630 (hardcoded). Locale: pt_BR. |
+| `index.html` (Patch 20) | ✅ **COMPLETO E AUDITADO (17/04/2026).** Arquivo com 32 linhas e 1.563 bytes. Meta tags básicas: charset UTF-8 (linha 4), viewport (linha 6), title estático (linha 8), description (linha 9). Open Graph fallback com comentário explicativo (linhas 11-19): 9 tags OG (type, title, description, image, image:width 1200, image:height 630, site_name, locale pt_BR). Twitter Cards fallback com comentário (linhas 21-25): 4 tags Twitter (card summary_large_image, title, description, image). Imagem: og-default.png (existe em public/). Compatível com injectMetaTags: todas as tags OG/Twitter e comentários serão removidos e substituídos por tags dinâmicas. |
+| `package.json` | ⚠️ Sem `react-helmet-async` nem equivalente. Para OG isso é **vantagem** — vamos usar apenas server-side. |
 
 ### Decisão crítica sobre Open Graph
 
