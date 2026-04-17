@@ -67,10 +67,27 @@
 ### LINKS (`routes/links.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
 |---|---|---|---|
-| **GET** | `/links` | ✅ Em Uso | useLinks.ts, LinksManager.tsx |
-| **POST** | `/links` | ✅ Em Uso | useLinks.ts, LinksManager.tsx |
+| **GET** | `/links` | ✅ Em Uso | useLinks.ts, LinksManager.tsx — retorna `metadata_status`, `metadata_fetched_at`, `metadata_last_accessed_at` para exibição de estados de cache OG |
+| **POST** | `/links` | ✅ Em Uso | useLinks.ts, LinksManager.tsx — cria link com `metadata_status = 'pending'` e aciona worker assíncrono via trigger "fire-and-forget" |
 | **DELETE** | `/links/:id` | ✅ Em Uso | useLinks.ts, LinksManager.tsx |
 | **PATCH** | `/links/reorder` | ✅ Em Uso | useLinks.ts, LinksManager.tsx |
+
+**Campos de Metadata Open Graph (migration_109 - Abril/2026):**
+- `metadata_status` — Estado do processamento: `pending` (aguardando), `success` (enriquecido), `failed` (erro após retries), `stale` (expirado por inatividade)
+- `metadata_fetched_at` — Timestamp do último fetch bem-sucedido
+- `metadata_last_accessed_at` — Última exibição do link (throttle de 6h para evitar sobrecarga no banco)
+- `metadata_fail_count` — Contador de falhas consecutivas (retry escalonado: 1h → 6h → 1d → 3d → 1w → 2w)
+- `metadata_next_retry_at` — Próxima tentativa de retry (backoff exponencial)
+- `title` — Título extraído via Open Graph ou fallback (hostname)
+- `description` — Descrição extraída via Open Graph (não exibida para redes sociais protegidas)
+- `thumbnail_url` — URL da thumbnail (filtrada para `fbcdn.net`, `cdninstagram.com`, `twimg.com`, `tiktokcdn.com`)
+
+**Worker Assíncrono:**
+- Script: `backend/src/scripts/processLinkMetadataJobs.ts`
+- Trigger: "fire-and-forget" em `POST /links`, `GET /links` e `GET /gm/:slug`
+- Timeout: 2s por requisição HTTP
+- Limite: 128KB de body
+- Cleanup: `cleanupLinkMetadataCache.ts` (diário em produção) — remove cache pesado após 30 dias de inatividade
 
 ### ME (`routes/me.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |

@@ -326,6 +326,7 @@ Se configurar ambiente local for complexo, testar diretamente em:
 - `notifications` — Notificações in-app para usuários (migration_07).
 - `imgur_cleanup_log` — Registro de tentativas de limpeza de imagens hospedadas externamente.
 - `user_preferences` — Preferências estruturadas (sistemas, temas, idiomas, plataformas, dias).
+- `user_links` — Links externos do perfil do mestre (redes sociais, portfólio, conteúdo) com cache de metadados Open Graph (migration_109).
 
 ### 4.2 Campos Chave em `tables`
 
@@ -418,7 +419,124 @@ Uma mesa pode ter:
 - Quarta 20h-23h (quinzenal, 4 vagas)
 - Sábado 14h-18h (mensal, 6 vagas, em andamento)
 
+### 4.7 Links Externos do Mestre (user_links) e Cache Open Graph
+
+**Implementado:** Abril/2026 (migration_109)  
+**Objetivo:** Permitir que mestres adicionem links externos (redes sociais, portfólio, conteúdo) ao perfil público com enriquecimento assíncrono de metadados Open Graph.
+
+#### 4.7.1 Estrutura da Tabela `user_links`
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `id` | UUID PK | Identificador único |
+| `user_id` | UUID FK | Referência ao usuário (dono do perfil) |
+| `url` | TEXT NOT NULL | URL completa do link externo |
+| `type` | TEXT NOT NULL | Tipo detectado: `youtube`, `spotify`, `twitch`, `twitter`, `instagram`, `facebook`, `tiktok`, `linkedin`, `whatsapp`, `podcast`, `article`, `website` |
+| `title` | TEXT NULL | Título extraído via Open Graph ou fallback (hostname) |
+| `description` | TEXT NULL | Descrição extraída via Open Graph |
+| `thumbnail_url` | TEXT NULL | URL da thumbnail (filtrada para redes sociais protegidas) |
+| `embed_url` | TEXT NULL | URL de embed (YouTube, Spotify, Twitch) |
+| `sort_order` | SMALLINT | Ordem de exibição no perfil |
+| `metadata_status` | TEXT NOT NULL DEFAULT 'pending' | Estado do processamento: `pending`, `success`, `failed`, `stale` |
+| `metadata_fetched_at` | TIMESTAMPTZ NULL | Timestamp do último fetch bem-sucedido |
+| `metadata_last_accessed_at` | TIMESTAMPTZ NOT NULL DEFAULT NOW() | Última vez que o link foi exibido (throttle de 6h) |
+| `metadata_fail_count` | INTEGER NOT NULL DEFAULT 0 | Contador de falhas consecutivas |
+| `metadata_next_retry_at` | TIMESTAMPTZ NULL | Próxima tentativa de retry (backoff exponencial) |
+| `created_at` | TIMESTAMPTZ | Data de criação |
+| `updated_at` | TIMESTAMPTZ | Data de última atualização |
+
+**Índices:**
+- `idx_user_links_metadata_status` — Busca rápida de links pendentes
+- `idx_user_links_metadata_last_accessed` — Cleanup por inatividade
+- `idx_user_links_metadata_next_retry` — Retry de links falhados
+
+#### 4.7.2 Fluxo de Enriquecimento Assíncrono (Write-Fast, Enrich-Later)
+
+**Fase 1 — Criação do Link (Síncrona):**
+1. Usuário adiciona URL no painel do mestre
+2. Backend detecta tipo via `detectLinkType()` (regex de domínio)
+3. Link é inserido com `metadata_status = 'pending'`
+4. Resposta imediata ao frontend (sem aguardar scraping)
+
+**Fase 2 — Processamento (Assíncrona):**
+1. Worker (`processLinkMetadataJobs.ts`) busca links `pending` ou `failed` com retry disponível
+2. Fetch HTTP com timeout de 2s e limite de 128KB
+3. Extração de metadados via regex: `og:title`, `og:description`, `og:image`
+4. Filtro de thumbnails: bloqueia `fbcdn.net`, `cdninstagram.com`, `twimg.com`, `tiktokcdn.com`
+5. Atualização do link com `metadata_status = 'success'` ou `failed`
+
+**Fase 3 — Exibição (Reativa):**
+1. Frontend renderiza link com estado visual baseado em `metadata_status`
+2. Redes sociais protegidas (Instagram, Facebook, Twitter, TikTok) não exibem `description` nem `thumbnail_url`
+3. WhatsApp é categorizado como "Contato" (não "Presença")
+
+#### 4.7.3 Trigger "Fire-and-Forget"
+
+O worker é acionado automaticamente (sem bloquear resposta HTTP) em:
+- `POST /api/v1/profile/links` — Criação de novo link
+- `GET /api/v1/profile/links` — Listagem de links no painel
+- `GET /api/v1/gm/:slug` — Visualização do perfil público
+
+**Lógica:**
+```typescript
+if (links.some(l => l.metadata_status === 'pending')) {
+  processPendingLinks().catch(err => console.error('Silent error:', err));
+}
+```
+
+#### 4.7.4 Política de Retry Escalonado
+
+Falhas de scraping (timeout, 403, 500) acionam retry com backoff exponencial:
+
+| Tentativa | Intervalo | `metadata_next_retry_at` |
+|---|---|---|
+| 1 | 1 hora | `NOW() + 1 hour` |
+| 2 | 6 horas | `NOW() + 6 hours` |
+| 3 | 1 dia | `NOW() + 1 day` |
+| 4 | 3 dias | `NOW() + 3 days` |
+| 5 | 1 semana | `NOW() + 1 week` |
+| 6 | 2 semanas | `NOW() + 2 weeks` |
+| 7+ | Desiste | `metadata_status = 'failed'` |
+
+#### 4.7.5 Expiração por Inatividade (30 dias)
+
+**Script:** `cleanupLinkMetadataCache.ts` (execução diária via cron em produção)
+
+**Políticas:**
+1. **Inatividade (30 dias):** Links com `metadata_last_accessed_at < NOW() - 30 days` têm `description` e `thumbnail_url` removidos e `metadata_status` marcado como `stale`
+2. **Obsolescência (60 dias):** Links `success` com `metadata_fetched_at < NOW() - 60 days` são marcados como `stale` para revalidação
+
+**Throttle de Acesso:**
+- `metadata_last_accessed_at` só é atualizado se última atualização foi há mais de 6 horas
+- Evita sobrecarga no banco com perfis muito visitados
+
+#### 4.7.6 Categorização de Links no Frontend
+
+| Categoria | Tipos | Label | Ícone |
+|---|---|---|---|
+| **Conteúdo** | `youtube`, `twitch`, `podcast`, `spotify` | "Conteúdo" | Video |
+| **Presença** | `instagram`, `twitter`, `facebook`, `tiktok`, `linkedin` | "Presença" | Share2 |
+| **Contato** | `whatsapp` | "Contato" | MessageCircle |
+| **Autoridade** | `article`, `website` | "Autoridade" | BookOpen |
+
+**Regras de Exibição:**
+- Redes sociais protegidas: apenas ícone, label e URL (sem thumbnail, sem description)
+- YouTube/Spotify/Twitch: embed pesado (iframe)
+- Artigos/Sites: thumbnail + title + description + CTA
+
+#### 4.7.7 Infraestrutura de Agendamento
+
+**Produção (`docker-compose.prod.yml`):**
+- Container `mesas-cron` dedicado
+- Worker OG: a cada 5 minutos
+- Cleanup: 1x por dia
+
+**Beta/Dev:**
+- Sem container cron
+- Worker acionado apenas via trigger "fire-and-forget"
+
 ---
+
 
 ## 5. Papéis e Permissões (Rotas Privadas API / Middleware JWT)
 
