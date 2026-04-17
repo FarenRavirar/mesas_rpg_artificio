@@ -8,34 +8,63 @@ interface Props {
 }
 
 export function MestreFinalCta({ totalOpenSlots, tablesCount, mappedTables }: Props) {
+  // Calcular métricas reais do portfólio
+  const totalSlots = mappedTables.reduce((acc, t) => acc + t.slots_total, 0);
+  const occupancyRate = totalSlots > 0 ? (totalSlots - totalOpenSlots) / totalSlots : 0;
+
+  // Detectar mesas urgentes (≤2 vagas e não lotadas)
   const hasUrgentTable = mappedTables.some((t) => {
     const { isUrgent, isFull } = getSlotsVisualState(t);
     return isUrgent && !isFull;
   });
 
-  const isLowStock = totalOpenSlots > 0 && totalOpenSlots <= 5;
-  
-  // Só renderiza se há urgência REAL
-  if (!hasUrgentTable && !isLowStock) return null;
+  // Definir cenário baseado em dados reais
+  let ctaData: { emoji: string; title: string; subtitle: string; cta: string };
 
-  const urgencyText = hasUrgentTable && isLowStock
-    ? '🔥 Últimas vagas disponíveis'
-    : hasUrgentTable
-      ? '⚠️ Algumas mesas estão quase lotadas'
-      : '⚡ Vagas limitadas';
+  if (totalOpenSlots === 0) {
+    // Cenário 1: Totalmente lotado
+    ctaData = {
+      emoji: '📋',
+      title: 'Lista de espera disponível',
+      subtitle: 'Entre em contato para ser avisado quando abrirem novas vagas',
+      cta: 'Entrar na lista de espera'
+    };
+  } else if (hasUrgentTable || occupancyRate >= 0.75) {
+    // Cenário 2: Urgente (mesa crítica OU 75%+ ocupado)
+    ctaData = {
+      emoji: '🔥',
+      title: 'Últimas vagas disponíveis',
+      subtitle: `${totalOpenSlots} ${totalOpenSlots === 1 ? 'vaga restante' : 'vagas restantes'} em ${tablesCount} ${tablesCount === 1 ? 'mesa' : 'mesas'}`,
+      cta: 'Ver mesas e garantir vaga'
+    };
+  } else if (occupancyRate >= 0.5) {
+    // Cenário 3: Preenchendo (50-74% ocupado)
+    ctaData = {
+      emoji: '⚡',
+      title: 'Vagas preenchendo rápido',
+      subtitle: `${totalOpenSlots} vagas disponíveis — garanta a sua antes que acabem`,
+      cta: 'Ver mesas disponíveis'
+    };
+  } else {
+    // Cenário 4: Disponível (< 50% ocupado)
+    ctaData = {
+      emoji: '✨',
+      title: 'Vagas abertas para novas aventuras',
+      subtitle: `${totalOpenSlots} vagas disponíveis em ${tablesCount} ${tablesCount === 1 ? 'mesa ativa' : 'mesas ativas'}`,
+      cta: 'Explorar mesas'
+    };
+  }
 
   return (
     <section className="final-cta-section">
       <div className="container">
         <div className="final-cta-card">
-          <h2>{urgencyText}</h2>
+          <h2>{ctaData.emoji} {ctaData.title}</h2>
           <p className="final-cta-subtitle">
-            {totalOpenSlots}{' '}
-            {totalOpenSlots === 1 ? 'vaga restante' : 'vagas restantes'} em{' '}
-            {tablesCount} {tablesCount === 1 ? 'mesa' : 'mesas'}
+            {ctaData.subtitle}
           </p>
           <a href="#mesas" className="cta-button cta-button-large">
-            Ver mesas e garantir vaga
+            {ctaData.cta}
           </a>
           <p className="final-cta-hint">
             ⏰ As vagas preenchem rápido. Não perca sua chance!
