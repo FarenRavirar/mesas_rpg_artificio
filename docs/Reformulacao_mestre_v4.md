@@ -9,46 +9,26 @@
 # 📋 ÍNDICE DE PENDÊNCIAS - Reformulação V4
 
 **Data da auditoria:** 17/04/2026  
-**Status geral:** 18 de 21 patches completos (85,7%) | Implementação: ~94%
+**Status geral:** 19 de 21 patches completos (90,5%) | Implementação: ~95%
 
 ---
 
 ## Pendências Identificadas
 
-### ⚠️ PENDÊNCIA 1: MestreFinalCta - Texto não dinâmico
+### ✅ PENDÊNCIA 1: MestreFinalCta - Texto dinâmico implementado
 
 **Arquivo:** `frontend/src/components/mestre/MestreFinalCta.tsx`  
-**Linha:** 25  
-**Problema:** Texto sempre exibe "🔥 Últimas vagas disponíveis" independente do tipo de urgência detectada.
+**Linha:** 17-28  
+**Status:** Resolvida em 17/04/2026.
 
-**Lógica atual:**
-- ✅ Verifica urgência corretamente (`hasUrgentTable` + `isLowStock`)
-- ✅ Só renderiza se há urgência real
-- ❌ Texto é fixo (não varia entre "Últimas vagas", "Vagas limitadas", "Poucas vagas", etc)
+**Implementação aplicada:**
+- Variável `urgencyText` adicionada para definir o título dinamicamente.
+- Cenário `hasUrgentTable === true` usa: `🔥 Últimas vagas disponíveis`.
+- Cenário de baixa disponibilidade geral (`isLowStock`) usa: `⚡ Vagas limitadas`.
+- Título do bloco atualizado para `<h2>{urgencyText}</h2>`.
 
-**Validação manual:**
-1. Acessar página de mestre com mesas ativas: `https://mesasbeta.artificiorpg.com/mestre/<slug>`
-2. Verificar se a seção "Últimas vagas" aparece apenas quando:
-   - Há mesa com `isUrgent === true` E `isFull === false`, OU
-   - `totalOpenSlots > 0` E `totalOpenSlots <= 5`
-3. Confirmar se o texto é sempre "🔥 Últimas vagas disponíveis"
-
-**Correção sugerida:**
-```typescript
-// Linha 25 - substituir por lógica condicional:
-const urgencyText = hasUrgentTable 
-  ? "🔥 Últimas vagas disponíveis" 
-  : "⚡ Vagas limitadas";
-
-// Usar no JSX:
-<h2>{urgencyText}</h2>
-```
-
-**Após correção, atualizar documentação:**
-1. Localizar linha 41 em `docs/Reformulacao_mestre_v4.md`
-2. Mudar status de ⚠️ para ✅
-3. Adicionar: "Texto dinâmico implementado (linha 25)"
-4. Remover esta pendência deste arquivo
+**Validação técnica executada:**
+- `npm run build` (frontend) concluído com sucesso após a alteração.
 
 ---
 
@@ -193,7 +173,7 @@ router.get('/:type/:slug', async (req: Request, res: Response) => {
 - ⚠️ PENDÊNCIA 2: TableCard altura fixa
 
 **Prioridade MÉDIA (melhoria de UX):**
-- ⚠️ PENDÊNCIA 1: MestreFinalCta texto dinâmico
+- ✅ PENDÊNCIA 1: MestreFinalCta texto dinâmico (concluída em 17/04/2026)
 
 **Prioridade BAIXA (arquitetura, não bloqueia):**
 - ⚠️ PENDÊNCIA 3: Rota OG extensível
@@ -238,7 +218,7 @@ Evidências cruzadas entre código e Prints 1–7:
 | `MestreTablesSection.tsx` | ✅ **ATUALIZADO E AUDITADO (17/04/2026).** Importa MestreFeaturedTable e MestreTablesGrid (linhas 2-3). Separa featured (linha 10) e outras mesas (linha 11). Subtítulo condicional (linhas 20-24): só renderiza se `hasAny && others.length > 0`. Featured na linha 26, Grid na linha 27. |
 | `MestreInsightsSection.tsx` | ✅ **REESCRITO E AUDITADO (17/04/2026).** Props `metrics: InsightMetric[]` (linha 6). Ordena por views desc (linha 11). Cards com 4 métricas e ícones Lucide: Eye (views), MousePointerClick (clicks), MessageSquare (contacts), Heart (favorites). Classe condicional `insight-card--warning`. |
 | `MestreRecommendationsSection.tsx` | ✅ **REESCRITO E AUDITADO (17/04/2026).** Props `recommendations: InsightRecommendation[]` (linha 5). Mapeamento `SEVERITY_META` com ícones Lucide por severidade: AlertTriangle (high), Info (medium), CheckCircle2 (low). Labels tipados: "Atenção", "Sugestão", "Dica". |
-| `MestreFinalCta.tsx` | ⚠️ **PARCIALMENTE IMPLEMENTADO (17/04/2026).** Lógica de urgência correta (linhas 11-19): verifica `hasUrgentTable` via `getSlotsVisualState` e `isLowStock` (totalOpenSlots <= 5). Só renderiza se há urgência real. **Pendência:** texto sempre "🔥 Últimas vagas" (linha 25) - não é dinâmico baseado no tipo de urgência. |
+| `MestreFinalCta.tsx` | ✅ **IMPLEMENTADO E VALIDADO (17/04/2026).** Lógica de urgência permanece correta (`hasUrgentTable` + `isLowStock`) e o título agora é dinâmico via `urgencyText`: `🔥 Últimas vagas disponíveis` para mesa urgente e `⚡ Vagas limitadas` para baixa disponibilidade geral. |
 | `MestreClosedGroupSection.tsx` | ✅ **CRIADO (17/04/2026).** Renderiza seção de grupo fechado quando `profile.closed_group.enabled === true`. Importado e usado em `MestrePage.tsx`. |
 | `MestreBio.tsx` | ✅ **CRIADO (17/04/2026).** Seção dedicada com foto, bio longa em parágrafos, chips de especialidades e idiomas. Importado e usado em `MestrePage.tsx`. |
 | `MestreSkeleton.tsx` | ✅ **COMPLETO E AUDITADO (17/04/2026).** Skeleton do hero implementado (linhas 7-20): avatar circular (linha 11), título (linha 12), bio em 2 linhas (linhas 13-14), dual-CTA skeleton (linhas 15-18). Grid com 6 TableCardSkeleton (linhas 23-27). |

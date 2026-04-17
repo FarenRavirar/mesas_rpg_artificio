@@ -4,7 +4,7 @@
 
 ---
 
-## 17/04/2026 (9 sessões)
+## 17/04/2026 (10 sessões)
 
 | # | Arquivo |
 |---|---|
@@ -17,6 +17,7 @@
 | 7 | `26-04-17_7_instrumentacao-views-links-painel.md` |
 | 8 | `26-04-17_8_planejamento-og-cache-30d.md` |
 | 9 | `26-04-17_9_execucao-og-cache-links.md` |
+| 10 | `26-04-17_10_pendencias-reformulacao-v4.md` |
 
 ---
 
@@ -98,7 +99,7 @@
 
 ## Sessão Mais Recente
 
-`26-04-17_8_planejamento-og-cache-30d.md`
+`26-04-17_10_pendencias-reformulacao-v4.md`
 
 ---
 
@@ -114,4 +115,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-04-17_9_*`
+**Próxima sessão:** `26-04-17_11_*`

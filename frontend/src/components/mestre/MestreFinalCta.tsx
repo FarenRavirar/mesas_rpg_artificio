@@ -14,6 +14,9 @@ export function MestreFinalCta({ totalOpenSlots, tablesCount, mappedTables }: Pr
   });
 
   const isLowStock = totalOpenSlots > 0 && totalOpenSlots <= 5;
+  const urgencyText = hasUrgentTable
+    ? '🔥 Últimas vagas disponíveis'
+    : '⚡ Vagas limitadas';
 
   // Só renderiza se há urgência REAL
   if (!hasUrgentTable && !isLowStock) return null;
@@ -22,7 +25,7 @@ export function MestreFinalCta({ totalOpenSlots, tablesCount, mappedTables }: Pr
     <section className="final-cta-section">
       <div className="container">
         <div className="final-cta-card">
-          <h2>🔥 Últimas vagas disponíveis</h2>
+          <h2>{urgencyText}</h2>
           <p className="final-cta-subtitle">
             {totalOpenSlots}{' '}
             {totalOpenSlots === 1 ? 'vaga restante' : 'vagas restantes'} em{' '}
