@@ -209,11 +209,13 @@ Nunca registrar no lugar errado.
 
 Toda mudança visível ao usuário final exige entrada em `database/changelogs.json` antes do deploy.
 
+**CUIDADO BLOQUEANTE:** Melhorias publicadas na mesma data DEVEM, OBRIGATORIAMENTE, ser unificadas em um único objeto (ex: `YYYY-MM-DD-atualizacoes-do-dia`). É proibido criar ou manter múltiplas entradas JSON dispersas sobre a mesma data de calendário. Aglomere todas as novidades em bullets sob a mesma propriedade "body".
+
 ```json
 {
-  "id": "YYYY-MM-DD-descricao-curta",
-  "title": "Título Curto e Descritivo",
-  "body": "Descrição em linguagem familiar:\n\n• **Mudança** - Benefício para o usuário\n\n_Atualização publicada em DD/MM/YYYY às HH:MM_",
+  "id": "YYYY-MM-DD-atualizacoes-do-dia",
+  "title": "Título Curto e Descritivo Consolidado",
+  "body": "Descrição em linguagem familiar:\n\n• **Mudança 1** - Benefício\n• **Mudança 2** - Benefício\n\n_Atualização unificada publicada em DD/MM/YYYY às HH:MM_",
   "type": "app",
   "published": true,
   "created_at": "YYYY-MM-DDTHH:MM:SS-03:00"

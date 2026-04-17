@@ -221,6 +221,16 @@ router.get('/:slug', optionalAuth, async (req: Request, res: Response) => {
       .orderBy('user_links.sort_order', 'asc')
       .execute();
 
+    if (links.length > 0) {
+      const linkIdsToTouch = links.map(l => l.id);
+      db.updateTable('user_links')
+        .set({ metadata_last_accessed_at: sql`NOW()` })
+        .where('id', 'in', linkIdsToTouch)
+        .where('metadata_last_accessed_at', '<', sql<Date>`NOW() - interval '6 hours'`)
+        .execute()
+        .catch((e: any) => console.error('[GET /gm/:slug] Falha ao atualizar acesso do link:', e));
+    }
+
     let closedGroupSystems: Array<{ id: string; name: string }> = [];
     if (gm.closed_group_enabled && Array.isArray(gm.closed_group_systems) && gm.closed_group_systems.length > 0) {
       closedGroupSystems = await db

@@ -48,18 +48,24 @@
 
 ## Última Sessão
 
-**Data:** 17/04/2026 01:49 BRT  
-**Tipo:** Execução V4 — Open Graph + Painel do Mestre (Passos 9 e 10)  
-**Arquivo:** `sessoes/26-04-17_6_execucao-v4-passo9-10.md`  
+**Data:** 17/04/2026 10:00 BRT  
+**Tipo:** Execução Funcional e Planejamento OG Cache + Visual Front-End UI
+**Arquivo:** `sessoes/26-04-17_8_planejamento-og-cache-30d.md`  
 **O que foi feito:**
-- `backend/src/routes/og.ts` validado e registrado em `backend/src/server.ts` (`app.use('/og', ogRoutes)`).
-- `frontend/nginx.conf` com detecção de crawler e proxy condicional para backend OG.
-- `docker-compose.beta.yml` e `docker-compose.prod.yml` ajustados com volume compartilhado de build frontend e variáveis `INDEX_HTML_PATH`/`PUBLIC_SITE_URL`.
-- `frontend/index.html` atualizado com metadados base SEO/OG/Twitter (fallback).
-- Criado `frontend/src/pages/Painel/EditGmProfileForm.tsx` e integrado no `frontend/src/pages/PainelMestrePage.tsx` com view `edit-profile` e submit em `PUT /api/v1/gm/profile`.
-- Validação técnica executada: `npx tsc --noEmit` em backend e frontend sem erros.
+- Levantamento de Diagnóstico de Planejamento aprovado via validação do usuário.
+- Criada `database/migration_109_links_og_metadata_cache.sql` sem payload pesado extra, focada em L2 no schema `user_links`.
+- Atualizado tipos DBs do Kysely e script Automático `apply_required_migrations.sh`.
+- Alterada `linkService.ts` e inserção síncrona convertida para flag `'pending'` com delegação para worker.
+- Criados Workers e Agendadores Cron puros no Ecossistema Backend (`processLinkMetadataJobs.ts`, `cleanupLinkMetadataCache.ts`, `cronRunner.ts`).
+- Políticas de expiração aprimoradas: limpa dados grandes após 30 dias de ociosidade, define re-fetch forçado para links antigos após 60 dias (para garantir fidelidade de dados) e Throttle touch nas query de leitura (6 horas).
+- Atualizado UI frontend em `LinksDisplay.tsx` forçando fallback limpo e seco como acordado na validação visual contendo os hostnames.
+- Container `mesas-cron` independente configurado restrito aos fluxos de prod (`docker-compose.prod.yml`).
 
-**Status:** 🟡 Implementação concluída; pendente validação de runtime/deploy do OG e checklist final da V4.
+**Status:** 🟡 Implementação 100% concluída; pendente deploy contínuo p/ testes no Runtime Real.
+
+---
+
+**Data:** 17/04/2026 01:49 BRT  
 
 ---
 

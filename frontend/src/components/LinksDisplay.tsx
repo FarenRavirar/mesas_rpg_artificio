@@ -143,7 +143,7 @@ function LinkCard({ link }: LinkCardProps) {
 
       <div className="link-card-content">
         <h3 className="link-card-title">
-          {link.title || new URL(link.url).hostname}
+          {(['article', 'website', 'podcast'].includes(link.type) ? link.title : null) || new URL(link.url).hostname}
         </h3>
         
         {link.description && (

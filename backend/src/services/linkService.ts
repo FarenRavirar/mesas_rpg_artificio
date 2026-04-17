@@ -163,6 +163,8 @@ async function extractMetadata(url: string, type: LinkType): Promise<LinkMetadat
 /**
  * Lista todos os links de um usuário
  */
+import { sql } from 'kysely';
+
 export async function getUserLinks(userId: string): Promise<UserLinkWithMetadata[]> {
   const links = await db
     .selectFrom('user_links')
@@ -172,6 +174,16 @@ export async function getUserLinks(userId: string): Promise<UserLinkWithMetadata
     .orderBy('created_at', 'desc')
     .execute();
   
+  if (links.length > 0) {
+    const linkIds = links.map(l => l.id);
+    db.updateTable('user_links')
+      .set({ metadata_last_accessed_at: sql`NOW()` })
+      .where('id', 'in', linkIds)
+      .where('metadata_last_accessed_at', '<', sql<Date>`NOW() - interval '6 hours'`)
+      .execute()
+      .catch(e => console.error('[getUserLinks] Falha ao atualizar acesso do link:', e));
+  }
+
   // Adicionar embed_url para cada link
   return links.map((link: UserLinks) => ({
     ...link,
@@ -207,20 +219,18 @@ export async function createUserLink(userId: string, input: CreateLinkInput): Pr
   
   // Detectar tipo
   const type = detectLinkType(url);
-  
-  // Extrair metadata
-  const metadata = await extractMetadata(url, type);
-  
-  // Criar link
+
+  // Criar link (sem fazer scrapping síncrono - delega ao worker background)
   const link = await db
     .insertInto('user_links')
     .values({
       user_id: userId,
       url,
       type,
-      title: metadata.title || null,
-      description: metadata.description || null,
-      thumbnail_url: metadata.thumbnail_url || null,
+      title: null,
+      description: null,
+      thumbnail_url: null,
+      metadata_status: 'pending',
       sort_order: 0,
     })
     .returningAll()

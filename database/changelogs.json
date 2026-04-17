@@ -1,11 +1,11 @@
 [
   {
     "id": "2026-04-17-atualizacoes-do-dia",
-    "title": "Perfil de mestre e compartilhamento ficaram mais completos",
-    "body": "Publicamos melhorias importantes para quem anuncia e para quem encontra mesas:\n\n• **Edição do perfil de mestre mais completa** - Agora ficou mais fácil atualizar apresentação, benefícios e detalhes de atendimento para grupos fechados\n• **Compartilhamento de perfil com prévia mais confiável** - A exibição de título, descrição e imagem ficou mais estável ao compartilhar links\n• **Navegação do painel com atalho para editar perfil** - O acesso à edição ficou mais direto dentro do painel\n\n_Atualização publicada em 17/04/2026 às 01:58_",
+    "title": "Perfil de mestre e links ficaram mais completos e instantâneos",
+    "body": "Publicamos melhorias importantes para o painel de mestres do ecossistema:\n\n• **Cadastro de links instantâneo** - Adicionar redes sociais e sites não sofre mais travamentos.\n• **Carregamento mais limpo e rápido** - Seus links agora carregam mais padronizados, respeitando a identidade flexível do seu perfil em tempo recorde.\n• **Edição do perfil de mestre mais completa** - Agora ficou mais fácil atualizar apresentação, benefícios e detalhes de atendimento para grupos fechados\n• **Compartilhamento de perfil com prévia mais confiável** - A exibição de título, descrição e imagem ficou mais estável ao compartilhar links\n• **Navegação do painel com atalho para editar perfil** - O acesso à edição ficou mais direto dentro do painel\n\n_Atualização unificada publicada em 17/04/2026 às 10:07_",
     "type": "app",
     "published": true,
-    "created_at": "2026-04-17T01:58:00-03:00"
+    "created_at": "2026-04-17T10:07:00-03:00"
   },
   {
     "id": "2026-04-16-atualizacoes-do-dia",
@@ -16,20 +16,12 @@
     "created_at": "2026-04-16T23:57:00-03:00"
   },
   {
-    "id": "2026-04-15-plataformas-online-e-logos",
-    "title": "Plataformas online ficaram mais claras ao visualizar mesas",
-    "body": "Melhoramos como as plataformas aparecem no site para facilitar a leitura das mesas online e híbridas:\n\n• **Logo da plataforma online nas mesas** - Agora fica mais fácil reconhecer rapidamente onde a mesa acontece\n• **Informações de plataforma mais organizadas** - O cadastro e a visualização ficaram mais consistentes\n• **Melhor identificação no catálogo, painel e detalhe da mesa** - A navegação ficou mais direta para quem busca mesas\n\n_Atualização publicada em 15/04/2026 às 20:24_",
+    "id": "2026-04-15-atualizacoes-do-dia",
+    "title": "Cadastro de mesa ficou mais simples, colaborativo e claro",
+    "body": "Neste dia lançamos várias melhorias integradas no portal:\n\n• **Logo da plataforma online nas mesas** - Agora fica mais fácil reconhecer rapidamente onde a mesa acontece\n• **Upload de imagem direto do celular ou computador** - Sem precisar copiar links de outros sites\n• **Prévia da imagem na hora** - Você vê como a capa da mesa vai ficar antes de salvar\n• **Sugestão de sistemas e cenários no próprio formulário** - Se não encontrar uma opção, você pode sugerir sem sair da tela\n• **Melhor identificação no catálogo e detalhe da mesa** - A navegação ficou mais direta\n\n_Atualização unificada publicada em 15/04/2026 às 20:24_",
     "type": "app",
     "published": true,
     "created_at": "2026-04-15T20:24:00-03:00"
-  },
-  {
-    "id": "2026-04-15-upload-e-sugestoes",
-    "title": "Cadastro de mesa ficou mais simples e colaborativo",
-    "body": "Hoje o cadastro de mesa recebeu melhorias que reduzem atrito e ajudam a comunidade a crescer:\n\n• **Upload de imagem direto do celular ou computador** - Sem precisar copiar links de outros sites\n• **Prévia da imagem na hora** - Você vê como a capa da mesa vai ficar antes de salvar\n• **Sugestão de sistemas e cenários no próprio formulário** - Se não encontrar uma opção, você pode sugerir sem sair da tela\n• **Melhor suporte para nomes em português** - Mais facilidade para encontrar e registrar conteúdo do jeito que a comunidade usa\n• **Correção ao publicar mesa** - Ajustamos uma falha que podia impedir a publicação com erro de método não permitido\n\n_Atualização publicada em 15/04/2026 às 00:53_",
-    "type": "app",
-    "published": true,
-    "created_at": "2026-04-15T00:53:00-03:00"
   },
   {
     "id": "2026-04-13-painel-mestre-melhorias",
@@ -40,31 +32,15 @@
     "created_at": "2026-04-13T18:18:00-03:00"
   },
   {
-    "id": "2026-04-08-perfil-premium",
-    "title": "Seu perfil ficou mais organizado e mais rápido de editar",
-    "body": "A edição do perfil foi reorganizada para ficar mais prática:\n\n• **Layout mais limpo** - Campos e seções mais bem distribuídos\n• **Cargos visíveis no perfil** - Você identifica com clareza quando é mestre ou admin\n• **Ajustes de preferências mais claros** - Controles de estilo de jogo ficaram mais fáceis de entender\n\n_Atualização publicada em 08/04/2026 às 23:02_",
+    "id": "2026-04-08-atualizacoes-do-dia",
+    "title": "Perfil, vagas e catálogo otimizados",
+    "body": "Focamos em leitura visual e performance na plataforma hoje:\n\n• **Layout do perfil mais limpo** - Campos e seções mais bem distribuídos\n• **Cargos visíveis no perfil** - Você identifica com clareza quando é mestre ou admin\n• **Indicadores visuais de lotação** - Dá para perceber rapidamente se a mesa está enchendo\n• **Texto de vagas mais direto** - Informação mais clara sobre quantas vagas restam\n• **Catálogo mais rápido** - Filtros e navegação respondem sem lentidão com links mais confiáveis\n\n_Atualização unificada publicada em 08/04/2026 às 23:02_",
     "type": "app",
     "published": true,
     "created_at": "2026-04-08T23:02:00-03:00"
   },
   {
-    "id": "2026-04-08-vagas-visuais",
-    "title": "Vagas das mesas ficaram mais fáceis de entender",
-    "body": "Melhoramos a leitura das vagas para você decidir mais rápido:\n\n• **Indicadores visuais de lotação** - Dá para perceber rapidamente se a mesa está enchendo\n• **Texto de vagas mais direto** - Informação mais clara sobre quantas vagas restam\n• **Avisos de últimas vagas** - Destaque para mesas quase lotadas\n\n_Atualização publicada em 08/04/2026 às 07:42_",
-    "type": "app",
-    "published": true,
-    "created_at": "2026-04-08T07:42:00-03:00"
-  },
-  {
-    "id": "2026-04-08-performance-catalogo",
-    "title": "Catálogo ficou mais rápido e mais estável",
-    "body": "O catálogo recebeu melhorias de desempenho e estabilidade:\n\n• **Filtros respondem melhor** - Menos lentidão ao ajustar busca\n• **Navegação mais previsível** - Menos travamentos em uso contínuo\n• **Links com filtros mais confiáveis** - Compartilhar e reabrir busca ficou mais consistente\n\n_Atualização publicada em 08/04/2026 às 07:33_",
-    "type": "app",
-    "published": true,
-    "created_at": "2026-04-08T07:33:00-03:00"
-  },
-  {
-    "id": "2026-04-07-ux-catalogo",
+    "id": "2026-04-07-atualizacoes-do-dia",
     "title": "Filtros do catálogo ficaram mais simples de usar",
     "body": "A busca por mesas ficou mais amigável, principalmente em telas menores:\n\n• **Filtros mais organizados** - Menos confusão para montar sua busca\n• **Melhor uso no celular** - Fluxo de filtro mais confortável no mobile\n• **Visual mais claro do que foi selecionado** - Você enxerga com facilidade os filtros ativos\n\n_Atualização publicada em 07/04/2026 às 16:15_",
     "type": "app",

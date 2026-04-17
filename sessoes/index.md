@@ -14,6 +14,8 @@
 | 4 | `26-04-17_4_execucao-v4-passo6-7.md` |
 | 5 | `26-04-17_5_execucao-v4-passo8.md` |
 | 6 | `26-04-17_6_execucao-v4-passo9-10.md` |
+| 7 | `26-04-17_7_instrumentacao-views-links-painel.md` |
+| 8 | `26-04-17_8_planejamento-og-cache-30d.md` |
 
 ---
 
@@ -95,7 +97,7 @@
 
 ## Sessão Mais Recente
 
-`26-04-17_6_execucao-v4-passo9-10.md`
+`26-04-17_8_planejamento-og-cache-30d.md`
 
 ---
 
@@ -111,4 +113,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-04-17_7_*`
+**Próxima sessão:** `26-04-17_9_*`

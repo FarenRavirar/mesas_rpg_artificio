@@ -396,6 +396,11 @@ export interface UserLinksTable {
   description: string | null;
   embed_url: string | null;
   thumbnail_url: string | null;
+  metadata_status: Generated<'pending' | 'success' | 'failed' | 'stale'>;
+  metadata_fetched_at: Date | null;
+  metadata_last_accessed_at: Generated<Date>;
+  metadata_fail_count: Generated<number>;
+  metadata_next_retry_at: Date | null;
   sort_order: Generated<number>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
