@@ -23,7 +23,7 @@ services:
     command:
       - /bin/sh
       - -c
-      - rm -rf /frontend-dist/* && cp -r /usr/share/nginx/html/. /frontend-dist/ && nginx -g 'daemon off;'
+      - rm -rf /frontend-dist/* && cp -r /usr/share/nginx/html/. /frontend-dist/ && exec /docker-entrypoint.sh nginx -g 'daemon off;'
     volumes:
       - frontend_dist_prod:/frontend-dist
     depends_on:

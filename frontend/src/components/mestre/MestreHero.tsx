@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { CheckCircle2, Sparkles, Crown, Award, Users, Star, MessageSquare } from 'lucide-react';
 import type { TableCard } from '../../types/tables';
 import type { MestrePublicData } from '../../hooks/useMestre';
@@ -23,10 +24,18 @@ export function MestreHero({ profile, mappedTables, totalOpenSlots: _totalOpenSl
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const [bannerLoadFailed, setBannerLoadFailed] = useState(false);
+  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
+
   return (
     <section className="hero-section">
-      {profile.banner_url ? (
-        <img src={profile.banner_url} alt="" className="hero-banner" />
+      {profile.banner_url && !bannerLoadFailed ? (
+        <img
+          src={profile.banner_url}
+          alt=""
+          className="hero-banner"
+          onError={() => setBannerLoadFailed(true)}
+        />
       ) : (
         <div className="hero-banner-gradient" />
       )}
@@ -41,8 +50,12 @@ export function MestreHero({ profile, mappedTables, totalOpenSlots: _totalOpenSl
         )}
 
         <div className="hero-avatar">
-          {profile.avatar_url ? (
-            <img src={profile.avatar_url} alt={profile.display_name} />
+          {profile.avatar_url && !avatarLoadFailed ? (
+            <img
+              src={profile.avatar_url}
+              alt={profile.display_name}
+              onError={() => setAvatarLoadFailed(true)}
+            />
           ) : (
             <div className="hero-avatar-placeholder">
               {profile.display_name.charAt(0).toUpperCase()}

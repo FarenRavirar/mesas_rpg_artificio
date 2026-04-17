@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Sparkles, Globe, Languages } from 'lucide-react';
 import type { MestrePublicData } from '../../hooks/useMestre';
 
@@ -6,6 +7,7 @@ interface Props {
 }
 
 export function MestreBio({ profile }: Props) {
+  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
   const hasSpecialties = (profile.specialties?.length ?? 0) > 0;
   const hasLanguages = (profile.languages?.length ?? 0) > 0;
   const hasTagline = !!profile.tagline?.trim();
@@ -24,9 +26,13 @@ export function MestreBio({ profile }: Props) {
         <h2 className="section-title">Sobre {profile.display_name}</h2>
 
         <div className="mestre-bio-grid">
-          {profile.avatar_url && (
+          {profile.avatar_url && !avatarLoadFailed && (
             <div className="mestre-bio-photo">
-              <img src={profile.avatar_url} alt={profile.display_name} />
+              <img
+                src={profile.avatar_url}
+                alt={profile.display_name}
+                onError={() => setAvatarLoadFailed(true)}
+              />
             </div>
           )}
 
