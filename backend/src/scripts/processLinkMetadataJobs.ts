@@ -30,11 +30,20 @@ async function fetchOgMetadata(url: string) {
     const titleMatch = html.match(/<meta[^>]*property="og:title"[^>]*content="([^"]+)"/i) || html.match(/<title[^>]*>([^<]+)<\/title>/i);
     const descMatch = html.match(/<meta[^>]*property="og:description"[^>]*content="([^"]+)"/i) || html.match(/<meta[^>]*name="description"[^>]*content="([^"]+)"/i);
     const imgMatch = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]+)"/i);
+    
+    // Filtrar thumbnails de redes sociais protegidas (CORS/Auth bloqueiam hotlinking)
+    let thumbnailUrl = imgMatch ? imgMatch[1] : null;
+    if (thumbnailUrl) {
+      const blockedDomains = ['fbcdn.net', 'cdninstagram.com', 'twimg.com', 'tiktokcdn.com'];
+      if (blockedDomains.some(domain => thumbnailUrl!.includes(domain))) {
+        thumbnailUrl = null;
+      }
+    }
 
     return {
       title: titleMatch ? titleMatch[1] : null,
       description: descMatch ? descMatch[1] : null,
-      thumbnail_url: imgMatch ? imgMatch[1] : null,
+      thumbnail_url: thumbnailUrl,
     };
   } finally {
     clearTimeout(timeoutId);
