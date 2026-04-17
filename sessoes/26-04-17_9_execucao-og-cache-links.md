@@ -319,10 +319,44 @@ WHERE type IN ('instagram', 'facebook', 'twitter', 'tiktok')
 - [x] Validação manual em beta (cache OG funcionando)
 - [x] Correção de thumbnails antigas (SQL cleanup)
 - [x] Deploy automático concluído com sucesso
-- [ ] Atualizar `RESUMO_EXECUCAO.md`
-- [ ] Atualizar `sessoes/index.md`
-- [ ] Atualizar `ARQUITETURA_PROJETO.md` (documentar migration 109 e fluxo OG)
-- [ ] Atualizar `MAPA_DE_API.md` (documentar campos de metadata)
+- [x] Atualizar `RESUMO_EXECUCAO.md`
+- [x] Atualizar `sessoes/index.md`
+- [x] Atualizar `ARQUITETURA_PROJETO.md` (documentar migration 109 e fluxo OG)
+- [x] Atualizar `MAPA_DE_API.md` (documentar campos de metadata)
+
+---
+
+## Bugs encontrados durante validação (17/04/2026 11:57)
+
+### Bug 1: Erro 403 do Facebook CDN (Resolvido)
+**URL:** `https://mesasbeta.artificiorpg.com/perfil`  
+**Erro:** `GET https://scontent.fpmw10-1.fna.fbcdn.net/v/t39.30808-6/472965660_...jpg 403 (Forbidden)`
+
+**Causa:** Cache do navegador ainda referenciando thumbnail antiga do Instagram que foi removida do banco.
+
+**Validação:**
+```sql
+SELECT id, url, type, thumbnail_url 
+FROM user_links 
+WHERE thumbnail_url IS NOT NULL 
+  AND (thumbnail_url LIKE '%fbcdn%' OR thumbnail_url LIKE '%cdninstagram%' 
+       OR thumbnail_url LIKE '%twimg%' OR thumbnail_url LIKE '%tiktokcdn%');
+-- Resultado: 0 rows (banco limpo)
+```
+
+**Resolução:** Hard refresh do navegador (Ctrl+Shift+R) para limpar cache local.
+
+**Status:** ✅ Resolvido (não é bug do sistema, é cache do navegador)
+
+### Bug 2: Cloudflare Insights bloqueado (Não é bug)
+**URL:** `https://mesasbeta.artificiorpg.com/perfil`  
+**Erro:** `GET https://static.cloudflareinsights.com/beacon.min.js/... net::ERR_BLOCKED_BY_CLIENT`
+
+**Causa:** Bloqueador de anúncios/tracker do navegador (AdBlock, uBlock Origin, etc.).
+
+**Impacto:** Nenhum. Cloudflare Insights é opcional e não afeta funcionalidade.
+
+**Status:** ✅ Esperado (não requer correção)
 
 ---
 
