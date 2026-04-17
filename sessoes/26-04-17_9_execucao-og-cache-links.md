@@ -409,7 +409,12 @@ WHERE thumbnail_url IS NOT NULL
 - **Foto de Perfil** (`profiles.avatar_url`): Foto geral do usuário, aparece em comentários e header
 - **Foto de Mestre** (`gm_profiles.avatar_url`): Foto específica para contexto de mestre, aparece nas mesas
 
-**Status:** ✅ Resolvido - Aguardando aprovação para commit
+**Correção adicional aplicada:**
+- Corrigido padrão de URL do endpoint: `/profile/me/google-picture` → `/api/v1/profile/me/google-picture`
+- Motivo: Frontend usa `VITE_API_URL` sem `/api/v1`, então URLs devem incluir o prefixo completo
+- Commit: `fad2cd6` - fix(profile): corrigir URL do endpoint google-picture para seguir padrão /api/v1
+
+**Status:** ✅ Resolvido e deployado em beta
 
 ---
 

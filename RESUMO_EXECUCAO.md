@@ -1,6 +1,6 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 17/04/2026 11:47 BRT
+**Última atualização:** 17/04/2026 12:47 BRT
 
 ---
 
@@ -48,8 +48,8 @@
 
 ## Última Sessão
 
-**Data:** 17/04/2026 11:47 BRT  
-**Tipo:** Execução Completa — Cache OG de Links Externos  
+**Data:** 17/04/2026 12:47 BRT  
+**Tipo:** Execução Completa — Cache OG de Links Externos + Upload de Avatar  
 **Arquivo:** `sessoes/26-04-17_9_execucao-og-cache-links.md`  
 **O que foi feito:**
 - Implementada migration 109 com campos de metadata em `user_links` (status, timestamps, fail_count, retry).
@@ -65,8 +65,13 @@
 - Changelog unificado (diretriz de consolidação por dia aplicada).
 - Validação manual em beta: cache OG funcionando, WhatsApp na categoria correta, erro 403 eliminado.
 - Limpeza de thumbnails antigas via SQL (1 link atualizado).
+- **Bug 3 resolvido:** Adicionado upload de avatar e botão "Usar imagem do Google" na página de perfil.
+  - Backend: novo endpoint `POST /api/v1/profile/me/google-picture` para buscar foto do Google OAuth.
+  - Frontend: campos de avatar reorganizados (Geral: foto de usuário, Mestre: foto de mestre).
+  - Removido campo de avatar do formulário de criação de mesa (movido para aba Mestre do perfil).
+  - Correção de URL: `/profile/me/google-picture` → `/api/v1/profile/me/google-picture` (padrão do projeto).
 
-**Status:** ✅ Implementação concluída e validada em beta. Pendente: documentação técnica (ARQUITETURA, MAPA_DE_API) e proteções SSRF.
+**Status:** ✅ Implementação concluída e validada em beta. Bug 3 resolvido e deployado.
 
 ---
 

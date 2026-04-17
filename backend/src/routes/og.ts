@@ -86,7 +86,15 @@ function injectMetaTags(html: string, meta: MetaFields): string {
     <meta name="twitter:image" content="${imageUrl}">
   `.trim();
 
-  let output = html.replace(/<title>[\s\S]*?<\/title>/i, metaBlock);
+  // Remove meta tags OG/Twitter duplicadas do index.html
+  let output = html
+    .replace(/<meta\s+property="og:[^"]*"\s+content="[^"]*"\s*\/?\s*>/gi, '')
+    .replace(/<meta\s+name="twitter:[^"]*"\s+content="[^"]*"\s*\/?\s*>/gi, '')
+    .replace(/<!--\s*Open Graph fallback[\s\S]*?-->/gi, '')
+    .replace(/<!--\s*Twitter Card fallback[\s\S]*?-->/gi, '');
+
+  // Substitui o <title> pelas novas meta tags
+  output = output.replace(/<title>[\s\S]*?<\/title>/i, metaBlock);
 
   if (output === html) {
     output = html.replace('</head>', `${metaBlock}\n  </head>`);
