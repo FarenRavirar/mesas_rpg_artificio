@@ -333,3 +333,31 @@ Rollback    — como desfazer se necessário
 ## IDIOMA
 
 Toda comunicação em **português**. Nomes de arquivos, comandos, funções e identificadores de código permanecem no formato original.
+
+---
+
+## PROTOCOLO DE EXECUÇÃO DE FERRAMENTAS
+
+Antes de executar qualquer ferramenta, o agente DEVE:
+
+1. **Recitar as instruções críticas:**
+   - CRITICAL INSTRUCTION 1: Priorizar ferramentas específicas. Nunca usar cat/ls/grep/sed em bash quando há ferramentas dedicadas.
+   - CRITICAL INSTRUCTION 2: Listar todas as ferramentas relacionadas à tarefa. Só executar se outras são mais genéricas ou não aplicáveis.
+
+2. **Listar ferramentas relacionadas:**
+   - Exemplo: "Ferramentas relacionadas: grep_search (específica), view_file (específica), run_command (genérica)"
+
+3. **Justificar escolha:**
+   - Exemplo: "Usando grep_search porque é específica para busca em arquivos"
+
+4. **Só então executar**
+
+Este protocolo é obrigatório para TODA execução de ferramenta, sem exceção.
+
+### Regras específicas:
+
+- NUNCA usar `cat` para criar/editar arquivos → usar `write_to_file` ou `replace_file_content`
+- NUNCA usar `grep` em bash → usar `grep_search`
+- NUNCA usar `ls` → usar `list_dir`
+- NUNCA usar `cat` para visualizar → usar `view_file`
+- NUNCA usar `sed` para editar → usar ferramentas de edição
