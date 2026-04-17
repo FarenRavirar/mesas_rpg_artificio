@@ -20,6 +20,12 @@ services:
       - API_UPSTREAM=mesas-api
       - VITE_API_URL=${VITE_API_URL}
       - VITE_CLOUDINARY_CLOUD_NAME=${VITE_CLOUDINARY_CLOUD_NAME}
+    command:
+      - /bin/sh
+      - -c
+      - rm -rf /frontend-dist/* && cp -r /usr/share/nginx/html/. /frontend-dist/ && nginx -g 'daemon off;'
+    volumes:
+      - frontend_dist_prod:/frontend-dist
     depends_on:
       - mesas-api
     healthcheck:
@@ -55,6 +61,8 @@ services:
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
       - JWT_REFRESH_EXPIRES_IN=7d
       - FRONTEND_URL=https://mesas.artificiorpg.com
+      - PUBLIC_SITE_URL=https://mesas.artificiorpg.com
+      - INDEX_HTML_PATH=/app/frontend-dist/index.html
       - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
       - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
       - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
@@ -63,6 +71,7 @@ services:
         condition: service_healthy
     volumes:
       - ./logs:/app/logs
+      - frontend_dist_prod:/app/frontend-dist:ro
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/v1/health || exit 1"]
       interval: 30s
@@ -98,6 +107,7 @@ services:
 
 volumes:
   pgdata_mesas_prod:
+  frontend_dist_prod:
 
 networks:
   gerenciador_telegram_default:

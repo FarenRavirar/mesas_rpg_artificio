@@ -1,22 +1,19 @@
 import { useEffect, useState } from 'react';
 
-interface GmInsightsPayload {
-  data: {
-    metrics: Array<{
-      id: string;
-      slug: string;
-      title: string;
-      views: number;
-      clicks: number;
-      contacts: number;
-      favorites: number;
-    }>;
-    recommendations: Array<{
-      table_slug: string;
-      severity: 'high' | 'medium' | 'low';
-      message: string;
-    }>;
-  };
+export interface InsightMetric {
+  id: string;
+  slug: string;
+  title: string;
+  views: number;
+  clicks: number;
+  contacts: number;
+  favorites: number;
+}
+
+export interface InsightRecommendation {
+  table_slug: string;
+  severity: 'high' | 'medium' | 'low';
+  message: string;
 }
 
 interface UseMestreInsightsParams {
@@ -24,65 +21,64 @@ interface UseMestreInsightsParams {
   canSeeInsights: boolean;
 }
 
-export function useMestreInsights({ slug, canSeeInsights }: UseMestreInsightsParams) {
-  const [insights, setInsights] = useState<string[]>([]);
-  const [recommendations, setRecommendations] = useState<string[]>([]);
+interface UseMestreInsightsResult {
+  metrics: InsightMetric[];
+  recommendations: InsightRecommendation[];
+  insightsLoading: boolean;
+  /** @deprecated Campo legado mantido para compatibilidade com componentes antigos. */
+  insights: string[];
+}
+
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
+export function useMestreInsights({
+  slug,
+  canSeeInsights,
+}: UseMestreInsightsParams): UseMestreInsightsResult {
+  const [metrics, setMetrics] = useState<InsightMetric[]>([]);
+  const [recommendations, setRecommendations] = useState<InsightRecommendation[]>([]);
   const [insightsLoading, setInsightsLoading] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
 
-    const loadInsights = async () => {
+    const load = async () => {
       if (!slug || !canSeeInsights) {
-        setInsights([]);
+        setMetrics([]);
         setRecommendations([]);
         return;
       }
 
       setInsightsLoading(true);
-
       try {
-        const res = await fetch(`/api/v1/gm/${slug}/insights`, {
+        const res = await fetch(`${API_BASE}/api/v1/gm/${slug}/insights`, {
           signal: controller.signal,
           credentials: 'include',
         });
-
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-        const json = (await res.json()) as GmInsightsPayload;
-
-        const metricsInsights = (json.data?.metrics ?? []).map(
-          (metric) =>
-            `${metric.title}: ${metric.views} visualizações, ${metric.contacts} contatos e ${metric.favorites} favoritos.`
-        );
-
-        const recs = (json.data?.recommendations ?? []).map((rec) => {
-          const prefix = rec.severity === 'high'
-            ? '🔴'
-            : rec.severity === 'medium'
-              ? '🟡'
-              : '🟢';
-          return `${prefix} ${rec.message}`;
-        });
-
-        setInsights(metricsInsights);
-        setRecommendations(recs);
+        const json = await res.json();
+        setMetrics(json?.data?.metrics ?? []);
+        setRecommendations(json?.data?.recommendations ?? []);
       } catch (err: any) {
-        if (err.name === 'AbortError') return;
-        setInsights([]);
+        if (err?.name === 'AbortError') return;
+        setMetrics([]);
         setRecommendations([]);
       } finally {
         setInsightsLoading(false);
       }
     };
 
-    loadInsights();
+    load();
     return () => controller.abort();
   }, [slug, canSeeInsights]);
 
   return {
-    insights,
+    metrics,
     recommendations,
     insightsLoading,
+    // campo legado para minimizar churn até todos os consumidores migrarem
+    insights: metrics.map(
+      (m) => `${m.title}: ${m.views} visualizações, ${m.contacts} contatos e ${m.favorites} favoritos.`
+    ),
   };
 }

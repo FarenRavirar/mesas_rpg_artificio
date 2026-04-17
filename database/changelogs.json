@@ -1,5 +1,13 @@
 [
   {
+    "id": "2026-04-17-atualizacoes-do-dia",
+    "title": "Perfil de mestre e compartilhamento ficaram mais completos",
+    "body": "Publicamos melhorias importantes para quem anuncia e para quem encontra mesas:\n\n• **Edição do perfil de mestre mais completa** - Agora ficou mais fácil atualizar apresentação, benefícios e detalhes de atendimento para grupos fechados\n• **Compartilhamento de perfil com prévia mais confiável** - A exibição de título, descrição e imagem ficou mais estável ao compartilhar links\n• **Navegação do painel com atalho para editar perfil** - O acesso à edição ficou mais direto dentro do painel\n\n_Atualização publicada em 17/04/2026 às 01:58_",
+    "type": "app",
+    "published": true,
+    "created_at": "2026-04-17T01:58:00-03:00"
+  },
+  {
     "id": "2026-04-16-atualizacoes-do-dia",
     "title": "Perfil e cadastro de mesas ficaram mais claros e estáveis",
     "body": "Publicamos melhorias importantes no mesmo dia para deixar a experiência mais simples e confiável:\n\n• **Página pública do mestre mais organizada** - As informações ficaram melhor distribuídas para leitura rápida\n• **Privacidade reforçada nos dados do mestre** - Informações internas continuam visíveis só para quem tem permissão\n• **Links da aba de mestre com carregamento estável** - Corrigimos uma falha que podia exibir erro ao abrir a lista\n• **Faixa etária mais fácil de entender no cadastro** - As opções ficaram mais claras para evitar escolha incorreta\n\n_Atualização publicada em 16/04/2026 às 23:57_",

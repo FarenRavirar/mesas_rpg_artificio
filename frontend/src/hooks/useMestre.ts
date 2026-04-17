@@ -7,16 +7,34 @@ export interface ViewerContext {
   is_admin: boolean;
 }
 
+export interface SellingPoint {
+  icon: string;
+  title: string;
+  description: string;
+  highlight?: string;
+}
+
+export interface ClosedGroupInfo {
+  enabled: boolean;
+  systems: Array<{ id: string; name: string }>;
+  description: string | null;
+  min_price_cents: number | null;
+}
+
 export interface MestrePublicData {
   id: string;
   slug: string;
   display_name: string;
   bio_long: string | null;
+  tagline?: string | null;
   avatar_url: string | null;
   banner_url: string | null;
   languages: string[];
   specialties: string[];
   badges: string[];
+  selling_points?: SellingPoint[];
+  promo_badge_text?: string | null;
+  closed_group?: ClosedGroupInfo | null;
   tables_count: number;
   avg_rating: number | null;
   reviews_count: number;

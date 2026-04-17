@@ -1,6 +1,6 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 16/04/2026 22:52 BRT
+**Última atualização:** 17/04/2026 01:49 BRT
 
 ---
 
@@ -10,7 +10,7 @@
 **Ambiente Produção:** `mesas.artificiorpg.com` — ativa com gate de migration via `deploy-prod.yml`  
 **Branch ativa:** `dev`
 
-**Status técnico mais recente (16/04/2026):**
+**Status técnico mais recente (17/04/2026):**
 - Deploy beta concluído com sucesso (run `24483615951`)
 - Deploy produção concluído com sucesso via promoção (run `24489704489`, versão `v1.1.1`)
 - Correção aplicada no fluxo de publicação de mesa: submit de create/edit usa `/api/v1/gm/tables` (resolve `405 Method Not Allowed`)
@@ -28,32 +28,38 @@
 - **Compatibilidade de painel validada:** `PainelMestrePage.tsx` permanece consumindo métricas por `GET /api/v1/gm/tables` (`gmPanel.ts`).
 - **Sincronização documental da Etapa 3 concluída:** `MAPA_DE_API.md`, `ARQUITETURA_PROJETO.md` (§12), `docs/Reformulacao_mestre.md`, `sessoes/26-04-16_5_reformulacao-mestre-etapa3.md` e `sessoes/index.md` atualizados.
 - **REQ-29 / DEB-06 iniciado (auditoria API):** `MAPA_DE_API.md` sincronizado com consumo real para blocos `LINKS` e `DISCORD`; sessão `26-04-16_6_definicao-proximo-escopo.md` aberta e indexada.
+- **V4 em execução (Passos 1–3 concluídos):** criado `frontend/public/og-default.png` (1200x630), aplicada deduplicação de recomendações em `backend/src/routes/gm.ts`, reescrito `frontend/src/hooks/useMestreInsights.ts` com `metrics/recommendations` estruturados e ajuste mínimo de compatibilidade em `frontend/src/pages/MestrePage.tsx`; typecheck backend/frontend sem erros.
+- **V4 em execução (Passos 4–5 concluídos):** criados os novos componentes (`MestreBio`, `MestreSellingPoints`, `MestreFeaturedTable`, `MestreTablesGrid`, `MestreClosedGroupSection`), reescritos os componentes/página alvo (`MestreHero`, `MestreInsightsSection`, `MestreRecommendationsSection`, `MestreFinalCta`, `MestreSkeleton`, `MestreTablesSection`, `MestrePage`) e atualizado o contrato `useMestre.ts` para os campos V4; frontend typecheck sem erros.
+- **V4 em execução (Passos 6–7 concluídos):** `TableCard.tsx` ajustado (layout flexível + badge de lotação + remoção de CTA morto), `LinksDisplay.tsx` atualizado com Lucide/meta de categoria e iframes com `loading/referrerPolicy`, e `MestrePage.css` recebeu o bloco completo de classes do Patch 16; frontend typecheck sem erros.
+- **V4 em execução (Passo 8 concluído):** arquivo órfão `frontend/src/components/mestre/MestreWhySection.tsx` removido e busca de referências residuais retornando zero; frontend typecheck sem erros.
+- **V4 em execução (Passos 9–10 concluídos tecnicamente):** rota OG (`backend/src/routes/og.ts`) registrada em `backend/src/server.ts`, `frontend/nginx.conf` com proxy condicional para crawler, `docker-compose.beta.yml` e `docker-compose.prod.yml` com volume compartilhado `frontend_dist_*` + `INDEX_HTML_PATH`/`PUBLIC_SITE_URL`, `frontend/index.html` com fallback SEO/OG/Twitter e novo `EditGmProfileForm` integrado ao `PainelMestrePage`; typecheck backend/frontend sem erros.
 
 
 ---
 
 ## Próxima Ação
 
-1. Continuar execução do REQ-29/DEB-06 auditando os próximos blocos `❌ Pendente/Front` no `MAPA_DE_API.md`.
-2. Atualizar status apenas quando houver evidência concreta de consumo real no frontend/backend.
-3. Fechar sessão `26-04-16_6_definicao-proximo-escopo.md` com checklist 100% quando concluir o lote autorizado.
+1. Executar validação operacional do OG dinâmico em ambiente real (Facebook Debugger, WhatsApp e Discord) após deploy dos serviços atualizados.
+2. Executar teste funcional manual do fluxo `Editar perfil` no painel (edição de `tagline`, `selling_points` e `closed_group_*`) em beta.
+3. Consolidar checklist final da seção 8 da V4 item a item após validação de runtime.
 
 
 ---
 
 ## Última Sessão
 
-**Data:** 16/04/2026 22:52 BRT  
-**Tipo:** REQ-29 / DEB-06 — Auditoria de endpoints pendentes no `MAPA_DE_API.md` (lote inicial)  
-**Arquivo:** `sessoes/26-04-16_6_definicao-proximo-escopo.md`  
+**Data:** 17/04/2026 01:49 BRT  
+**Tipo:** Execução V4 — Open Graph + Painel do Mestre (Passos 9 e 10)  
+**Arquivo:** `sessoes/26-04-17_6_execucao-v4-passo9-10.md`  
 **O que foi feito:**
-- Escopo do ciclo consolidado para REQ-29 (auditoria API) com dependência DEB-06
-- Validadas evidências de consumo real no frontend/backend para rotas de `LINKS` e `DISCORD`
-- Atualizada seção `LINKS` no `MAPA_DE_API.md` de `❌ Pendente/Front` para `✅ Em Uso` (`useLinks.ts`, `LinksManager.tsx`)
-- Atualizada seção `DISCORD` no `MAPA_DE_API.md` para `✅ Em Uso` em `/discord/connect`, `/discord/callback`, `/discord/disconnect`
-- Atualizado `sessoes/index.md` com a sessão 6 como mais recente e próxima sessão `26-04-16_7_*`
+- `backend/src/routes/og.ts` validado e registrado em `backend/src/server.ts` (`app.use('/og', ogRoutes)`).
+- `frontend/nginx.conf` com detecção de crawler e proxy condicional para backend OG.
+- `docker-compose.beta.yml` e `docker-compose.prod.yml` ajustados com volume compartilhado de build frontend e variáveis `INDEX_HTML_PATH`/`PUBLIC_SITE_URL`.
+- `frontend/index.html` atualizado com metadados base SEO/OG/Twitter (fallback).
+- Criado `frontend/src/pages/Painel/EditGmProfileForm.tsx` e integrado no `frontend/src/pages/PainelMestrePage.tsx` com view `edit-profile` e submit em `PUT /api/v1/gm/profile`.
+- Validação técnica executada: `npx tsc --noEmit` em backend e frontend sem erros.
 
-**Status:** 🟡 Sessão 6 em andamento; auditoria REQ-29/DEB-06 segue para próximos blocos pendentes.
+**Status:** 🟡 Implementação concluída; pendente validação de runtime/deploy do OG e checklist final da V4.
 
 ---
 

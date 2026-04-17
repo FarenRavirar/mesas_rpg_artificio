@@ -1,4 +1,4 @@
-import { Video, Music, Radio, MessageCircle, FileText, Globe, ExternalLink, Camera, Share2, Briefcase } from 'lucide-react';
+import { Video, Music, Radio, MessageCircle, FileText, Globe, ExternalLink, Camera, Share2, Briefcase, BookOpen, Mic2 } from 'lucide-react';
 import type { UserLink } from '../hooks/useLinks';
 import './LinksDisplay.css';
 
@@ -37,10 +37,10 @@ const CATEGORIES = {
   authority: ['article', 'website'],
 };
 
-const CATEGORY_LABELS = {
-  content: '🎥 Conteúdo',
-  social: '🌐 Presença',
-  authority: '🧠 Autoridade',
+const CATEGORY_META: Record<string, { label: string; Icon: typeof Video }> = {
+  content: { label: 'Conteúdo', Icon: Video },
+  social: { label: 'Presença', Icon: Share2 },
+  authority: { label: 'Autoridade', Icon: BookOpen },
 };
 
 interface LinksDisplayProps {
@@ -59,14 +59,24 @@ export function LinksDisplay({ links }: LinksDisplayProps) {
 
   return (
     <section className="links-display">
-      <h2>🎙️ Conteúdo & Redes</h2>
+      <h2 className="links-display-title">
+        <Mic2 className="inline-block mr-2 w-5 h-5" />
+        Conteúdo & Redes
+      </h2>
       
       {Object.entries(groupedLinks).map(([category, categoryLinks]) => {
         if (categoryLinks.length === 0) return null;
         
         return (
           <div key={category} className="links-category">
-            <h3 className="category-title">{CATEGORY_LABELS[category as keyof typeof CATEGORY_LABELS]}</h3>
+            <h3 className="category-title">
+              {(() => {
+                const meta = CATEGORY_META[category as keyof typeof CATEGORY_META];
+                if (!meta) return category;
+                const { label, Icon } = meta;
+                return <><Icon className="inline-block mr-2 w-4 h-4" />{label}</>;
+              })()}
+            </h3>
             <div className="links-display-grid">
               {categoryLinks.map((link) => (
                 <LinkCard key={link.id} link={link} />
@@ -108,6 +118,8 @@ function LinkCard({ link }: LinkCardProps) {
           <iframe
             src={link.embed_url}
             title={link.title || label}
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
             allow={link.type === 'youtube' ? "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" : "encrypted-media"}
             allowFullScreen={link.type === 'youtube' || link.type === 'twitch'}
           />

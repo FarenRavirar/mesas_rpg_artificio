@@ -30,30 +30,48 @@ type Recommendation = {
 };
 
 function buildRecommendations(metrics: MetricRow[]): Recommendation[] {
+  // Agrupa por title para evitar 3x "Pathfinder: Kingmaker"
+  const byTitle = new Map<string, MetricRow[]>();
+  for (const m of metrics) {
+    const key = m.title.trim().toLowerCase();
+    if (!byTitle.has(key)) byTitle.set(key, []);
+    byTitle.get(key)!.push(m);
+  }
+
   const recs: Recommendation[] = [];
 
-  for (const metric of metrics) {
-    if (metric.views >= 20 && metric.contacts === 0) {
+  for (const group of byTitle.values()) {
+    // Se há múltiplas mesas com mesmo título, agrega a primeira e indica quantidade
+    const first = group[0];
+    const count = group.length;
+    const suffix = count > 1 ? ` (${count} instâncias)` : '';
+
+    // Soma métricas do grupo para evitar falso positivo (ex.: "0 views" quando uma das 3 mesas tem views)
+    const totalViews = group.reduce((s, m) => s + m.views, 0);
+    const totalClicks = group.reduce((s, m) => s + m.clicks, 0);
+    const totalContacts = group.reduce((s, m) => s + m.contacts, 0);
+
+    if (totalViews >= 20 && totalContacts === 0) {
       recs.push({
-        table_slug: metric.slug,
+        table_slug: first.slug,
         severity: 'high',
-        message: `Mesa "${metric.title}" tem ${metric.views} visualizações e zero contatos. Revise capa, preço e descrição.`,
+        message: `Mesa "${first.title}"${suffix} tem ${totalViews} visualizações e zero contatos. Revise capa, preço e descrição.`,
       });
+      continue;
     }
-
-    if (metric.clicks >= 10 && metric.contacts === 0) {
+    if (totalClicks >= 10 && totalContacts === 0) {
       recs.push({
-        table_slug: metric.slug,
+        table_slug: first.slug,
         severity: 'medium',
-        message: `Mesa "${metric.title}" recebe cliques, mas não gera contato. Teste um CTA mais direto na descrição.`,
+        message: `Mesa "${first.title}"${suffix} recebe cliques mas não gera contato. Teste um CTA mais direto na descrição.`,
       });
+      continue;
     }
-
-    if (metric.views === 0 && metric.clicks === 0) {
+    if (totalViews === 0 && totalClicks === 0) {
       recs.push({
-        table_slug: metric.slug,
+        table_slug: first.slug,
         severity: 'low',
-        message: `Mesa "${metric.title}" ainda não recebeu tráfego. Compartilhe o link em suas redes.`,
+        message: `Mesa "${first.title}"${suffix} ainda não recebeu tráfego. Compartilhe o link em suas redes.`,
       });
     }
   }

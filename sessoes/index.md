@@ -1,6 +1,19 @@
 # Índice de Sessões
 
-Última atualização: 16/04/2026 22:52 BRT
+Última atualização: 17/04/2026 01:50 BRT
+
+---
+
+## 17/04/2026 (6 sessões)
+
+| # | Arquivo |
+|---|---|
+| 1 | `26-04-17_1_diagnostico-reformulacao-mestre-v4.md` |
+| 2 | `26-04-17_2_execucao-v4-passo1-3.md` |
+| 3 | `26-04-17_3_execucao-v4-passo4-5.md` |
+| 4 | `26-04-17_4_execucao-v4-passo6-7.md` |
+| 5 | `26-04-17_5_execucao-v4-passo8.md` |
+| 6 | `26-04-17_6_execucao-v4-passo9-10.md` |
 
 ---
 
@@ -82,7 +95,7 @@
 
 ## Sessão Mais Recente
 
-`26-04-16_6_definicao-proximo-escopo.md`
+`26-04-17_6_execucao-v4-passo9-10.md`
 
 ---
 
@@ -98,4 +111,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-04-16_7_*`
+**Próxima sessão:** `26-04-17_7_*`

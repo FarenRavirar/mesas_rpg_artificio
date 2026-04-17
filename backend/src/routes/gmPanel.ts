@@ -198,6 +198,7 @@ router.post('/profile', authMiddleware, async (req: Request, res: Response) => {
 router.put('/profile', authMiddleware, async (req: Request, res: Response) => {
   const userId = (req as any).user.userId;
   const {
+    nickname,
     bio_long,
     languages,
     specialties,
@@ -213,6 +214,13 @@ router.put('/profile', authMiddleware, async (req: Request, res: Response) => {
     closed_group_min_price_cents,
   } = req.body;
 
+  if (nickname !== undefined) {
+    if (typeof nickname !== 'string' || nickname.trim().length < 2 || nickname.trim().length > 40) {
+      return res.status(400).json({ error: 'Nickname inválido. Use entre 2 e 40 caracteres.' });
+    }
+  }
+
+  const safeNickname = typeof nickname === 'string' ? nickname.trim() : undefined;
   const safeLanguages = Array.isArray(languages) ? languages.filter((v) => typeof v === 'string') : undefined;
   const safeSpecialties = Array.isArray(specialties) ? specialties.filter((v) => typeof v === 'string') : undefined;
   const safeBadges = Array.isArray(badges) ? badges.filter((v) => typeof v === 'string') : undefined;
@@ -269,6 +277,7 @@ router.put('/profile', authMiddleware, async (req: Request, res: Response) => {
     const [updated] = await db
       .updateTable('gm_profiles')
       .set({
+        nickname: safeNickname,
         bio_long: bio_long ?? undefined,
         languages: safeLanguages,
         specialties: safeSpecialties,
@@ -287,6 +296,7 @@ router.put('/profile', authMiddleware, async (req: Request, res: Response) => {
       .returning([
         'id',
         'slug',
+        'nickname',
         'bio_long',
         'avatar_url',
         'banner_url',
