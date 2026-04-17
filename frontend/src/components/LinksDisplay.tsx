@@ -7,10 +7,11 @@ const LINK_TYPE_ICONS = {
   spotify: Music,
   twitch: Radio,
   twitter: MessageCircle,
-  instagram: Camera, // Instagram usa Camera
-  facebook: Share2, // Facebook usa Share2
-  tiktok: Music, // TikTok usa Music
-  linkedin: Briefcase, // LinkedIn usa Briefcase
+  instagram: Camera,
+  facebook: Share2,
+  tiktok: Music,
+  linkedin: Briefcase,
+  whatsapp: MessageCircle,
   podcast: Radio,
   article: FileText,
   website: Globe,
@@ -25,6 +26,7 @@ const LINK_TYPE_LABELS = {
   facebook: 'Facebook',
   tiktok: 'TikTok',
   linkedin: 'LinkedIn',
+  whatsapp: 'WhatsApp',
   podcast: 'Podcast',
   article: 'Artigo',
   website: 'Website',
@@ -34,12 +36,14 @@ const LINK_TYPE_LABELS = {
 const CATEGORIES = {
   content: ['youtube', 'twitch', 'podcast', 'spotify'],
   social: ['instagram', 'twitter', 'facebook', 'tiktok', 'linkedin'],
+  contact: ['whatsapp'],
   authority: ['article', 'website'],
 };
 
 const CATEGORY_META: Record<string, { label: string; Icon: typeof Video }> = {
   content: { label: 'Conteúdo', Icon: Video },
   social: { label: 'Presença', Icon: Share2 },
+  contact: { label: 'Contato', Icon: MessageCircle },
   authority: { label: 'Autoridade', Icon: BookOpen },
 };
 
@@ -54,6 +58,7 @@ export function LinksDisplay({ links }: LinksDisplayProps) {
   const groupedLinks = {
     content: links.filter(l => CATEGORIES.content.includes(l.type)),
     social: links.filter(l => CATEGORIES.social.includes(l.type)),
+    contact: links.filter(l => CATEGORIES.contact.includes(l.type)),
     authority: links.filter(l => CATEGORIES.authority.includes(l.type)),
   };
 
@@ -140,7 +145,8 @@ function LinkCard({ link }: LinkCardProps) {
           {(['article', 'website', 'podcast'].includes(link.type) ? link.title : null) || link.url.replace(/^https?:\/\//, '')}
         </h3>
         
-        {link.description && (
+        {/* Redes sociais protegidas não mostram description (OG bloqueado por CORS) */}
+        {link.description && !['instagram', 'facebook', 'twitter', 'tiktok'].includes(link.type) && (
           <p className="link-card-description">{link.description}</p>
         )}
         

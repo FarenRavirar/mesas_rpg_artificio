@@ -11,6 +11,7 @@ export type LinkType =
   | 'facebook'
   | 'tiktok'
   | 'linkedin'
+  | 'whatsapp'
   | 'podcast'
   | 'article' 
   | 'website';
@@ -58,6 +59,9 @@ export function detectLinkType(url: string): LinkType {
   }
   if (urlLower.includes('linkedin.com')) {
     return 'linkedin';
+  }
+  if (urlLower.includes('wa.me') || urlLower.includes('whatsapp.com') || urlLower.includes('api.whatsapp.com')) {
+    return 'whatsapp';
   }
   
   // Podcasts genéricos
