@@ -3,7 +3,7 @@
 > **Versão:** V3 — Implementação
 > **Escopo:** Redesign e refatoração completa da página pública do mestre
 > **Base:** ISO 9241 (Dialogue Principles) como eixo principal; Nielsen e Shneiderman como reforço
-> **Status:** Auditoria finalizada com schema real do banco confirmado. Pronto para implementação por agente de IA (Sonnet 4.5).
+> **Status:** Implementação das Etapas 1, 2 e 3 concluída em código; documento mantido para rastreabilidade técnica e referência de decisões.
 >
 > **Andamento de Implementação (16/04/2026 20:41 BRT):**
 > - Etapa 1 validada manualmente: tela pública refeita e insights restritos a owner/admin.
@@ -50,9 +50,13 @@
 
 ## 2. Identificação da tela no projeto
 
-**Arquivo que renderiza a tela auditada:** `frontend/src/pages/MestrePage.tsx` (~1.238 linhas, monolítico).
+**Arquivo que renderiza a tela auditada:** `frontend/src/pages/MestrePage.tsx` (~91 linhas, orquestração modular com hooks e componentes).
 
-**Rota:** Não registrada no `App.tsx` env| Arquivo | Função na tela | Estado confirmado |
+**Rota:** Registrada no `App.tsx` como `/mestre/:slug`.
+
+### Arquivos e função objetiva
+
+| Arquivo | Função na tela | Estado confirmado |
 |---|---|---|
 | `frontend/src/pages/MestrePage.tsx` | Orquestra dados e renderização da página pública via hooks/componentes | ✅ Arquitetura modular ativa (Etapa 2) |
 | `frontend/src/pages/MestrePage.css` | Layout, gradientes, grid responsivo | ✅ Em uso; sem inline styles nos blocos de insights/recomendações |
@@ -66,7 +70,7 @@
 | `frontend/src/index.css` | Tokens `--color-artificio-*` | ✅ Em uso |
 | `frontend/src/pages/PainelMestrePage.tsx` | Painel privado do mestre | ✅ Consome métricas via `GET /api/v1/gm/tables` |
 | `backend/src/routes/gm.ts` | `GET /api/v1/gm/:slug` e `GET /api/v1/gm/:slug/insights` | ✅ Contrato público protegido + insights privados implementados |
-| `backend/src/middlewares/auth.ts` | `authMiddleware`, `optionalAuth`, `requireAdmin` | ✅ `optionalAuth` aplicado no endpoint público |
+| `backend/src/middleware/auth.ts` | `authMiddleware`, `optionalAuth`, `requireAdmin` | ✅ `optionalAuth` aplicado no endpoint público |
 | `MAPA_DE_API.md` | Fonte de verdade de rotas | ✅ Sincronizado com contratos da Etapa 3 |
 
 ### Descobertas críticas (confirmadas via leitura de código)
@@ -80,13 +84,13 @@
 7. **Contrato público inclui `closed_group` e `selling_points`** no payload final do mestre.
 8. **Contrato público de links inclui `embed_url`** (além de `type`, `description`, `thumbnail_url`, `sort_order`).
 9. **`migration_107_gm_public_profile_v2.sql` já existe no repositório** para suportar campos novos da Etapa 3.
-10. **Não há pendência de patch de backend para segurança do endpoint público** no estado atual de código.mbnail_url`, `sort_order`, `url`. **Falta apenas** `embed_url`.
-    - `table_metrics` está completo (`views_count`, `clicks_count`, `contacts_count`, `favorites_count`).
-    - Índice `idx_tables_gm_featured_created` não existe.
+10. **Não há pendência de patch de backend para segurança do endpoint público** no estado atual de código.
 
 ---
 
 ## 3. Diagnóstico técnico da interface e do fluxo real
+
+> **Nota de contexto:** esta seção preserva o diagnóstico original pré-implementação para histórico de decisão. O estado vigente da Etapa 3 está consolidado no bloco "Andamento de Implementação" e no contrato atual de `gm.ts`/`MAPA_DE_API.md`.
 
 Problemas priorizados por impacto operacional. Estrutura obrigatória por problema: evidência, impacto, princípio, origem, correção.
 
@@ -101,7 +105,7 @@ Problemas priorizados por impacto operacional. Estrutura obrigatória por proble
 - Benchmark contra a plataforma
 - Recomendações operacionais ("aumente seu preço", "revise a capa")
 
-**Evidência no backend (`gm.ts`):** Endpoint `/api/v1/gm/:slug` retorna `metrics_views/clicks/contacts/favorites` dentro de cada `table`. Frontend monta os blocos de insights a partir desses dados.
+**Evidência no backend (`gm.ts`, estado anterior à Etapa 3):** o endpoint público já retornou `metrics_views/clicks/contacts/favorites` dentro de cada `table`. **Estado atual validado:** `GET /api/v1/gm/:slug` não retorna `metrics_*`; esses dados ficam no endpoint protegido `GET /api/v1/gm/:slug/insights`.
 
 **Impacto operacional:**
 - Competidores veem métricas comerciais do mestre.
@@ -130,7 +134,7 @@ Problemas priorizados por impacto operacional. Estrutura obrigatória por proble
 - Fetch separado em `/insights` só quando `canSeeInsights === true`.
 - Banner persistente no topo de cada bloco: **"🔒 Visível apenas para você"**.
 
-**Efeito colateral (CONFIRMADO):** `PainelMestrePage.tsx` também consome `metrics_*` do `/gm/:slug`. **Antes** de remover do endpoint público, validar se `GET /api/v1/gm/tables` (já consumido pelo painel) retorna os mesmos campos; se retornar, migrar o painel para ele. Se não retornar, estender o `gmPanel.ts` primeiro. Detalhes no passo 0 do plano de execução (seção 9).
+**Efeito colateral (RESOLVIDO):** `PainelMestrePage.tsx` não depende de `metrics_*` do `/gm/:slug`; o painel já consome métricas via `GET /api/v1/gm/tables` (`gmPanel.ts`).
 
 ---
 
@@ -562,21 +566,21 @@ Frontend recebe só `{ is_owner: boolean, is_admin: boolean }`. Reduz superfíci
 
 ### Problema 16 — Contrato quebrado com `PainelMestrePage.tsx` ao remover `metrics_*`
 
-**Evidência (`MAPA_DE_API.md` + consulta remota):** `/gm/:slug` é consumido por:
-- `MestrePage.tsx`
-- `PainelMestrePage.tsx` — **depende de `metrics_views/clicks/contacts/favorites`** no mapeamento de `myTables` e KPIs
-- `useCreateTableForm.ts`
-- `uiHelpers.ts`
+**Evidência (código atual validado):** `GET /api/v1/gm/:slug` é consumido no frontend por:
+- `useMestre.ts` (orquestrado por `MestrePage.tsx`)
+- `useMestreInsights.ts` para `GET /api/v1/gm/:slug/insights`
 
-**Risco confirmado:** Remover `metrics_*` quebra `PainelMestrePage.tsx`.
+`PainelMestrePage.tsx` consome `GET /api/v1/gm/tables` para KPIs/métricas e não depende de `GET /api/v1/gm/:slug`.
+
+**Risco atual:** Remover `metrics_*` de `/gm/:slug` **não** quebra `PainelMestrePage.tsx` no estado atual.
 
 **Ação obrigatória ANTES do patch do backend:**
 
 1. `grep -r "metrics_views\|metrics_clicks\|metrics_contacts\|metrics_favorites" frontend/src/`
 2. Verificar se `GET /api/v1/gm/tables` (endpoint privado do painel, consumido pelo próprio `PainelMestrePage.tsx`) retorna os mesmos `metrics_*`. O MAPA_DE_API.md lista a rota como "Em Uso" e indica retorno de "campos canônicos/legados da tabela". **Checar código de `gmPanel.ts` para confirmar se os metrics já estão presentes.**
-3. **Se `gm/tables` já retorna:** Migrar `PainelMestrePage.tsx` para ler métricas de lá em vez de `/gm/:slug`. Fix trivial.
-4. **Se `gm/tables` não retorna:** Estender `gmPanel.ts` para incluir `metrics_*` no select (é endpoint autenticado do dono — sem risco de vazamento). Só depois remover do `/gm/:slug` público.
-5. `useCreateTableForm.ts` e `uiHelpers.ts`: verificar se usam `metrics_*` no grep. Se só usam lista de mesas sem métricas, sem impacto.
+3. **Validação contínua:** confirmar em regressão que `PainelMestrePage.tsx` segue lendo métricas de `/api/v1/gm/tables`.
+4. **Fallback técnico:** se `/gm/tables` deixar de retornar `metrics_*` em alteração futura, estender `gmPanel.ts` antes de qualquer mudança no contrato público de `/gm/:slug`.
+5. `useCreateTableForm.ts` e `uiHelpers.ts`: **confirmado** que não consomem `GET /api/v1/gm/:slug`; usam rotas de `gm/tables` no fluxo atual.
 
 ---
 
@@ -592,14 +596,14 @@ Frontend recebe só `{ is_owner: boolean, is_admin: boolean }`. Reduz superfíci
 | `backend/src/routes/gm.ts` (NOVO, v2) | backend/route | `POST /:slug/view` | tracking | Criar para métrica de visita ao perfil. Priorização Média. |
 | `backend/src/routes/gmPanel.ts` | backend/route | `POST /profile` ou novo PUT | contrato | Estender para aceitar `selling_points`, `promo_badge_text`, `closed_group_*`, `tagline`. |
 | `backend/src/routes/gmPanel.ts` | backend/route | `GET /tables` | contrato (condicional) | Se não retornar `metrics_*`, estender. Validar primeiro. |
-| `backend/src/db/migrations/` | backend/schema | migração | contrato | `gm_profiles`: +7 campos. `tables`: +`features`. `user_links`: +`embed_url`. Índice `idx_tables_gm_featured_created`. |
-| `frontend/src/pages/MestrePage.tsx` | frontend/view | monolito ~1.200 linhas | estrutura | Quebrar em 12 subcomponentes. `MestrePage` vira orquestração. |
-| `frontend/src/pages/MestrePage.tsx` | frontend/view | fetch inline | estrutura | Extrair `useMestre(slug)` hook. |
+| `database/` | backend/schema | migração | contrato | `gm_profiles`: +7 campos. `tables`: +`features`. `user_links`: +`embed_url`. Índice `idx_tables_gm_featured_created`. |
+| `frontend/src/pages/MestrePage.tsx` | frontend/view | orquestração modular (~91 linhas) | estrutura | ✅ Componentização aplicada; página coordena hooks e componentes. |
+| `frontend/src/pages/MestrePage.tsx` | frontend/view | hook de dados modular | estrutura | `useMestre(slug)` e `useMestreInsights(...)` ativos; página atua como orquestração. |
 | `frontend/src/pages/MestrePage.tsx` | frontend/view | insights/recomendações | permissão | Gate `canSeeInsights`. Fetch separado `/insights`. |
 | `frontend/src/pages/MestrePage.tsx` | frontend/view | hero stats | estado | Só renderizar se ≥1 > 0. Remover `\|\| 10`, `\|\| 40`. |
 | `frontend/src/pages/MestrePage.tsx` | frontend/view | benefit-cards | contrato | Iterar `gm.selling_points`; vazio → ocultar. |
 | `frontend/src/pages/MestrePage.tsx` | frontend/view | loading/error/notFound | estado | Substituir strings por componentes. |
-| `frontend/src/pages/PainelMestrePage.tsx` | frontend/view | consumo de `metrics_*` | contrato | Migrar para `/api/v1/gm/tables` (ou endpoint novo). |
+| `frontend/src/pages/PainelMestrePage.tsx` | frontend/view | consumo de `metrics_*` | contrato | ✅ Já consome `/api/v1/gm/tables` (não depende de `/gm/:slug`). |
 | `frontend/src/pages/PainelMestrePage.tsx` | frontend/view | formulário de perfil | contrato | Estender para gerenciar `selling_points`, `promo_badge_text`, `closed_group_*`, `tagline`. |
 | `frontend/src/components/TableCard.tsx` | frontend/component | container | estilo | `min-h-[420px]` + `flex flex-col`; capa `aspect-[16/10]`; conteúdo `flex-1`. |
 | `frontend/src/components/TableCard.tsx` | frontend/component | "Ver detalhes" | fluxo | Remover inteiramente. |
@@ -687,10 +691,10 @@ Completo. Colunas: `id`, `table_id`, `views_count`, `clicks_count`, `contacts_co
 
 | Arquivo | Usa `metrics_*`? | Ação necessária |
 |---|---|---|
-| `MestrePage.tsx` | Sim (insights/recomendações) | Migrar para `/insights` (patch 2) |
-| `PainelMestrePage.tsx` | **Sim (KPIs e mapeamento de `myTables`)** | **Migrar para `/api/v1/gm/tables` ANTES de remover do público** |
-| `useCreateTableForm.ts` | Não confirmado | **Grep obrigatório antes do patch** |
-| `uiHelpers.ts` | Não confirmado | **Grep obrigatório antes do patch** |
+| `MestrePage.tsx` | Não (dados sensíveis via `/insights`) | ✅ Fluxo segregado ativo (`useMestre` + `useMestreInsights`) |
+| `PainelMestrePage.tsx` | Não (consome `gm/tables`) | ✅ Sem dependência de `GET /api/v1/gm/:slug` |
+| `useCreateTableForm.ts` | Não | ✅ Usa rotas de `gm/tables` |
+| `uiHelpers.ts` | Não | ✅ Usa rotas de `gm/tables` |
 
 ---
 
@@ -765,12 +769,11 @@ backend/src/
 
 ### Prioridade ALTA
 
-**A1 — Validar consumidores de `metrics_*` antes de qualquer remoção**
-- **Objetivo:** Evitar quebrar `PainelMestrePage.tsx` em produção.
-- **Regra:** `grep` + migração preventiva do painel **ANTES** do patch do backend.
-- **Alteração:** Ver passo 0 do plano de execução (seção 9).
-- **Arquivos:** `PainelMestrePage.tsx`, `useCreateTableForm.ts`, `uiHelpers.ts`, `gmPanel.ts`.
-- **Impacto:** Sem isso, o deploy do patch 1 quebra o painel.
+**A1 — Validar consumidores de `metrics_*` antes de qualquer remoção (CONCLUÍDO)**
+- **Objetivo:** Evitar quebra no painel após endurecimento do contrato público.
+- **Regra aplicada:** validação de consumidores + isolamento de métricas em rota protegida.
+- **Resultado:** `PainelMestrePage.tsx` usa `/api/v1/gm/tables`; `useCreateTableForm.ts` e `uiHelpers.ts` não dependem de `GET /api/v1/gm/:slug`.
+- **Impacto atual:** risco de regressão nesse ponto está mitigado.
 
 **A2 — Segurança de dados: isolar insights e recomendações**
 - **Objetivo:** Impedir vazamento de métricas e recomendações ao público.
@@ -799,11 +802,11 @@ backend/src/
 - **Arquivos:** `MestrePage.tsx`, `MestreFeaturedTable.tsx`, `gm.ts`, migração.
 - **Impacto:** Conversão dirigida para mesa âncora.
 
-**A6 — Quebrar `MestrePage.tsx` monolítico + criar `useMestre`**
+**A6 — Componentização + `useMestre` (CONCLUÍDO)**
 - **Objetivo:** Manutenibilidade + refatoração segura.
-- **Alteração:** Extrair 12 subcomponentes + hook de fetch. `MestrePage.tsx` vira orquestração.
-- **Arquivos:** `MestrePage.tsx` + 12 novos em `components/mestre/` + `hooks/useMestre.ts`.
-- **Impacto:** Base para todos os outros patches.
+- **Resultado:** `MestrePage.tsx` atua como orquestração modular com hooks (`useMestre`, `useMestreInsights`) e componentes dedicados.
+- **Arquivos:** `MestrePage.tsx`, `components/mestre/*`, `hooks/useMestre.ts`, `hooks/useMestreInsights.ts`.
+- **Impacto:** Base estável para evolução incremental sem reintroduzir monolito.
 
 ### Prioridade MÉDIA
 
@@ -853,7 +856,7 @@ cd frontend/src
 grep -rn "metrics_views\|metrics_clicks\|metrics_contacts\|metrics_favorites" .
 ```
 
-**Resultado esperado:** mostrar ocorrências em `MestrePage.tsx` e `PainelMestrePage.tsx`. Se aparecer em outros arquivos (`useCreateTableForm.ts`, `uiHelpers.ts`), registrar cada uso e migrar.
+**Resultado esperado:** no estado atual, as ocorrências relevantes aparecem no backend (`gmPanel.ts`) e no fluxo protegido de insights; não deve haver dependência de `metrics_*` em `PainelMestrePage.tsx` via `/gm/:slug`.
 
 **Verificação do `gmPanel.ts`** — abrir o arquivo e confirmar se `GET /api/v1/gm/tables` já retorna os `metrics_*`. Se não retornar, estender o select desse endpoint:
 
@@ -869,7 +872,7 @@ grep -rn "metrics_views\|metrics_clicks\|metrics_contacts\|metrics_favorites" .
 ])
 ```
 
-**Migrar `PainelMestrePage.tsx`:** trocar o fetch de `/gm/:slug` (quando usado só para métricas) por `/api/v1/gm/tables`, que é autenticado e retorna os dados do dono.
+**Validação em `PainelMestrePage.tsx`:** confirmar que o painel permanece usando `/api/v1/gm/tables` para métricas (estado já aplicado no código atual).
 
 **Só avançar para os patches seguintes depois disso.**
 
@@ -877,7 +880,7 @@ grep -rn "metrics_views\|metrics_clicks\|metrics_contacts\|metrics_favorites" .
 
 ### Patch 1 — Backend: migração SQL (rodar PRIMEIRO)
 
-**Arquivo novo:** `backend/src/db/migrations/<YYYYMMDDHHMMSS>_gm_public_profile_v2.sql`
+**Arquivo de referência (já existente no projeto):** `database/migration_107_gm_public_profile_v2.sql`
 
 ```sql
 -- ================================================================
@@ -2114,7 +2117,7 @@ export function MestreRecommendationsSection({ recommendations, loading }: Props
 ### GM (`routes/gm.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
 |---|---|---|---|
-| **GET** | `/:slug` | ✅ Em Uso | useMestre.ts, useCreateTableForm.ts, uiHelpers.ts, MestrePage.tsx, PainelMestrePage.tsx — `optionalAuth` aplicado; retorna `viewer_context { is_owner, is_admin }`, `closed_group`, `selling_points`, `features` em tables; NÃO retorna mais `metrics_*` (migrado para `/:slug/insights`) |
+| **GET** | `/:slug` | ✅ Em Uso | useMestre.ts (via MestrePage.tsx) — `optionalAuth` aplicado; retorna `viewer_context { is_owner, is_admin }`, `closed_group`, `selling_points`, `features` em tables; NÃO retorna `metrics_*` (migrado para `/:slug/insights`) |
 | **GET** | `/:slug/insights` | ✅ Em Uso | useMestreInsights.ts (via MestrePage.tsx) — protegido por `authMiddleware`; retorna `metrics` e `recommendations`; acesso apenas para dono ou admin |
 ```
 
@@ -2130,8 +2133,8 @@ export function MestreRecommendationsSection({ recommendations, loading }: Props
 2. Registrar ocorrências encontradas em cada arquivo.
 3. Abrir `backend/src/routes/gmPanel.ts` e verificar se `GET /tables` retorna os `metrics_*`.
 4. Se **não retornar**: estender o select desse endpoint (é autenticado, sem risco de vazamento).
-5. Migrar `PainelMestrePage.tsx` para consumir `metrics_*` do `/api/v1/gm/tables` em vez de `/gm/:slug`.
-6. Verificar `useCreateTableForm.ts` e `uiHelpers.ts` — remover referências se houver.
+5. Validar que `PainelMestrePage.tsx` continua consumindo `metrics_*` via `/api/v1/gm/tables` (confirmado no estado atual).
+6. Validar ausência de dependência de `GET /api/v1/gm/:slug` em `useCreateTableForm.ts` e `uiHelpers.ts` (confirmado no estado atual).
 7. Deploy dessa migração preventiva **antes** de tocar no `gm.ts` público.
 
 ### Passo 1 — Migração SQL (15min + rollback testado)
@@ -2263,7 +2266,7 @@ CONTEXTO
 Você vai implementar a refatoração completa da página pública do mestre (/mestre/:slug)
 em um projeto React (Vite + TS + Tailwind) com backend Node/Express/Kysely/Postgres.
 
-Middlewares já existentes em backend/src/middlewares/auth.ts:
+Middlewares já existentes em backend/src/middleware/auth.ts:
 - authMiddleware (exige token, popula req.user: { userId, role })
 - optionalAuth (popula req.user quando tem token; não bloqueia sem)
 - requireAdmin
@@ -2284,10 +2287,12 @@ Schema confirmado via psql no banco beta (mesas-beta-db):
 - Índice idx_tables_gm_featured_created não existe.
 
 Consumidores confirmados de GET /api/v1/gm/:slug:
-- MestrePage.tsx (fetch inline, sem hook)
-- PainelMestrePage.tsx — USA metrics_views/clicks/contacts/favorites nos KPIs
-- useCreateTableForm.ts — uso não confirmado (GREP obrigatório)
-- uiHelpers.ts — uso não confirmado (GREP obrigatório)
+- useMestre.ts (consumido por MestrePage.tsx)
+- useMestreInsights.ts — consome GET /api/v1/gm/:slug/insights para dados sensíveis
+
+Observação confirmada:
+- PainelMestrePage.tsx usa GET /api/v1/gm/tables para KPIs/métricas
+- useCreateTableForm.ts e uiHelpers.ts usam rotas de gm/tables
 
 ORDEM DE EXECUÇÃO (obrigatória, sem pular passos)
 =================================================
@@ -2299,15 +2304,15 @@ PASSO 0 — VALIDAÇÃO PREVENTIVA
   0.4. Se NÃO retornar: estender o select do gmPanel.ts para incluir metrics_*
        (COALESCE(tm.*, 0) com LEFT JOIN em table_metrics). Endpoint é autenticado,
        sem risco de vazamento.
-  0.5. Migrar PainelMestrePage.tsx para ler metrics_* de /api/v1/gm/tables,
-       removendo dependência do /gm/:slug para esses campos.
-  0.6. Remover referências a metrics_* em useCreateTableForm.ts e uiHelpers.ts
-       se houverem.
-  0.7. Só avançar depois que PainelMestrePage compile sem metrics_* vindos do
-       /gm/:slug.
+  0.5. Validar que PainelMestrePage.tsx lê metrics_* de /api/v1/gm/tables
+       (já aplicado no estado atual).
+  0.6. Validar ausência de dependência de /api/v1/gm/:slug em
+       useCreateTableForm.ts e uiHelpers.ts (já confirmado).
+  0.7. Só avançar depois de confirmar que o painel compila sem depender de
+       metrics_* no /gm/:slug.
 
 PASSO 1 — MIGRAÇÃO SQL
-  1.1. Criar arquivo backend/src/db/migrations/<YYYYMMDDHHMMSS>_gm_public_profile_v2.sql
+  1.1. Usar a migration existente `database/migration_107_gm_public_profile_v2.sql`
        com TODAS as cláusulas do Patch 1 da auditoria.
   1.2. Rodar em staging primeiro.
   1.3. Confirmar via \d+ no psql que todas as colunas existem.
@@ -2431,13 +2436,13 @@ implementação. Só prosseguir após receber luz verde do usuário.
 
 | Mudança | V1 | V2 | V3 |
 |---|---|---|---|
-| Rota `/mestre/:slug` registrada? | Ausente no App.tsx | Ausente (router filho?) | **Ausente, mas não bloqueia** |
-| Hook de fetch | Desconhecido | Desconhecido | **Confirmado: não existe; fetch inline** |
-| Problema principal | Hero sem prova social | Insights vazados | **Insights vazados (confirmado no TSX real)** |
+| Rota `/mestre/:slug` registrada? | Ausente no App.tsx | Ausente (router filho?) | **Registrada em `App.tsx` (`/mestre/:slug`)** |
+| Hook de fetch | Desconhecido | Desconhecido | **Confirmado: `useMestre.ts` + `useMestreInsights.ts`** |
+| Problema principal | Hero sem prova social | Insights vazados | **Insights protegidos por `canSeeInsights` + rota `/insights`** |
 | Grupo fechado | Bloco fixo no hero | Opt-in via painel | **Opt-in + multi-select de sistemas (instrução do usuário)** |
 | `user_id` no payload | Expor bruto | `viewer_context` computado | **`viewer_context` + `optionalAuth` já existente** |
-| Contrato de links | Tabela desconhecida | Falta 4 colunas | **Confirmado: falta só `embed_url`** |
-| Consumidores de `metrics_*` | Não verificado | Alerta genérico | **Confirmado: PainelMestrePage usa, precisa migração preventiva** |
+| Contrato de links | Tabela desconhecida | Falta 4 colunas | **Contrato público inclui `type`, `description`, `thumbnail_url`, `embed_url`, `sort_order`** |
+| Consumidores de `metrics_*` | Não verificado | Alerta genérico | **Confirmado: painel usa `gm/tables`; sem dependência de `/gm/:slug`** |
 | Schema de `gm_profiles` | Desconhecido | Desconhecido | **Confirmado via psql, 7 colunas novas** |
 | Patches | Teóricos | Código Kysely + alguns TSX | **Código completo: backend + migração + hooks + 12 componentes + painel + doc** |
 | Ordem de execução | Vaga | Ordem geral | **10 passos granulares com pré-requisitos explícitos** |

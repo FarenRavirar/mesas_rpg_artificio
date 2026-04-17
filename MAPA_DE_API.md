@@ -38,8 +38,8 @@
 ### GM (`routes/gm.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
 |---|---|---|---|
-| **GET** | `/:slug` | ✅ Em Uso | useCreateTableForm.ts, uiHelpers.ts, MestrePage.tsx, PainelMestrePage.tsx — `optionalAuth` aplicado; retorna `viewer_context { is_owner, is_admin }`, `closed_group`, `selling_points`, `features` em `tables`; NÃO retorna `metrics_*` |
-| **GET** | `/:slug/insights` | ✅ Em Uso | (pronto para consumo em MestrePage/hooks dedicados) — protegido por `authMiddleware`; retorna `metrics` e `recommendations`; acesso apenas para dono/admin |
+| **GET** | `/:slug` | ✅ Em Uso | useMestre.ts (`MestrePage.tsx`) — `optionalAuth` aplicado; retorna `viewer_context { is_owner, is_admin }`, `closed_group`, `selling_points`, `features` em `tables`; NÃO retorna `metrics_*` |
+| **GET** | `/:slug/insights` | ✅ Em Uso | useMestreInsights.ts (`MestrePage.tsx`) — protegido por `authMiddleware`; retorna `metrics` e `recommendations`; acesso apenas para dono/admin |
 
 ### GMPANEL (`routes/gmPanel.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
@@ -67,10 +67,10 @@
 ### LINKS (`routes/links.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
 |---|---|---|---|
-| **GET** | `/links` | ❌ Pendente/Front | - |
-| **POST** | `/links` | ❌ Pendente/Front | - |
-| **DELETE** | `/links/:id` | ❌ Pendente/Front | - |
-| **PATCH** | `/links/reorder` | ❌ Pendente/Front | - |
+| **GET** | `/links` | ✅ Em Uso | useLinks.ts, LinksManager.tsx |
+| **POST** | `/links` | ✅ Em Uso | useLinks.ts, LinksManager.tsx |
+| **DELETE** | `/links/:id` | ✅ Em Uso | useLinks.ts, LinksManager.tsx |
+| **PATCH** | `/links/reorder` | ✅ Em Uso | useLinks.ts, LinksManager.tsx |
 
 ### ME (`routes/me.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |

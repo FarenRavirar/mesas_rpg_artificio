@@ -1,6 +1,6 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 16/04/2026 20:41 BRT
+**Última atualização:** 16/04/2026 22:52 BRT
 
 ---
 
@@ -24,38 +24,36 @@
 - **REQ-21 / FILA 084 concluído:** dropdown de faixa etária atualizado com ícones visuais em `StepConfig.tsx`, mantendo compatibilidade de `age_rating`.
 - **Etapa 1 da reformulação do mestre validada manualmente:** tela pública refeita e insights confirmados apenas para owner/admin.
 - **Etapa 2 concluída (frontend):** `MestrePage.tsx` consolidada como orquestradora com hooks (`useMestre`, `useMestreInsights`) e seções extraídas em componentes dedicados.
-- **Componentes extraídos da página pública:** `MestreSkeleton`, `MestreError`, `MestreNotFound`, `MestreHero`, `MestreTablesSection`, `MestreWhySection`, `MestreInsightsSection`, `MestreRecommendationsSection`, `MestreFinalCta`.
-- **Padronização visual aplicada:** inline styles removidos de insights/recomendações e migrados para classes no `MestrePage.css`.
-- **Validação manual concluída:** cenários visitante/owner/admin e responsividade desktop/mobile sem regressão crítica reportada.
-- **Deploy de validação em dev concluído:** workflow `Deploy Beta` executado com sucesso (run `24539501158`).
+- **Etapa 3 concluída (backend/contrato + documentação):** `GET /api/v1/gm/:slug` com `optionalAuth`, `viewer_context`, `closed_group`, `selling_points`, `features` e sem `metrics_*`; `GET /api/v1/gm/:slug/insights` protegido por `authMiddleware` com gate owner/admin.
+- **Compatibilidade de painel validada:** `PainelMestrePage.tsx` permanece consumindo métricas por `GET /api/v1/gm/tables` (`gmPanel.ts`).
+- **Sincronização documental da Etapa 3 concluída:** `MAPA_DE_API.md`, `ARQUITETURA_PROJETO.md` (§12), `docs/Reformulacao_mestre.md`, `sessoes/26-04-16_5_reformulacao-mestre-etapa3.md` e `sessoes/index.md` atualizados.
+- **REQ-29 / DEB-06 iniciado (auditoria API):** `MAPA_DE_API.md` sincronizado com consumo real para blocos `LINKS` e `DISCORD`; sessão `26-04-16_6_definicao-proximo-escopo.md` aberta e indexada.
 
 
 ---
 
 ## Próxima Ação
 
-1. Abrir a sessão `26-04-16_5_reformulacao-mestre-etapa3.md` para iniciar a Etapa 3.
-2. Mapear e implementar o delta de backend/contrato público pendente na reformulação do mestre.
-3. Atualizar `MAPA_DE_API.md`, `docs/Reformulacao_mestre.md` e sessão com os impactos da Etapa 3.
+1. Continuar execução do REQ-29/DEB-06 auditando os próximos blocos `❌ Pendente/Front` no `MAPA_DE_API.md`.
+2. Atualizar status apenas quando houver evidência concreta de consumo real no frontend/backend.
+3. Fechar sessão `26-04-16_6_definicao-proximo-escopo.md` com checklist 100% quando concluir o lote autorizado.
 
 
 ---
 
 ## Última Sessão
 
-**Data:** 16/04/2026 20:41 BRT  
-**Tipo:** Etapa 2 — Reformulação do perfil público de mestre (fechamento completo com validação funcional/visual e deploy beta)  
-**Arquivo:** `sessoes/26-04-16_4_reformulacao-mestre-etapa2.md`  
+**Data:** 16/04/2026 22:52 BRT  
+**Tipo:** REQ-29 / DEB-06 — Auditoria de endpoints pendentes no `MAPA_DE_API.md` (lote inicial)  
+**Arquivo:** `sessoes/26-04-16_6_definicao-proximo-escopo.md`  
 **O que foi feito:**
-- Consolidada a arquitetura de orquestração da página em `frontend/src/pages/MestrePage.tsx` com hooks `useMestre` e `useMestreInsights`
-- Finalizada extração de seções para componentes dedicados em `frontend/src/components/mestre/`
-- Removidos inline styles de insights/recomendações e consolidado CSS em `frontend/src/pages/MestrePage.css`
-- Atualizado `docs/Reformulacao_mestre.md` com status de implementação da Etapa 2
-- Executada validação manual aprovada para visitante, owner e admin
-- Executada validação manual aprovada para desktop e mobile
-- Deploy em `dev` concluído com sucesso e workflow `Deploy Beta` finalizado (`24539501158`)
+- Escopo do ciclo consolidado para REQ-29 (auditoria API) com dependência DEB-06
+- Validadas evidências de consumo real no frontend/backend para rotas de `LINKS` e `DISCORD`
+- Atualizada seção `LINKS` no `MAPA_DE_API.md` de `❌ Pendente/Front` para `✅ Em Uso` (`useLinks.ts`, `LinksManager.tsx`)
+- Atualizada seção `DISCORD` no `MAPA_DE_API.md` para `✅ Em Uso` em `/discord/connect`, `/discord/callback`, `/discord/disconnect`
+- Atualizado `sessoes/index.md` com a sessão 6 como mais recente e próxima sessão `26-04-16_7_*`
 
-**Status:** ✅ Etapa 2 concluída e documentada; próxima etapa é abertura da sessão da Etapa 3.
+**Status:** 🟡 Sessão 6 em andamento; auditoria REQ-29/DEB-06 segue para próximos blocos pendentes.
 
 ---
 

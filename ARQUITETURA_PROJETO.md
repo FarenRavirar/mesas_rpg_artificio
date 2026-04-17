@@ -648,7 +648,8 @@ Referência rápida das rotas estruturais da API. Todas as rotas mutáveis exige
 ### Painel do Mestre (`/api/v1/gm`)
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
-| `GET` | `/api/v1/gm/:slug` | — | Perfil público do mestre |
+| `GET` | `/api/v1/gm/:slug` | — (`optionalAuth`) | Perfil público do mestre com `viewer_context` (`is_owner`, `is_admin`), `closed_group`, `selling_points` e `tables.features`; não expõe `metrics_*` no payload público |
+| `GET` | `/api/v1/gm/:slug/insights` | autenticado (`owner/admin`) | Endpoint privado de insights (`metrics` e `recommendations`) visível apenas para dono do perfil ou administrador |
 | `POST` | `/api/v1/gm/profile` | autenticado | Criar `gm_profile` (eleva role no backend quando necessário) |
 | `PUT` | `/api/v1/gm/profile` | autenticado | Editar `gm_profile` |
 | `GET` | `/api/v1/gm/me` | autenticado | Retorna perfil de mestre do usuário logado |
@@ -1069,7 +1070,3 @@ O upload direto para Cloudinary depende de variáveis `VITE_*` em tempo de build
 
 > **Lembre-se:** Este é um presente do Artifício RPG para a comunidade brasileira de RPG.
 > Gratuito · Sem anúncios · Sem coleta de dados · Feito com ♥ pela comunidade.
-
-
-
-

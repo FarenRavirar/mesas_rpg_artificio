@@ -1,10 +1,10 @@
 # Índice de Sessões
 
-Última atualização: 16/04/2026 20:41 BRT
+Última atualização: 16/04/2026 22:52 BRT
 
 ---
 
-## 16/04/2026 (4 sessões)
+## 16/04/2026 (6 sessões)
 
 | # | Arquivo |
 |---|---|
@@ -12,6 +12,8 @@
 | 2 | `26-04-16_2_req21-faixa-etaria-dropdown.md` |
 | 3 | `26-04-16_3_reformulacao-mestre-etapa1.md` |
 | 4 | `26-04-16_4_reformulacao-mestre-etapa2.md` |
+| 5 | `26-04-16_5_reformulacao-mestre-etapa3.md` |
+| 6 | `26-04-16_6_definicao-proximo-escopo.md` |
 
 ---
 
@@ -80,7 +82,7 @@
 
 ## Sessão Mais Recente
 
-`26-04-16_4_reformulacao-mestre-etapa2.md`
+`26-04-16_6_definicao-proximo-escopo.md`
 
 ---
 
@@ -96,4 +98,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-04-16_5_*`
+**Próxima sessão:** `26-04-16_7_*`
