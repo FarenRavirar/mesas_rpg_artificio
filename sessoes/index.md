@@ -1,10 +1,10 @@
 # Índice de Sessões
 
-Última atualização: 17/04/2026 01:50 BRT
+Última atualização: 17/04/2026 11:47 BRT
 
 ---
 
-## 17/04/2026 (6 sessões)
+## 17/04/2026 (9 sessões)
 
 | # | Arquivo |
 |---|---|
@@ -16,6 +16,7 @@
 | 6 | `26-04-17_6_execucao-v4-passo9-10.md` |
 | 7 | `26-04-17_7_instrumentacao-views-links-painel.md` |
 | 8 | `26-04-17_8_planejamento-og-cache-30d.md` |
+| 9 | `26-04-17_9_execucao-og-cache-links.md` |
 
 ---
 

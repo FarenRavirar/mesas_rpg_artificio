@@ -1,6 +1,6 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 17/04/2026 01:49 BRT
+**Última atualização:** 17/04/2026 11:47 BRT
 
 ---
 
@@ -48,20 +48,39 @@
 
 ## Última Sessão
 
+**Data:** 17/04/2026 11:47 BRT  
+**Tipo:** Execução Completa — Cache OG de Links Externos  
+**Arquivo:** `sessoes/26-04-17_9_execucao-og-cache-links.md`  
+**O que foi feito:**
+- Implementada migration 109 com campos de metadata em `user_links` (status, timestamps, fail_count, retry).
+- Criado worker assíncrono (`processLinkMetadataJobs.ts`) com retry escalonado (1h → 6h → 1d → 3d → 1w → 2w).
+- Criado script de cleanup (`cleanupLinkMetadataCache.ts`) com políticas de 30 dias (inatividade) e 60 dias (obsolescência).
+- Implementado trigger "fire-and-forget" em `createUserLink`, `getUserLinks` e `GET /gm/:slug`.
+- Throttle de 6h para atualização de `metadata_last_accessed_at`.
+- Filtro de thumbnails de redes sociais protegidas (`fbcdn.net`, `cdninstagram.com`, `twimg.com`, `tiktokcdn.com`).
+- WhatsApp movido para categoria "Contato" (separado de "Presença").
+- Description removida de redes sociais no frontend (Instagram, Facebook, Twitter, TikTok).
+- Container `mesas-cron` configurado apenas em produção.
+- URLs completas no frontend (sem abreviar).
+- Changelog unificado (diretriz de consolidação por dia aplicada).
+- Validação manual em beta: cache OG funcionando, WhatsApp na categoria correta, erro 403 eliminado.
+- Limpeza de thumbnails antigas via SQL (1 link atualizado).
+
+**Status:** ✅ Implementação concluída e validada em beta. Pendente: documentação técnica (ARQUITETURA, MAPA_DE_API) e proteções SSRF.
+
+---
+
 **Data:** 17/04/2026 10:00 BRT  
-**Tipo:** Execução Funcional e Planejamento OG Cache + Visual Front-End UI
+**Tipo:** Planejamento — Cache OG de Links Externos  
 **Arquivo:** `sessoes/26-04-17_8_planejamento-og-cache-30d.md`  
 **O que foi feito:**
-- Levantamento de Diagnóstico de Planejamento aprovado via validação do usuário.
-- Criada `database/migration_109_links_og_metadata_cache.sql` sem payload pesado extra, focada em L2 no schema `user_links`.
-- Atualizado tipos DBs do Kysely e script Automático `apply_required_migrations.sh`.
-- Alterada `linkService.ts` e inserção síncrona convertida para flag `'pending'` com delegação para worker.
-- Criados Workers e Agendadores Cron puros no Ecossistema Backend (`processLinkMetadataJobs.ts`, `cleanupLinkMetadataCache.ts`, `cronRunner.ts`).
-- Políticas de expiração aprimoradas: limpa dados grandes após 30 dias de ociosidade, define re-fetch forçado para links antigos após 60 dias (para garantir fidelidade de dados) e Throttle touch nas query de leitura (6 horas).
-- Atualizado UI frontend em `LinksDisplay.tsx` forçando fallback limpo e seco como acordado na validação visual contendo os hostnames.
-- Container `mesas-cron` independente configurado restrito aos fluxos de prod (`docker-compose.prod.yml`).
+- Definida arquitetura do fluxo OG assíncrono (write-fast + enrich-later).
+- Definida estratégia de cache com expiração por inatividade de 30 dias.
+- Definidas alterações de schema/API/backend/frontend estritamente necessárias.
+- Definida matriz completa de testes de verificação (funcional, integração, segurança, carga e retenção).
+- Definidos critérios objetivos de aceite, riscos com severidade e rollback.
 
-**Status:** 🟡 Implementação 100% concluída; pendente deploy contínuo p/ testes no Runtime Real.
+**Status:** ✅ Planejamento concluído. Execução realizada na sessão 9.
 
 ---
 
