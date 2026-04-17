@@ -14,14 +14,15 @@ export function MestreFinalCta({ totalOpenSlots, tablesCount, mappedTables }: Pr
   });
 
   const isLowStock = totalOpenSlots > 0 && totalOpenSlots <= 5;
+  
+  // Só renderiza se há urgência REAL
+  if (!hasUrgentTable && !isLowStock) return null;
+
   const urgencyText = hasUrgentTable && isLowStock
     ? '🔥 Últimas vagas disponíveis'
     : hasUrgentTable
       ? '⚠️ Algumas mesas estão quase lotadas'
       : '⚡ Vagas limitadas';
-
-  // Só renderiza se há urgência REAL
-  if (!hasUrgentTable && !isLowStock) return null;
 
   return (
     <section className="final-cta-section">
