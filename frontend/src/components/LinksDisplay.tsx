@@ -1,4 +1,4 @@
-import { Video, Music, Radio, MessageCircle, FileText, Globe, ExternalLink, Camera, Share2, Briefcase } from 'lucide-react';
+import { Video, Music, Radio, MessageCircle, FileText, Globe, ExternalLink, Camera, Share2, Briefcase, BookOpen, Mic2 } from 'lucide-react';
 import type { UserLink } from '../hooks/useLinks';
 import './LinksDisplay.css';
 
@@ -7,10 +7,11 @@ const LINK_TYPE_ICONS = {
   spotify: Music,
   twitch: Radio,
   twitter: MessageCircle,
-  instagram: Camera, // Instagram usa Camera
-  facebook: Share2, // Facebook usa Share2
-  tiktok: Music, // TikTok usa Music
-  linkedin: Briefcase, // LinkedIn usa Briefcase
+  instagram: Camera,
+  facebook: Share2,
+  tiktok: Music,
+  linkedin: Briefcase,
+  whatsapp: MessageCircle,
   podcast: Radio,
   article: FileText,
   website: Globe,
@@ -25,6 +26,7 @@ const LINK_TYPE_LABELS = {
   facebook: 'Facebook',
   tiktok: 'TikTok',
   linkedin: 'LinkedIn',
+  whatsapp: 'WhatsApp',
   podcast: 'Podcast',
   article: 'Artigo',
   website: 'Website',
@@ -34,13 +36,15 @@ const LINK_TYPE_LABELS = {
 const CATEGORIES = {
   content: ['youtube', 'twitch', 'podcast', 'spotify'],
   social: ['instagram', 'twitter', 'facebook', 'tiktok', 'linkedin'],
+  contact: ['whatsapp'],
   authority: ['article', 'website'],
 };
 
-const CATEGORY_LABELS = {
-  content: '🎥 Conteúdo',
-  social: '🌐 Presença',
-  authority: '🧠 Autoridade',
+const CATEGORY_META: Record<string, { label: string; Icon: typeof Video }> = {
+  content: { label: 'Conteúdo', Icon: Video },
+  social: { label: 'Presença', Icon: Share2 },
+  contact: { label: 'Contato', Icon: MessageCircle },
+  authority: { label: 'Autoridade', Icon: BookOpen },
 };
 
 interface LinksDisplayProps {
@@ -54,19 +58,30 @@ export function LinksDisplay({ links }: LinksDisplayProps) {
   const groupedLinks = {
     content: links.filter(l => CATEGORIES.content.includes(l.type)),
     social: links.filter(l => CATEGORIES.social.includes(l.type)),
+    contact: links.filter(l => CATEGORIES.contact.includes(l.type)),
     authority: links.filter(l => CATEGORIES.authority.includes(l.type)),
   };
 
   return (
     <section className="links-display">
-      <h2>🎙️ Conteúdo & Redes</h2>
+      <h2 className="links-display-title">
+        <Mic2 className="inline-block mr-2 w-5 h-5" />
+        Conteúdo & Redes
+      </h2>
       
       {Object.entries(groupedLinks).map(([category, categoryLinks]) => {
         if (categoryLinks.length === 0) return null;
         
         return (
           <div key={category} className="links-category">
-            <h3 className="category-title">{CATEGORY_LABELS[category as keyof typeof CATEGORY_LABELS]}</h3>
+            <h3 className="category-title">
+              {(() => {
+                const meta = CATEGORY_META[category as keyof typeof CATEGORY_META];
+                if (!meta) return category;
+                const { label, Icon } = meta;
+                return <><Icon className="inline-block mr-2 w-4 h-4" />{label}</>;
+              })()}
+            </h3>
             <div className="links-display-grid">
               {categoryLinks.map((link) => (
                 <LinkCard key={link.id} link={link} />
@@ -108,19 +123,15 @@ function LinkCard({ link }: LinkCardProps) {
           <iframe
             src={link.embed_url}
             title={link.title || label}
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
             allow={link.type === 'youtube' ? "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" : "encrypted-media"}
             allowFullScreen={link.type === 'youtube' || link.type === 'twitch'}
           />
         </div>
       )}
 
-      {/* Preview leve para redes sociais */}
-      {isSocial && !hasHeavyEmbed && (
-        <div className="link-card-social-preview">
-          <Icon className="w-8 h-8" />
-          <p className="social-username">{new URL(link.url).pathname.split('/')[1] || label}</p>
-        </div>
-      )}
+
 
       {/* Thumbnail para artigos/sites */}
       {!hasHeavyEmbed && !isSocial && link.thumbnail_url && (
@@ -131,10 +142,11 @@ function LinkCard({ link }: LinkCardProps) {
 
       <div className="link-card-content">
         <h3 className="link-card-title">
-          {link.title || new URL(link.url).hostname}
+          {(['article', 'website', 'podcast'].includes(link.type) ? link.title : null) || link.url.replace(/^https?:\/\//, '')}
         </h3>
         
-        {link.description && (
+        {/* Redes sociais protegidas não mostram description (OG bloqueado por CORS) */}
+        {link.description && !['instagram', 'facebook', 'twitter', 'tiktok'].includes(link.type) && (
           <p className="link-card-description">{link.description}</p>
         )}
         

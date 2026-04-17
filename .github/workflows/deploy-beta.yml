@@ -154,6 +154,54 @@ jobs:
               fi
             fi
 
+            BETA_TABLES_URL="https://mesasbeta.artificiorpg.com/api/v1/tables?limit=1"
+            BETA_OAUTH_URL="https://mesasbeta.artificiorpg.com/auth/google?frontend_redirect=https%3A%2F%2Fmesasbeta.artificiorpg.com"
+
+            check_beta_critical_routes() {
+              local tables_code oauth_code
+
+              tables_code=$(curl -sS -o /tmp/beta_tables_check.json -w "%{http_code}" "$BETA_TABLES_URL" || true)
+              oauth_code=$(curl -sS -D /tmp/beta_oauth_check.headers -o /dev/null -w "%{http_code}" "$BETA_OAUTH_URL" || true)
+
+              if [ "$tables_code" != "200" ]; then
+                echo "ERRO: /api/v1/tables retornou HTTP $tables_code no beta (E150)"
+                return 1
+              fi
+
+              if [ "$oauth_code" != "302" ] || ! grep -qi '^location: https://accounts.google.com/o/oauth2/v2/auth' /tmp/beta_oauth_check.headers; then
+                echo "ERRO: /auth/google nao retornou redirect valido no beta (HTTP $oauth_code) (E150)"
+                return 1
+              fi
+
+              return 0
+            }
+
+            if ! check_beta_critical_routes; then
+              echo "AVISO: Rotas criticas do beta falharam. Tentando auto-recuperacao E150 (restart do frontend)..."
+              docker restart mesas-beta-frontend
+
+              FRONTEND_RETRIES=0
+              until [ "$(docker inspect --format '{{.State.Health.Status}}' "$FRONTEND_CONTAINER" 2>/dev/null || echo 'missing')" = "healthy" ]; do
+                FRONTEND_RETRIES=$((FRONTEND_RETRIES+1))
+                if [ $FRONTEND_RETRIES -ge $MAX_FRONTEND_RETRIES ]; then
+                  echo "ERRO: Frontend beta nao voltou healthy apos recuperacao E150"
+                  docker inspect "$FRONTEND_CONTAINER" --format '{{json .State.Health}}' || true
+                  docker compose -f docker-compose.beta.yml logs --tail=120 mesas-beta-frontend mesas-beta-api mesas-beta-db
+                  exit 1
+                fi
+                sleep 3
+              done
+
+              sleep 5
+
+              if ! check_beta_critical_routes; then
+                echo "ERRO: Rotas criticas do beta permanecem falhando apos recuperacao E150"
+                docker compose -f docker-compose.beta.yml ps
+                docker compose -f docker-compose.beta.yml logs --tail=120 mesas-beta-frontend mesas-beta-api mesas-beta-db
+                exit 1
+              fi
+            fi
+
             docker compose -f docker-compose.beta.yml ps
             docker image prune -f
             docker builder prune -f --filter "until=168h"

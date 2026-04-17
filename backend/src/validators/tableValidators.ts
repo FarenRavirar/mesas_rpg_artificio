@@ -23,7 +23,10 @@ const contactSchema = z.object({
   channel: z.enum(CONTACT_CHANNELS),
   value: z.string().min(1, 'Valor do contato é obrigatório'),
   label: z.string().nullable().optional(),
-  discord_server_url: z.string().url('URL do Discord inválida').nullable().optional(),
+  discord_server_url: z.union([
+    z.string().url('URL do Discord inválida'),
+    z.literal('')
+  ]).nullable().optional(),
   sort_order: z.number().int().min(0).optional(),
 });
 

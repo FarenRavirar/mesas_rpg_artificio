@@ -36,6 +36,9 @@ function detectLinkType(url) {
     if (urlLower.includes('linkedin.com')) {
         return 'linkedin';
     }
+    if (urlLower.includes('wa.me') || urlLower.includes('whatsapp.com') || urlLower.includes('api.whatsapp.com')) {
+        return 'whatsapp';
+    }
     // Podcasts genéricos
     if (urlLower.includes('anchor.fm') ||
         urlLower.includes('podcasters.spotify') ||
@@ -125,6 +128,7 @@ async function extractMetadata(url, type) {
 /**
  * Lista todos os links de um usuário
  */
+const kysely_1 = require("kysely");
 async function getUserLinks(userId) {
     const links = await index_1.db
         .selectFrom('user_links')
@@ -133,10 +137,23 @@ async function getUserLinks(userId) {
         .orderBy('sort_order', 'asc')
         .orderBy('created_at', 'desc')
         .execute();
+    if (links.length > 0) {
+        const linkIds = links.map(l => l.id);
+        index_1.db.updateTable('user_links')
+            .set({ metadata_last_accessed_at: (0, kysely_1.sql) `NOW()` })
+            .where('id', 'in', linkIds)
+            .where('metadata_last_accessed_at', '<', (0, kysely_1.sql) `NOW() - interval '6 hours'`)
+            .execute()
+            .catch(e => console.error('[getUserLinks] Falha ao atualizar acesso do link:', e));
+        if (links.some(l => l.metadata_status === 'pending')) {
+            const { processPendingLinks } = require('../scripts/processLinkMetadataJobs');
+            processPendingLinks().catch((err) => console.error('Silent processPending error:', err));
+        }
+    }
     // Adicionar embed_url para cada link
     return links.map((link) => ({
         ...link,
-        embed_url: generateEmbedUrl(link.url, link.type) || undefined,
+        embed_url: generateEmbedUrl(link.url, link.type),
     }));
 }
 /**
@@ -163,25 +180,27 @@ async function createUserLink(userId, input) {
     }
     // Detectar tipo
     const type = detectLinkType(url);
-    // Extrair metadata
-    const metadata = await extractMetadata(url, type);
-    // Criar link
+    // Criar link (sem fazer scrapping síncrono - delega ao worker background)
     const link = await index_1.db
         .insertInto('user_links')
         .values({
         user_id: userId,
         url,
         type,
-        title: metadata.title || null,
-        description: metadata.description || null,
-        thumbnail_url: metadata.thumbnail_url || null,
+        title: null,
+        description: null,
+        thumbnail_url: null,
+        metadata_status: 'pending',
         sort_order: 0,
     })
         .returningAll()
         .executeTakeFirstOrThrow();
+    // Fire and forget o worker pro link novo
+    const { processPendingLinks } = require('../scripts/processLinkMetadataJobs');
+    processPendingLinks().catch((err) => console.error('Silent processPending error:', err));
     return {
         ...link,
-        embed_url: generateEmbedUrl(link.url, type) || undefined,
+        embed_url: generateEmbedUrl(link.url, type),
     };
 }
 /**

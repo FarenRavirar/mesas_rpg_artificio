@@ -276,29 +276,17 @@ export default function ProfileEditPage() {
 
 function TabGeral() {
   const { profile, updateUser, updateProfile } = useProfileContext();
-  const [avatarPreview, setAvatarPreview] = useState<string>('');
   const [avatarError, setAvatarError] = useState(false);
-  const [showManualInput, setShowManualInput] = useState(false);
 
   if (!profile) return null;
 
   const handleAvatarChange = (url: string) => {
-    setAvatarPreview(url);
     setAvatarError(false);
     updateProfile({ avatar_url: url });
   };
 
-  const handleAvatarError = () => {
-    setAvatarError(true);
-  };
-
-  const handleRemoveAvatar = () => {
-    setAvatarPreview('');
-    updateProfile({ avatar_url: '' });
-  };
-
   // CORREÇÃO P12: Usar apenas profile.avatar_url (Google OAuth deve copiar para profiles)
-  const currentAvatar = avatarPreview || profile.profile?.avatar_url || '';
+  const currentAvatar = profile.profile?.avatar_url || '';
 
   return (
     <div className="tab-geral">
@@ -307,13 +295,16 @@ function TabGeral() {
 
         <div className="form-group">
           <label>Foto de Perfil</label>
+          <p className="field-description">
+            Esta é a sua foto de usuário. Ela aparece em comentários, avaliações e no cabeçalho do site.
+          </p>
           <div className="avatar-premium-container">
             <div className="avatar-premium-preview">
               {currentAvatar && !avatarError ? (
                 <img 
                   src={currentAvatar} 
                   alt="Foto de perfil" 
-                  onError={handleAvatarError}
+                  onError={() => setAvatarError(true)}
                 />
               ) : (
                 <div className="avatar-preview-placeholder">
@@ -322,39 +313,119 @@ function TabGeral() {
               )}
             </div>
             <div className="avatar-premium-actions">
+              <div className="avatar-upload-section">
+                <input
+                  type="file"
+                  id="avatar-file-input"
+                  accept="image/png,image/jpeg,image/webp"
+                  style={{ display: 'none' }}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+
+                    // Validação de tamanho
+                    if (file.size > 5 * 1024 * 1024) {
+                      alert('Arquivo muito grande. Limite de 5 MB.');
+                      return;
+                    }
+
+                    // Validação de tipo
+                    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+                      alert('Formato inválido. Envie apenas JPG, PNG ou WEBP.');
+                      return;
+                    }
+
+                    // Upload via backend
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    try {
+                      const apiUrl = import.meta.env.VITE_API_URL || '';
+                      const response = await fetch(`${apiUrl}/api/v1/upload`, {
+                        method: 'POST',
+                        credentials: 'include',
+                        body: formData,
+                      });
+
+                      const payload = await response.json();
+
+                      if (!response.ok || !payload?.secure_url) {
+                        throw new Error(payload?.error || 'Falha ao enviar imagem.');
+                      }
+
+                      handleAvatarChange(payload.secure_url);
+                    } catch (error) {
+                      alert(error instanceof Error ? error.message : 'Erro ao fazer upload.');
+                    }
+
+                    e.target.value = '';
+                  }}
+                />
+                <div className="avatar-button-row">
+                  <button 
+                    type="button"
+                    className="btn-avatar-action btn-upload"
+                    onClick={() => document.getElementById('avatar-file-input')?.click()}
+                  >
+                    📤 Enviar nova imagem
+                  </button>
+                  <button 
+                    type="button"
+                    className="btn-avatar-action btn-google"
+                    onClick={async () => {
+                      try {
+                        const apiUrl = import.meta.env.VITE_API_URL || '';
+                        const response = await fetch(`${apiUrl}/api/v1/profile/me/google-picture`, {
+                          method: 'POST',
+                          credentials: 'include',
+                        });
+
+                        const payload = await response.json();
+
+                        if (!response.ok) {
+                          throw new Error(payload?.error || 'Erro ao buscar foto do Google.');
+                        }
+
+                        handleAvatarChange(payload.data.avatar_url);
+                        showSuccess('Foto do Google aplicada com sucesso!');
+                      } catch (error) {
+                        showError(error instanceof Error ? error.message : 'Erro ao buscar foto do Google.');
+                      }
+                    }}
+                  >
+                    🔄 Usar imagem do Google
+                  </button>
+                </div>
+              </div>
               <div className="avatar-button-group">
                 {currentAvatar && (
                   <button 
                     type="button"
                     className="btn-avatar-action btn-remove"
-                    onClick={handleRemoveAvatar}
+                    onClick={() => handleAvatarChange('')}
                   >
                     Remover foto
                   </button>
                 )}
-                <button 
-                  type="button"
-                  className="btn-avatar-action btn-manual"
-                  onClick={() => setShowManualInput(!showManualInput)}
-                >
-                  {showManualInput ? '▲ Ocultar URL' : '▼ Usar URL manual'}
-                </button>
+                <details className="avatar-manual-details">
+                  <summary className="btn-avatar-action btn-manual">
+                    🔗 Usar URL manual
+                  </summary>
+                  <div className="avatar-manual-input">
+                    <input
+                      type="url"
+                      id="avatar_url"
+                      value={currentAvatar}
+                      onChange={(e) => handleAvatarChange(e.target.value)}
+                      placeholder="https://exemplo.com/avatar.jpg"
+                    />
+                    <small>Cole a URL de uma imagem hospedada (Imgur, Gravatar, etc.)</small>
+                    {avatarError && currentAvatar && (
+                      <small className="error-text">❌ Não foi possível carregar a imagem</small>
+                    )}
+                  </div>
+                </details>
               </div>
-              {showManualInput && (
-                <div className="avatar-manual-input">
-                  <input
-                    type="url"
-                    id="avatar_url"
-                    defaultValue={profile.profile?.avatar_url || ''}
-                    onChange={(e) => handleAvatarChange(e.target.value)}
-                    placeholder="https://exemplo.com/avatar.jpg"
-                  />
-                  <small>Cole a URL de uma imagem hospedada (Imgur, Gravatar, etc.)</small>
-                  {avatarError && currentAvatar && (
-                    <small className="error-text">❌ Não foi possível carregar a imagem</small>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -645,6 +716,141 @@ function TabMestre({
             placeholder="Conte sobre sua experiência como mestre..."
             rows={6}
           />
+        </div>
+
+        <div className="form-group">
+          <label>Foto de Mestre</label>
+          <p className="field-description">
+            Esta é a sua foto como mestre. Ela aparece nas suas mesas e no seu perfil público de mestre. Se não definir, será usada a foto de perfil geral.
+          </p>
+          <div className="avatar-premium-container">
+            <div className="avatar-premium-preview">
+              {gmProfile.avatar_url ? (
+                <img 
+                  src={gmProfile.avatar_url} 
+                  alt="Foto de mestre" 
+                />
+              ) : profile.profile?.avatar_url ? (
+                <img 
+                  src={profile.profile.avatar_url} 
+                  alt="Foto de perfil (padrão)" 
+                />
+              ) : (
+                <div className="avatar-preview-placeholder">
+                  {profile.profile?.display_name?.charAt(0).toUpperCase() || '?'}
+                </div>
+              )}
+            </div>
+            <div className="avatar-premium-actions">
+              <div className="avatar-upload-section">
+                <input
+                  type="file"
+                  id="gm-avatar-file-input"
+                  accept="image/png,image/jpeg,image/webp"
+                  style={{ display: 'none' }}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+
+                    if (file.size > 5 * 1024 * 1024) {
+                      alert('Arquivo muito grande. Limite de 5 MB.');
+                      return;
+                    }
+
+                    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+                      alert('Formato inválido. Envie apenas JPG, PNG ou WEBP.');
+                      return;
+                    }
+
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    try {
+                      const apiUrl = import.meta.env.VITE_API_URL || '';
+                      const response = await fetch(`${apiUrl}/api/v1/upload`, {
+                        method: 'POST',
+                        credentials: 'include',
+                        body: formData,
+                      });
+
+                      const payload = await response.json();
+
+                      if (!response.ok || !payload?.secure_url) {
+                        throw new Error(payload?.error || 'Falha ao enviar imagem.');
+                      }
+
+                      updateGm({ avatar_url: payload.secure_url });
+                    } catch (error) {
+                      alert(error instanceof Error ? error.message : 'Erro ao fazer upload.');
+                    }
+
+                    e.target.value = '';
+                  }}
+                />
+                <div className="avatar-button-row">
+                  <button 
+                    type="button"
+                    className="btn-avatar-action btn-upload"
+                    onClick={() => document.getElementById('gm-avatar-file-input')?.click()}
+                  >
+                    📤 Enviar nova imagem
+                  </button>
+                  <button 
+                    type="button"
+                    className="btn-avatar-action btn-google"
+                    onClick={async () => {
+                      try {
+                        const apiUrl = import.meta.env.VITE_API_URL || '';
+                        const response = await fetch(`${apiUrl}/api/v1/profile/me/google-picture`, {
+                          method: 'POST',
+                          credentials: 'include',
+                        });
+
+                        const payload = await response.json();
+
+                        if (!response.ok) {
+                          throw new Error(payload?.error || 'Erro ao buscar foto do Google.');
+                        }
+
+                        updateGm({ avatar_url: payload.data.avatar_url });
+                        showSuccess('Foto do Google aplicada como foto de mestre!');
+                      } catch (error) {
+                        showError(error instanceof Error ? error.message : 'Erro ao buscar foto do Google.');
+                      }
+                    }}
+                  >
+                    🔄 Usar imagem do Google
+                  </button>
+                </div>
+              </div>
+              <div className="avatar-button-group">
+                {gmProfile.avatar_url && (
+                  <button 
+                    type="button"
+                    className="btn-avatar-action btn-remove"
+                    onClick={() => updateGm({ avatar_url: '' })}
+                  >
+                    Remover foto de mestre
+                  </button>
+                )}
+                <details className="avatar-manual-details">
+                  <summary className="btn-avatar-action btn-manual">
+                    🔗 Usar URL manual
+                  </summary>
+                  <div className="avatar-manual-input">
+                    <input
+                      type="url"
+                      id="gm_avatar_url"
+                      defaultValue={gmProfile.avatar_url || ''}
+                      onChange={(e) => updateGm({ avatar_url: e.target.value })}
+                      placeholder="https://exemplo.com/avatar.jpg"
+                    />
+                    <small>Cole a URL de uma imagem hospedada</small>
+                  </div>
+                </details>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 

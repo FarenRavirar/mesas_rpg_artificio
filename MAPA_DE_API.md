@@ -38,7 +38,8 @@
 ### GM (`routes/gm.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
 |---|---|---|---|
-| **GET** | `/:slug` | ✅ Em Uso | useCreateTableForm.ts, uiHelpers.ts, MestrePage.tsx, PainelMestrePage.tsx — perfil retorna `gm.banner_url`; mesas públicas neste endpoint usam `cover_url` (legado) |
+| **GET** | `/:slug` | ✅ Em Uso | useMestre.ts (`MestrePage.tsx`) — `optionalAuth` aplicado; retorna `viewer_context { is_owner, is_admin }`, `closed_group`, `selling_points`, `features` em `tables`; NÃO retorna `metrics_*` |
+| **GET** | `/:slug/insights` | ✅ Em Uso | useMestreInsights.ts (`MestrePage.tsx`) — protegido por `authMiddleware`; retorna `metrics` e `recommendations`; acesso apenas para dono/admin |
 
 ### GMPANEL (`routes/gmPanel.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
@@ -66,10 +67,27 @@
 ### LINKS (`routes/links.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
 |---|---|---|---|
-| **GET** | `/links` | ❌ Pendente/Front | - |
-| **POST** | `/links` | ❌ Pendente/Front | - |
-| **DELETE** | `/links/:id` | ❌ Pendente/Front | - |
-| **PATCH** | `/links/reorder` | ❌ Pendente/Front | - |
+| **GET** | `/links` | ✅ Em Uso | useLinks.ts, LinksManager.tsx — retorna `metadata_status`, `metadata_fetched_at`, `metadata_last_accessed_at` para exibição de estados de cache OG |
+| **POST** | `/links` | ✅ Em Uso | useLinks.ts, LinksManager.tsx — cria link com `metadata_status = 'pending'` e aciona worker assíncrono via trigger "fire-and-forget" |
+| **DELETE** | `/links/:id` | ✅ Em Uso | useLinks.ts, LinksManager.tsx |
+| **PATCH** | `/links/reorder` | ✅ Em Uso | useLinks.ts, LinksManager.tsx |
+
+**Campos de Metadata Open Graph (migration_109 - Abril/2026):**
+- `metadata_status` — Estado do processamento: `pending` (aguardando), `success` (enriquecido), `failed` (erro após retries), `stale` (expirado por inatividade)
+- `metadata_fetched_at` — Timestamp do último fetch bem-sucedido
+- `metadata_last_accessed_at` — Última exibição do link (throttle de 6h para evitar sobrecarga no banco)
+- `metadata_fail_count` — Contador de falhas consecutivas (retry escalonado: 1h → 6h → 1d → 3d → 1w → 2w)
+- `metadata_next_retry_at` — Próxima tentativa de retry (backoff exponencial)
+- `title` — Título extraído via Open Graph ou fallback (hostname)
+- `description` — Descrição extraída via Open Graph (não exibida para redes sociais protegidas)
+- `thumbnail_url` — URL da thumbnail (filtrada para `fbcdn.net`, `cdninstagram.com`, `twimg.com`, `tiktokcdn.com`)
+
+**Worker Assíncrono:**
+- Script: `backend/src/scripts/processLinkMetadataJobs.ts`
+- Trigger: "fire-and-forget" em `POST /links`, `GET /links` e `GET /gm/:slug`
+- Timeout: 2s por requisição HTTP
+- Limite: 128KB de body
+- Cleanup: `cleanupLinkMetadataCache.ts` (diário em produção) — remove cache pesado após 30 dias de inatividade
 
 ### ME (`routes/me.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
@@ -101,6 +119,7 @@
 | **GET** | `/me/discord` | ✅ Em Uso | useProfile.ts, useProfileQuery.ts, PlayerPage.tsx |
 | **POST** | `/me/connect/discord` | ✅ Em Uso | useProfile.ts, useProfileQuery.ts, PlayerPage.tsx |
 | **DELETE** | `/me/connect/discord` | ✅ Em Uso | useProfile.ts, useProfileQuery.ts, PlayerPage.tsx |
+| **POST** | `/me/google-picture` | ✅ Em Uso | ProfileEditPage.tsx — Busca foto atual do Google OAuth usando refresh_token e atualiza avatar_url automaticamente |
 
 ### SCENARIOS (`routes/scenarios.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
@@ -182,4 +201,23 @@
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
 |---|---|---|---|
 | **POST** | `/` | ✅ Em Uso | ImageUploader.tsx — upload de imagem via backend com Cloudinary signed (substitui upload direto unsigned) |
+
+### OG (`routes/og.ts`)
+| Metodo | Endpoint | Status | Chamado por (Frontend) |
+|---|---|---|---|
+| **GET** | `/:type/:slug` | ✅ Em Uso | Crawlers de redes sociais (Facebook, Twitter, WhatsApp, Discord) via proxy Nginx — rota extensível com switch case para diferentes tipos de entidades |
+| **GET** | `*` | ✅ Em Uso | Fallback para rotas não mapeadas — retorna meta tags genéricas do site |
+
+**Tipos suportados em `/:type/:slug`:**
+- `mestre` — Perfil de mestre (`/og/mestre/:slug`) — consulta `gm_profiles` e injeta meta tags OG dinâmicas
+- Futuros: `mesa`, `evento`, etc.
+
+**Fluxo:**
+1. Nginx detecta user-agent de crawler (facebookexternalhit, Twitterbot, etc.)
+2. Nginx redireciona `/mestre/:slug` → `/og/mestre/:slug` via proxy
+3. Backend consulta banco de dados baseado no `type`
+4. Backend injeta meta tags Open Graph dinâmicas no `index.html`
+5. Retorna HTML completo com meta tags personalizadas
+
+**Referência:** Ver `ARQUITETURA_PROJETO.md` §17 para detalhes completos da implementação.
 

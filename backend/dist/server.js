@@ -29,6 +29,7 @@ const communicationPlatforms_1 = __importDefault(require("./routes/communication
 const changelog_1 = __importDefault(require("./routes/changelog"));
 const adminTables_1 = __importDefault(require("./routes/adminTables"));
 const upload_1 = __importDefault(require("./routes/upload"));
+const og_1 = __importDefault(require("./routes/og"));
 require("express-async-errors");
 const db_1 = require("./db");
 const requestLogger_1 = require("./middleware/requestLogger");
@@ -108,6 +109,7 @@ app.use('/api/v1/vtt-platforms', vttPlatforms_1.default);
 app.use('/api/v1/communication-platforms', communicationPlatforms_1.default);
 app.use('/api/v1/changelog', changelog_1.default);
 app.use('/api/v1', upload_1.default);
+app.use('/og', og_1.default);
 app.use((err, req, res, next) => {
     console.error('[Global Error]', err);
     res.status(500).json({ error: 'Erro interno no servidor.' });

@@ -355,4 +355,65 @@ router.delete('/me/connect/discord', auth_1.authMiddleware, async (req, res) => 
         return res.status(500).json({ error: 'Erro ao desconectar Discord' });
     }
 });
+// =============================================================================
+// POST /api/v1/profile/me/google-picture — Buscar e usar foto do Google
+// =============================================================================
+router.post('/me/google-picture', auth_1.authMiddleware, async (req, res) => {
+    const userId = req.user?.userId;
+    if (!userId) {
+        return res.status(401).json({ error: 'Não autenticado' });
+    }
+    try {
+        // Buscar refresh_token do usuário
+        const user = await profileService.getUserById(userId);
+        if (!user?.refresh_token) {
+            return res.status(400).json({
+                error: 'Não foi possível buscar a foto do Google. Faça login novamente.'
+            });
+        }
+        // Buscar foto atual do Google usando o refresh_token
+        const { OAuth2Client } = await Promise.resolve().then(() => __importStar(require('google-auth-library')));
+        const oauth2Client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
+        oauth2Client.setCredentials({
+            refresh_token: user.refresh_token,
+        });
+        const { credentials } = await oauth2Client.refreshAccessToken();
+        if (!credentials.access_token) {
+            return res.status(400).json({
+                error: 'Não foi possível obter acesso ao Google. Faça login novamente.'
+            });
+        }
+        // Buscar informações do usuário no Google
+        const userinfoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+            headers: { Authorization: `Bearer ${credentials.access_token}` },
+        });
+        if (!userinfoRes.ok) {
+            return res.status(502).json({
+                error: 'Erro ao buscar informações do Google.'
+            });
+        }
+        const userInfo = await userinfoRes.json();
+        if (!userInfo.picture) {
+            return res.status(404).json({
+                error: 'Foto do Google não encontrada.'
+            });
+        }
+        // Atualizar avatar_url no perfil
+        const profile = await profileService.updateProfile(userId, {
+            avatar_url: userInfo.picture,
+        });
+        return res.json({
+            data: {
+                avatar_url: userInfo.picture,
+                profile
+            }
+        });
+    }
+    catch (error) {
+        console.error('[POST /profile/me/google-picture]', error);
+        return res.status(500).json({
+            error: 'Erro ao buscar foto do Google. Tente fazer login novamente.'
+        });
+    }
+});
 exports.default = router;

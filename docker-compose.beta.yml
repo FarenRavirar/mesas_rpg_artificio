@@ -21,13 +21,20 @@ services:
       - VITE_API_URL=${VITE_API_URL}
       - VITE_CLOUDINARY_CLOUD_NAME=${VITE_CLOUDINARY_CLOUD_NAME}
       - VITE_CLOUDINARY_UPLOAD_PRESET=${VITE_CLOUDINARY_UPLOAD_PRESET}
+    command:
+      - /bin/sh
+      - -c
+      - rm -rf /frontend-dist/* && cp -r /usr/share/nginx/html/. /frontend-dist/ && exec /docker-entrypoint.sh nginx -g 'daemon off;'
+    volumes:
+      - frontend_dist_beta:/frontend-dist
     depends_on:
       - mesas-beta-api
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:80 || exit 1"]
       interval: 30s
       timeout: 5s
-      retries: 3
+      retries: 5
+      start_period: 20s
 
   mesas-beta-api:
     build:
@@ -56,6 +63,8 @@ services:
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
       - JWT_REFRESH_EXPIRES_IN=7d
       - FRONTEND_URL=https://mesasbeta.artificiorpg.com
+      - PUBLIC_SITE_URL=https://mesasbeta.artificiorpg.com
+      - INDEX_HTML_PATH=/app/frontend-dist/index.html
       - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
       - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
       - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
@@ -64,6 +73,7 @@ services:
         condition: service_healthy
     volumes:
       - ./logs:/app/logs
+      - frontend_dist_beta:/app/frontend-dist:ro
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/v1/health || exit 1"]
       interval: 30s
@@ -99,6 +109,7 @@ services:
 
 volumes:
   pgdata_mesas_beta:
+  frontend_dist_beta:
 
 networks:
   gerenciador_telegram_default:

@@ -326,6 +326,7 @@ Se configurar ambiente local for complexo, testar diretamente em:
 - `notifications` — Notificações in-app para usuários (migration_07).
 - `imgur_cleanup_log` — Registro de tentativas de limpeza de imagens hospedadas externamente.
 - `user_preferences` — Preferências estruturadas (sistemas, temas, idiomas, plataformas, dias).
+- `user_links` — Links externos do perfil do mestre (redes sociais, portfólio, conteúdo) com cache de metadados Open Graph (migration_109).
 
 ### 4.2 Campos Chave em `tables`
 
@@ -418,7 +419,124 @@ Uma mesa pode ter:
 - Quarta 20h-23h (quinzenal, 4 vagas)
 - Sábado 14h-18h (mensal, 6 vagas, em andamento)
 
+### 4.7 Links Externos do Mestre (user_links) e Cache Open Graph
+
+**Implementado:** Abril/2026 (migration_109)  
+**Objetivo:** Permitir que mestres adicionem links externos (redes sociais, portfólio, conteúdo) ao perfil público com enriquecimento assíncrono de metadados Open Graph.
+
+#### 4.7.1 Estrutura da Tabela `user_links`
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `id` | UUID PK | Identificador único |
+| `user_id` | UUID FK | Referência ao usuário (dono do perfil) |
+| `url` | TEXT NOT NULL | URL completa do link externo |
+| `type` | TEXT NOT NULL | Tipo detectado: `youtube`, `spotify`, `twitch`, `twitter`, `instagram`, `facebook`, `tiktok`, `linkedin`, `whatsapp`, `podcast`, `article`, `website` |
+| `title` | TEXT NULL | Título extraído via Open Graph ou fallback (hostname) |
+| `description` | TEXT NULL | Descrição extraída via Open Graph |
+| `thumbnail_url` | TEXT NULL | URL da thumbnail (filtrada para redes sociais protegidas) |
+| `embed_url` | TEXT NULL | URL de embed (YouTube, Spotify, Twitch) |
+| `sort_order` | SMALLINT | Ordem de exibição no perfil |
+| `metadata_status` | TEXT NOT NULL DEFAULT 'pending' | Estado do processamento: `pending`, `success`, `failed`, `stale` |
+| `metadata_fetched_at` | TIMESTAMPTZ NULL | Timestamp do último fetch bem-sucedido |
+| `metadata_last_accessed_at` | TIMESTAMPTZ NOT NULL DEFAULT NOW() | Última vez que o link foi exibido (throttle de 6h) |
+| `metadata_fail_count` | INTEGER NOT NULL DEFAULT 0 | Contador de falhas consecutivas |
+| `metadata_next_retry_at` | TIMESTAMPTZ NULL | Próxima tentativa de retry (backoff exponencial) |
+| `created_at` | TIMESTAMPTZ | Data de criação |
+| `updated_at` | TIMESTAMPTZ | Data de última atualização |
+
+**Índices:**
+- `idx_user_links_metadata_status` — Busca rápida de links pendentes
+- `idx_user_links_metadata_last_accessed` — Cleanup por inatividade
+- `idx_user_links_metadata_next_retry` — Retry de links falhados
+
+#### 4.7.2 Fluxo de Enriquecimento Assíncrono (Write-Fast, Enrich-Later)
+
+**Fase 1 — Criação do Link (Síncrona):**
+1. Usuário adiciona URL no painel do mestre
+2. Backend detecta tipo via `detectLinkType()` (regex de domínio)
+3. Link é inserido com `metadata_status = 'pending'`
+4. Resposta imediata ao frontend (sem aguardar scraping)
+
+**Fase 2 — Processamento (Assíncrona):**
+1. Worker (`processLinkMetadataJobs.ts`) busca links `pending` ou `failed` com retry disponível
+2. Fetch HTTP com timeout de 2s e limite de 128KB
+3. Extração de metadados via regex: `og:title`, `og:description`, `og:image`
+4. Filtro de thumbnails: bloqueia `fbcdn.net`, `cdninstagram.com`, `twimg.com`, `tiktokcdn.com`
+5. Atualização do link com `metadata_status = 'success'` ou `failed`
+
+**Fase 3 — Exibição (Reativa):**
+1. Frontend renderiza link com estado visual baseado em `metadata_status`
+2. Redes sociais protegidas (Instagram, Facebook, Twitter, TikTok) não exibem `description` nem `thumbnail_url`
+3. WhatsApp é categorizado como "Contato" (não "Presença")
+
+#### 4.7.3 Trigger "Fire-and-Forget"
+
+O worker é acionado automaticamente (sem bloquear resposta HTTP) em:
+- `POST /api/v1/profile/links` — Criação de novo link
+- `GET /api/v1/profile/links` — Listagem de links no painel
+- `GET /api/v1/gm/:slug` — Visualização do perfil público
+
+**Lógica:**
+```typescript
+if (links.some(l => l.metadata_status === 'pending')) {
+  processPendingLinks().catch(err => console.error('Silent error:', err));
+}
+```
+
+#### 4.7.4 Política de Retry Escalonado
+
+Falhas de scraping (timeout, 403, 500) acionam retry com backoff exponencial:
+
+| Tentativa | Intervalo | `metadata_next_retry_at` |
+|---|---|---|
+| 1 | 1 hora | `NOW() + 1 hour` |
+| 2 | 6 horas | `NOW() + 6 hours` |
+| 3 | 1 dia | `NOW() + 1 day` |
+| 4 | 3 dias | `NOW() + 3 days` |
+| 5 | 1 semana | `NOW() + 1 week` |
+| 6 | 2 semanas | `NOW() + 2 weeks` |
+| 7+ | Desiste | `metadata_status = 'failed'` |
+
+#### 4.7.5 Expiração por Inatividade (30 dias)
+
+**Script:** `cleanupLinkMetadataCache.ts` (execução diária via cron em produção)
+
+**Políticas:**
+1. **Inatividade (30 dias):** Links com `metadata_last_accessed_at < NOW() - 30 days` têm `description` e `thumbnail_url` removidos e `metadata_status` marcado como `stale`
+2. **Obsolescência (60 dias):** Links `success` com `metadata_fetched_at < NOW() - 60 days` são marcados como `stale` para revalidação
+
+**Throttle de Acesso:**
+- `metadata_last_accessed_at` só é atualizado se última atualização foi há mais de 6 horas
+- Evita sobrecarga no banco com perfis muito visitados
+
+#### 4.7.6 Categorização de Links no Frontend
+
+| Categoria | Tipos | Label | Ícone |
+|---|---|---|---|
+| **Conteúdo** | `youtube`, `twitch`, `podcast`, `spotify` | "Conteúdo" | Video |
+| **Presença** | `instagram`, `twitter`, `facebook`, `tiktok`, `linkedin` | "Presença" | Share2 |
+| **Contato** | `whatsapp` | "Contato" | MessageCircle |
+| **Autoridade** | `article`, `website` | "Autoridade" | BookOpen |
+
+**Regras de Exibição:**
+- Redes sociais protegidas: apenas ícone, label e URL (sem thumbnail, sem description)
+- YouTube/Spotify/Twitch: embed pesado (iframe)
+- Artigos/Sites: thumbnail + title + description + CTA
+
+#### 4.7.7 Infraestrutura de Agendamento
+
+**Produção (`docker-compose.prod.yml`):**
+- Container `mesas-cron` dedicado
+- Worker OG: a cada 5 minutos
+- Cleanup: 1x por dia
+
+**Beta/Dev:**
+- Sem container cron
+- Worker acionado apenas via trigger "fire-and-forget"
+
 ---
+
 
 ## 5. Papéis e Permissões (Rotas Privadas API / Middleware JWT)
 
@@ -648,7 +766,8 @@ Referência rápida das rotas estruturais da API. Todas as rotas mutáveis exige
 ### Painel do Mestre (`/api/v1/gm`)
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
-| `GET` | `/api/v1/gm/:slug` | — | Perfil público do mestre |
+| `GET` | `/api/v1/gm/:slug` | — (`optionalAuth`) | Perfil público do mestre com `viewer_context` (`is_owner`, `is_admin`), `closed_group`, `selling_points` e `tables.features`; não expõe `metrics_*` no payload público |
+| `GET` | `/api/v1/gm/:slug/insights` | autenticado (`owner/admin`) | Endpoint privado de insights (`metrics` e `recommendations`) visível apenas para dono do perfil ou administrador |
 | `POST` | `/api/v1/gm/profile` | autenticado | Criar `gm_profile` (eleva role no backend quando necessário) |
 | `PUT` | `/api/v1/gm/profile` | autenticado | Editar `gm_profile` |
 | `GET` | `/api/v1/gm/me` | autenticado | Retorna perfil de mestre do usuário logado |
@@ -1056,6 +1175,164 @@ A tabela `imgur_cleanup_log` permanece como legado/histórico e não representa 
 
 O upload direto para Cloudinary depende de variáveis `VITE_*` em tempo de build do frontend. Se elas não estiverem configuradas, o `ImageUploader` mantém apenas o fallback por URL manual.
 
+## 17. Open Graph Dinâmico
+
+> **Palavras-chave para busca:** Open Graph, OG, meta tags, preview, compartilhamento, Facebook, Twitter, WhatsApp, Discord, SEO, crawler
+
+### 17.1 Objetivo
+
+Servir meta tags Open Graph dinâmicas para páginas de perfil de mestre (`/mestre/:slug`), permitindo previews ricos ao compartilhar links em redes sociais (Facebook, Twitter, WhatsApp, Discord).
+
+### 17.2 Arquitetura
+
+**Fluxo para crawlers:**
+```
+[Crawler acessa /mestre/:slug]
+    → Nginx detecta user-agent (facebookexternalhit, Twitterbot, etc)
+    → Nginx retorna erro 418 (teapot)
+    → error_page 418 redireciona para @og_proxy
+    → @og_proxy faz rewrite: /mestre/:slug → /og/mestre/:slug
+    → Proxy para backend (mesas-beta-api:3000)
+    → Backend consulta banco (gm_profiles + users + profiles)
+    → Backend injeta meta tags dinâmicas no index.html
+    → Retorna HTML completo com meta tags personalizadas
+```
+
+**Fluxo para usuários normais:**
+```
+[Usuário acessa /mestre/:slug]
+    → Nginx detecta user-agent normal
+    → Serve index.html estático
+    → React Router renderiza página
+```
+
+### 17.3 Implementação Backend
+
+**Rota:** `backend/src/routes/og.ts`
+
+**Endpoint principal:** `GET /og/:type/:slug` (extensível)
+
+**Tipos suportados:**
+- `mestre` — Perfil de mestre (`/og/mestre/:slug`)
+- Futuros: `mesa`, `evento`, etc.
+
+**Lógica:**
+1. Extrai `type` e `slug` dos parâmetros da rota
+2. Switch case baseado no `type`:
+   - **`mestre`**: Consulta `gm_profiles` JOIN `users` JOIN `profiles` pelo slug
+   - **`default`**: Retorna fallback genérico para tipos não suportados
+3. Extrai dados específicos do tipo (ex: `display_name`, `tagline`, `bio_long`, `avatar_url`, `banner_url`)
+4. Carrega `index.html` do frontend (via `INDEX_HTML_PATH`)
+5. Remove meta tags OG/Twitter duplicadas do index.html estático
+6. Injeta meta tags dinâmicas no `<head>`
+7. Retorna HTML completo
+
+**Meta tags injetadas (tipo `mestre`):**
+- `og:type`: `profile`
+- `og:title`: `{display_name} — Mestre de RPG | Artifício Mesas`
+- `og:description`: Truncado de `tagline` ou `bio_long` (máx 200 chars)
+- `og:image`: `avatar_url` ou `banner_url` ou fallback `og-default.png`
+- `og:url`: URL canônica da página
+- `profile:username`: slug do mestre
+- Twitter Cards equivalentes
+
+**Tratamento de imagens do Google:**
+- URLs do Google (`googleusercontent.com`) são automaticamente ajustadas de `s96-c` para `s400-c`
+- Motivo: Facebook exige mínimo 200x200 pixels
+- Regex: `imageUrl.replace(/=s\d+-c$/, '=s400-c')`
+
+### 17.4 Configuração Nginx
+
+**Arquivo:** `frontend/nginx.conf`
+
+**Mapa de detecção de crawlers:**
+```nginx
+map $http_user_agent $is_crawler {
+    default 0;
+    ~*facebookexternalhit 1;
+    ~*Facebot 1;
+    ~*Twitterbot 1;
+    ~*WhatsApp 1;
+    ~*Discordbot 1;
+    # ... outros crawlers
+}
+```
+
+**Location principal:**
+```nginx
+location / {
+    if ($is_crawler = 1) {
+        return 418;
+    }
+    try_files $uri $uri/ /index.html;
+}
+```
+
+**Proxy para backend:**
+```nginx
+location @og_proxy {
+    rewrite ^/(.*)$ /og/$1 break;
+    proxy_pass http://${API_UPSTREAM}:3000;
+    # ... headers padrão
+}
+```
+
+### 17.5 Variáveis de Ambiente
+
+**Backend:**
+- `PUBLIC_SITE_URL`: URL base do site (ex: `https://mesasbeta.artificiorpg.com`)
+- `INDEX_HTML_PATH`: Caminho para `index.html` do frontend (ex: `/app/frontend-dist/index.html`)
+
+**Docker Compose:**
+- Volume compartilhado `frontend_dist_beta` ou `frontend_dist_prod`
+- Montado em `/app/frontend-dist` no container do backend
+- Permite backend ler `index.html` compilado do frontend
+
+### 17.6 Fallback e Tratamento de Erros
+
+**Mestre não encontrado:**
+- Retorna HTML com meta tags genéricas
+- Título: "Mestre não encontrado — Artifício Mesas"
+- Imagem: `og-default.png`
+
+**Erro no backend:**
+- Retorna HTML com meta tags de fallback
+- Não quebra a experiência do usuário
+
+**Rotas não mapeadas:**
+- `GET /og/*` (catch-all) retorna meta tags genéricas do site
+
+### 17.7 Imagem Padrão
+
+**Arquivo:** `frontend/public/og-default.png`
+- Dimensões: 1200x630 pixels (padrão Open Graph)
+- Usado quando mestre não tem avatar/banner
+- Usado como fallback em todas as outras páginas
+
+### 17.8 Validação
+
+**Ferramentas de teste:**
+- Facebook Debugger: https://developers.facebook.com/tools/debug/
+- Twitter Card Validator: https://cards-dev.twitter.com/validator
+- LinkedIn Post Inspector: https://www.linkedin.com/post-inspector/
+
+**Comando de teste local:**
+```bash
+curl -A "facebookexternalhit/1.1" https://mesasbeta.artificiorpg.com/mestre/:slug
+```
+
+### 17.9 Limitações Conhecidas
+
+1. **Cache de redes sociais:** Facebook/Twitter podem cachear previews por até 7 dias
+2. **Imagens pequenas:** Avatares do Google < 200x200 geram aviso no Facebook (resolvido com s400-c)
+3. **Sem SSR completo:** Apenas meta tags são dinâmicas, o conteúdo da página ainda é SPA
+
+### 17.10 Próximos Passos (Fora de Escopo V4)
+
+- Open Graph dinâmico para páginas de mesa (`/mesa/:slug`)
+- Geração de imagens OG personalizadas via Canvas/Puppeteer
+- Cache de HTML renderizado para reduzir latência
+
 ## 18. Referências e Documentos Relacionados
 
 | Documento | Finalidade |
@@ -1069,7 +1346,3 @@ O upload direto para Cloudinary depende de variáveis `VITE_*` em tempo de build
 
 > **Lembre-se:** Este é um presente do Artifício RPG para a comunidade brasileira de RPG.
 > Gratuito · Sem anúncios · Sem coleta de dados · Feito com ♥ pela comunidade.
-
-
-
-

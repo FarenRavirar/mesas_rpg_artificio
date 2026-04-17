@@ -75,7 +75,7 @@ Nunca leia ARQUITETURA_PROJETO.md na íntegra — consulte apenas a seção §X 
    → grep -n "palavra-chave" ERRORS_SOLUTIONS.md
 4. Criar branch: feature/<escopo> a partir de dev
 5. Criar arquivo de sessão em /sessoes/resumo_[dia-mes]_[escopo].md
-   com plano completo e checklist de TODOS os passos numerados
+   **somente** se houver pedido explícito do usuário **ou** se a sessão ativa estiver 100% concluída
 6. Implementar com mudança mínima e incremental
    → ler só a seção relevante de ARQUITETURA_PROJETO.md antes de implementar
 7. Rodar npm run build — se falhar, corrigir antes de continuar (máximo 3 tentativas)

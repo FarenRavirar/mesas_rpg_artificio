@@ -48,12 +48,10 @@ export function TableCardSkeleton() {
 }
 
 export function TableCardComponent({ table }: { table: TableCard }) {
-  // Fonte única de verdade para vagas (usado apenas para lógica de CTA)
-  const { open: slotsLeft, isUrgent, isFull } = getSlotsVisualState(table);
+  // Fonte única de verdade para vagas (lógica de badge e CTA)
+  const { isFull } = getSlotsVisualState(table);
 
-  // Lógica de CTA baseada em estado (ISO 9241 – Controllability)
-  // Estado A: pode entrar direto → CTA primário "Entrar" + secundário "Ver detalhes"
-  // Estado B: precisa avaliar → CTA primário "Ver detalhes" apenas
+  // CTA principal único: varia entre entrar ou ver detalhes conforme status da mesa
   const canJoinDirectly = !isFull && table.status === 'active';
   const primaryCTA = canJoinDirectly
     ? { label: 'Entrar na mesa →', variant: 'primary' as const }
@@ -90,11 +88,11 @@ export function TableCardComponent({ table }: { table: TableCard }) {
       to={`/mesas/${table.slug}`}
       onClick={handleClick}
       onMouseEnter={handleMouseEnter}
-      className="group relative block w-full h-[420px] rounded-2xl overflow-hidden bg-[#1B2A4A] border border-white/10 hover:border-[var(--color-artificio-orange)]/40 transition-all duration-300 cursor-pointer shadow-lg hover:shadow-[0_0_30px_rgba(232,82,26,0.15)] hover:-translate-y-1"
+      className="group relative w-full flex flex-col rounded-2xl overflow-hidden bg-[#1B2A4A] border border-white/10 hover:border-[var(--color-artificio-orange)]/40 transition-all duration-300 cursor-pointer shadow-lg hover:shadow-[0_0_30px_rgba(232,82,26,0.15)] hover:-translate-y-1"
       id={`table-card-${table.slug}`}
     >
       {/* BLOCO 1: HEADER (Imagem + Badges críticos) */}
-      <div className="h-[168px] relative overflow-hidden">
+      <div className="aspect-[16/10] w-full relative overflow-hidden">
         <img
           src={table.cover_url || bannerPlaceholder}
           alt={table.title}
@@ -114,9 +112,9 @@ export function TableCardComponent({ table }: { table: TableCard }) {
               🛡️ DDAL
             </span>
           )}
-          {isUrgent && (
-            <span className="px-2 py-1 rounded-md text-[11px] font-black tracking-wide text-white bg-red-500/90 backdrop-blur-sm animate-pulse">
-              ⚡ {slotsLeft === 1 ? 'Última vaga' : 'Últimas vagas'}
+          {isFull && (
+            <span className="px-2 py-1 rounded-md text-[11px] font-black tracking-wide text-white bg-red-600 backdrop-blur-sm">
+              Lotada
             </span>
           )}
         </div>
@@ -145,7 +143,7 @@ export function TableCardComponent({ table }: { table: TableCard }) {
       </div>
 
       {/* BLOCO 2: CONTENT (Título + Sistema/Modalidade) */}
-      <div className="h-[252px] p-4 flex flex-col">
+      <div className="flex-1 p-4 flex flex-col">
         <div className="flex items-center gap-2 mb-3 min-h-[34px]">
           {table.system_name && (
             <span
@@ -212,14 +210,6 @@ export function TableCardComponent({ table }: { table: TableCard }) {
             }`}>
               {isFull ? 'Mesa lotada' : primaryCTA.label}
             </div>
-            
-            {canJoinDirectly && (
-              <div className="text-center">
-                <span className="text-xs text-white/60 hover:text-white transition-colors cursor-pointer">
-                  Ver detalhes
-                </span>
-              </div>
-            )}
           </div>
         </div>
       </div>

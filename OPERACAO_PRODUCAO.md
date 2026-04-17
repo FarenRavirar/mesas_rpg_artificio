@@ -780,10 +780,16 @@ Após qualquer deploy em produção, executar imediatamente:
 # Produção deve responder 200
 curl -s -o /dev/null -w "%{http_code}" https://mesas.artificiorpg.com
 curl -s https://mesas.artificiorpg.com/api/v1/health
+curl -s -o /dev/null -w "%{http_code}" "https://mesas.artificiorpg.com/api/v1/tables?limit=1"
+curl -s -D /tmp/prod_oauth.headers -o /dev/null -w "%{http_code}" "https://mesas.artificiorpg.com/auth/google?frontend_redirect=https%3A%2F%2Fmesas.artificiorpg.com"
+grep -i '^location: https://accounts.google.com/o/oauth2/v2/auth' /tmp/prod_oauth.headers
 
 # Beta deve permanecer online (isolamento)
 curl -s -o /dev/null -w "%{http_code}" https://mesasbeta.artificiorpg.com
 curl -s https://mesasbeta.artificiorpg.com/api/v1/health
+curl -s -o /dev/null -w "%{http_code}" "https://mesasbeta.artificiorpg.com/api/v1/tables?limit=1"
+curl -s -D /tmp/beta_oauth.headers -o /dev/null -w "%{http_code}" "https://mesasbeta.artificiorpg.com/auth/google?frontend_redirect=https%3A%2F%2Fmesasbeta.artificiorpg.com"
+grep -i '^location: https://accounts.google.com/o/oauth2/v2/auth' /tmp/beta_oauth.headers
 
 # Containers beta devem continuar ativos
 ssh -F C:\projetos\config faren "docker ps --filter name=mesas-beta --format 'table {{.Names}}\t{{.Status}}'"
@@ -796,6 +802,8 @@ ssh -F C:\projetos\config faren "docker inspect mesas-beta-frontend --format '{{
 **Critério de sucesso:**
 - Produção: HTTP 200 + health `status: ok`
 - Beta: HTTP 200 + health `status: ok`
+- `GET /api/v1/tables?limit=1` retorna `200` em produção e beta
+- `GET /auth/google?frontend_redirect=...` retorna `302` com `Location` apontando para `https://accounts.google.com/o/oauth2/v2/auth` em produção e beta
 - Containers beta (`mesas-beta-frontend`, `mesas-beta-api`, `mesas-beta-db`) continuam ativos
 - Frontends `mesas-app` e `mesas-beta-frontend` com health `healthy` (E145)
 
@@ -808,6 +816,12 @@ ssh -F C:\projetos\config faren "docker inspect mesas-beta-frontend --format '{{
 1. Inspecionar healthcheck do container: `docker inspect <container> --format '{{json .State.Health}}'`
 2. Se erro for `Connecting to localhost:80 ([::1]:80) ... Connection refused`, ajustar compose para `http://127.0.0.1:80`
 3. Recriar somente frontend (`docker compose -f <compose> up -d --force-recreate <frontend>`) e revalidar health
+
+**Se rotas críticas falharem com containers `healthy` (E150):**
+1. Executar `docker restart` apenas no frontend do ambiente afetado (`mesas-app` ou `mesas-beta-frontend`)
+2. Aguardar frontend voltar para `healthy`
+3. Reexecutar as validações de `tables` e `auth/google` imediatamente
+4. Se persistir falha após segunda tentativa, tratar deploy como falho e coletar logs de frontend/API
 
 ---
 

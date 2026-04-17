@@ -1,0 +1,160 @@
+import { useState } from 'react';
+import { CheckCircle2, Sparkles, Crown, Award, Users, Star, MessageSquare } from 'lucide-react';
+import type { TableCard } from '../../types/tables';
+import type { MestrePublicData } from '../../hooks/useMestre';
+
+interface MestreHeroProps {
+  profile: MestrePublicData;
+  mappedTables: TableCard[];
+  totalOpenSlots: number;
+}
+
+export function MestreHero({ profile, mappedTables, totalOpenSlots: _totalOpenSlots }: MestreHeroProps) {
+  const hasAnyStat =
+    (profile.tables_count ?? 0) > 0 ||
+    (profile.avg_rating ?? 0) > 0 ||
+    (profile.reviews_count ?? 0) > 0;
+
+  const hasAnyTrust =
+    (profile.tables_count ?? 0) > 0 ||
+    profile.covil_verified ||
+    (profile.experience_years ?? 0) >= 3;
+
+  const scrollTo = (id: string) => () => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const [bannerLoadFailed, setBannerLoadFailed] = useState(false);
+  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
+
+  return (
+    <section className="hero-section">
+      {profile.banner_url && !bannerLoadFailed ? (
+        <img
+          src={profile.banner_url}
+          alt=""
+          className="hero-banner"
+          onError={() => setBannerLoadFailed(true)}
+        />
+      ) : (
+        <div className="hero-banner-gradient" />
+      )}
+      <div className="hero-overlay" />
+
+      <div className="hero-content">
+        {profile.promo_badge_text && (
+          <div className="hero-promo-badge">
+            <Sparkles className="w-4 h-4" />
+            <span>{profile.promo_badge_text}</span>
+          </div>
+        )}
+
+        <div className="hero-avatar">
+          {profile.avatar_url && !avatarLoadFailed ? (
+            <img
+              src={profile.avatar_url}
+              alt={profile.display_name}
+              onError={() => setAvatarLoadFailed(true)}
+            />
+          ) : (
+            <div className="hero-avatar-placeholder">
+              {profile.display_name.charAt(0).toUpperCase()}
+            </div>
+          )}
+        </div>
+
+        <div className="hero-badges">
+          <span className="badge badge-mestre">
+            <Crown className="w-4 h-4" /> Mestre
+          </span>
+          {profile.covil_verified && (
+            <span className="badge badge-covil">
+              <Award className="w-4 h-4" /> Mestre do Covil
+            </span>
+          )}
+        </div>
+
+        <h1 className="hero-title">
+          Viva aventuras com{' '}
+          <span className="hero-title-accent">{profile.display_name}</span>
+        </h1>
+
+        {profile.bio_long && (
+          <p className="hero-bio">{profile.bio_long}</p>
+        )}
+
+        <div className="hero-ctas">
+          <button
+            type="button"
+            className="cta-button cta-primary"
+            onClick={scrollTo('contato')}
+          >
+            Entrar em contato
+          </button>
+          {mappedTables.length > 0 && (
+            <button
+              type="button"
+              className="cta-button cta-secondary"
+              onClick={scrollTo('mesas')}
+            >
+              Ver mesas disponíveis
+            </button>
+          )}
+        </div>
+
+        {hasAnyTrust && (
+          <div className="hero-trust-row">
+            {(profile.tables_count ?? 0) > 0 && (
+              <span className="trust-item">
+                <CheckCircle2 className="w-4 h-4" />
+                {profile.tables_count} {profile.tables_count === 1 ? 'mesa ativa' : 'mesas ativas'}
+              </span>
+            )}
+            {profile.covil_verified && (
+              <span className="trust-item">
+                <CheckCircle2 className="w-4 h-4" />
+                Verificado no Covil
+              </span>
+            )}
+            {(profile.experience_years ?? 0) >= 3 && (
+              <span className="trust-item">
+                <CheckCircle2 className="w-4 h-4" />
+                {profile.experience_years}+ anos de experiência
+              </span>
+            )}
+          </div>
+        )}
+
+        {hasAnyStat && (
+          <div className="hero-stats">
+            {(profile.tables_count ?? 0) > 0 && (
+              <div className="stat">
+                <Users className="stat-icon" />
+                <span className="stat-value">{profile.tables_count}</span>
+                <span className="stat-label">
+                  {profile.tables_count === 1 ? 'Mesa' : 'Mesas'}
+                </span>
+              </div>
+            )}
+            {(profile.avg_rating ?? 0) > 0 && (
+              <div className="stat">
+                <Star className="stat-icon" />
+                <span className="stat-value">{profile.avg_rating!.toFixed(1)}★</span>
+                <span className="stat-label">Avaliação</span>
+              </div>
+            )}
+            {(profile.reviews_count ?? 0) > 0 && (
+              <div className="stat">
+                <MessageSquare className="stat-icon" />
+                <span className="stat-value">{profile.reviews_count}</span>
+                <span className="stat-label">
+                  {profile.reviews_count === 1 ? 'Avaliação' : 'Avaliações'}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}

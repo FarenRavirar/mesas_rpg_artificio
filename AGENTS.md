@@ -11,8 +11,10 @@ Execute nesta ordem, sem pular etapas:
 
 1. Ler `RESUMO_EXECUCAO.md` — estado atual e próxima ação (arquivo completo, é curto)
 2. Ler este arquivo (`AGENTS.md`) na íntegra
-3. Criar arquivo de sessão em `/sessoes/resumo_[dia-mes]_[escopo].md` com plano e checklist
-4. Só iniciar trabalho após concluir os três passos acima
+3. Verificar se existe sessão ativa com checklist incompleta em `/sessoes/`
+4. **Se existir sessão ativa incompleta:** continuar nela; **é proibido criar nova sessão**
+5. **Só criar nova sessão** quando houver pedido explícito do usuário **ou** quando a sessão ativa estiver 100% concluída e o usuário autorizar avançar
+6. Só iniciar trabalho após concluir os passos acima
 
 ---
 
@@ -143,6 +145,7 @@ BLOQUEANTE — nunca executar sem aprovação:
 - npm run build (no servidor)
 - git commit
 - git push origin dev ou main
+- git push origin --delete (deletar branches remotos)
 - psql com INSERT, UPDATE, DELETE, DROP, ALTER
 - Reiniciar containers ou serviços
 - Copiar ou sobrescrever arquivos em produção
@@ -207,11 +210,13 @@ Nunca registrar no lugar errado.
 
 Toda mudança visível ao usuário final exige entrada em `database/changelogs.json` antes do deploy.
 
+**CUIDADO BLOQUEANTE:** Melhorias publicadas na mesma data DEVEM, OBRIGATORIAMENTE, ser unificadas em um único objeto (ex: `YYYY-MM-DD-atualizacoes-do-dia`). É proibido criar ou manter múltiplas entradas JSON dispersas sobre a mesma data de calendário. Aglomere todas as novidades em bullets sob a mesma propriedade "body".
+
 ```json
 {
-  "id": "YYYY-MM-DD-descricao-curta",
-  "title": "Título Curto e Descritivo",
-  "body": "Descrição em linguagem familiar:\n\n• **Mudança** - Benefício para o usuário\n\n_Atualização publicada em DD/MM/YYYY às HH:MM_",
+  "id": "YYYY-MM-DD-atualizacoes-do-dia",
+  "title": "Título Curto e Descritivo Consolidado",
+  "body": "Descrição em linguagem familiar:\n\n• **Mudança 1** - Benefício\n• **Mudança 2** - Benefício\n\n_Atualização unificada publicada em DD/MM/YYYY às HH:MM_",
   "type": "app",
   "published": true,
   "created_at": "YYYY-MM-DDTHH:MM:SS-03:00"
@@ -328,3 +333,31 @@ Rollback    — como desfazer se necessário
 ## IDIOMA
 
 Toda comunicação em **português**. Nomes de arquivos, comandos, funções e identificadores de código permanecem no formato original.
+
+---
+
+## PROTOCOLO DE EXECUÇÃO DE FERRAMENTAS
+
+Antes de executar qualquer ferramenta, o agente DEVE:
+
+1. **Recitar as instruções críticas:**
+   - CRITICAL INSTRUCTION 1: Priorizar ferramentas específicas. Nunca usar cat/ls/grep/sed em bash quando há ferramentas dedicadas.
+   - CRITICAL INSTRUCTION 2: Listar todas as ferramentas relacionadas à tarefa. Só executar se outras são mais genéricas ou não aplicáveis.
+
+2. **Listar ferramentas relacionadas:**
+   - Exemplo: "Ferramentas relacionadas: grep_search (específica), view_file (específica), run_command (genérica)"
+
+3. **Justificar escolha:**
+   - Exemplo: "Usando grep_search porque é específica para busca em arquivos"
+
+4. **Só então executar**
+
+Este protocolo é obrigatório para TODA execução de ferramenta, sem exceção.
+
+### Regras específicas:
+
+- NUNCA usar `cat` para criar/editar arquivos → usar `write_to_file` ou `replace_file_content`
+- NUNCA usar `grep` em bash → usar `grep_search`
+- NUNCA usar `ls` → usar `list_dir`
+- NUNCA usar `cat` para visualizar → usar `view_file`
+- NUNCA usar `sed` para editar → usar ferramentas de edição

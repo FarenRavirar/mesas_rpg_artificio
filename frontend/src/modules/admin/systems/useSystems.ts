@@ -12,16 +12,19 @@ export function useSystems() {
   const fetchSystems = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/systems?view=flat`, {
+      const response = await fetch(`${API_BASE}/api/v1/systems?view=flat`, {
         credentials: 'include',
       });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setSystems(data.data || []);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
       }
+
+      const data = await response.json();
+      setSystems(Array.isArray(data.data) ? data.data : []);
     } catch (error) {
       console.error('[useSystems] Erro ao buscar sistemas:', error);
+      setSystems([]);
     } finally {
       setLoading(false);
     }
@@ -31,7 +34,7 @@ export function useSystems() {
     if (!confirm(`Deletar sistema "${name}"? Esta ação não pode ser desfeita.`)) return;
 
     try {
-      const response = await fetch(`${API_BASE}/systems/admin/${id}`, {
+      const response = await fetch(`${API_BASE}/api/v1/systems/admin/${id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -40,8 +43,14 @@ export function useSystems() {
         toast.success('Sistema deletado!');
         fetchSystems();
       } else {
-        const data = await response.json();
-        toast.error(data.error || 'Erro ao deletar sistema');
+        let errorMessage = 'Erro ao deletar sistema';
+        try {
+          const data = await response.json();
+          errorMessage = data.error || errorMessage;
+        } catch {
+          // Mantém fallback quando resposta não é JSON
+        }
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error('[useSystems] Erro ao deletar sistema:', error);

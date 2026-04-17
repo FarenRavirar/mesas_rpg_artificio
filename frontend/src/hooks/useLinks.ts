@@ -27,6 +27,29 @@ interface UseLinksReturn {
   refresh: () => Promise<void>;
 }
 
+async function readApiError(response: Response, fallback: string): Promise<string> {
+  const contentType = response.headers.get('content-type') || '';
+
+  if (contentType.includes('application/json')) {
+    try {
+      const data = await response.json();
+      return data?.error || data?.message || fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  try {
+    const text = await response.text();
+    if (text.trim().startsWith('<!doctype') || text.trim().startsWith('<html')) {
+      return fallback;
+    }
+    return text.slice(0, 200) || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export function useLinks(): UseLinksReturn {
   const { isAuthenticated } = useAuth();
   const [links, setLinks] = useState<UserLink[]>([]);
@@ -44,12 +67,18 @@ export function useLinks(): UseLinksReturn {
       setLoading(true);
       setError(null);
 
-      const res = await fetch(`${API_BASE}/profile/links`, {
+      const res = await fetch(`${API_BASE}/api/v1/profile/links`, {
         credentials: 'include',
       });
 
       if (!res.ok) {
-        throw new Error('Erro ao carregar links');
+        const message = await readApiError(res, 'Erro ao carregar links');
+        throw new Error(message);
+      }
+
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error('Resposta inválida do servidor ao carregar links');
       }
 
       const data = await res.json();
@@ -73,7 +102,7 @@ export function useLinks(): UseLinksReturn {
       try {
         setError(null);
 
-        const res = await fetch(`${API_BASE}/profile/links`, {
+        const res = await fetch(`${API_BASE}/api/v1/profile/links`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -81,8 +110,13 @@ export function useLinks(): UseLinksReturn {
         });
 
         if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.error || 'Erro ao adicionar link');
+          const message = await readApiError(res, 'Erro ao adicionar link');
+          throw new Error(message);
+        }
+
+        const contentType = res.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+          throw new Error('Resposta inválida do servidor ao adicionar link');
         }
 
         const data = await res.json();
@@ -106,13 +140,14 @@ export function useLinks(): UseLinksReturn {
       try {
         setError(null);
 
-        const res = await fetch(`${API_BASE}/profile/links/${linkId}`, {
+        const res = await fetch(`${API_BASE}/api/v1/profile/links/${linkId}`, {
           method: 'DELETE',
           credentials: 'include',
         });
 
         if (!res.ok) {
-          throw new Error('Erro ao remover link');
+          const message = await readApiError(res, 'Erro ao remover link');
+          throw new Error(message);
         }
 
         setLinks((prev) => prev.filter((link) => link.id !== linkId));
@@ -133,7 +168,7 @@ export function useLinks(): UseLinksReturn {
       try {
         setError(null);
 
-        const res = await fetch(`${API_BASE}/profile/links/reorder`, {
+        const res = await fetch(`${API_BASE}/api/v1/profile/links/reorder`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -141,7 +176,8 @@ export function useLinks(): UseLinksReturn {
         });
 
         if (!res.ok) {
-          throw new Error('Erro ao reordenar links');
+          const message = await readApiError(res, 'Erro ao reordenar links');
+          throw new Error(message);
         }
 
         // Atualizar ordem local

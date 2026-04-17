@@ -11,7 +11,7 @@ export function formStateToPayload(state: FormState): CreateTablePayload {
       channel: c.channel,
       value: c.value,
       label: c.label || '',
-      discord_server_url: c.discord_server_url || '',
+      discord_server_url: c.discord_server_url?.trim() ? c.discord_server_url.trim() : undefined,
     }));
 
   const normalizeScheduleFrequency = (

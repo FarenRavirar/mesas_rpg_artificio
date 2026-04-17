@@ -1,11 +1,14 @@
 import { useEffect, useState, useMemo } from 'react';
 import type { FormEvent, InputHTMLAttributes } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { PlusCircle, ChevronRight, MapPin, Sparkles } from 'lucide-react';
+import { PlusCircle, ChevronRight, MapPin, Sparkles, PencilLine } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import type { TableContact } from '../types/tables';
 import { TableCardDashboard } from '../components/TableCardDashboard';
+import { LinksManager } from '../components/LinksManager';
+import { EditGmProfileForm } from './Painel/EditGmProfileForm';
+import { HelpCenter } from '../components/HelpCenter';
 // Componente refatorado
 import { CreateTableForm } from '../features/create-table/components/CreateTableForm';
 
@@ -17,6 +20,19 @@ interface GmProfile {
   nickname: string | null;
   bio_long: string | null;
   avatar_url: string | null;
+  banner_url: string | null;
+  tagline: string | null;
+  promo_badge_text: string | null;
+  selling_points: Array<{
+    icon: string;
+    title: string;
+    description: string;
+    highlight?: string | null;
+  }> | null;
+  closed_group_enabled: boolean | null;
+  closed_group_systems: string[] | null;
+  closed_group_description: string | null;
+  closed_group_min_price_cents: number | null;
   languages: string[];
   specialties: string[];
   tables_count: number;
@@ -200,7 +216,7 @@ export const PainelMestrePage = () => {
 
   const [gmProfile, setGmProfile] = useState<GmProfile | null>(null);
   const [myTables, setMyTables] = useState<MyTableEnhanced[]>([]);
-  const [view, setView] = useState<'dashboard' | 'create-table' | 'create-profile'>('dashboard');
+  const [view, setView] = useState<'dashboard' | 'create-table' | 'create-profile' | 'edit-profile' | 'help'>('dashboard');
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [editingTableId, setEditingTableId] = useState<string | null>(null);
   const [editingTableData, setEditingTableData] = useState<any>(null);
@@ -511,6 +527,30 @@ export const PainelMestrePage = () => {
               />
             </div>
           </div>
+        ) : view === 'help' ? (
+          <div className="space-y-6">
+            <button
+              onClick={() => setView('dashboard')}
+              className="text-white/40 hover:text-white transition-colors cursor-pointer text-sm"
+            >
+              ← Voltar ao painel
+            </button>
+            <HelpCenter />
+          </div>
+        ) : view === 'edit-profile' && gmProfile ? (
+          <div className="max-w-5xl mx-auto space-y-6">
+            <div>
+              <h1 className="text-2xl font-extrabold">Editar perfil do mestre</h1>
+              <p className="text-sm text-white/50 mt-1">
+                Atualize seus dados públicos, benefícios e configurações de grupo fechado.
+              </p>
+            </div>
+            <EditGmProfileForm
+              profile={gmProfile}
+              onSuccess={refreshData}
+              onCancel={() => setView('dashboard')}
+            />
+          </div>
         ) : (
           <div className="space-y-8">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -525,14 +565,35 @@ export const PainelMestrePage = () => {
                   </p>
                 )}
               </div>
-              <button
-                id="btn-nova-mesa"
-                onClick={() => setView('create-table')}
-                className="flex items-center gap-2 px-5 py-3 bg-[var(--color-artificio-orange)] hover:bg-[var(--color-artificio-orange-hover)] text-white font-semibold rounded-xl transition-colors cursor-pointer"
-              >
-                <PlusCircle className="w-5 h-5" />
-                Nova Mesa
-              </button>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  id="btn-ajuda"
+                  onClick={() => setView('help')}
+                  className="flex items-center gap-2 px-4 py-3 border border-white/20 hover:border-white/35 text-white font-semibold rounded-xl transition-colors cursor-pointer"
+                  title="Central de Ajuda"
+                >
+                  <span className="text-lg">❓</span>
+                  Ajuda
+                </button>
+                {gmProfile && (
+                  <button
+                    id="btn-editar-perfil-mestre"
+                    onClick={() => setView('edit-profile')}
+                    className="flex items-center gap-2 px-4 py-3 border border-white/20 hover:border-white/35 text-white font-semibold rounded-xl transition-colors cursor-pointer"
+                  >
+                    <PencilLine className="w-4 h-4" />
+                    Editar perfil
+                  </button>
+                )}
+                <button
+                  id="btn-nova-mesa"
+                  onClick={() => setView('create-table')}
+                  className="flex items-center gap-2 px-5 py-3 bg-[var(--color-artificio-orange)] hover:bg-[var(--color-artificio-orange-hover)] text-white font-semibold rounded-xl transition-colors cursor-pointer"
+                >
+                  <PlusCircle className="w-5 h-5" />
+                  Nova Mesa
+                </button>
+              </div>
             </div>
 
             {/* DASHBOARD DE MÉTRICAS */}
@@ -541,6 +602,12 @@ export const PainelMestrePage = () => {
               <StatCard label="💬 Contatos" value={totalContacts} />
               <StatCard label="📈 Conversão" value={`${conversionRate}%`} />
             </div>
+
+            {gmProfile && (
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <LinksManager />
+              </section>
+            )}
 
             {myTables.length > 0 ? (
               <section className="rounded-2xl border border-white/10 bg-white/5 p-5 space-y-4">

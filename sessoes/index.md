@@ -1,6 +1,36 @@
 # Índice de Sessões
 
-Última atualização: 15/04/2026 19:48 BRT
+Última atualização: 17/04/2026 17:20 BRT
+
+---
+
+## 17/04/2026 (10 sessões)
+
+| # | Arquivo |
+|---|---|
+| 1 | `26-04-17_1_diagnostico-reformulacao-mestre-v4.md` |
+| 2 | `26-04-17_2_execucao-v4-passo1-3.md` |
+| 3 | `26-04-17_3_execucao-v4-passo4-5.md` |
+| 4 | `26-04-17_4_execucao-v4-passo6-7.md` |
+| 5 | `26-04-17_5_execucao-v4-passo8.md` |
+| 6 | `26-04-17_6_execucao-v4-passo9-10.md` |
+| 7 | `26-04-17_7_instrumentacao-views-links-painel.md` |
+| 8 | `26-04-17_8_planejamento-og-cache-30d.md` |
+| 9 | `26-04-17_9_execucao-og-cache-links.md` |
+| 10 | `26-04-17_10_pendencias-reformulacao-v4.md` |
+
+---
+
+## 16/04/2026 (6 sessões)
+
+| # | Arquivo |
+|---|---|
+| 1 | `26-04-16_1_limpeza-fila-backlog-concluidos.md` |
+| 2 | `26-04-16_2_req21-faixa-etaria-dropdown.md` |
+| 3 | `26-04-16_3_reformulacao-mestre-etapa1.md` |
+| 4 | `26-04-16_4_reformulacao-mestre-etapa2.md` |
+| 5 | `26-04-16_5_reformulacao-mestre-etapa3.md` |
+| 6 | `26-04-16_6_definicao-proximo-escopo.md` |
 
 ---
 
@@ -69,7 +99,7 @@
 
 ## Sessão Mais Recente
 
-`26-04-15_7_deb07-plataformas-tabelas.md`
+`26-04-17_10_pendencias-reformulacao-v4.md`
 
 ---
 
@@ -85,4 +115,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-04-16_1_*`
+**Próxima sessão:** `26-04-17_11_*`

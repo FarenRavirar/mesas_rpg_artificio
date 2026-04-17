@@ -151,7 +151,7 @@ export function useUpdateProfile() {
     }) => {
       const sanitized = sanitizeObject(data);
       const validated = validateOrThrow(profileSchema, sanitized);
-      const result = await api.patch<{ data: any }>('/api/v1/profile/me', validated);
+      const result = await api.patch<{ data: any }>('/api/v1/profile/me/profile', validated);
       return result.data;
     },
     onMutate: async (newData) => {
