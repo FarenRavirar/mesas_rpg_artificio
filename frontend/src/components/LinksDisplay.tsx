@@ -137,7 +137,7 @@ function LinkCard({ link }: LinkCardProps) {
 
       <div className="link-card-content">
         <h3 className="link-card-title">
-          {(['article', 'website', 'podcast'].includes(link.type) ? link.title : null) || new URL(link.url).hostname}
+          {(['article', 'website', 'podcast'].includes(link.type) ? link.title : null) || link.url.replace(/^https?:\/\//, '')}
         </h3>
         
         {link.description && (

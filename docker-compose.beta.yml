@@ -87,6 +87,32 @@ services:
         reservations:
           memory: 256m
 
+  mesas-beta-cron:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: mesas-beta-cron
+    restart: always
+    networks:
+      - gerenciador_telegram_default
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=mesas-beta-db
+      - POSTGRES_USER=${POSTGRES_USER:-admin}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=mesas_rpg
+      - DATABASE_URL=${DATABASE_URL}
+    depends_on:
+      mesas-beta-api:
+        condition: service_healthy
+    command: npm run og:cron
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+        reservations:
+          memory: 128m
+
   mesas-beta-db:
     image: postgres:16-alpine
     container_name: mesas-beta-db
