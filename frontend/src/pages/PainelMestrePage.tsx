@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import type { TableContact } from '../types/tables';
 import { TableCardDashboard } from '../components/TableCardDashboard';
+import { LinksManager } from '../components/LinksManager';
 import { EditGmProfileForm } from './Painel/EditGmProfileForm';
 // Componente refatorado
 import { CreateTableForm } from '../features/create-table/components/CreateTableForm';
@@ -581,6 +582,12 @@ export const PainelMestrePage = () => {
               <StatCard label="💬 Contatos" value={totalContacts} />
               <StatCard label="📈 Conversão" value={`${conversionRate}%`} />
             </div>
+
+            {gmProfile && (
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <LinksManager />
+              </section>
+            )}
 
             {myTables.length > 0 ? (
               <section className="rounded-2xl border border-white/10 bg-white/5 p-5 space-y-4">

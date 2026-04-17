@@ -479,6 +479,8 @@ export interface Database {
 
   user_links: UserLinksTable;
   table_metrics: TableMetricsTable;
+  gm_profile_metrics: GmProfileMetricsTable;
+  gm_profile_view_events: GmProfileViewEventsTable;
   table_metric_events: TableMetricEventsTable;
   table_click_events: TableClickEventsTable; // Migration 007: A/B testing
   
@@ -508,6 +510,31 @@ export interface TableMetricsTable {
 export type TableMetrics = Selectable<TableMetricsTable>;
 export type NewTableMetrics = Insertable<TableMetricsTable>;
 export type TableMetricsUpdate = Updateable<TableMetricsTable>;
+
+// Migration 108: Métricas de visualização do perfil público do mestre
+export interface GmProfileMetricsTable {
+  id: Generated<number>;
+  gm_profile_id: string;
+  views_count: Generated<number>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export type GmProfileMetrics = Selectable<GmProfileMetricsTable>;
+export type NewGmProfileMetrics = Insertable<GmProfileMetricsTable>;
+export type GmProfileMetricsUpdate = Updateable<GmProfileMetricsTable>;
+
+// Migration 108: Eventos de visualização do perfil público (dedupe por sessão)
+export interface GmProfileViewEventsTable {
+  id: Generated<number>;
+  gm_profile_id: string;
+  session_id: string;
+  viewed_at: Generated<Date>;
+}
+
+export type GmProfileViewEvent = Selectable<GmProfileViewEventsTable>;
+export type NewGmProfileViewEvent = Insertable<GmProfileViewEventsTable>;
+export type GmProfileViewEventUpdate = Updateable<GmProfileViewEventsTable>;
 
 // Migration 07: Eventos de métricas para anti-abuso
 export type TableMetricAction = 'view' | 'click' | 'contact' | 'favorite';

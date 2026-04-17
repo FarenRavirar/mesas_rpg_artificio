@@ -254,6 +254,73 @@ router.get('/:slug', optionalAuth, async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/v1/gm/:slug/view — Registrar visualização do perfil público
+router.post('/:slug/view', async (req: Request, res: Response) => {
+  const { slug } = req.params;
+  const sessionId = req.header('x-session-id')?.trim();
+
+  if (!slug || slug.length > 200 || !/^[a-z0-9-]+$/i.test(slug)) {
+    return res.status(400).json({ error: 'Slug inválido.' });
+  }
+
+  if (!sessionId || sessionId.length > 128 || !/^[a-zA-Z0-9_-]+$/.test(sessionId)) {
+    return res.status(400).json({ error: 'Sessão inválida.' });
+  }
+
+  try {
+    const gm = await db
+      .selectFrom('gm_profiles as gm')
+      .select(['gm.id'])
+      .where('gm.slug', '=', slug)
+      .executeTakeFirst();
+
+    if (!gm) {
+      return res.status(404).json({ error: 'Mestre não encontrado.' });
+    }
+
+    const counted = await db.transaction().execute(async (trx) => {
+      const insertedViewEvent = await trx
+        .insertInto('gm_profile_view_events')
+        .values({
+          gm_profile_id: gm.id,
+          session_id: sessionId,
+        })
+        .onConflict((oc) => oc.columns(['gm_profile_id', 'session_id']).doNothing())
+        .returning('id')
+        .executeTakeFirst();
+
+      if (!insertedViewEvent) {
+        return false;
+      }
+
+      await trx
+        .insertInto('gm_profile_metrics')
+        .values({
+          gm_profile_id: gm.id,
+          views_count: 1,
+        })
+        .onConflict((oc) =>
+          oc.column('gm_profile_id').doUpdateSet({
+            views_count: sql`gm_profile_metrics.views_count + 1`,
+            updated_at: sql`NOW()`,
+          })
+        )
+        .execute();
+
+      return true;
+    });
+
+    if (!counted) {
+      return res.status(202).json({ success: true, deduped: true });
+    }
+
+    return res.json({ success: true, deduped: false });
+  } catch (error: any) {
+    console.error('[POST /gm/:slug/view]', error);
+    return res.status(500).json({ error: 'Erro ao registrar visualização do perfil.' });
+  }
+});
+
 // GET /api/v1/gm/:slug/insights
 // Protegido: somente dono ou admin.
 router.get('/:slug/insights', authMiddleware, async (req: Request, res: Response) => {

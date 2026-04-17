@@ -17,6 +17,8 @@ import { useMestre } from '../hooks/useMestre';
 import { useMestreInsights } from '../hooks/useMestreInsights';
 import './MestrePage.css';
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 export const MestrePage = () => {
   const { slug } = useParams<{ slug: string }>();
 
@@ -45,6 +47,40 @@ export const MestrePage = () => {
         'Landing pública de mestre com mesas ativas e especialidades.'
     );
   }, [profile]);
+
+  useEffect(() => {
+    if (!slug || loading || !profile) return;
+
+    const sessionKey = 'gm-profile-view-session-id';
+    const slugKey = `gm-profile-view:${slug}`;
+
+    if (sessionStorage.getItem(slugKey) === '1') {
+      return;
+    }
+
+    let sessionId = sessionStorage.getItem(sessionKey);
+
+    if (!sessionId) {
+      if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        sessionId = crypto.randomUUID();
+      } else {
+        sessionId = `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+      }
+      sessionStorage.setItem(sessionKey, sessionId);
+    }
+
+    sessionStorage.setItem(slugKey, '1');
+
+    fetch(`${API_BASE}/api/v1/gm/${slug}/view`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'x-session-id': sessionId,
+      },
+    }).catch(() => {
+      // Não bloquear renderização por falha de telemetria
+    });
+  }, [slug, loading, profile]);
 
   if (loading) return <MestreSkeleton />;
   if (error === 'Mestre não encontrado.') return <MestreNotFound />;
