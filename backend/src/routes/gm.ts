@@ -216,6 +216,7 @@ router.get('/:slug', optionalAuth, async (req: Request, res: Response) => {
         'user_links.type',
         'user_links.thumbnail_url',
         'user_links.sort_order',
+        'user_links.metadata_status',
       ])
       .where('gm_check.id', '=', gm.id)
       .orderBy('user_links.sort_order', 'asc')
@@ -229,6 +230,12 @@ router.get('/:slug', optionalAuth, async (req: Request, res: Response) => {
         .where('metadata_last_accessed_at', '<', sql<Date>`NOW() - interval '6 hours'`)
         .execute()
         .catch((e: any) => console.error('[GET /gm/:slug] Falha ao atualizar acesso do link:', e));
+
+      // CORREÇÃO DT-04: Worker "fire-and-forget" para cobrir base de links órfãos ('pending')
+      if (links.some(l => (l as any).metadata_status === 'pending')) {
+        const { processPendingLinks } = require('../scripts/processLinkMetadataJobs');
+        processPendingLinks().catch((err: any) => console.error('Silent processPending error:', err));
+      }
     }
 
     const enrichedLinks = links.map((link) => ({

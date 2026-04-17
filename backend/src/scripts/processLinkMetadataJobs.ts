@@ -54,8 +54,8 @@ function getNextRetryInterval(failCount: number): string | null {
   }
 }
 
-async function run() {
-  console.log('[MetadataWorker] Iniciando polling...');
+export async function processPendingLinks() {
+  console.log('[MetadataWorker] Acordando por gatilho...');
   
   try {
     // Buscar links candidatos
@@ -72,7 +72,7 @@ async function run() {
     const jobs = res.rows;
     if (jobs.length === 0) {
       console.log('[MetadataWorker] Nenhum job pendente.');
-      process.exit(0);
+      return;
     }
     
     console.log(`[MetadataWorker] Processando ${jobs.length} links...`);
@@ -115,9 +115,10 @@ async function run() {
     }
   } catch (error) {
     console.error('[MetadataWorker] Erro crítico no worker:', error);
-  } finally {
-    process.exit(0);
   }
 }
 
-run();
+// Suporte para rodar independente no package.json (via npm run og:worker ou cron)
+if (require.main === module) {
+  processPendingLinks().catch(console.error).finally(() => process.exit(0));
+}

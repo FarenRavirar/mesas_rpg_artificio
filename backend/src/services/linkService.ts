@@ -182,6 +182,11 @@ export async function getUserLinks(userId: string): Promise<UserLinkWithMetadata
       .where('metadata_last_accessed_at', '<', sql<Date>`NOW() - interval '6 hours'`)
       .execute()
       .catch(e => console.error('[getUserLinks] Falha ao atualizar acesso do link:', e));
+
+    if (links.some(l => l.metadata_status === 'pending')) {
+      const { processPendingLinks } = require('../scripts/processLinkMetadataJobs');
+      processPendingLinks().catch((err: any) => console.error('Silent processPending error:', err));
+    }
   }
 
   // Adicionar embed_url para cada link
@@ -236,6 +241,10 @@ export async function createUserLink(userId: string, input: CreateLinkInput): Pr
     .returningAll()
     .executeTakeFirstOrThrow();
   
+  // Fire and forget o worker pro link novo
+  const { processPendingLinks } = require('../scripts/processLinkMetadataJobs');
+  processPendingLinks().catch((err: any) => console.error('Silent processPending error:', err));
+
   return {
     ...link,
     embed_url: generateEmbedUrl(link.url, type),
