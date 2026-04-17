@@ -61,10 +61,12 @@ export const MestrePage = () => {
     let sessionId = sessionStorage.getItem(sessionKey);
 
     if (!sessionId) {
+      // Usar crypto.randomUUID() se disponível, caso contrário usar timestamp + performance.now()
       if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
         sessionId = crypto.randomUUID();
       } else {
-        sessionId = `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+        // Fallback seguro: timestamp + performance counter (não é criptograficamente seguro, mas suficiente para deduplicação)
+        sessionId = `${Date.now()}-${performance.now().toString(36).replace('.', '')}`;
       }
       sessionStorage.setItem(sessionKey, sessionId);
     }

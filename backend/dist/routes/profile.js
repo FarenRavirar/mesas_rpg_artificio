@@ -35,6 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const auth_1 = require("../middleware/auth");
+const rateLimit_1 = require("../middleware/rateLimit");
 const profileService = __importStar(require("../services/profileService"));
 const router = (0, express_1.Router)();
 /**
@@ -358,7 +359,7 @@ router.delete('/me/connect/discord', auth_1.authMiddleware, async (req, res) => 
 // =============================================================================
 // POST /api/v1/profile/me/google-picture — Buscar e usar foto do Google
 // =============================================================================
-router.post('/me/google-picture', auth_1.authMiddleware, async (req, res) => {
+router.post('/me/google-picture', rateLimit_1.strictRateLimiter, auth_1.authMiddleware, async (req, res) => {
     const userId = req.user?.userId;
     if (!userId) {
         return res.status(401).json({ error: 'Não autenticado' });
@@ -369,6 +370,13 @@ router.post('/me/google-picture', auth_1.authMiddleware, async (req, res) => {
         if (!user?.refresh_token) {
             return res.status(400).json({
                 error: 'Não foi possível buscar a foto do Google. Faça login novamente.'
+            });
+        }
+        // Validar variáveis de ambiente do Google OAuth
+        if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+            console.error('[POST /profile/me/google-picture] Variáveis de ambiente do Google OAuth não configuradas');
+            return res.status(500).json({
+                error: 'Configuração do Google OAuth não disponível. Contate o suporte.'
             });
         }
         // Buscar foto atual do Google usando o refresh_token

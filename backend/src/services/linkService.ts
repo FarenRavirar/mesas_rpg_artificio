@@ -60,8 +60,17 @@ export function detectLinkType(url: string): LinkType {
   if (urlLower.includes('linkedin.com')) {
     return 'linkedin';
   }
-  if (urlLower.includes('wa.me') || urlLower.includes('whatsapp.com') || urlLower.includes('api.whatsapp.com')) {
-    return 'whatsapp';
+  // WhatsApp - validação segura por hostname
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname === 'wa.me' || 
+        parsed.hostname.endsWith('.whatsapp.com') || 
+        parsed.hostname === 'whatsapp.com' ||
+        parsed.hostname === 'api.whatsapp.com') {
+      return 'whatsapp';
+    }
+  } catch {
+    // URL inválida, continuar verificação
   }
   
   // Podcasts genéricos
@@ -180,7 +189,7 @@ export async function getUserLinks(userId: string): Promise<UserLinkWithMetadata
   
   if (links.length > 0) {
     const linkIds = links.map(l => l.id);
-    db.updateTable('user_links')
+    await db.updateTable('user_links')
       .set({ metadata_last_accessed_at: sql`NOW()` })
       .where('id', 'in', linkIds)
       .where('metadata_last_accessed_at', '<', sql<Date>`NOW() - interval '6 hours'`)

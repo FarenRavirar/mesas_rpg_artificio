@@ -4,7 +4,9 @@ const express_1 = require("express");
 const kysely_1 = require("kysely");
 const db_1 = require("../db");
 const auth_1 = require("../middleware/auth");
+const rateLimit_1 = require("../middleware/rateLimit");
 const linkService_1 = require("../services/linkService");
+const urlValidation_1 = require("../utils/urlValidation");
 const router = (0, express_1.Router)();
 function buildRecommendations(metrics) {
     // Agrupa por title para evitar 3x "Pathfinder: Kingmaker"
@@ -52,7 +54,7 @@ function buildRecommendations(metrics) {
     return recs;
 }
 // GET /api/v1/gm/:slug — Perfil público do mestre (anônimo + autenticado opcional)
-router.get('/:slug', auth_1.optionalAuth, async (req, res) => {
+router.get('/:slug', rateLimit_1.publicRateLimiter, auth_1.optionalAuth, async (req, res) => {
     const { slug } = req.params;
     try {
         const gm = await db_1.db
@@ -95,11 +97,11 @@ router.get('/:slug', auth_1.optionalAuth, async (req, res) => {
             return res.status(404).json({ error: 'Mestre não encontrado.' });
         }
         // Aumenta qualidade de imagens do Google (mesmo tratamento do og.ts)
-        if (gm.avatar_url && gm.avatar_url.includes('googleusercontent.com')) {
-            gm.avatar_url = gm.avatar_url.replace(/=s\d+-c$/, '=s400-c');
+        if (gm.avatar_url) {
+            gm.avatar_url = (0, urlValidation_1.upgradeGoogleImageQuality)(gm.avatar_url, 400);
         }
-        if (gm.banner_url && gm.banner_url.includes('googleusercontent.com')) {
-            gm.banner_url = gm.banner_url.replace(/=s\d+-c$/, '=s400-c');
+        if (gm.banner_url) {
+            gm.banner_url = (0, urlValidation_1.upgradeGoogleImageQuality)(gm.banner_url, 400);
         }
         const viewer_context = {
             is_owner: req.user?.userId === gm.user_id,
@@ -293,7 +295,7 @@ router.post('/:slug/view', async (req, res) => {
 });
 // GET /api/v1/gm/:slug/insights
 // Protegido: somente dono ou admin.
-router.get('/:slug/insights', auth_1.authMiddleware, async (req, res) => {
+router.get('/:slug/insights', rateLimit_1.authRateLimiter, auth_1.authMiddleware, async (req, res) => {
     const { slug } = req.params;
     try {
         const gm = await db_1.db
