@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { authMiddleware } from '../middleware/auth';
+import { strictRateLimiter } from '../middleware/rateLimit';
 import * as profileService from '../services/profileService';
 
 const router = Router();
@@ -410,7 +411,7 @@ router.delete('/me/connect/discord', authMiddleware, async (req: Request, res: R
 // POST /api/v1/profile/me/google-picture — Buscar e usar foto do Google
 // =============================================================================
 
-router.post('/me/google-picture', authMiddleware, async (req: Request, res: Response) => {
+router.post('/me/google-picture', strictRateLimiter, authMiddleware, async (req: Request, res: Response) => {
   const userId = req.user?.userId;
 
   if (!userId) {
@@ -424,6 +425,14 @@ router.post('/me/google-picture', authMiddleware, async (req: Request, res: Resp
     if (!user?.refresh_token) {
       return res.status(400).json({ 
         error: 'Não foi possível buscar a foto do Google. Faça login novamente.' 
+      });
+    }
+
+    // Validar variáveis de ambiente do Google OAuth
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      console.error('[POST /profile/me/google-picture] Variáveis de ambiente do Google OAuth não configuradas');
+      return res.status(500).json({ 
+        error: 'Configuração do Google OAuth não disponível. Contate o suporte.' 
       });
     }
 

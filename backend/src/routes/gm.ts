@@ -2,7 +2,9 @@ import { Router, Request, Response } from 'express';
 import { sql } from 'kysely';
 import { db } from '../db';
 import { authMiddleware, optionalAuth } from '../middleware/auth';
+import { publicRateLimiter, authRateLimiter } from '../middleware/rateLimit';
 import { generateEmbedUrl, detectLinkType, LinkType } from '../services/linkService';
+import { upgradeGoogleImageQuality } from '../utils/urlValidation';
 
 const router = Router();
 
@@ -81,7 +83,7 @@ function buildRecommendations(metrics: MetricRow[]): Recommendation[] {
 }
 
 // GET /api/v1/gm/:slug — Perfil público do mestre (anônimo + autenticado opcional)
-router.get('/:slug', optionalAuth, async (req: Request, res: Response) => {
+router.get('/:slug', publicRateLimiter, optionalAuth, async (req: Request, res: Response) => {
   const { slug } = req.params;
 
   try {
@@ -127,11 +129,11 @@ router.get('/:slug', optionalAuth, async (req: Request, res: Response) => {
     }
 
     // Aumenta qualidade de imagens do Google (mesmo tratamento do og.ts)
-    if (gm.avatar_url && gm.avatar_url.includes('googleusercontent.com')) {
-      gm.avatar_url = gm.avatar_url.replace(/=s\d+-c$/, '=s400-c');
+    if (gm.avatar_url) {
+      gm.avatar_url = upgradeGoogleImageQuality(gm.avatar_url, 400);
     }
-    if (gm.banner_url && gm.banner_url.includes('googleusercontent.com')) {
-      gm.banner_url = gm.banner_url.replace(/=s\d+-c$/, '=s400-c');
+    if (gm.banner_url) {
+      gm.banner_url = upgradeGoogleImageQuality(gm.banner_url, 400);
     }
 
     const viewer_context = {
@@ -353,7 +355,7 @@ router.post('/:slug/view', async (req: Request, res: Response) => {
 
 // GET /api/v1/gm/:slug/insights
 // Protegido: somente dono ou admin.
-router.get('/:slug/insights', authMiddleware, async (req: Request, res: Response) => {
+router.get('/:slug/insights', authRateLimiter, authMiddleware, async (req: Request, res: Response) => {
   const { slug } = req.params;
 
   try {

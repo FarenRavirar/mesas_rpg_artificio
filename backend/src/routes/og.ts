@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { readFile } from 'fs/promises';
 import { sql } from 'kysely';
 import { db } from '../db';
+import { upgradeGoogleImageQuality } from '../utils/urlValidation';
 
 const router = Router();
 
@@ -158,9 +159,7 @@ router.get('/:type/:slug', async (req: Request, res: Response) => {
         
         // Aumenta tamanho de imagens do Google para atender requisitos do Facebook (mínimo 200x200)
         let imageUrl = gm.avatar_url || gm.banner_url || DEFAULT_OG_IMAGE;
-        if (imageUrl && imageUrl.includes('googleusercontent.com')) {
-          imageUrl = imageUrl.replace(/=s\d+-c$/, '=s400-c');
-        }
+        imageUrl = upgradeGoogleImageQuality(imageUrl, 400);
 
         const output = injectMetaTags(html, {
           title,
@@ -187,7 +186,7 @@ router.get('/:type/:slug', async (req: Request, res: Response) => {
       }
     }
   } catch (error: any) {
-    console.error(`[GET /og/${type}/:slug]`, error);
+    console.error('[GET /og/:type/:slug]', { type, slug }, error);
 
     try {
       const html = await loadIndexHtml();
