@@ -375,7 +375,7 @@ function TabGeral() {
                     onClick={async () => {
                       try {
                         const apiUrl = import.meta.env.VITE_API_URL || '';
-                        const response = await fetch(`${apiUrl}/profile/me/google-picture`, {
+                        const response = await fetch(`${apiUrl}/api/v1/profile/me/google-picture`, {
                           method: 'POST',
                           credentials: 'include',
                         });
@@ -801,7 +801,7 @@ function TabMestre({
                     onClick={async () => {
                       try {
                         const apiUrl = import.meta.env.VITE_API_URL || '';
-                        const response = await fetch(`${apiUrl}/profile/me/google-picture`, {
+                        const response = await fetch(`${apiUrl}/api/v1/profile/me/google-picture`, {
                           method: 'POST',
                           credentials: 'include',
                         });
