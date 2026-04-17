@@ -341,7 +341,7 @@ function TabGeral() {
 
                     try {
                       const apiUrl = import.meta.env.VITE_API_URL || '';
-                      const response = await fetch(`${apiUrl}/upload`, {
+                      const response = await fetch(`${apiUrl}/api/v1/upload`, {
                         method: 'POST',
                         credentials: 'include',
                         body: formData,
@@ -415,7 +415,7 @@ function TabGeral() {
                     <input
                       type="url"
                       id="avatar_url"
-                      defaultValue={profile.profile?.avatar_url || ''}
+                      value={currentAvatar}
                       onChange={(e) => handleAvatarChange(e.target.value)}
                       placeholder="https://exemplo.com/avatar.jpg"
                     />
@@ -767,7 +767,7 @@ function TabMestre({
 
                     try {
                       const apiUrl = import.meta.env.VITE_API_URL || '';
-                      const response = await fetch(`${apiUrl}/upload`, {
+                      const response = await fetch(`${apiUrl}/api/v1/upload`, {
                         method: 'POST',
                         credentials: 'include',
                         body: formData,
