@@ -152,7 +152,12 @@ router.get('/mestre/:slug', async (req: Request, res: Response) => {
         `Conheça o perfil do mestre ${displayName} e descubra suas mesas ativas no ${SITE_NAME}.`,
       200
     );
-    const imageUrl = gm.avatar_url || gm.banner_url || DEFAULT_OG_IMAGE;
+    
+    // Aumenta tamanho de imagens do Google para atender requisitos do Facebook (mínimo 200x200)
+    let imageUrl = gm.avatar_url || gm.banner_url || DEFAULT_OG_IMAGE;
+    if (imageUrl && imageUrl.includes('googleusercontent.com')) {
+      imageUrl = imageUrl.replace(/=s\d+-c$/, '=s400-c');
+    }
 
     const output = injectMetaTags(html, {
       title,
