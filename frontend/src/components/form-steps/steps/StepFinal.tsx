@@ -5,7 +5,6 @@ import { SettingStylesField } from '../../SettingStylesField';
 import { ContactsFormBlock, type ContactFormEntry } from '../../ContactsFormBlock';
 import { RichTextArea } from '../../RichTextArea';
 import { ImageUploader } from '../../ImageUploader';
-import { AvatarUploader } from '../../AvatarUploader';
 import type {
   ChangeEvent,
   InputHTMLAttributes,
@@ -159,16 +158,6 @@ export function StepFinal(props: StepFinalProps) {
         hasError={props.bannerError}
         initialCropData={props.bannerCropData}
         onCropChange={props.setBannerCropData}
-      />
-
-      {/* Avatar do mestre */}
-      <AvatarUploader
-        label="Foto do Mestre (opcional)"
-        value={props.gmAvatarUrl}
-        onChange={props.setGmAvatarUrl}
-        onError={props.setAvatarError}
-        hasError={props.avatarError}
-        idPrefix="stepfinal-avatar"
       />
 
       {/* Rules Notes */}

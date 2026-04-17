@@ -119,6 +119,7 @@
 | **GET** | `/me/discord` | ✅ Em Uso | useProfile.ts, useProfileQuery.ts, PlayerPage.tsx |
 | **POST** | `/me/connect/discord` | ✅ Em Uso | useProfile.ts, useProfileQuery.ts, PlayerPage.tsx |
 | **DELETE** | `/me/connect/discord` | ✅ Em Uso | useProfile.ts, useProfileQuery.ts, PlayerPage.tsx |
+| **POST** | `/me/google-picture` | ✅ Em Uso | ProfileEditPage.tsx — Busca foto atual do Google OAuth usando refresh_token e atualiza avatar_url automaticamente |
 
 ### SCENARIOS (`routes/scenarios.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |

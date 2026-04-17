@@ -4,29 +4,48 @@ const express_1 = require("express");
 const kysely_1 = require("kysely");
 const db_1 = require("../db");
 const auth_1 = require("../middleware/auth");
+const linkService_1 = require("../services/linkService");
 const router = (0, express_1.Router)();
 function buildRecommendations(metrics) {
+    // Agrupa por title para evitar 3x "Pathfinder: Kingmaker"
+    const byTitle = new Map();
+    for (const m of metrics) {
+        const key = m.title.trim().toLowerCase();
+        if (!byTitle.has(key))
+            byTitle.set(key, []);
+        byTitle.get(key).push(m);
+    }
     const recs = [];
-    for (const metric of metrics) {
-        if (metric.views >= 20 && metric.contacts === 0) {
+    for (const group of byTitle.values()) {
+        // Se há múltiplas mesas com mesmo título, agrega a primeira e indica quantidade
+        const first = group[0];
+        const count = group.length;
+        const suffix = count > 1 ? ` (${count} instâncias)` : '';
+        // Soma métricas do grupo para evitar falso positivo (ex.: "0 views" quando uma das 3 mesas tem views)
+        const totalViews = group.reduce((s, m) => s + m.views, 0);
+        const totalClicks = group.reduce((s, m) => s + m.clicks, 0);
+        const totalContacts = group.reduce((s, m) => s + m.contacts, 0);
+        if (totalViews >= 20 && totalContacts === 0) {
             recs.push({
-                table_slug: metric.slug,
+                table_slug: first.slug,
                 severity: 'high',
-                message: `Mesa "${metric.title}" tem ${metric.views} visualizações e zero contatos. Revise capa, preço e descrição.`,
+                message: `Mesa "${first.title}"${suffix} tem ${totalViews} visualizações e zero contatos. Revise capa, preço e descrição.`,
             });
+            continue;
         }
-        if (metric.clicks >= 10 && metric.contacts === 0) {
+        if (totalClicks >= 10 && totalContacts === 0) {
             recs.push({
-                table_slug: metric.slug,
+                table_slug: first.slug,
                 severity: 'medium',
-                message: `Mesa "${metric.title}" recebe cliques, mas não gera contato. Teste um CTA mais direto na descrição.`,
+                message: `Mesa "${first.title}"${suffix} recebe cliques mas não gera contato. Teste um CTA mais direto na descrição.`,
             });
+            continue;
         }
-        if (metric.views === 0 && metric.clicks === 0) {
+        if (totalViews === 0 && totalClicks === 0) {
             recs.push({
-                table_slug: metric.slug,
+                table_slug: first.slug,
                 severity: 'low',
-                message: `Mesa "${metric.title}" ainda não recebeu tráfego. Compartilhe o link em suas redes.`,
+                message: `Mesa "${first.title}"${suffix} ainda não recebeu tráfego. Compartilhe o link em suas redes.`,
             });
         }
     }
@@ -155,13 +174,31 @@ router.get('/:slug', auth_1.optionalAuth, async (req, res) => {
             'user_links.title',
             'user_links.description',
             'user_links.type',
-            'user_links.embed_url',
             'user_links.thumbnail_url',
             'user_links.sort_order',
+            'user_links.metadata_status',
         ])
             .where('gm_check.id', '=', gm.id)
             .orderBy('user_links.sort_order', 'asc')
             .execute();
+        if (links.length > 0) {
+            const linkIdsToTouch = links.map(l => l.id);
+            db_1.db.updateTable('user_links')
+                .set({ metadata_last_accessed_at: (0, kysely_1.sql) `NOW()` })
+                .where('id', 'in', linkIdsToTouch)
+                .where('metadata_last_accessed_at', '<', (0, kysely_1.sql) `NOW() - interval '6 hours'`)
+                .execute()
+                .catch((e) => console.error('[GET /gm/:slug] Falha ao atualizar acesso do link:', e));
+            // CORREÇÃO DT-04: Worker "fire-and-forget" para cobrir base de links órfãos ('pending')
+            if (links.some(l => l.metadata_status === 'pending')) {
+                const { processPendingLinks } = require('../scripts/processLinkMetadataJobs');
+                processPendingLinks().catch((err) => console.error('Silent processPending error:', err));
+            }
+        }
+        const enrichedLinks = links.map((link) => ({
+            ...link,
+            embed_url: (0, linkService_1.generateEmbedUrl)(link.url, link.type)
+        }));
         let closedGroupSystems = [];
         if (gm.closed_group_enabled && Array.isArray(gm.closed_group_systems) && gm.closed_group_systems.length > 0) {
             closedGroupSystems = await db_1.db
@@ -182,7 +219,7 @@ router.get('/:slug', auth_1.optionalAuth, async (req, res) => {
                 ...gmPublic,
                 closed_group,
                 tables: tablesWithContacts,
-                links,
+                links: enrichedLinks,
                 viewer_context,
             },
         });
@@ -190,6 +227,61 @@ router.get('/:slug', auth_1.optionalAuth, async (req, res) => {
     catch (error) {
         console.error('[GET /gm/:slug]', error);
         return res.status(500).json({ error: 'Erro ao buscar perfil do mestre.' });
+    }
+});
+// POST /api/v1/gm/:slug/view — Registrar visualização do perfil público
+router.post('/:slug/view', async (req, res) => {
+    const { slug } = req.params;
+    const sessionId = req.header('x-session-id')?.trim();
+    if (!slug || slug.length > 200 || !/^[a-z0-9-]+$/i.test(slug)) {
+        return res.status(400).json({ error: 'Slug inválido.' });
+    }
+    if (!sessionId || sessionId.length > 128 || !/^[a-zA-Z0-9_-]+$/.test(sessionId)) {
+        return res.status(400).json({ error: 'Sessão inválida.' });
+    }
+    try {
+        const gm = await db_1.db
+            .selectFrom('gm_profiles as gm')
+            .select(['gm.id'])
+            .where('gm.slug', '=', slug)
+            .executeTakeFirst();
+        if (!gm) {
+            return res.status(404).json({ error: 'Mestre não encontrado.' });
+        }
+        const counted = await db_1.db.transaction().execute(async (trx) => {
+            const insertedViewEvent = await trx
+                .insertInto('gm_profile_view_events')
+                .values({
+                gm_profile_id: gm.id,
+                session_id: sessionId,
+            })
+                .onConflict((oc) => oc.columns(['gm_profile_id', 'session_id']).doNothing())
+                .returning('id')
+                .executeTakeFirst();
+            if (!insertedViewEvent) {
+                return false;
+            }
+            await trx
+                .insertInto('gm_profile_metrics')
+                .values({
+                gm_profile_id: gm.id,
+                views_count: 1,
+            })
+                .onConflict((oc) => oc.column('gm_profile_id').doUpdateSet({
+                views_count: (0, kysely_1.sql) `gm_profile_metrics.views_count + 1`,
+                updated_at: (0, kysely_1.sql) `NOW()`,
+            }))
+                .execute();
+            return true;
+        });
+        if (!counted) {
+            return res.status(202).json({ success: true, deduped: true });
+        }
+        return res.json({ success: true, deduped: false });
+    }
+    catch (error) {
+        console.error('[POST /gm/:slug/view]', error);
+        return res.status(500).json({ error: 'Erro ao registrar visualização do perfil.' });
     }
 });
 // GET /api/v1/gm/:slug/insights

@@ -358,24 +358,58 @@ WHERE thumbnail_url IS NOT NULL
 
 **Status:** ✅ Esperado (não requer correção)
 
-### Bug 3: Falta botão de upload de imagem no campo "Foto de Perfil"
+### Bug 3: Falta botão de upload de avatar no campo "Foto de Perfil" (Resolvido)
 **URL:** `https://mesasbeta.artificiorpg.com/perfil`  
 **Seção:** Informações Básicas → Foto de Perfil  
-**Descrição:** Campo "Foto de Perfil" só oferece "Remover foto" e "Usar URL manual", mas não tem opção de fazer upload de nova imagem.
+**Descrição:** Campo "Foto de Perfil" só oferecia "Remover foto" e "Usar URL manual", mas não tinha opção de fazer upload de nova imagem.
 
-**Comportamento atual:**
+**Comportamento anterior:**
 - ✅ "Remover foto" (botão vermelho)
 - ✅ "Usar URL manual" (dropdown)
-- ❌ **Falta:** Botão "Enviar nova imagem" (upload via Cloudinary)
+- ❌ **Faltava:** Botão "Enviar nova imagem" (upload via Cloudinary)
+- ❌ **Faltava:** Botão "Usar imagem do Google" (buscar foto atual do OAuth)
+- ❌ **Problema:** Avatar do mestre estava no formulário de criação de mesa (lugar errado)
 
-**Comportamento esperado:**
-- Botão primário "Enviar nova imagem" que abre modal de upload
-- Opção secundária "Usar URL manual" para casos avançados
-- Botão "Remover foto" para limpar
+**Solução implementada:**
 
-**Impacto:** Usuário não consegue fazer upload direto de avatar, precisa usar URL externa ou imagem do Google OAuth.
+**Backend:**
+- Criado endpoint `POST /api/v1/profile/me/google-picture` que:
+  - Usa o `refresh_token` armazenado no banco
+  - Busca a foto atual do Google via OAuth2
+  - Atualiza `profiles.avatar_url` automaticamente
+- Adicionada função `getUserById()` em `profileService.ts`
 
-**Status:** 🔴 Bug confirmado - falta implementar botão de upload
+**Frontend - Aba Geral (`/perfil`):**
+- Adicionado texto explicativo: "Esta é a sua foto de usuário. Ela aparece em comentários, avaliações e no cabeçalho do site."
+- Adicionado botão "📤 Enviar nova imagem" (upload via Cloudinary)
+- Adicionado botão "🔄 Usar imagem do Google" (busca foto atual do OAuth)
+- Mantido "🔗 Usar URL manual" (via `<details>` colapsável)
+- Mantido "Remover foto"
+
+**Frontend - Aba Mestre (`/perfil?tab=mestre`):**
+- **Movido** campo "Foto de Mestre" do formulário de criação de mesa para a aba Mestre
+- Adicionado texto explicativo: "Esta é a sua foto como mestre. Ela aparece nas suas mesas e no seu perfil público de mestre. Se não definir, será usada a foto de perfil geral."
+- Preview mostra: foto de mestre (se definida) ou foto de perfil geral (fallback)
+- Mesmos botões: Upload, Google, URL manual, Remover
+- Atualiza `gm_profiles.avatar_url`
+
+**Frontend - Criação de Mesa (StepFinal):**
+- **Removido** campo "Foto do Mestre" (agora está na aba Mestre do perfil)
+- Removido import de `AvatarUploader`
+
+**Arquivos modificados:**
+- `backend/src/routes/profile.ts` - Novo endpoint
+- `backend/src/services/profileService.ts` - Nova função getUserById
+- `frontend/src/pages/ProfileEditPage.tsx` - Campos de avatar em Geral e Mestre
+- `frontend/src/pages/ProfileEditPage.css` - Estilos dos botões e descrições
+- `frontend/src/components/form-steps/steps/StepFinal.tsx` - Removido avatar
+- `MAPA_DE_API.md` - Documentado novo endpoint
+
+**Diferença entre os avatares:**
+- **Foto de Perfil** (`profiles.avatar_url`): Foto geral do usuário, aparece em comentários e header
+- **Foto de Mestre** (`gm_profiles.avatar_url`): Foto específica para contexto de mestre, aparece nas mesas
+
+**Status:** ✅ Resolvido - Aguardando aprovação para commit
 
 ---
 

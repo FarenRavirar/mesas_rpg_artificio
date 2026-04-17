@@ -93,6 +93,18 @@ export async function getFullProfile(userId: string): Promise<FullProfile> {
 }
 
 // =============================================================================
+// GET USER BY ID (com refresh_token)
+// =============================================================================
+
+export async function getUserById(userId: string) {
+  return db
+    .selectFrom('users')
+    .select(['id', 'email', 'username', 'role', 'refresh_token'])
+    .where('id', '=', userId)
+    .executeTakeFirst();
+}
+
+// =============================================================================
 // UPDATE USER (dados gerais)
 // =============================================================================
 

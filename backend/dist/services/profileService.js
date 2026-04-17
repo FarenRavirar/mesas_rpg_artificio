@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getFullProfile = getFullProfile;
+exports.getUserById = getUserById;
 exports.updateUser = updateUser;
 exports.checkUsernameExists = checkUsernameExists;
 exports.updateProfile = updateProfile;
@@ -54,6 +55,16 @@ async function getFullProfile(userId) {
         gm: gm || null,
         systems,
     };
+}
+// =============================================================================
+// GET USER BY ID (com refresh_token)
+// =============================================================================
+async function getUserById(userId) {
+    return db_1.db
+        .selectFrom('users')
+        .select(['id', 'email', 'username', 'role', 'refresh_token'])
+        .where('id', '=', userId)
+        .executeTakeFirst();
 }
 // =============================================================================
 // UPDATE USER (dados gerais)
