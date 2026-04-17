@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { sql } from 'kysely';
 import { db } from '../db';
 import { authMiddleware, optionalAuth } from '../middleware/auth';
+import { generateEmbedUrl, detectLinkType, LinkType } from '../services/linkService';
 
 const router = Router();
 
@@ -213,7 +214,6 @@ router.get('/:slug', optionalAuth, async (req: Request, res: Response) => {
         'user_links.title',
         'user_links.description',
         'user_links.type',
-        'user_links.embed_url',
         'user_links.thumbnail_url',
         'user_links.sort_order',
       ])
@@ -230,6 +230,11 @@ router.get('/:slug', optionalAuth, async (req: Request, res: Response) => {
         .execute()
         .catch((e: any) => console.error('[GET /gm/:slug] Falha ao atualizar acesso do link:', e));
     }
+
+    const enrichedLinks = links.map((link) => ({
+      ...link,
+      embed_url: generateEmbedUrl(link.url, link.type as LinkType)
+    }));
 
     let closedGroupSystems: Array<{ id: string; name: string }> = [];
     if (gm.closed_group_enabled && Array.isArray(gm.closed_group_systems) && gm.closed_group_systems.length > 0) {
@@ -254,7 +259,7 @@ router.get('/:slug', optionalAuth, async (req: Request, res: Response) => {
         ...gmPublic,
         closed_group,
         tables: tablesWithContacts,
-        links,
+        links: enrichedLinks,
         viewer_context,
       },
     });

@@ -126,13 +126,7 @@ function LinkCard({ link }: LinkCardProps) {
         </div>
       )}
 
-      {/* Preview leve para redes sociais */}
-      {isSocial && !hasHeavyEmbed && (
-        <div className="link-card-social-preview">
-          <Icon className="w-8 h-8" />
-          <p className="social-username">{new URL(link.url).pathname.split('/')[1] || label}</p>
-        </div>
-      )}
+
 
       {/* Thumbnail para artigos/sites */}
       {!hasHeavyEmbed && !isSocial && link.thumbnail_url && (
