@@ -8,6 +8,7 @@ import type { TableContact } from '../types/tables';
 import { TableCardDashboard } from '../components/TableCardDashboard';
 import { LinksManager } from '../components/LinksManager';
 import { EditGmProfileForm } from './Painel/EditGmProfileForm';
+import { HelpCenter } from '../components/HelpCenter';
 // Componente refatorado
 import { CreateTableForm } from '../features/create-table/components/CreateTableForm';
 
@@ -215,7 +216,7 @@ export const PainelMestrePage = () => {
 
   const [gmProfile, setGmProfile] = useState<GmProfile | null>(null);
   const [myTables, setMyTables] = useState<MyTableEnhanced[]>([]);
-  const [view, setView] = useState<'dashboard' | 'create-table' | 'create-profile' | 'edit-profile'>('dashboard');
+  const [view, setView] = useState<'dashboard' | 'create-table' | 'create-profile' | 'edit-profile' | 'help'>('dashboard');
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [editingTableId, setEditingTableId] = useState<string | null>(null);
   const [editingTableData, setEditingTableData] = useState<any>(null);
@@ -526,6 +527,16 @@ export const PainelMestrePage = () => {
               />
             </div>
           </div>
+        ) : view === 'help' ? (
+          <div className="space-y-6">
+            <button
+              onClick={() => setView('dashboard')}
+              className="text-white/40 hover:text-white transition-colors cursor-pointer text-sm"
+            >
+              ← Voltar ao painel
+            </button>
+            <HelpCenter />
+          </div>
         ) : view === 'edit-profile' && gmProfile ? (
           <div className="max-w-5xl mx-auto space-y-6">
             <div>
@@ -555,6 +566,15 @@ export const PainelMestrePage = () => {
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-3">
+                <button
+                  id="btn-ajuda"
+                  onClick={() => setView('help')}
+                  className="flex items-center gap-2 px-4 py-3 border border-white/20 hover:border-white/35 text-white font-semibold rounded-xl transition-colors cursor-pointer"
+                  title="Central de Ajuda"
+                >
+                  <span className="text-lg">❓</span>
+                  Ajuda
+                </button>
                 {gmProfile && (
                   <button
                     id="btn-editar-perfil-mestre"
