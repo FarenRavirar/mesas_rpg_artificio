@@ -40,3 +40,4 @@ docker-compose.prod - backup2.yml
 docker-compose.beta - backup 2.yml
 /.gemini
 CLOUDINARY_INTEGRATION_GUIDE.md
+docs/Reformulacao_mestre.md

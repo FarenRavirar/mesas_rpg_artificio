@@ -136,7 +136,7 @@ async function getUserLinks(userId) {
     // Adicionar embed_url para cada link
     return links.map((link) => ({
         ...link,
-        embed_url: generateEmbedUrl(link.url, link.type) || undefined,
+        embed_url: generateEmbedUrl(link.url, link.type),
     }));
 }
 /**
@@ -181,7 +181,7 @@ async function createUserLink(userId, input) {
         .executeTakeFirstOrThrow();
     return {
         ...link,
-        embed_url: generateEmbedUrl(link.url, type) || undefined,
+        embed_url: generateEmbedUrl(link.url, type),
     };
 }
 /**

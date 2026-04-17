@@ -1,6 +1,6 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 16/04/2026 19:56 BRT
+**Última atualização:** 16/04/2026 20:41 BRT
 
 ---
 
@@ -23,39 +23,39 @@
 - **Payload GM atualizado:** `GET /api/v1/gm/tables` agora retorna objeto `vtt_platform` com `logo_filename`.
 - **REQ-21 / FILA 084 concluído:** dropdown de faixa etária atualizado com ícones visuais em `StepConfig.tsx`, mantendo compatibilidade de `age_rating`.
 - **Etapa 1 da reformulação do mestre validada manualmente:** tela pública refeita e insights confirmados apenas para owner/admin.
-- **Etapa 2 avançada (frontend):** `MestrePage.tsx` consolidada como orquestradora com hooks (`useMestre`, `useMestreInsights`) e seções extraídas em componentes dedicados.
+- **Etapa 2 concluída (frontend):** `MestrePage.tsx` consolidada como orquestradora com hooks (`useMestre`, `useMestreInsights`) e seções extraídas em componentes dedicados.
 - **Componentes extraídos da página pública:** `MestreSkeleton`, `MestreError`, `MestreNotFound`, `MestreHero`, `MestreTablesSection`, `MestreWhySection`, `MestreInsightsSection`, `MestreRecommendationsSection`, `MestreFinalCta`.
 - **Padronização visual aplicada:** inline styles removidos de insights/recomendações e migrados para classes no `MestrePage.css`.
-- **Documentação de reformulação sincronizada:** `docs/Reformulacao_mestre.md` atualizado com bloco de andamento da implementação.
-- **Build validado:** `npm run build` em `frontend` sem erros após a refatoração.
+- **Validação manual concluída:** cenários visitante/owner/admin e responsividade desktop/mobile sem regressão crítica reportada.
+- **Deploy de validação em dev concluído:** workflow `Deploy Beta` executado com sucesso (run `24539501158`).
 
 
 ---
 
 ## Próxima Ação
 
-1. Executar validação manual funcional da página pública do mestre em três contextos: visitante, owner e admin.
-2. Confirmar responsividade visual (desktop/mobile) após extração dos componentes e migração de estilos.
-3. Registrar no `docs/Reformulacao_mestre.md` e na sessão qualquer regressão encontrada, com severidade e correção aplicada.
+1. Abrir a sessão `26-04-16_5_reformulacao-mestre-etapa3.md` para iniciar a Etapa 3.
+2. Mapear e implementar o delta de backend/contrato público pendente na reformulação do mestre.
+3. Atualizar `MAPA_DE_API.md`, `docs/Reformulacao_mestre.md` e sessão com os impactos da Etapa 3.
 
 
 ---
 
 ## Última Sessão
 
-**Data:** 16/04/2026 19:56 BRT  
-**Tipo:** Etapa 2 — Reformulação do perfil público de mestre (componentização completa dos blocos de página)  
+**Data:** 16/04/2026 20:41 BRT  
+**Tipo:** Etapa 2 — Reformulação do perfil público de mestre (fechamento completo com validação funcional/visual e deploy beta)  
 **Arquivo:** `sessoes/26-04-16_4_reformulacao-mestre-etapa2.md`  
 **O que foi feito:**
-- Criado `frontend/src/hooks/useMestre.ts` para centralizar carga e derivação dos dados públicos (`profile`, `links`, `mappedTables`, `totalOpenSlots`, `canSeeInsights`)
-- Criado `frontend/src/hooks/useMestreInsights.ts` para encapsular o fetch autenticado de `/api/v1/gm/:slug/insights`
-- `frontend/src/pages/MestrePage.tsx` refatorada para orquestrar hooks e reduzir acoplamento de lógica
-- Criados componentes em `frontend/src/components/mestre/`: `MestreSkeleton`, `MestreError`, `MestreNotFound`, `MestreHero`, `MestreTablesSection`, `MestreWhySection`, `MestreInsightsSection`, `MestreRecommendationsSection`, `MestreFinalCta`
+- Consolidada a arquitetura de orquestração da página em `frontend/src/pages/MestrePage.tsx` com hooks `useMestre` e `useMestreInsights`
+- Finalizada extração de seções para componentes dedicados em `frontend/src/components/mestre/`
 - Removidos inline styles de insights/recomendações e consolidado CSS em `frontend/src/pages/MestrePage.css`
-- Atualizado `docs/Reformulacao_mestre.md` com andamento consolidado da implementação
-- Build de validação executado com sucesso (`npm run build` no frontend)
+- Atualizado `docs/Reformulacao_mestre.md` com status de implementação da Etapa 2
+- Executada validação manual aprovada para visitante, owner e admin
+- Executada validação manual aprovada para desktop e mobile
+- Deploy em `dev` concluído com sucesso e workflow `Deploy Beta` finalizado (`24539501158`)
 
-**Status:** ⏳ Etapa 2 estável e avançada; pendente validação manual visual/funcional final para encerramento do ciclo.
+**Status:** ✅ Etapa 2 concluída e documentada; próxima etapa é abertura da sessão da Etapa 3.
 
 ---
 

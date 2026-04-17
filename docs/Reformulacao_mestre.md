@@ -5,12 +5,17 @@
 > **Base:** ISO 9241 (Dialogue Principles) como eixo principal; Nielsen e Shneiderman como reforço
 > **Status:** Auditoria finalizada com schema real do banco confirmado. Pronto para implementação por agente de IA (Sonnet 4.5).
 >
-> **Andamento de Implementação (16/04/2026 19:50 BRT):**
+> **Andamento de Implementação (16/04/2026 20:41 BRT):**
 > - Etapa 1 validada manualmente: tela pública refeita e insights restritos a owner/admin.
-> - Etapa 2 em execução: `MestrePage.tsx` migrada para orquestração com hooks e componentes dedicados.
+> - Etapa 2 concluída: `MestrePage.tsx` consolidada como orquestradora com hooks e componentes dedicados.
 > - Componentes extraídos na pasta `frontend/src/components/mestre/`: loading, erro, notfound, hero, mesas, benefícios, insights, recomendações e CTA final.
 > - Blocos protegidos (`insights`/`recommendations`) mantidos com gate de permissão e estilos inline removidos para classes CSS.
-> - Build de validação frontend executado com sucesso após a refatoração.
+> - Validação manual concluída (visitante/owner/admin + desktop/mobile) sem regressões críticas identificadas.
+> - Build de validação frontend executado com sucesso e deploy em `dev` concluído (workflow `Deploy Beta` run `24539501158`).
+> - **Etapa 3 (backend/contrato) implementada em código:** `GET /api/v1/gm/:slug` com `optionalAuth`, `viewer_context`, `closed_group`, `selling_points`, `features` e sem `metrics_*` no payload público.
+> - **Insights protegidos ativos:** `GET /api/v1/gm/:slug/insights` com `authMiddleware` e gate de autorização (owner/admin).
+> - **Compatibilidade de painel preservada:** `PainelMestrePage` consome métricas via `GET /api/v1/gm/tables` em `gmPanel.ts`.
+> - **Schema de suporte registrado:** `migration_107_gm_public_profile_v2.sql` adiciona campos de `gm_profiles`, `tables.features` e `user_links.embed_url`.
 
 ## Índice
 
@@ -47,43 +52,35 @@
 
 **Arquivo que renderiza a tela auditada:** `frontend/src/pages/MestrePage.tsx` (~1.238 linhas, monolítico).
 
-**Rota:** Não registrada no `App.tsx` enviado originalmente — confirmado que há router filho ou arquivo de rotas distinto. **Não bloqueia implementação.**
-
-### Arquivos e função objetiva
-
-| Arquivo | Função na tela | Estado confirmado |
+**Rota:** Não registrada no `App.tsx` env| Arquivo | Função na tela | Estado confirmado |
 |---|---|---|
-| `frontend/src/pages/MestrePage.tsx` | Monta hero, bio, stats, grid de mesas, insights (hoje público), links, CTAs | **Monolítico, ~1.200 linhas, fetch inline** |
-| `frontend/src/pages/MestrePage.css` | Layout, gradientes, grid responsivo | OK; precisa de tokens para novos componentes |
-| `frontend/src/components/TableCard.tsx` | Card de mesa no grid | Altura fixa + link morto + badge duplicada |
-| `frontend/src/components/SlotsIndicator.tsx` | Bolinhas de vaga + texto | OK (manter) |
-| `frontend/src/utils/slots.ts` | Estado visual de vagas (fonte única de verdade) | OK (manter) |
-| `frontend/src/components/LinksDisplay.tsx` | Seção "Conteúdo & Redes" | **Contrato quebrado com backend** |
-| `frontend/src/components/LinksDisplay.css` | Estilo da seção de links | OK |
-| `frontend/src/components/SiteHeader.tsx` | Cabeçalho global (sticky) | OK, sem conflito com hero |
-| `frontend/src/components/AppShell.tsx` | Wrapper com header/footer | OK |
-| `frontend/src/index.css` | Tokens `--color-artificio-*` | OK (manter) |
-| `frontend/src/pages/PainelMestrePage.tsx` | Painel privado do mestre | **Usa `metrics_*` do endpoint público — risco de quebrar ao remover** |
-| `backend/src/routes/gm.ts` | `GET /api/v1/gm/:slug` | **Vazamento de métricas + contrato incompleto de links** |
-| `backend/src/middlewares/auth.ts` | `authMiddleware`, `optionalAuth`, `requireAdmin` | ✅ `optionalAuth` já existe — basta aplicar |
-| `MAPA_DE_API.md` | Fonte de verdade de rotas | Precisa atualização ao adicionar rotas novas |
+| `frontend/src/pages/MestrePage.tsx` | Orquestra dados e renderização da página pública via hooks/componentes | ✅ Arquitetura modular ativa (Etapa 2) |
+| `frontend/src/pages/MestrePage.css` | Layout, gradientes, grid responsivo | ✅ Em uso; sem inline styles nos blocos de insights/recomendações |
+| `frontend/src/components/TableCard.tsx` | Card de mesa no grid | ✅ Em uso |
+| `frontend/src/components/SlotsIndicator.tsx` | Bolinhas de vaga + texto | ✅ Em uso |
+| `frontend/src/utils/slots.ts` | Estado visual de vagas (fonte única de verdade) | ✅ Em uso |
+| `frontend/src/components/LinksDisplay.tsx` | Seção "Conteúdo & Redes" | ✅ Contrato backend público atualizado com `type`, `description`, `embed_url`, `thumbnail_url`, `sort_order` |
+| `frontend/src/components/LinksDisplay.css` | Estilo da seção de links | ✅ Em uso |
+| `frontend/src/components/SiteHeader.tsx` | Cabeçalho global (sticky) | ✅ Em uso |
+| `frontend/src/components/AppShell.tsx` | Wrapper com header/footer | ✅ Em uso |
+| `frontend/src/index.css` | Tokens `--color-artificio-*` | ✅ Em uso |
+| `frontend/src/pages/PainelMestrePage.tsx` | Painel privado do mestre | ✅ Consome métricas via `GET /api/v1/gm/tables` |
+| `backend/src/routes/gm.ts` | `GET /api/v1/gm/:slug` e `GET /api/v1/gm/:slug/insights` | ✅ Contrato público protegido + insights privados implementados |
+| `backend/src/middlewares/auth.ts` | `authMiddleware`, `optionalAuth`, `requireAdmin` | ✅ `optionalAuth` aplicado no endpoint público |
+| `MAPA_DE_API.md` | Fonte de verdade de rotas | ✅ Sincronizado com contratos da Etapa 3 |
 
-### Descobertas críticas (confirmadas via leitura completa dos arquivos)
+### Descobertas críticas (confirmadas via leitura de código)
 
-1. **Não existe hook dedicado** (`useMestre` ou similar). Fetch é **inline em `MestrePage.tsx`** (linhas ~47–86), chamada: `fetch(\`/api/v1/gm/${slug}\`, { signal: controller.signal })`.
-2. **Insights vazados** (linhas ~520–780): bloco "Insights das Suas Mesas" com `weekly_views`, `top_performer`, `needs_attention`, `benchmark`. Gate atual é `gmData.insights && (...)` — **"tem dados", não "tem permissão"**.
-3. **Recomendações vazadas** (linhas ~780–920): "Recomendações Personalizadas" com "aumente seu preço", "revise a capa". Mesmo problema de gate.
-4. **Hero-stats renderiza sempre** (linhas ~230–260): `0 Mesas`, `0.0 Avaliação`, `0 Avaliações` para mestre novo.
-5. **Benefícios hardcoded** (linhas ~300–400): texto fixo sobre Foundry VTT, fallbacks inventados (`|| 10`, `|| 40`).
-6. **Hero tem CTA único** (`Ver Mesas Disponíveis` → `#mesas`). Sem contato direto.
-7. **`optionalAuth` já existe** em `auth.ts` com interface `AuthDecoded { userId, role }`. Aplicar direto na rota pública.
-8. **`PainelMestrePage.tsx` consome `metrics_*`** do mesmo endpoint público `/gm/:slug`. Confirmado via consulta remota: "usadas no mapeamento de `myTables` e KPIs". **Quebra garantida** se removermos sem fallback — **precisa migrar para outro endpoint antes**.
-9. **Endpoint `/api/v1/gm/tables`** (em `gmPanel.ts`) **já existe** e é consumido pelo `PainelMestrePage`. Se esse endpoint retorna `metrics_*`, o painel pode consumir de lá e remover a dependência do `/gm/:slug`. **Validar no passo 0.**
-10. **Endpoint `/links` CRUD está `❌ Pendente/Front`** — mestre não tem UI para criar links. `LinksDisplay` sempre renderiza vazio hoje.
-11. **Schema atual confirmado via `psql`** no container `mesas-beta-db`:
-    - `gm_profiles` **não tem**: `tagline`, `selling_points`, `promo_badge_text`, `closed_group_enabled`, `closed_group_systems`, `closed_group_description`, `closed_group_min_price_cents`.
-    - `tables` **não tem**: `features`.
-    - `user_links` **já tem**: `type`, `title`, `description`, `thumbnail_url`, `sort_order`, `url`. **Falta apenas** `embed_url`.
+1. **Fetch da página pública está modularizado** em `useMestre.ts` (`/api/v1/gm/:slug`) e `useMestreInsights.ts` (`/api/v1/gm/:slug/insights`).
+2. **Gate de permissão para insights está ativo no frontend** por `viewer_context` (`canSeeInsights = owner/admin`).
+3. **Endpoint público não expõe `metrics_*`** no payload de `tables`.
+4. **Endpoint protegido de insights está ativo** com `authMiddleware` e checagem explícita `owner || admin`.
+5. **`PainelMestrePage.tsx` permanece íntegro** consumindo métricas de `GET /api/v1/gm/tables` (rota privada `gmPanel.ts`).
+6. **Contrato público inclui `viewer_context`** para orientar render condicional no frontend.
+7. **Contrato público inclui `closed_group` e `selling_points`** no payload final do mestre.
+8. **Contrato público de links inclui `embed_url`** (além de `type`, `description`, `thumbnail_url`, `sort_order`).
+9. **`migration_107_gm_public_profile_v2.sql` já existe no repositório** para suportar campos novos da Etapa 3.
+10. **Não há pendência de patch de backend para segurança do endpoint público** no estado atual de código.mbnail_url`, `sort_order`, `url`. **Falta apenas** `embed_url`.
     - `table_metrics` está completo (`views_count`, `clicks_count`, `contacts_count`, `favorites_count`).
     - Índice `idx_tables_gm_featured_created` não existe.
 

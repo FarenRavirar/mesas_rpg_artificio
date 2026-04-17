@@ -6,7 +6,7 @@
 
 ## Vínculos
 - **Sessão anterior:** `26-04-16_3_reformulacao-mestre-etapa1.md`
-- **Próxima sessão:** a definir
+- **Próxima sessão:** `26-04-16_5_reformulacao-mestre-etapa3.md` (pendente de abertura)
 
 ## Plano de execução
 1. Consolidar pré-condições da Etapa 2 (Etapa 1 validada funcionalmente).
@@ -30,6 +30,9 @@
 - [x] Remover inline styles de insights/recomendações e consolidar no `frontend/src/pages/MestrePage.css`
 - [x] Validar regra de visibilidade de insights (owner/admin)
 - [x] Rodar validação de build frontend
+- [x] Executar validação manual funcional (visitante, owner, admin)
+- [x] Executar validação manual visual (desktop/mobile)
+- [x] Confirmar deploy em `dev` e execução do workflow `Deploy Beta` com sucesso
 - [x] Atualizar `docs/Reformulacao_mestre.md`
 - [x] Atualizar `RESUMO_EXECUCAO.md`
 - [x] Atualizar `sessoes/index.md`
@@ -47,4 +50,18 @@
 - `MestrePage.tsx` passa a orquestrar via hooks/componentes, sem perda de funcionalidade.
 - O consumo de `/api/v1/gm/:slug/insights` continua bloqueado para visitantes e usuários sem permissão.
 - Build do frontend conclui sem erro.
+- Validação manual aprovada para visitante, owner e admin.
+- Validação manual aprovada para desktop e mobile.
 - Sessão documentada e indexada.
+
+## Encerramento da Sessão
+- **Data/hora de encerramento:** 16/04/2026 20:41 BRT
+- **Resultado:** ✅ Etapa 2 concluída sem regressões funcionais identificadas nos cenários validados.
+- **Validações registradas:**
+  - Visitante: não visualiza insights/recomendações.
+  - Owner: visualiza insights/recomendações.
+  - Admin: visualiza insights/recomendações.
+  - Responsividade: desktop/mobile sem quebra crítica.
+  - Rota inválida: estado de erro/ausência preservado.
+- **Deploy relacionado:** push em `dev` concluído com execução bem-sucedida do workflow `Deploy Beta` (run `24539501158`).
+- **Pendências para próxima sessão:** iniciar Etapa 3 (backend/contrato) com sessão dedicada.

@@ -3,9 +3,37 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const kysely_1 = require("kysely");
 const db_1 = require("../db");
+const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
-// GET /api/v1/gm/:slug — Perfil público do mestre (sem JWT)
-router.get('/:slug', async (req, res) => {
+function buildRecommendations(metrics) {
+    const recs = [];
+    for (const metric of metrics) {
+        if (metric.views >= 20 && metric.contacts === 0) {
+            recs.push({
+                table_slug: metric.slug,
+                severity: 'high',
+                message: `Mesa "${metric.title}" tem ${metric.views} visualizações e zero contatos. Revise capa, preço e descrição.`,
+            });
+        }
+        if (metric.clicks >= 10 && metric.contacts === 0) {
+            recs.push({
+                table_slug: metric.slug,
+                severity: 'medium',
+                message: `Mesa "${metric.title}" recebe cliques, mas não gera contato. Teste um CTA mais direto na descrição.`,
+            });
+        }
+        if (metric.views === 0 && metric.clicks === 0) {
+            recs.push({
+                table_slug: metric.slug,
+                severity: 'low',
+                message: `Mesa "${metric.title}" ainda não recebeu tráfego. Compartilhe o link em suas redes.`,
+            });
+        }
+    }
+    return recs;
+}
+// GET /api/v1/gm/:slug — Perfil público do mestre (anônimo + autenticado opcional)
+router.get('/:slug', auth_1.optionalAuth, async (req, res) => {
     const { slug } = req.params;
     try {
         const gm = await db_1.db
@@ -14,14 +42,22 @@ router.get('/:slug', async (req, res) => {
             .innerJoin('profiles as p', 'p.user_id', 'u.id')
             .select([
             'gm.id',
+            'gm.user_id',
             'gm.slug',
             (0, kysely_1.sql) `COALESCE(gm.nickname, p.display_name)`.as('display_name'),
             'gm.bio_long',
+            'gm.tagline',
             (0, kysely_1.sql) `COALESCE(gm.avatar_url, p.avatar_url)`.as('avatar_url'),
             'gm.banner_url',
             'gm.languages',
             'gm.specialties',
             'gm.badges',
+            'gm.selling_points',
+            'gm.promo_badge_text',
+            'gm.closed_group_enabled',
+            'gm.closed_group_systems',
+            'gm.closed_group_description',
+            'gm.closed_group_min_price_cents',
             'gm.tables_count',
             'gm.avg_rating',
             'gm.reviews_count',
@@ -39,11 +75,14 @@ router.get('/:slug', async (req, res) => {
         if (!gm) {
             return res.status(404).json({ error: 'Mestre não encontrado.' });
         }
-        // Buscar mesas ativas do mestre
+        const viewer_context = {
+            is_owner: req.user?.userId === gm.user_id,
+            is_admin: req.user?.role === 'admin',
+        };
+        // Buscar mesas ativas do mestre (sem métricas sensíveis)
         const tables = await db_1.db
             .selectFrom('tables as t')
             .leftJoin('systems as s', 's.id', 't.system_id')
-            .leftJoin('table_metrics as tm', 'tm.table_id', 't.id')
             .select([
             't.id',
             't.slug',
@@ -69,46 +108,43 @@ router.get('/:slug', async (req, res) => {
             't.ddal_tier',
             't.created_at',
             't.synopsis_narrative',
+            't.features',
             's.name as system_name',
             's.slug as system_slug',
-            // Métricas de engajamento
-            (0, kysely_1.sql) `COALESCE(tm.views_count, 0)`.as('metrics_views'),
-            (0, kysely_1.sql) `COALESCE(tm.clicks_count, 0)`.as('metrics_clicks'),
-            (0, kysely_1.sql) `COALESCE(tm.contacts_count, 0)`.as('metrics_contacts'),
-            (0, kysely_1.sql) `COALESCE(tm.favorites_count, 0)`.as('metrics_favorites'),
         ])
             .where('t.gm_id', '=', gm.id)
             .where('t.status', '=', 'active')
+            .orderBy('t.featured', 'desc')
             .orderBy('t.created_at', 'desc')
             .execute();
-        if (tables.length === 0) {
-            return res.json({ data: { ...gm, tables: [] } });
-        }
-        const tableIds = tables.map((table) => table.id);
-        const contacts = await db_1.db
-            .selectFrom('table_contacts')
-            .select(['table_id', 'channel', 'value', 'label', 'discord_server_url', 'sort_order'])
-            .where('table_id', 'in', tableIds)
-            .orderBy('sort_order', 'asc')
-            .execute();
-        const contactsByTable = new Map();
-        for (const contact of contacts) {
-            if (!contactsByTable.has(contact.table_id)) {
-                contactsByTable.set(contact.table_id, []);
+        let tablesWithContacts = [];
+        if (tables.length > 0) {
+            const tableIds = tables.map((table) => table.id);
+            const contacts = await db_1.db
+                .selectFrom('table_contacts')
+                .select(['table_id', 'channel', 'value', 'label', 'discord_server_url', 'sort_order'])
+                .where('table_id', 'in', tableIds)
+                .orderBy('sort_order', 'asc')
+                .execute();
+            const contactsByTable = new Map();
+            for (const contact of contacts) {
+                if (!contactsByTable.has(contact.table_id)) {
+                    contactsByTable.set(contact.table_id, []);
+                }
+                contactsByTable.get(contact.table_id).push({
+                    channel: contact.channel,
+                    value: contact.value,
+                    label: contact.label,
+                    discord_server_url: contact.discord_server_url,
+                    sort_order: contact.sort_order,
+                });
             }
-            contactsByTable.get(contact.table_id).push({
-                channel: contact.channel,
-                value: contact.value,
-                label: contact.label,
-                discord_server_url: contact.discord_server_url,
-                sort_order: contact.sort_order,
-            });
+            tablesWithContacts = tables.map((table) => ({
+                ...table,
+                contacts: contactsByTable.get(table.id) ?? [],
+            }));
         }
-        const tablesWithContacts = tables.map((table) => ({
-            ...table,
-            contacts: contactsByTable.get(table.id) ?? [],
-        }));
-        // CORREÇÃO DT-04: Buscar links públicos do mestre
+        // CORREÇÃO DT-04: Buscar links públicos do mestre com contrato completo
         const links = await db_1.db
             .selectFrom('user_links')
             .innerJoin('users as u', 'u.id', 'user_links.user_id')
@@ -117,16 +153,89 @@ router.get('/:slug', async (req, res) => {
             'user_links.id',
             'user_links.url',
             'user_links.title',
+            'user_links.description',
+            'user_links.type',
+            'user_links.embed_url',
+            'user_links.thumbnail_url',
             'user_links.sort_order',
         ])
             .where('gm_check.id', '=', gm.id)
             .orderBy('user_links.sort_order', 'asc')
             .execute();
-        res.json({ data: { ...gm, tables: tablesWithContacts, links } });
+        let closedGroupSystems = [];
+        if (gm.closed_group_enabled && Array.isArray(gm.closed_group_systems) && gm.closed_group_systems.length > 0) {
+            closedGroupSystems = await db_1.db
+                .selectFrom('systems')
+                .select(['id', 'name'])
+                .where('id', 'in', gm.closed_group_systems)
+                .execute();
+        }
+        const closed_group = {
+            enabled: !!gm.closed_group_enabled,
+            systems: closedGroupSystems,
+            description: gm.closed_group_description,
+            min_price_cents: gm.closed_group_min_price_cents,
+        };
+        const { user_id, closed_group_enabled, closed_group_systems, closed_group_description, closed_group_min_price_cents, ...gmPublic } = gm;
+        return res.json({
+            data: {
+                ...gmPublic,
+                closed_group,
+                tables: tablesWithContacts,
+                links,
+                viewer_context,
+            },
+        });
     }
     catch (error) {
         console.error('[GET /gm/:slug]', error);
-        res.status(500).json({ error: 'Erro ao buscar perfil do mestre.' });
+        return res.status(500).json({ error: 'Erro ao buscar perfil do mestre.' });
+    }
+});
+// GET /api/v1/gm/:slug/insights
+// Protegido: somente dono ou admin.
+router.get('/:slug/insights', auth_1.authMiddleware, async (req, res) => {
+    const { slug } = req.params;
+    try {
+        const gm = await db_1.db
+            .selectFrom('gm_profiles')
+            .select(['id', 'user_id'])
+            .where('slug', '=', slug)
+            .executeTakeFirst();
+        if (!gm) {
+            return res.status(404).json({ error: 'Mestre não encontrado.' });
+        }
+        const isOwner = req.user.userId === gm.user_id;
+        const isAdmin = req.user.role === 'admin';
+        if (!isOwner && !isAdmin) {
+            return res.status(403).json({ error: 'Acesso negado.' });
+        }
+        const metrics = await db_1.db
+            .selectFrom('tables as t')
+            .leftJoin('table_metrics as tm', 'tm.table_id', 't.id')
+            .select([
+            't.id',
+            't.slug',
+            't.title',
+            (0, kysely_1.sql) `COALESCE(tm.views_count, 0)`.as('views'),
+            (0, kysely_1.sql) `COALESCE(tm.clicks_count, 0)`.as('clicks'),
+            (0, kysely_1.sql) `COALESCE(tm.contacts_count, 0)`.as('contacts'),
+            (0, kysely_1.sql) `COALESCE(tm.favorites_count, 0)`.as('favorites'),
+        ])
+            .where('t.gm_id', '=', gm.id)
+            .orderBy('t.created_at', 'desc')
+            .execute();
+        const recommendations = buildRecommendations(metrics);
+        return res.json({
+            data: {
+                metrics,
+                recommendations,
+            },
+        });
+    }
+    catch (error) {
+        console.error('[GET /gm/:slug/insights]', error);
+        return res.status(500).json({ error: 'Erro ao buscar insights.' });
     }
 });
 exports.default = router;

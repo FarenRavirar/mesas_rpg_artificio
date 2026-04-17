@@ -1,11 +1,7 @@
 name: Deploy Production
 
 on:
-  push:
-    branches:
-      - main
-    tags:
-      - 'v*'
+  workflow_dispatch:
 
 concurrency:
   group: deploy-prod-${{ github.ref }}
