@@ -176,7 +176,7 @@ export function GmInsightsDashboard() {
             <div className="flex items-center gap-3">
               <MousePointerClick className="w-5 h-5 text-purple-400" />
               <span className="font-semibold text-white">
-                🎯 Breakdown de Cliques
+                🎯 Detalhamento de Cliques
               </span>
             </div>
             {expandedSection === 'breakdown' ? (
@@ -296,9 +296,12 @@ export function GmInsightsDashboard() {
             <div className="p-4 border-t border-white/10">
               {recommendations.length === 0 ? (
                 <div className="text-center py-8">
-                  <div className="text-4xl mb-2">🎉</div>
-                  <p className="text-white/60">
-                    Tudo certo! Suas mesas estão performando bem.
+                  <div className="text-4xl mb-2">✨</div>
+                  <p className="text-white font-medium mb-2">
+                    Suas mesas estão no caminho certo!
+                  </p>
+                  <p className="text-white/60 text-sm">
+                    Continue divulgando e interagindo com jogadores. RPG é um nicho, então cada visualização e contato conta!
                   </p>
                 </div>
               ) : (

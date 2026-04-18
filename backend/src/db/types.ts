@@ -525,6 +525,9 @@ export interface Database {
   table_metric_events: TableMetricEventsTable;
   table_click_events: TableClickEventsTable; // Migration 007: A/B testing
 
+  // Benchmarks dinâmicos (Migration 113)
+  benchmark_snapshots: BenchmarkSnapshotsTable;
+
   // VTT Platforms (Migration 006)
   vtt_platforms: VttPlatformsTable;
   vtt_platform_suggestions: VttPlatformSuggestionsTable;
@@ -552,6 +555,22 @@ export interface TableMetricsTable {
 export type TableMetrics = Selectable<TableMetricsTable>;
 export type NewTableMetrics = Insertable<TableMetricsTable>;
 export type TableMetricsUpdate = Updateable<TableMetricsTable>;
+
+// Migration 113: Snapshots de benchmark dinâmico
+export interface BenchmarkSnapshotsTable {
+  id: Generated<number>;
+  calculated_at: Generated<Date>;
+  segment: Generated<string>;
+  metric: string;
+  p25: string | number;
+  p50: string | number;
+  p75: string | number;
+  sample_size: number;
+}
+
+export type BenchmarkSnapshot = Selectable<BenchmarkSnapshotsTable>;
+export type NewBenchmarkSnapshot = Insertable<BenchmarkSnapshotsTable>;
+export type BenchmarkSnapshotUpdate = Updateable<BenchmarkSnapshotsTable>;
 
 // Migration 108: Métricas de visualização do perfil público do mestre
 export interface GmProfileMetricsTable {

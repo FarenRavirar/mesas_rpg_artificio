@@ -545,8 +545,7 @@
 }
 
 .mestre-bio-photo {
-  position: sticky;
-  top: 2rem;
+  /* Removido position: sticky para evitar sobreposição */
 }
 
 .mestre-bio-photo img {

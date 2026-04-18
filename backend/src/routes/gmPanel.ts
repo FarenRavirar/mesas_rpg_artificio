@@ -356,7 +356,7 @@ router.put('/profile', authMiddleware, async (req: Request, res: Response) => {
         closed_group_description: safeClosedGroupDescription,
         closed_group_min_price_cents: safeClosedGroupMinPriceCents,
         preferred_vtt_platforms: safePreferredVttPlatforms,
-        contact_methods: safeContactMethods as any,
+        contact_methods: safeContactMethods ? JSON.stringify(safeContactMethods) : undefined,
       })
       .where('id', '=', gmProfile.id)
       .returning([
@@ -1197,7 +1197,7 @@ router.get('/insights', authMiddleware, async (req: Request, res: Response) => {
     const overallCtr = totalViews > 0 ? (totalClicks / totalViews) * 100 : 0;
     const contactRate = totalClicks > 0 ? (totalContacts / totalClicks) * 100 : 0;
 
-    // Gerar recomendações
+    // Gerar recomendações (ajustado para realidade de serviço nichado)
     const recommendations: Array<{
       severity: 'high' | 'medium' | 'low';
       table_slug: string;
@@ -1206,26 +1206,58 @@ router.get('/insights', authMiddleware, async (req: Request, res: Response) => {
     }> = [];
 
     for (const table of enrichedTables) {
-      if (table.views >= 20 && table.contacts === 0) {
+      // Alta prioridade: Mesa com visualizações mas zero engajamento
+      if (table.views >= 10 && table.clicks === 0) {
         recommendations.push({
           severity: 'high',
           table_slug: table.slug,
           table_title: table.title,
-          message: `Mesa tem ${table.views} visualizações e zero contatos. Revise capa, preço e descrição.`,
+          message: `Mesa tem ${table.views} visualizações mas nenhum clique. Revise a capa e o título para torná-los mais atrativos.`,
         });
-      } else if (table.clicks >= 10 && table.contacts === 0) {
+      }
+      // Alta prioridade: Cliques mas zero contatos (problema de conversão)
+      else if (table.clicks >= 5 && table.contacts === 0) {
+        recommendations.push({
+          severity: 'high',
+          table_slug: table.slug,
+          table_title: table.title,
+          message: `Mesa recebe cliques mas não gera contato. Adicione um CTA claro (ex: "Entre em contato via WhatsApp") na descrição.`,
+        });
+      }
+      // Média prioridade: CTR muito baixo (< 10% com pelo menos 5 views)
+      else if (table.views >= 5 && table.ctr < 10) {
         recommendations.push({
           severity: 'medium',
           table_slug: table.slug,
           table_title: table.title,
-          message: `Mesa recebe cliques mas não gera contato. Teste um CTA mais direto na descrição.`,
+          message: `CTR de ${table.ctr}% está baixo. Considere melhorar a capa ou adicionar mais detalhes na prévia da mesa.`,
         });
-      } else if (table.views === 0 && table.clicks === 0) {
+      }
+      // Média prioridade: Muitos favoritos mas poucos contatos
+      else if (table.favorites >= 3 && table.contacts === 0) {
+        recommendations.push({
+          severity: 'medium',
+          table_slug: table.slug,
+          table_title: table.title,
+          message: `Mesa tem ${table.favorites} favoritos mas nenhum contato. Jogadores estão interessados! Facilite o contato direto.`,
+        });
+      }
+      // Baixa prioridade: Mesa sem tráfego
+      else if (table.views === 0) {
         recommendations.push({
           severity: 'low',
           table_slug: table.slug,
           table_title: table.title,
-          message: `Mesa ainda não recebeu tráfego. Compartilhe o link em suas redes.`,
+          message: `Mesa ainda não recebeu visualizações. Compartilhe o link em grupos de RPG, Discord ou redes sociais.`,
+        });
+      }
+      // Baixa prioridade: Boa performance (feedback positivo)
+      else if (table.views >= 5 && table.ctr >= 20 && table.contacts > 0) {
+        recommendations.push({
+          severity: 'low',
+          table_slug: table.slug,
+          table_title: table.title,
+          message: `✨ Mesa está performando bem! CTR de ${table.ctr}% e ${table.contacts} contato(s). Continue assim!`,
         });
       }
     }
