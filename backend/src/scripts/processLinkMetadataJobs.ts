@@ -1,5 +1,6 @@
 import { db } from '../db';
 import { sql } from 'kysely';
+import { decode } from 'he';
 
 // Mocks simples de timeout nativo usando AbortController
 async function fetchOgMetadata(url: string) {
@@ -41,8 +42,8 @@ async function fetchOgMetadata(url: string) {
     }
 
     return {
-      title: titleMatch ? titleMatch[1] : null,
-      description: descMatch ? descMatch[1] : null,
+      title: titleMatch ? decode(titleMatch[1]) : null,
+      description: descMatch ? decode(descMatch[1]) : null,
       thumbnail_url: thumbnailUrl,
     };
   } finally {
