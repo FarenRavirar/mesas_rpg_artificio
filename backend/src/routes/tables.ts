@@ -414,9 +414,10 @@ router.get('/:slug', async (req: Request, res: Response) => {
 
     // Buscar VTT platforms preferidas do mestre
     const gmVttPlatforms = table.gm_user_id ? await db
-      .selectFrom('gm_preferred_vtt_platforms as gpvp')
-      .innerJoin('vtt_platforms as vtt', 'vtt.id', 'gpvp.vtt_platform_id')
-      .innerJoin('gm_profiles as gm', 'gm.id', 'gpvp.gm_profile_id')
+      .selectFrom('gm_profiles as gm')
+      .innerJoin('vtt_platforms as vtt', (join) =>
+        join.on(sql.raw('vtt.id = ANY(gm.preferred_vtt_platforms)'))
+      )
       .select([
         'vtt.id',
         'vtt.name',
