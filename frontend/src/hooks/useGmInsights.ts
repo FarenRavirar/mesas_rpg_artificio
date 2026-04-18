@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
-interface GmInsightsOverview {
+export interface GmInsightsOverview {
   total_views: number;
   total_clicks: number;
   total_contacts: number;
@@ -11,7 +11,28 @@ interface GmInsightsOverview {
   contact_rate: number;
 }
 
-interface TableInsight {
+export interface BenchmarkQuartiles {
+  p25: number;
+  p50: number;
+  p75: number;
+}
+
+export interface GmInsightsBenchmarks {
+  available: boolean;
+  segment: string;
+  sample_size: number;
+  minimum_sample_size: number;
+  calculated_at: string | null;
+  note: string;
+  metrics: {
+    views: BenchmarkQuartiles;
+    clicks: BenchmarkQuartiles;
+    contacts: BenchmarkQuartiles;
+    ctr: BenchmarkQuartiles;
+  } | null;
+}
+
+export interface TableInsight {
   id: string;
   slug: string;
   title: string;
@@ -27,17 +48,28 @@ interface TableInsight {
     cta_entrar: number;
     link_vtt: number;
   };
+  benchmark_position: {
+    views_quartile: 'q1' | 'q2' | 'q3' | 'q4';
+    clicks_quartile: 'q1' | 'q2' | 'q3' | 'q4';
+    contacts_quartile: 'q1' | 'q2' | 'q3' | 'q4';
+    ctr_quartile: 'q1' | 'q2' | 'q3' | 'q4';
+    views_label: string;
+  } | null;
+  trend: {
+    views_last_7d: number;
+  };
 }
 
-interface Recommendation {
+export interface Recommendation {
   severity: 'high' | 'medium' | 'low';
   table_slug: string;
   table_title: string;
   message: string;
 }
 
-interface GmInsightsData {
+export interface GmInsightsData {
   overview: GmInsightsOverview;
+  benchmarks: GmInsightsBenchmarks;
   tables: TableInsight[];
   recommendations: Recommendation[];
 }

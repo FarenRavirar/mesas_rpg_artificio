@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, ChevronUp, Eye, MousePointerClick, MessageCircle, BarChart3, AlertCircle } from 'lucide-react';
+import { ChevronDown, ChevronUp, Eye, MousePointerClick, MessageCircle, BarChart3, AlertCircle, Info } from 'lucide-react';
 import { useGmInsights } from '../../hooks/useGmInsights';
 
 export function GmInsightsDashboard() {
@@ -28,18 +28,25 @@ export function GmInsightsDashboard() {
     return null;
   }
 
-  const { overview, tables, recommendations } = data;
+  const { overview, benchmarks, tables, recommendations } = data;
 
   const toggleSection = (section: string) => {
     setExpandedSection(expandedSection === section ? null : section);
   };
 
-  // Severity colors
   const severityConfig = {
     high: { bg: 'bg-red-500/10', border: 'border-red-500/30', text: 'text-red-400', icon: '🔴' },
     medium: { bg: 'bg-yellow-500/10', border: 'border-yellow-500/30', text: 'text-yellow-400', icon: '🟡' },
     low: { bg: 'bg-blue-500/10', border: 'border-blue-500/30', text: 'text-blue-400', icon: '🟢' },
   };
+
+  const quartileConfig = {
+    q1: { label: 'Q1', text: 'text-rose-300', bg: 'bg-rose-500/20', border: 'border-rose-500/40' },
+    q2: { label: 'Q2', text: 'text-amber-300', bg: 'bg-amber-500/20', border: 'border-amber-500/40' },
+    q3: { label: 'Q3', text: 'text-cyan-300', bg: 'bg-cyan-500/20', border: 'border-cyan-500/40' },
+    q4: { label: 'Q4', text: 'text-emerald-300', bg: 'bg-emerald-500/20', border: 'border-emerald-500/40' },
+  } as const;
+
 
   return (
     <div className="space-y-6">
@@ -90,6 +97,23 @@ export function GmInsightsDashboard() {
         </div>
       </div>
 
+      {/* Contexto do benchmark */}
+      <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <Info className="w-5 h-5 text-cyan-300 mt-0.5" />
+          <div className="space-y-1">
+            <p className="text-sm text-white font-medium">Referência da plataforma</p>
+            <p className="text-sm text-white/70">{benchmarks.note}</p>
+            <p className="text-xs text-white/50">
+              Base atual: {benchmarks.sample_size} mesas ativas
+              {benchmarks.calculated_at
+                ? ` · Atualizado em ${new Date(benchmarks.calculated_at).toLocaleString('pt-BR')}`
+                : ''}
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Accordion Sections */}
       <div className="space-y-4">
         {/* Desempenho por Mesa */}
@@ -126,7 +150,8 @@ export function GmInsightsDashboard() {
                         <th className="pb-3 pr-4 text-right">Views</th>
                         <th className="pb-3 pr-4 text-right">Cliques</th>
                         <th className="pb-3 pr-4 text-right">CTR</th>
-                        <th className="pb-3 text-right">Contatos</th>
+                        <th className="pb-3 pr-4 text-right">Contatos</th>
+                        <th className="pb-3 text-right">Posição</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -154,8 +179,25 @@ export function GmInsightsDashboard() {
                           <td className="py-3 pr-4 text-right text-white">
                             {table.ctr.toFixed(1)}%
                           </td>
-                          <td className="py-3 text-right text-white">
+                          <td className="py-3 pr-4 text-right text-white">
                             {table.contacts}
+                          </td>
+                          <td className="py-3 text-right">
+                            {benchmarks.available && table.benchmark_position ? (
+                              <div className="inline-flex flex-col items-end gap-1">
+                                <span
+                                  className={`text-xs px-2 py-1 rounded-full border ${quartileConfig[table.benchmark_position.views_quartile].bg} ${quartileConfig[table.benchmark_position.views_quartile].border} ${quartileConfig[table.benchmark_position.views_quartile].text}`}
+                                >
+                                  {quartileConfig[table.benchmark_position.views_quartile].label} · {table.benchmark_position.views_label}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-white/50">
+                                {table.trend.views_last_7d > 0
+                                  ? `+${table.trend.views_last_7d} views (7d)`
+                                  : 'Sem dados suficientes'}
+                              </span>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -301,7 +343,9 @@ export function GmInsightsDashboard() {
                     Suas mesas estão no caminho certo!
                   </p>
                   <p className="text-white/60 text-sm">
-                    Continue divulgando e interagindo com jogadores. RPG é um nicho, então cada visualização e contato conta!
+                    {benchmarks.available
+                      ? 'Seus indicadores estão estáveis em relação à plataforma. Continue os ajustes graduais.'
+                      : 'Ainda não há amostra suficiente para comparação ampla. Enquanto isso, acompanhe a tendência semanal das suas mesas.'}
                   </p>
                 </div>
               ) : (

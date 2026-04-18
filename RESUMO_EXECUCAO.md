@@ -1,6 +1,6 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 18/04/2026 12:40 BRT
+**Última atualização:** 18/04/2026 12:53 BRT
 
 ---
 
@@ -56,64 +56,47 @@ Iniciar execução sistemática da auditoria técnica documentada em `docs/audit
 
 ## Última Sessão
 
-**Data:** 18/04/2026 12:40 BRT  
-**Tipo:** Features de Perfil do Mestre + Melhorias de UX  
+**Data:** 18/04/2026 12:53 BRT  
+**Tipo:** Benchmarks Dinâmicos no Insights do Mestre  
 **Arquivo:** `sessoes/26-04-18_1_auditoria-sistemas-etapa-1.md` (extensão)  
 **O que foi feito:**
 
-### 1. VTT Platforms Preferidas do Mestre ✅
-- Migration 109: Campo `preferred_vtt_platforms` (UUID[]) em `gm_profiles`
-- Backend: GET /gm/:slug retorna array de VTT platforms com dados completos
-- Backend: PUT /gm/profile aceita e valida `preferred_vtt_platforms`
-- Frontend: Tipos atualizados em `useProfile.ts` e `useMestre.ts`
+### 1. Backend — benchmark dinâmico por quartis ✅
+- Migration `database/migration_113_benchmark_snapshots.sql` adicionada para materialização de snapshots
+- Serviço `backend/src/services/benchmarkService.ts` criado com cálculo de P25/P50/P75
+- Cache em memória com TTL de 1 hora para evitar recálculo pesado por request
+- Fallback de disponibilidade por amostra mínima (`minimum_sample_size = 10`)
 
-### 2. Sistema de Contatos do Mestre ✅
-- Migration 110: Campo `contact_methods` (JSONB array) em `gm_profiles`
-- Backend: GET /gm/:slug retorna array de contatos
-- Backend: PUT /gm/profile aceita e valida `contact_methods`
-- Validações: email (formato válido), WhatsApp (formato internacional +55...)
-- Suporte para múltiplos contatos: WhatsApp, Email, Discord, Formulário
+### 2. API — insights relativos por contexto de plataforma ✅
+- `GET /api/v1/gm/insights` integrado ao benchmark service
+- Recomendações fixas substituídas por recomendações relativas ao funil da plataforma
+- Fallback temporal por mesa (`trend.views_last_7d`) quando benchmark indisponível
+- Payload expandido com `benchmarks`, `benchmark_position` e `trend`
 
-### 3. Preview Completo para Mestre/Admin ✅
-- **Problema corrigido:** Mestre não via informações completas da própria mesa
-- **Solução:** `TableActionPanel.tsx` modo owner agora mostra:
-  - Gestão (topo): editar, desativar, excluir
-  - Preview Público (abaixo): preço, informações, plataformas, contatos
+### 3. Frontend — dashboard contextualizado ✅
+- `frontend/src/hooks/useGmInsights.ts` atualizado para o novo contrato
+- `frontend/src/components/mestre/GmInsightsDashboard.tsx` atualizado com:
+  - contexto de benchmark (amostra + última atualização)
+  - badges de posição relativa (Q1, Q2, Q3, Q4)
+  - estado transparente de fallback por tendência
 
-### 4. Sistema com Logo e Link Clicável ✅
-- Sistema agora exibe logo (se disponível)
-- Logo é clicável e abre website do sistema em nova aba
-- Fallback para texto se logo não carregar
+### 4. Validação técnica ✅
+- `backend`: `npm run build` sem erros
+- `frontend`: `npm run build` sem erros
 
-### 5. VTT Platform com Nome, Logo e Link ✅
-- Mostra nome + logo da plataforma VTT
-- Se tiver website_url, torna nome + logo clicáveis
-- Implementado em modos owner e público
-
-### Documentação Atualizada
-- `MAPA_DE_API.md`: Seção "GM - Perfil Público" adicionada
-- `MAPA_DE_API.md`: PUT /profile documentado com novos campos
-- `sessoes/26-04-18_1_auditoria-sistemas-etapa-1.md`: Extensão com todas as implementações
-
-### Arquivos Modificados (13)
-**Backend:** migration_109, migration_110, types.ts, gm.ts, gmPanel.ts  
-**Frontend:** useProfile.ts, useMestre.ts, TableActionPanel.tsx, MestreFeaturedTable.tsx, SystemBadge.tsx, tables.ts, tableView.types.ts  
-**Documentação:** MAPA_DE_API.md
-
-**Status:** ✅ Backend completo. Falta: componentes visuais (editores no painel + exibição no perfil público + formulário de contato + card do mestre na página da mesa).
+**Status:** ✅ Implementação concluída e validada tecnicamente.  
+**Pendente:** validação funcional em beta (com dados reais) + monitoramento de percepção dos mestres.
 
 ---
 
 ## Próxima Ação
 
-**Implementar Componentes Visuais**
+**Validação Funcional em Beta do Insights Dinâmico**
 
-1. Card do mestre na página da mesa (foto, nome, bio, link para perfil)
-2. Editor de VTT platforms no painel do mestre
-3. Editor de contatos no painel do mestre
-4. Exibir VTT platforms no perfil público do mestre
-5. Exibir contatos no perfil público do mestre
-6. Criar formulário inline de contato
+1. Validar comportamento com mestres de baixa amostra (1–2 mesas)
+2. Confirmar exibição de fallback de tendência quando benchmark não estiver disponível
+3. Revisar clareza das recomendações relativas para evitar desmotivação
+4. Monitorar regressão de performance do endpoint de insights após uso real
 
 ---
 

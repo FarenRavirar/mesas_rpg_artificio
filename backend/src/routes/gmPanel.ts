@@ -12,6 +12,7 @@ import {
 } from '../validators/tableValidators';
 import { TableService } from '../services/tableService';
 import { TableRepository } from '../repositories/tableRepository';
+import { BenchmarkService } from '../services/benchmarkService';
 
 const router = Router();
 
@@ -27,10 +28,22 @@ const METRIC_THROTTLE_WINDOWS = {
 } as const;
 
 type MetricAction = keyof typeof METRIC_THROTTLE_WINDOWS;
+type QuartileTag = 'q1' | 'q2' | 'q3' | 'q4';
 
-// ============================================================================
-// UTILITÁRIOS DE MÉTRICAS
-// ============================================================================
+function toQuartile(value: number, quartiles: { p25: number; p50: number; p75: number }): QuartileTag {
+  if (value <= quartiles.p25) return 'q1';
+  if (value <= quartiles.p50) return 'q2';
+  if (value <= quartiles.p75) return 'q3';
+  return 'q4';
+}
+
+function quartileLabel(quartile: QuartileTag): string {
+  if (quartile === 'q1') return 'Abaixo da maioria';
+  if (quartile === 'q2') return 'Na média da plataforma';
+  if (quartile === 'q3') return 'Acima da maioria';
+  return 'Entre as mais vistas';
+}
+
 
 function getClientIp(req: Request): string {
   const forwarded = req.headers['x-forwarded-for'];
@@ -1145,6 +1158,30 @@ router.get('/insights', authMiddleware, async (req: Request, res: Response) => {
       .groupBy(['tce.table_id', 'tce.variant'])
       .execute();
 
+    // Tendência temporal (últimos 7 dias) para fallback transparente
+    const recentViewsCutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    const recentViews = await db
+      .selectFrom('table_metric_events as tme')
+      .innerJoin('tables as t', 't.id', 'tme.table_id')
+      .select([
+        'tme.table_id',
+        sql<number>`COUNT(*)`.as('count'),
+      ])
+      .where('t.gm_id', '=', gmProfile.id)
+      .where('tme.action', '=', 'view')
+      .where('tme.created_at', '>', recentViewsCutoff)
+      .groupBy('tme.table_id')
+      .execute();
+
+    const recentViewsMap = new Map<string, number>();
+    for (const row of recentViews) {
+      recentViewsMap.set(row.table_id, Number(row.count));
+    }
+
+    // Benchmarks dinâmicos de plataforma (global)
+    const benchmarks = await BenchmarkService.getPlatformBenchmarks('global');
+
     // Mapear breakdown por mesa
     const breakdownMap = new Map<string, Record<string, number>>();
     for (const row of clickBreakdowns) {
@@ -1173,6 +1210,16 @@ router.get('/insights', authMiddleware, async (req: Request, res: Response) => {
 
       const ctr = views > 0 ? (clicks / views) * 100 : 0;
       const breakdown = breakdownMap.get(table.id) || {};
+      const viewsLast7d = recentViewsMap.get(table.id) || 0;
+
+      const benchmarkPosition = benchmarks.available && benchmarks.metrics
+        ? {
+            views_quartile: toQuartile(views, benchmarks.metrics.views),
+            clicks_quartile: toQuartile(clicks, benchmarks.metrics.clicks),
+            contacts_quartile: toQuartile(contacts, benchmarks.metrics.contacts),
+            ctr_quartile: toQuartile(ctr, benchmarks.metrics.ctr),
+          }
+        : null;
 
       return {
         id: table.id,
@@ -1190,6 +1237,15 @@ router.get('/insights', authMiddleware, async (req: Request, res: Response) => {
           cta_entrar: breakdown.cta_entrar || 0,
           link_vtt: breakdown.link_vtt || 0,
         },
+        benchmark_position: benchmarkPosition
+          ? {
+              ...benchmarkPosition,
+              views_label: quartileLabel(benchmarkPosition.views_quartile),
+            }
+          : null,
+        trend: {
+          views_last_7d: viewsLast7d,
+        },
       };
     });
 
@@ -1197,7 +1253,7 @@ router.get('/insights', authMiddleware, async (req: Request, res: Response) => {
     const overallCtr = totalViews > 0 ? (totalClicks / totalViews) * 100 : 0;
     const contactRate = totalClicks > 0 ? (totalContacts / totalClicks) * 100 : 0;
 
-    // Gerar recomendações (ajustado para realidade de serviço nichado)
+    // Recomendações de funil com benchmark relativo
     const recommendations: Array<{
       severity: 'high' | 'medium' | 'low';
       table_slug: string;
@@ -1206,61 +1262,96 @@ router.get('/insights', authMiddleware, async (req: Request, res: Response) => {
     }> = [];
 
     for (const table of enrichedTables) {
-      // Alta prioridade: Mesa com visualizações mas zero engajamento
-      if (table.views >= 10 && table.clicks === 0) {
-        recommendations.push({
-          severity: 'high',
-          table_slug: table.slug,
-          table_title: table.title,
-          message: `Mesa tem ${table.views} visualizações mas nenhum clique. Revise a capa e o título para torná-los mais atrativos.`,
-        });
-      }
-      // Alta prioridade: Cliques mas zero contatos (problema de conversão)
-      else if (table.clicks >= 5 && table.contacts === 0) {
-        recommendations.push({
-          severity: 'high',
-          table_slug: table.slug,
-          table_title: table.title,
-          message: `Mesa recebe cliques mas não gera contato. Adicione um CTA claro (ex: "Entre em contato via WhatsApp") na descrição.`,
-        });
-      }
-      // Média prioridade: CTR muito baixo (< 10% com pelo menos 5 views)
-      else if (table.views >= 5 && table.ctr < 10) {
-        recommendations.push({
-          severity: 'medium',
-          table_slug: table.slug,
-          table_title: table.title,
-          message: `CTR de ${table.ctr}% está baixo. Considere melhorar a capa ou adicionar mais detalhes na prévia da mesa.`,
-        });
-      }
-      // Média prioridade: Muitos favoritos mas poucos contatos
-      else if (table.favorites >= 3 && table.contacts === 0) {
-        recommendations.push({
-          severity: 'medium',
-          table_slug: table.slug,
-          table_title: table.title,
-          message: `Mesa tem ${table.favorites} favoritos mas nenhum contato. Jogadores estão interessados! Facilite o contato direto.`,
-        });
-      }
-      // Baixa prioridade: Mesa sem tráfego
-      else if (table.views === 0) {
-        recommendations.push({
-          severity: 'low',
-          table_slug: table.slug,
-          table_title: table.title,
-          message: `Mesa ainda não recebeu visualizações. Compartilhe o link em grupos de RPG, Discord ou redes sociais.`,
-        });
-      }
-      // Baixa prioridade: Boa performance (feedback positivo)
-      else if (table.views >= 5 && table.ctr >= 20 && table.contacts > 0) {
-        recommendations.push({
-          severity: 'low',
-          table_slug: table.slug,
-          table_title: table.title,
-          message: `✨ Mesa está performando bem! CTR de ${table.ctr}% e ${table.contacts} contato(s). Continue assim!`,
-        });
+      if (benchmarks.available && table.benchmark_position) {
+        const topViews = table.benchmark_position.views_quartile === 'q3' || table.benchmark_position.views_quartile === 'q4';
+        const topClicks = table.benchmark_position.clicks_quartile === 'q3' || table.benchmark_position.clicks_quartile === 'q4';
+        const lowClicks = table.benchmark_position.clicks_quartile === 'q1';
+        const lowContacts = table.benchmark_position.contacts_quartile === 'q1';
+        const lowViews = table.benchmark_position.views_quartile === 'q1';
+        const topCtr = table.benchmark_position.ctr_quartile === 'q4';
+
+        if (topViews && lowClicks) {
+          recommendations.push({
+            severity: 'high',
+            table_slug: table.slug,
+            table_title: table.title,
+            message: 'Sua mesa recebe visualizações, mas poucos cliques em relação à plataforma. Revise capa e título para melhorar o primeiro impacto.',
+          });
+        } else if (topClicks && lowContacts) {
+          recommendations.push({
+            severity: 'high',
+            table_slug: table.slug,
+            table_title: table.title,
+            message: 'Sua mesa gera interesse, mas converte pouco em contato. Ajuste CTA, preço e instruções de contato.',
+          });
+        } else if (lowViews) {
+          recommendations.push({
+            severity: 'medium',
+            table_slug: table.slug,
+            table_title: table.title,
+            message: 'Sua mesa está abaixo da maioria em visualizações. Reforce divulgação em comunidades de RPG e revise tags/sistema.',
+          });
+        } else if (topCtr && table.contacts > 0) {
+          recommendations.push({
+            severity: 'low',
+            table_slug: table.slug,
+            table_title: table.title,
+            message: 'Sua mesa está com boa taxa de clique em relação à plataforma. Continue com a mesma linha de apresentação.',
+          });
+        }
+      } else {
+        if (table.trend.views_last_7d > 0) {
+          recommendations.push({
+            severity: 'low',
+            table_slug: table.slug,
+            table_title: table.title,
+            message: `Sua mesa ganhou ${table.trend.views_last_7d} visualização(ões) nos últimos 7 dias. Os benchmarks comparativos aparecem conforme a base cresce.`,
+          });
+        } else {
+          recommendations.push({
+            severity: 'low',
+            table_slug: table.slug,
+            table_title: table.title,
+            message: 'Sua mesa ainda não teve visualizações recentes. Compartilhe o link em comunidades de RPG para ganhar tração inicial.',
+          });
+        }
       }
     }
+
+    // Evita estado estranho sem mensagem quando há mesas ativas
+    if (recommendations.length === 0 && enrichedTables.length > 0) {
+      recommendations.push({
+        severity: 'low',
+        table_slug: enrichedTables[0].slug,
+        table_title: enrichedTables[0].title,
+        message: 'Seus indicadores estão estáveis em relação à plataforma. Continue monitorando e fazendo ajustes graduais.',
+      });
+    }
+
+    const normalizedBenchmarks = benchmarks.metrics
+      ? {
+          views: {
+            p25: Math.round(benchmarks.metrics.views.p25 * 10) / 10,
+            p50: Math.round(benchmarks.metrics.views.p50 * 10) / 10,
+            p75: Math.round(benchmarks.metrics.views.p75 * 10) / 10,
+          },
+          clicks: {
+            p25: Math.round(benchmarks.metrics.clicks.p25 * 10) / 10,
+            p50: Math.round(benchmarks.metrics.clicks.p50 * 10) / 10,
+            p75: Math.round(benchmarks.metrics.clicks.p75 * 10) / 10,
+          },
+          contacts: {
+            p25: Math.round(benchmarks.metrics.contacts.p25 * 10) / 10,
+            p50: Math.round(benchmarks.metrics.contacts.p50 * 10) / 10,
+            p75: Math.round(benchmarks.metrics.contacts.p75 * 10) / 10,
+          },
+          ctr: {
+            p25: Math.round(benchmarks.metrics.ctr.p25 * 10) / 10,
+            p50: Math.round(benchmarks.metrics.ctr.p50 * 10) / 10,
+            p75: Math.round(benchmarks.metrics.ctr.p75 * 10) / 10,
+          },
+        }
+      : null;
 
     res.json({
       overview: {
@@ -1270,6 +1361,10 @@ router.get('/insights', authMiddleware, async (req: Request, res: Response) => {
         total_favorites: totalFavorites,
         ctr: Math.round(overallCtr * 10) / 10,
         contact_rate: Math.round(contactRate * 10) / 10,
+      },
+      benchmarks: {
+        ...benchmarks,
+        metrics: normalizedBenchmarks,
       },
       tables: enrichedTables,
       recommendations,

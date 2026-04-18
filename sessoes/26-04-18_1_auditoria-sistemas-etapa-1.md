@@ -1942,3 +1942,46 @@ Mover rota `/gestao` para fora do bloco condicional, deixando `ProtectedRoute` f
 - [ ] Implementar tracking de cliques (POST /tables/:slug/click)
 
 ---
+
+## 🔄 EXTENSÃO — Benchmarks Dinâmicos no Insights (18/04/2026 12:53 BRT)
+
+### Escopo executado
+
+- Backend:
+  - `database/migration_113_benchmark_snapshots.sql` criada para snapshots de benchmark.
+  - `backend/src/db/types.ts` atualizado com `BenchmarkSnapshotsTable` no contrato Kysely.
+  - `backend/src/services/benchmarkService.ts` criado com:
+    - cálculo de quartis (P25/P50/P75) para `views`, `clicks`, `contacts`, `ctr`;
+    - amostra mínima (`MIN_SAMPLE_SIZE = 10`);
+    - cache em memória (TTL 1h);
+    - leitura de snapshot recente + materialização em `benchmark_snapshots`.
+  - `backend/src/routes/gmPanel.ts` (`GET /api/v1/gm/insights`) refatorado para:
+    - injetar benchmark global dinâmico;
+    - substituir thresholds fixos por avaliação relativa por quartil;
+    - incluir fallback temporal (`views_last_7d`) quando benchmark indisponível;
+    - evitar estado sem recomendação quando há mesas ativas.
+
+- Frontend:
+  - `frontend/src/hooks/useGmInsights.ts` atualizado com novo contrato:
+    - `benchmarks`, `benchmark_position`, `trend`.
+  - `frontend/src/components/mestre/GmInsightsDashboard.tsx` atualizado para:
+    - exibir contexto de benchmark (base/amostra e timestamp);
+    - exibir badge de posição relativa (Q1..Q4) por mesa;
+    - exibir fallback transparente com tendência de 7 dias.
+
+### Validação executada
+
+- [x] `backend`: `npm run build` (TypeScript sem erros)
+- [x] `frontend`: `npm run build` (TypeScript + build Vite sem erros)
+
+### Checklist desta extensão
+
+- [x] Benchmarks dinâmicos implementados no backend
+- [x] Endpoint `/api/v1/gm/insights` integrado ao benchmark service
+- [x] Recomendações migradas para funil relativo por quartis
+- [x] Contrato frontend alinhado ao novo payload
+- [x] Dashboard atualizado com posição relativa e fallback temporal
+- [x] Validação técnica backend/frontend concluída
+- [x] Atualizar RESUMO_EXECUCAO.md
+
+---
