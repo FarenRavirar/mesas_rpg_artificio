@@ -64,11 +64,7 @@ export function SystemsAdminView() {
         setParentContext(null);
       }
     } else if (inspectorMode === 'edit' && selectedId) {
-      const success = await updateSystem(selectedId, {
-        name: data.name,
-        name_pt: data.name_pt,
-        aliases: data.aliases,
-      });
+      const success = await updateSystem(selectedId, data);
       if (success) {
         // Mantém inspector aberto após salvar
       }

@@ -154,6 +154,11 @@
 - `aliases_count` — Number (quantidade de aliases cadastrados) **[NOVO 18/04/2026]**
 - `children` — Array recursivo (só em `view=tree`)
 
+**Campos aceitos por `POST /admin` e `PUT /admin/:id`:**
+- **Obrigatórios:** `name` (string), `node_type` (string: 'system' | 'edition' | 'variant' | 'subsystem')
+- **Opcionais:** `name_pt` (string | null), `parent_id` (uuid | null), `aliases` (string[])
+- **Opcionais (apenas `node_type='system'`):** `logo_filename` (string | null), `website_url` (string | null)
+
 ### SYSTEMSUGGESTIONS (`routes/systemSuggestions.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
 |---|---|---|---|
