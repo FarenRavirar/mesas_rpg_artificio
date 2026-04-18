@@ -91,7 +91,7 @@ router.get('/', async (req: Request, res: Response) => {
         's.name as system_name',
         's.slug as system_slug',
         'gm.slug as gm_slug',
-        'gm.avatar_url as gm_avatar_url',
+        sql<string | null>`COALESCE(gm.avatar_url, p.avatar_url)`.as('gm_avatar_url'),
         'gm.badges as gm_badges',
         sql<string>`COALESCE(gm.nickname, p.display_name)`.as('gm_display_name'),
         // CORREÇÃO A-HIGH-01: Retornar objeto vtt_platform para cards de catálogo
@@ -367,7 +367,7 @@ router.get('/:slug', async (req: Request, res: Response) => {
           END
         `.as('vtt_platform'),
         'gm.slug as gm_slug',
-        'gm.avatar_url as gm_avatar_url',
+        sql<string | null>`COALESCE(gm.avatar_url, p.avatar_url)`.as('gm_avatar_url'),
         'gm.badges as gm_badges',
         'u.id as gm_user_id', // CORREÇÃO DT-025: Adicionar user_id para verificação de ownership
         sql<string>`COALESCE(gm.nickname, p.display_name)`.as('gm_display_name'),
