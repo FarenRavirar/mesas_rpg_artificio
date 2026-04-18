@@ -9,6 +9,10 @@ export interface System {
   path_slug: string | null;
   aliases?: string[];
   has_children?: boolean;
+  children_count?: number;
+  tables_count?: number;
+  aliases_count?: number;
+  children?: System[];
 }
 
 export interface PaginationInfo {

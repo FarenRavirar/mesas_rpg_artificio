@@ -41,6 +41,73 @@ Base: **ISO 9241 Dialogue Principles** (adequação à tarefa, autodescrição, 
 
 ---
 
+## 2.1. Fase 0 — Refatoração UX Admin (Pré-requisito Bloqueante)
+
+**Status:** 🟡 EM ANDAMENTO (18/04/2026)  
+**Sessão:** `26-04-18_1_auditoria-sistemas-etapa-1.md`
+
+Durante a validação de tipos TypeScript para a Fase 1, foi identificado que a interface admin atual é **infuncional** para gestão hierárquica de sistemas. A UX baseada em lista plana + modal genérico impossibilita:
+- Visualizar contexto hierárquico ao criar/editar
+- Entender onde um novo item será posicionado
+- Navegar eficientemente em árvores com 50+ nós
+
+**Decisão:** Implementar padrão BigTech (split-view 3 colunas: navegação | workspace | inspector) como pré-requisito para validar correções da Fase 1.
+
+### Progresso da Fase 0
+
+- [x] **Bloco 1 — Fundação de Contadores (Backend)** ✅ 18/04 07:00 BRT
+  - Adicionado 3 left joins em `GET /api/v1/systems` (children, tables, system_aliases)
+  - Contadores agregados: `children_count`, `tables_count`, `aliases_count`
+  - Tipos backend (`SystemRecord`) e frontend (`System`) atualizados
+  - `MAPA_DE_API.md` documentado com novos campos
+- [x] **Bloco 2 — AdminWorkspaceLayout (Frontend)** ✅ 18/04 07:00 BRT
+  - Componente de layout 3 colunas criado
+  - Workspace (flex-1) + Inspector lateral (400px)
+  - Responsivo (drawer < 1280px, fullscreen < 768px)
+- [x] **Bloco 3 — CatalogTree + Nodes (Frontend)** ✅ 18/04 07:07 BRT
+  - 4 componentes criados: `CatalogTree`, `CatalogTreeNode`, `NodeTypeBadge`, `EntityCounters`
+  - Árvore interativa com expand/collapse e keyboard navigation
+  - Filtros por busca e tipo, auto-expand de ancestrais
+  - Contadores visíveis (Nm·Nf·Na), botão "+" no hover
+- [x] **Bloco 4 — EntityInspector (Frontend)** ✅ 18/04 07:20 BRT
+  - 4 componentes criados: `EntityInspector`, `AliasesEditor`, `Breadcrumb`, `Field`
+  - Edição inline no painel lateral (substitui modal)
+  - Breadcrumb de contexto, slug preview, validação de tipos
+  - Dirty state tracking, editor de aliases, contador de mesas
+- [x] **Bloco 5 — Toolbar + Integração (Frontend)** ✅ 18/04 07:24 BRT
+  - `CatalogToolbar` criado (busca + filtros + botão criar)
+  - Hook `useSystems` expandido: fetchTree, createSystem, updateSystem, selectedId
+  - Helpers: findInTree, countVisibleInTree
+- [x] **Bloco 6 — Cenários (Frontend)** ✅ 18/04 07:27 BRT
+  - `ScenariosList` criado (lista vertical sem hierarquia)
+  - Reaproveitamento do EntityInspector para cenários
+  - Busca por nome, name_pt e aliases
+
+**Estimativa:** 20h (2,5 dias) — Progresso: 6/6 blocos (100%) ✅ **FASE 0 COMPLETA**
+
+### 2.2 Fase 0.1 — Integração no GestaoPage
+
+**Status:** ✅ COMPLETA — 3/3 passos finalizados em 18/04/2026 07:50 BRT  
+**Objetivo:** Integrar componentes da Fase 0 no GestaoPage para ativar UX BigTech
+
+- [x] **Passo 1 — Integrar Sistemas** ✅ 18/04 07:40 BRT
+  - Criado `SystemsAdminView.tsx` (componente integrador)
+  - Substituído `<SystemsPage />` por `<SystemsAdminView />`
+  - Conectados: AdminWorkspaceLayout, CatalogTree, CatalogToolbar, EntityInspector
+  - TypeScript compila sem erros
+- [x] **Passo 2 — Integrar Cenários** ✅ 18/04 07:45 BRT
+  - Criado `ScenariosAdminView.tsx` (componente integrador)
+  - Substituída renderização inline (49 linhas) por `<ScenariosAdminView />`
+  - Removidos imports, estados e funções não utilizadas
+  - TypeScript compila sem erros
+- [x] **Passo 3 — Validação Final** ✅ 18/04 07:50 BRT
+  - Sub-tabs Plataformas, Mesas e Sugestões verificadas (análise estática)
+  - Sem regressões identificadas
+  - TypeScript compila sem erros
+
+**Estimativa:** 4h — Progresso: 3/3 passos (100%) ✅ **FASE 0.1 COMPLETA**
+
+---
 
 ## 3. Matriz de Achados
 

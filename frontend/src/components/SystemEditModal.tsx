@@ -223,11 +223,16 @@ export const SystemEditModal = ({ system, systemsTree, onClose, onSuccess }: Sys
           </div>
 
           {/* Sistema Pai */}
-          {(nodeType === 'edition' || nodeType === 'variant') && (
+          {(nodeType === 'edition' || nodeType === 'variant' || nodeType === 'subsystem') && (
             <div>
               <label className="block text-sm font-semibold text-white mb-2">
                 Sistema Pai <span className="text-red-400">*</span>
               </label>
+              <p className="text-xs text-white/50 mb-2">
+                {nodeType === 'edition' && 'Selecione o sistema base (ex: D&D para criar "5e")'}
+                {nodeType === 'subsystem' && 'Selecione o sistema base (ex: D&D para criar "Ravenloft")'}
+                {nodeType === 'variant' && 'Selecione a edição/subsistema (ex: "5e" para criar "2024")'}
+              </p>
               <select
                 value={parentId}
                 onChange={(e) => setParentId(e.target.value)}

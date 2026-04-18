@@ -6,8 +6,10 @@ const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export function useSystems() {
   const [systems, setSystems] = useState<System[]>([]);
+  const [systemsTree, setSystemsTree] = useState<System[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const fetchSystems = async () => {
     setLoading(true);
@@ -30,6 +32,87 @@ export function useSystems() {
     }
   };
 
+  const fetchTree = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/systems?view=tree`, {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      setSystemsTree(Array.isArray(data.data) ? data.data : []);
+    } catch (error) {
+      console.error('[useSystems] Erro ao buscar árvore:', error);
+      setSystemsTree([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createSystem = async (formData: {
+    name: string;
+    name_pt: string | null;
+    node_type: string;
+    parent_id: string | null;
+    aliases: string[];
+  }) => {
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/systems/admin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        toast.success('Sistema criado!');
+        await fetchTree();
+        return true;
+      } else {
+        const data = await response.json();
+        toast.error(data.error || 'Erro ao criar sistema');
+        return false;
+      }
+    } catch (error) {
+      console.error('[useSystems] Erro ao criar sistema:', error);
+      toast.error('Erro ao criar sistema');
+      return false;
+    }
+  };
+
+  const updateSystem = async (id: string, formData: {
+    name: string;
+    name_pt: string | null;
+    aliases: string[];
+  }) => {
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/systems/admin/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        toast.success('Sistema atualizado!');
+        await fetchTree();
+        return true;
+      } else {
+        const data = await response.json();
+        toast.error(data.error || 'Erro ao atualizar sistema');
+        return false;
+      }
+    } catch (error) {
+      console.error('[useSystems] Erro ao atualizar sistema:', error);
+      toast.error('Erro ao atualizar sistema');
+      return false;
+    }
+  };
+
   const deleteSystem = async (id: string, name: string) => {
     if (!confirm(`Deletar sistema "${name}"? Esta ação não pode ser desfeita.`)) return;
 
@@ -41,7 +124,7 @@ export function useSystems() {
 
       if (response.ok) {
         toast.success('Sistema deletado!');
-        fetchSystems();
+        await fetchTree();
       } else {
         let errorMessage = 'Erro ao deletar sistema';
         try {
@@ -72,10 +155,16 @@ export function useSystems() {
 
   return {
     systems: filteredSystems,
+    systemsTree,
     loading,
     searchQuery,
     setSearchQuery,
+    selectedId,
+    setSelectedId,
     fetchSystems,
+    fetchTree,
+    createSystem,
+    updateSystem,
     deleteSystem,
   };
 }

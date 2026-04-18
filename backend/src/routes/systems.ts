@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { db } from '../db';
+import { sql } from 'kysely';
 import type { SystemNodeType } from '../db/types';
 import { authMiddleware, requireRole } from '../middleware/auth';
 
@@ -8,11 +9,15 @@ const router = Router();
 interface SystemRecord {
   id: string;
   name: string;
+  name_pt: string | null;
   slug: string;
   parent_id: string | null;
   node_type: SystemNodeType;
   depth: number;
   path_slug: string | null;
+  children_count: number;
+  tables_count: number;
+  aliases_count: number;
 }
 
 interface SystemTreeNode extends SystemRecord {
@@ -103,16 +108,26 @@ router.get('/', async (req: Request, res: Response) => {
 
     const shouldPaginate = view !== 'tree' && limit !== undefined && limit > 0;
 
-    // Query base de systems
+    // Query base de systems com contadores agregados
     let systemsQuery = db
-      .selectFrom('systems')
-      .select(['id', 'name', 'name_pt', 'slug', 'parent_id', 'node_type', 'depth', 'path_slug'])
-      .orderBy('depth', 'asc')
-      .orderBy('name', 'asc');
+      .selectFrom('systems as s')
+      .leftJoin('systems as children', 'children.parent_id', 's.id')
+      .leftJoin('tables', 'tables.system_id', 's.id')
+      .leftJoin('system_aliases as al', 'al.system_id', 's.id')
+      .select([
+        's.id', 's.name', 's.name_pt', 's.slug', 
+        's.parent_id', 's.node_type', 's.depth', 's.path_slug',
+        sql<number>`COUNT(DISTINCT children.id)`.as('children_count'),
+        sql<number>`COUNT(DISTINCT tables.id)`.as('tables_count'),
+        sql<number>`COUNT(DISTINCT al.id)`.as('aliases_count'),
+      ])
+      .groupBy(['s.id'])
+      .orderBy('s.depth', 'asc')
+      .orderBy('s.name', 'asc');
 
     // Aplicar cursor (continuar de onde parou)
     if (shouldPaginate && cursor) {
-      systemsQuery = systemsQuery.where('id', '>', cursor);
+      systemsQuery = systemsQuery.where('s.id', '>', cursor);
     }
 
     // Aplicar limit (+1 para detectar has_more)

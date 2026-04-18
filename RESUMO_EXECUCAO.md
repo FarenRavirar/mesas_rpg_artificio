@@ -1,6 +1,6 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 17/04/2026 17:20 BRT
+**Última atualização:** 18/04/2026 07:00 BRT
 
 ---
 
@@ -34,6 +34,7 @@
 - **V4 em execução (Passo 8 concluído):** arquivo órfão `frontend/src/components/mestre/MestreWhySection.tsx` removido e busca de referências residuais retornando zero; frontend typecheck sem erros.
 - **V4 em execução (Passos 9–10 concluídos tecnicamente):** rota OG (`backend/src/routes/og.ts`) registrada em `backend/src/server.ts`, `frontend/nginx.conf` com proxy condicional para crawler, `docker-compose.beta.yml` e `docker-compose.prod.yml` com volume compartilhado `frontend_dist_*` + `INDEX_HTML_PATH`/`PUBLIC_SITE_URL`, `frontend/index.html` com fallback SEO/OG/Twitter e novo `EditGmProfileForm` integrado ao `PainelMestrePage`; typecheck backend/frontend sem erros.
 - **✅ Sessão 10 concluída (17/04/2026 17:20):** Resolvidas todas as 3 pendências da Reformulação V4: PENDÊNCIA 1 (CTA dinâmico + Central de Ajuda com 8 seções), PENDÊNCIA 2 (TableCard altura fluida - `min-h-[420px]` removido), PENDÊNCIA 3 (Rota OG extensível `/:type/:slug` com switch case). Documentação técnica 100% sincronizada (`MAPA_DE_API.md`, `ARQUITETURA_PROJETO.md` §17, `Reformulacao_mestre_v4.md` com status 21/21 patches). Changelog atualizado. **Reformulação V4 100% completa.**
+- **✅ Sessão 18_1 concluída (18/04/2026):** Fase 0 (Refatoração UX Admin - Padrão BigTech) completa como pré-requisito para auditoria de sistemas. **Bloco 1:** contadores agregados (`children_count`, `tables_count`, `aliases_count`) adicionados em `GET /api/v1/systems` via 3 left joins; tipos backend/frontend atualizados; `MAPA_DE_API.md` documentado. **Bloco 2:** componente `AdminWorkspaceLayout` criado (layout 3 colunas: workspace + inspector lateral). **Bloco 3:** 4 componentes criados (`CatalogTree`, `CatalogTreeNode`, `NodeTypeBadge`, `EntityCounters`) com árvore interativa, keyboard navigation, filtros e contadores visíveis. **Bloco 4:** 4 componentes criados (`EntityInspector`, `AliasesEditor`, `Breadcrumb`, `Field`) com edição inline, breadcrumb de contexto, slug preview, validação de tipos e dirty state tracking. **Bloco 5:** `CatalogToolbar` criado, hook `useSystems` expandido (fetchTree, createSystem, updateSystem, selectedId), helpers (findInTree, countVisibleInTree). **Bloco 6:** `ScenariosList` criado para cenários (lista vertical sem hierarquia). **Fase 0 100% completa (6/6 blocos).** **Fase 0.1 100% completa:** Passo 1 — criado `SystemsAdminView.tsx`, substituído `<SystemsPage />` por nova estrutura UX BigTech. Passo 2 — criado `ScenariosAdminView.tsx`, substituída renderização inline de cenários. Passo 3 — validação de regressão (Plataformas, Mesas, Sugestões verificadas). **UX BigTech ativada no GestaoPage (3/3 passos).**
 
 
 ---
@@ -55,19 +56,33 @@ Iniciar execução sistemática da auditoria técnica documentada em `docs/audit
 
 ## Última Sessão
 
-**Data:** 18/04/2026 03:51 BRT  
-**Tipo:** Planejamento — Auditoria de Sistemas (Etapa 1)  
+**Data:** 18/04/2026 05:38 BRT  
+**Tipo:** Correção de Deploy — Sincronização de Tipos TypeScript  
 **Arquivo:** `sessoes/26-04-18_1_auditoria-sistemas-etapa-1.md`  
-**O que será feito:**
-- Análise completa dos documentos de auditoria (`auditoria_sistemas_claude.md` + `sistemas_auditoria_codex.md`)
-- Criação do plano de execução para Fase 1 (Correções Críticas)
-- Identificação de 20 problemas catalogados (6 CRÍTICOS, 5 ALTOS, 7 MÉDIOS, 2 BAIXOS)
-- Definição de gates de saída e critérios de conclusão por fase
-- Preparação para execução das migrations 104/105 e refatoração de rotas admin
+**O que foi feito:**
+- Resolvidos 24 problemas de tipos TypeScript que bloqueavam deploy beta
+- Corrigidos 8 arquivos: 3 de tipos base + 4 com uso de `children` + 1 com `aliases`
+- Reformulado `migrations_guide.md` (1207 → 205 linhas, 83% menor)
+- Aplicadas 2 lições aprendidas: sincronização SQL→Backend→Frontend e verificações de campos opcionais
+- Commits: `11414e3` (tipos base + guia) e `72d5ddc` (4 arquivos adicionais)
+- Deploy beta disparado com todas as correções (commit `72d5ddc`)
 
-**Status:** ⏳ Em planejamento
+**Status:** ✅ Concluída. Deploy em andamento.
 
 ---
+
+## Próxima Ação
+
+**Validar Deploy Beta e Continuar Auditoria de Sistemas**
+
+1. **Aguardar conclusão do deploy beta** (commit `72d5ddc`)
+2. **Validar funcionalidade** após deploy:
+   - Containers rodando
+   - API respondendo
+   - Testar criação/edição de sistema com `'subsystem'`
+3. **Executar checklist de 8 pontos** da Fase 1 (migrations, rotas admin, paginação)
+4. **Criar sessão Etapa 2** para Fase 2 (Reparent recursivo, notificações, unicidade por path_slug)
+
 
 **Data:** 17/04/2026 17:20 BRT  
 **Tipo:** Resolução de Pendências — Reformulação V4 Finalizada  

@@ -138,10 +138,19 @@
 ### SYSTEMS (`routes/systems.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
 |---|---|---|---|
-| **GET** | `/` | ✅ Em Uso | SystemEditModal.tsx, UserSystemsSelector.tsx, CreateTableForm.tsx, SystemsPage.tsx, SystemsTree.tsx, useSystems.ts, CatalogoPage.tsx |
+| **GET** | `/` | ✅ Em Uso | SystemEditModal.tsx, UserSystemsSelector.tsx, CreateTableForm.tsx, SystemsPage.tsx, SystemsTree.tsx, useSystems.ts, CatalogoPage.tsx — Query params: `view` (tree/flat), `search`, `limit`, `cursor`; retorna contadores agregados: `children_count`, `tables_count`, `aliases_count` (adicionados em 18/04/2026 para UX BigTech) |
 | **POST** | `/admin` | ✅ Em Uso | SystemEditModal.tsx, UserSystemsSelector.tsx, CreateTableForm.tsx, SystemsPage.tsx, SystemsTree.tsx, useSystems.ts, CatalogoPage.tsx |
 | **PUT** | `/admin/:id` | ✅ Em Uso | SystemEditModal.tsx, UserSystemsSelector.tsx, CreateTableForm.tsx, SystemsPage.tsx, SystemsTree.tsx, useSystems.ts, CatalogoPage.tsx |
 | **DELETE** | `/admin/:id` | ✅ Em Uso | SystemEditModal.tsx, UserSystemsSelector.tsx, CreateTableForm.tsx, SystemsPage.tsx, SystemsTree.tsx, useSystems.ts, CatalogoPage.tsx |
+
+**Campos retornados por `GET /`:**
+- `id`, `name`, `name_pt`, `slug`, `parent_id`, `node_type`, `depth`, `path_slug`
+- `aliases` — Array de strings (aliases do sistema)
+- `has_children` — Boolean (se tem filhos)
+- `children_count` — Number (quantidade de sistemas filhos) **[NOVO 18/04/2026]**
+- `tables_count` — Number (quantidade de mesas usando o sistema) **[NOVO 18/04/2026]**
+- `aliases_count` — Number (quantidade de aliases cadastrados) **[NOVO 18/04/2026]**
+- `children` — Array recursivo (só em `view=tree`)
 
 ### SYSTEMSUGGESTIONS (`routes/systemSuggestions.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
