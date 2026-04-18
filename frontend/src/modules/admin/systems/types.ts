@@ -5,7 +5,7 @@ export interface System {
   slug: string;
   node_type: 'system' | 'edition' | 'variant' | 'subsystem';
   parent_id: string | null;
-  depth: number;
+  depth?: number;
   path_slug: string | null;
   aliases?: string[];
   has_children?: boolean;

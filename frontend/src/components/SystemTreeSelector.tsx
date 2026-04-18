@@ -9,7 +9,7 @@ interface FlattenedSystemNode {
   name_pt: string | null;
   aliases: string[];
   path_slug: string | null;
-  depth: number;
+  depth?: number;
   pathLabel: string;
 }
 
@@ -43,13 +43,15 @@ const flattenTree = (nodes: SystemTreeNode[], breadcrumb: string[] = []): Flatte
       slug: node.slug,
       name: node.name,
       name_pt: node.name_pt,
-      aliases: node.aliases,
+      aliases: node.aliases ?? [],
       path_slug: node.path_slug,
       depth: node.depth,
       pathLabel: path.join(' > '),
     });
 
-    flattened.push(...flattenTree(node.children, path));
+    if (node.children) {
+      flattened.push(...flattenTree(node.children, path));
+    }
   }
 
   return flattened;
@@ -77,7 +79,7 @@ export const SystemTreeSelector = ({
 
     if (!activeRootId || !tree.some((node) => node.id === activeRootId)) {
       setActiveRootId(tree[0].id);
-      setActiveMidId(tree[0].children[0]?.id ?? null);
+      setActiveMidId(tree[0].children?.[0]?.id ?? null);
     }
   }, [activeRootId, tree]);
 
@@ -110,7 +112,7 @@ export const SystemTreeSelector = ({
         || normalizeText(node.name_pt || '').includes(normalizedSearch)
         || normalizeText(node.slug).includes(normalizedSearch)
         || normalizeText(node.path_slug ?? '').includes(normalizedSearch)
-        || node.aliases.some((alias) => normalizeText(alias).includes(normalizedSearch));
+        || (node.aliases?.some((alias) => normalizeText(alias).includes(normalizedSearch)) ?? false);
     });
   }, [flatNodes, normalizedSearch]);
 
@@ -156,7 +158,7 @@ export const SystemTreeSelector = ({
         onClick={() => {
           if (layer === 'root') {
             setActiveRootId(node.id);
-            setActiveMidId(node.children[0]?.id ?? null);
+            setActiveMidId(node.children?.[0]?.id ?? null);
           }
 
           if (layer === 'mid') {
@@ -173,13 +175,13 @@ export const SystemTreeSelector = ({
           </span>
           <span className="flex-1">
             <span className="block text-sm font-semibold">{getDisplayName(node, language)}</span>
-            {node.aliases.length > 0 && (
+            {node.aliases && node.aliases.length > 0 && (
               <span className="mt-0.5 block text-xs text-white/50 line-clamp-1">
                 {node.aliases.slice(0, 3).join(' · ')}
               </span>
             )}
           </span>
-          {node.children.length > 0 && <ChevronRight className="h-4 w-4 text-white/40" />}
+          {node.children && node.children.length > 0 && <ChevronRight className="h-4 w-4 text-white/40" />}
         </span>
       </button>
     );
@@ -242,13 +244,16 @@ export const SystemTreeSelector = ({
         const findNodeInTree = (nodes: SystemTreeNode[], id: string): SystemTreeNode | null => {
           for (const node of nodes) {
             if (node.id === id) return node;
-            const found = findNodeInTree(node.children, id);
-            if (found) return found;
+            if (node.children) {
+              const found = findNodeInTree(node.children, id);
+              if (found) return found;
+            }
           }
           return null;
         };
 
         const fullNode = findNodeInTree(tree, selectedIds[0]);
+        if (!fullNode) return null;
         const pathParts = selectedNode.pathLabel.split(' > ');
         
         // Determinar nível do nó selecionado (0=base, 1=edição, 2=variante)
@@ -264,7 +269,7 @@ export const SystemTreeSelector = ({
         } else if (nodeDepth === 1) {
           // Encontrar pai (base)
           for (const root of tree) {
-            if (root.children.some(c => c.id === selectedIds[0])) {
+            if (root.children?.some(c => c.id === selectedIds[0])) {
               baseNode = root;
               editionNode = fullNode;
               break;
@@ -273,8 +278,8 @@ export const SystemTreeSelector = ({
         } else if (nodeDepth === 2) {
           // Encontrar avô (base) e pai (edição)
           for (const root of tree) {
-            for (const mid of root.children) {
-              if (mid.children.some(c => c.id === selectedIds[0])) {
+            for (const mid of root.children ?? []) {
+              if (mid.children?.some(c => c.id === selectedIds[0])) {
                 baseNode = root;
                 editionNode = mid;
                 variantNode = fullNode;

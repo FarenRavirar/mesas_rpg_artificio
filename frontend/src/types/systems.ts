@@ -7,9 +7,9 @@ export interface SystemTreeNode {
   slug: string;
   parent_id: string | null;
   node_type: SystemNodeType;
-  depth: number;
+  depth?: number;
   path_slug: string | null;
-  aliases: string[];
-  has_children: boolean;
-  children: SystemTreeNode[];
+  aliases?: string[];
+  has_children?: boolean;
+  children?: SystemTreeNode[];
 }
