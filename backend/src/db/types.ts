@@ -451,6 +451,17 @@ export type VttPlatform = Selectable<VttPlatformsTable>;
 export type NewVttPlatform = Insertable<VttPlatformsTable>;
 export type VttPlatformUpdate = Updateable<VttPlatformsTable>;
 
+// GM Preferred VTT Platforms (Migration 109) - Tabela de junção
+export interface GmPreferredVttPlatformsTable {
+  id: Generated<string>;
+  gm_profile_id: string;
+  vtt_platform_id: string;
+  created_at: Generated<Date>;
+}
+
+export type GmPreferredVttPlatform = Selectable<GmPreferredVttPlatformsTable>;
+export type NewGmPreferredVttPlatform = Insertable<GmPreferredVttPlatformsTable>;
+
 // Communication Platforms (Migration 105)
 export interface CommunicationPlatformsTable {
   id: Generated<string>;
@@ -513,14 +524,15 @@ export interface Database {
   gm_profile_view_events: GmProfileViewEventsTable;
   table_metric_events: TableMetricEventsTable;
   table_click_events: TableClickEventsTable; // Migration 007: A/B testing
-  
+
   // VTT Platforms (Migration 006)
   vtt_platforms: VttPlatformsTable;
   vtt_platform_suggestions: VttPlatformSuggestionsTable;
+  gm_preferred_vtt_platforms: GmPreferredVttPlatformsTable; // Migration 109
 
   // Communication Platforms (Migration 105)
   communication_platforms: CommunicationPlatformsTable;
-  
+
   // Migration 17: Sistema de Changelog/Atualizações
   update_log: UpdateLogTable;
 }

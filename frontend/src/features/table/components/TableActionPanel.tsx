@@ -1,6 +1,7 @@
 import type { TableViewModel, TableActionPanelVariant } from '../types/tableView.types';
 import { getButtonStyle, getUrgencyColor, handleCTA, handleEdit, handleStatus, handleDelete } from '../utils/uiHelpers';
 import { TableContactsBlock } from './TableContactsBlock';
+import { useTracking } from '../../../hooks/useTracking';
 
 interface TableActionPanelProps {
   vm: TableViewModel;
@@ -13,6 +14,8 @@ interface TableActionPanelProps {
  * Reutilizável em: MesaPage, Painel do Mestre, Card expandido
  */
 export function TableActionPanel({ vm, variant = 'full' }: TableActionPanelProps) {
+  const { trackTableClick } = useTracking();
+
   // Modo owner: gestão + preview completo (como visitante vê)
   if (variant === 'owner') {
     return (
@@ -182,7 +185,8 @@ export function TableActionPanel({ vm, variant = 'full' }: TableActionPanelProps
                       href={vm.vttPlatform.website_url} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 hover:opacity-80 transition"
+                      onClick={() => trackTableClick(vm.slug, 'link_vtt')}
+                      className="flex items-center gap-2 hover:opacity-80 hover:underline transition"
                       title={`Abrir ${vm.vttPlatform.name}`}
                     >
                       {vm.vttPlatform.logo_filename && (
@@ -237,7 +241,10 @@ export function TableActionPanel({ vm, variant = 'full' }: TableActionPanelProps
       {/* CTA Primário */}
       <button
         disabled={vm.cta.disabled}
-        onClick={() => handleCTA(vm.cta)}
+        onClick={() => {
+          trackTableClick(vm.slug, 'cta_entrar');
+          handleCTA(vm.cta);
+        }}
         className={`w-full py-3 rounded-xl font-semibold ${getButtonStyle(vm.cta.variant)}`}
       >
         {vm.cta.label}
@@ -330,7 +337,7 @@ export function TableActionPanel({ vm, variant = 'full' }: TableActionPanelProps
                   href={vm.vttPlatform.website_url} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 hover:opacity-80 transition"
+                  className="flex items-center gap-2 hover:opacity-80 hover:underline transition"
                   title={`Abrir ${vm.vttPlatform.name}`}
                 >
                   {vm.vttPlatform.logo_filename && (

@@ -41,7 +41,7 @@ export function SystemBadge({ name, logoFilename, websiteUrl, className = '' }: 
         href={websiteUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className={`${baseClasses} hover:bg-[#1a2a4a] hover:border-[var(--color-artificio-orange)]/30 transition-colors`}
+        className={`${baseClasses} hover:bg-[#1a2a4a] hover:border-[var(--color-artificio-orange)]/30 hover:underline transition-colors`}
         title={`${name} - Abrir site oficial`}
         onClick={(e) => e.stopPropagation()} // Evita trigger do click do card
       >

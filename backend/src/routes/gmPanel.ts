@@ -270,9 +270,25 @@ router.put('/profile', authMiddleware, async (req: Request, res: Response) => {
       )
     : undefined;
   
+  // DEBUG: Log para verificar o tipo de contact_methods
+  console.log('[PUT /gm/profile] contact_methods type:', typeof contact_methods);
+  console.log('[PUT /gm/profile] contact_methods value:', contact_methods);
+  
   // Validação de contact_methods (array de contatos)
-  const safeContactMethods = Array.isArray(contact_methods)
-    ? contact_methods
+  // HOTFIX: Se vier como string, fazer parse
+  let parsedContactMethods = contact_methods;
+  if (typeof contact_methods === 'string') {
+    try {
+      parsedContactMethods = JSON.parse(contact_methods);
+      console.log('[PUT /gm/profile] Parsed contact_methods from string');
+    } catch (e) {
+      console.error('[PUT /gm/profile] Failed to parse contact_methods:', e);
+      parsedContactMethods = undefined;
+    }
+  }
+  
+  const safeContactMethods = Array.isArray(parsedContactMethods)
+    ? parsedContactMethods
         .filter((contact) => contact && typeof contact === 'object')
         .map((contact) => {
           const channel = contact.channel;
@@ -1077,6 +1093,158 @@ router.post('/tables/:id/favorite', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('[POST /tables/:id/favorite]', error);
     res.sendStatus(500);
+  }
+});
+
+// GET /api/v1/gm/insights — Dashboard de insights agregados
+router.get('/insights', authMiddleware, async (req: Request, res: Response) => {
+  const userId = (req as any).user.userId;
+
+  try {
+    // Verificar se usuário tem perfil GM
+    const gmProfile = await db
+      .selectFrom('gm_profiles')
+      .select('id')
+      .where('user_id', '=', userId)
+      .executeTakeFirst();
+
+    if (!gmProfile) {
+      return res.status(404).json({ error: 'Perfil de mestre não encontrado.' });
+    }
+
+    // Buscar todas as mesas do GM com métricas
+    const tables = await db
+      .selectFrom('tables as t')
+      .leftJoin('table_metrics as tm', 'tm.table_id', 't.id')
+      .leftJoin('systems as s', 's.id', 't.system_id')
+      .select([
+        't.id',
+        't.slug',
+        't.title',
+        't.status',
+        's.name as system_name',
+        sql<number>`COALESCE(tm.views_count, 0)`.as('views'),
+        sql<number>`COALESCE(tm.clicks_count, 0)`.as('clicks'),
+        sql<number>`COALESCE(tm.contacts_count, 0)`.as('contacts'),
+        sql<number>`COALESCE(tm.favorites_count, 0)`.as('favorites'),
+      ])
+      .where('t.gm_id', '=', gmProfile.id)
+      .where('t.status', 'in', ['active', 'full'])
+      .execute();
+
+    // Buscar breakdown de cliques por variant
+    const clickBreakdowns = await db
+      .selectFrom('table_click_events as tce')
+      .innerJoin('tables as t', 't.id', 'tce.table_id')
+      .select([
+        'tce.table_id',
+        'tce.variant',
+        sql<number>`COUNT(*)`.as('count'),
+      ])
+      .where('t.gm_id', '=', gmProfile.id)
+      .groupBy(['tce.table_id', 'tce.variant'])
+      .execute();
+
+    // Mapear breakdown por mesa
+    const breakdownMap = new Map<string, Record<string, number>>();
+    for (const row of clickBreakdowns) {
+      if (!breakdownMap.has(row.table_id)) {
+        breakdownMap.set(row.table_id, {});
+      }
+      breakdownMap.get(row.table_id)![row.variant || 'unknown'] = Number(row.count);
+    }
+
+    // Calcular métricas e enriquecer dados
+    let totalViews = 0;
+    let totalClicks = 0;
+    let totalContacts = 0;
+    let totalFavorites = 0;
+
+    const enrichedTables = tables.map((table) => {
+      const views = Number(table.views);
+      const clicks = Number(table.clicks);
+      const contacts = Number(table.contacts);
+      const favorites = Number(table.favorites);
+
+      totalViews += views;
+      totalClicks += clicks;
+      totalContacts += contacts;
+      totalFavorites += favorites;
+
+      const ctr = views > 0 ? (clicks / views) * 100 : 0;
+      const breakdown = breakdownMap.get(table.id) || {};
+
+      return {
+        id: table.id,
+        slug: table.slug,
+        title: table.title,
+        status: table.status,
+        system_name: table.system_name,
+        views,
+        clicks,
+        contacts,
+        favorites,
+        ctr: Math.round(ctr * 10) / 10,
+        click_breakdown: {
+          refactored_v4: breakdown.refactored_v4 || 0,
+          cta_entrar: breakdown.cta_entrar || 0,
+          link_vtt: breakdown.link_vtt || 0,
+        },
+      };
+    });
+
+    // Calcular taxas agregadas
+    const overallCtr = totalViews > 0 ? (totalClicks / totalViews) * 100 : 0;
+    const contactRate = totalClicks > 0 ? (totalContacts / totalClicks) * 100 : 0;
+
+    // Gerar recomendações
+    const recommendations: Array<{
+      severity: 'high' | 'medium' | 'low';
+      table_slug: string;
+      table_title: string;
+      message: string;
+    }> = [];
+
+    for (const table of enrichedTables) {
+      if (table.views >= 20 && table.contacts === 0) {
+        recommendations.push({
+          severity: 'high',
+          table_slug: table.slug,
+          table_title: table.title,
+          message: `Mesa tem ${table.views} visualizações e zero contatos. Revise capa, preço e descrição.`,
+        });
+      } else if (table.clicks >= 10 && table.contacts === 0) {
+        recommendations.push({
+          severity: 'medium',
+          table_slug: table.slug,
+          table_title: table.title,
+          message: `Mesa recebe cliques mas não gera contato. Teste um CTA mais direto na descrição.`,
+        });
+      } else if (table.views === 0 && table.clicks === 0) {
+        recommendations.push({
+          severity: 'low',
+          table_slug: table.slug,
+          table_title: table.title,
+          message: `Mesa ainda não recebeu tráfego. Compartilhe o link em suas redes.`,
+        });
+      }
+    }
+
+    res.json({
+      overview: {
+        total_views: totalViews,
+        total_clicks: totalClicks,
+        total_contacts: totalContacts,
+        total_favorites: totalFavorites,
+        ctr: Math.round(overallCtr * 10) / 10,
+        contact_rate: Math.round(contactRate * 10) / 10,
+      },
+      tables: enrichedTables,
+      recommendations,
+    });
+  } catch (error: any) {
+    console.error('[GET /gm/insights]', error);
+    res.status(500).json({ error: 'Erro ao buscar insights.' });
   }
 });
 

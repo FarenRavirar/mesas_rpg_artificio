@@ -412,7 +412,22 @@ router.get('/:slug', async (req: Request, res: Response) => {
       .orderBy('sort_order', 'asc')
       .execute();
 
-    res.json({ data: { ...table, contacts, schedules } });
+    // Buscar VTT platforms preferidas do mestre
+    const gmVttPlatforms = table.gm_user_id ? await db
+      .selectFrom('gm_preferred_vtt_platforms as gpvp')
+      .innerJoin('vtt_platforms as vtt', 'vtt.id', 'gpvp.vtt_platform_id')
+      .innerJoin('gm_profiles as gm', 'gm.id', 'gpvp.gm_profile_id')
+      .select([
+        'vtt.id',
+        'vtt.name',
+        'vtt.slug',
+        'vtt.logo_filename',
+        'vtt.website_url',
+      ])
+      .where('gm.user_id', '=', table.gm_user_id)
+      .execute() : [];
+
+    res.json({ data: { ...table, contacts, schedules, gm_vtt_platforms: gmVttPlatforms } });
   } catch (error: any) {
     // Log detalhado de erro de banco de dados
     logDatabaseError(req, error, {

@@ -111,6 +111,13 @@ export interface TableViewModel {
   masterSlug?: string;
   masterAvatar?: string;
   masterBio?: string;
+  masterVttPlatforms?: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    logo_filename: string | null;
+    website_url: string | null;
+  }>;
 
   // Horários
   schedules: TableSchedule[];

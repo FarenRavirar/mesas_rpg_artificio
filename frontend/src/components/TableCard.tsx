@@ -198,9 +198,19 @@ export function TableCardComponent({ table }: { table: TableCard }) {
                   👤
                 </div>
               )}
-              <span className="text-sm text-white/70 font-medium truncate">
-                {table.gm_display_name}
-              </span>
+              {table.gm_slug ? (
+                <Link
+                  to={`/mestre/${table.gm_slug}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-sm text-white/70 hover:text-white font-medium truncate transition-colors hover:underline"
+                >
+                  {table.gm_display_name}
+                </Link>
+              ) : (
+                <span className="text-sm text-white/70 font-medium truncate">
+                  {table.gm_display_name}
+                </span>
+              )}
             </div>
           )}
 

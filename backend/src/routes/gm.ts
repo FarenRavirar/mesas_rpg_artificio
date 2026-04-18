@@ -503,4 +503,50 @@ router.post('/:slug/contact', publicRateLimiter, async (req: Request, res: Respo
   }
 });
 
+// POST /api/v1/gm/:slug/contact-click — Registrar clique em método de contato
+router.post('/:slug/contact-click', publicRateLimiter, async (req: Request, res: Response) => {
+  const { slug } = req.params;
+  const { channel } = req.body as { channel?: string };
+
+  // Validar slug
+  if (!slug || slug.length > 200 || !/^[a-z0-9-]+$/i.test(slug)) {
+    return res.status(400).json({ error: 'Slug inválido.' });
+  }
+
+  // Validar channel
+  const validChannels = ['whatsapp', 'email', 'discord', 'form'];
+  if (!channel || !validChannels.includes(channel)) {
+    return res.status(400).json({ error: 'Canal inválido.' });
+  }
+
+  try {
+    // Buscar perfil GM pelo slug
+    const profile = await db
+      .selectFrom('gm_profiles as gm')
+      .select(['gm.id'])
+      .where('gm.slug', '=', slug)
+      .executeTakeFirst();
+
+    if (!profile) {
+      return res.status(404).json({ error: 'Mestre não encontrado.' });
+    }
+
+    // Registrar clique (por enquanto apenas log, futuramente pode salvar em tabela)
+    console.log('[GM CONTACT CLICK]', {
+      gm_profile_id: profile.id,
+      slug,
+      channel,
+      timestamp: new Date().toISOString(),
+    });
+
+    // TODO: Salvar em tabela gm_contact_metrics para analytics
+    // await db.insertInto('gm_contact_clicks').values({ gm_profile_id: profile.id, channel }).execute();
+
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('[POST /gm/:slug/contact-click]', error);
+    res.status(500).json({ error: 'Erro ao registrar clique.' });
+  }
+});
+
 export default router;

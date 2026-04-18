@@ -1,17 +1,24 @@
-import { User } from 'lucide-react';
+import { User, Gamepad2 } from 'lucide-react';
 
 interface MasterCardProps {
   masterName?: string;
   masterSlug?: string;
   masterAvatar?: string;
   masterBio?: string;
+  masterVttPlatforms?: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    logo_filename: string | null;
+    website_url: string | null;
+  }>;
 }
 
 /**
  * Card do Mestre na página de detalhes da mesa
- * Exibe foto, nome, bio resumida e link para perfil público
+ * Exibe foto, nome, bio resumida, plataformas VTT e link para perfil público
  */
-export function MasterCard({ masterName, masterSlug, masterAvatar, masterBio }: MasterCardProps) {
+export function MasterCard({ masterName, masterSlug, masterAvatar, masterBio, masterVttPlatforms }: MasterCardProps) {
   if (!masterName || !masterSlug) {
     return null;
   }
@@ -52,6 +59,35 @@ export function MasterCard({ masterName, masterSlug, masterAvatar, masterBio }: 
             <p className="text-sm text-white/70 line-clamp-2 mb-3">
               {masterBio}
             </p>
+          )}
+
+          {/* Plataformas VTT */}
+          {masterVttPlatforms && masterVttPlatforms.length > 0 && (
+            <div className="mb-3">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Gamepad2 className="w-3.5 h-3.5 text-purple-300/70" />
+                <span className="text-xs text-purple-300/70 font-semibold uppercase tracking-wide">
+                  Plataformas que uso
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {masterVttPlatforms.map((platform) => (
+                  <div
+                    key={platform.id}
+                    className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20"
+                  >
+                    {platform.logo_filename && (
+                      <img
+                        src={`/vtt-logos/${platform.logo_filename}`}
+                        alt={platform.name}
+                        className="w-4 h-4 object-contain"
+                      />
+                    )}
+                    <span className="text-xs text-white/80">{platform.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
 
           <div className="flex items-center gap-2 text-sm text-purple-300 group-hover:text-purple-200 transition">

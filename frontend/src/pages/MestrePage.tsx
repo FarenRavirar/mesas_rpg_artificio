@@ -122,7 +122,7 @@ export const MestrePage = () => {
       {/* Contact Methods */}
       {profile.contact_methods && profile.contact_methods.length > 0 && (
         <section className="container" style={{ marginTop: '3rem' }}>
-          <MestreContactMethods contacts={profile.contact_methods} />
+          <MestreContactMethods contacts={profile.contact_methods} gmSlug={slug || ''} />
         </section>
       )}
 

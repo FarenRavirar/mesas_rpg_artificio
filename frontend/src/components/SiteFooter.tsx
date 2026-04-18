@@ -80,7 +80,7 @@ export const SiteFooter = () => {
       </div>
 
       <div className="border-t border-white/10">
-        <div className="container mx-auto px-6 py-4 text-xs text-white/50 flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
+        <div className="container mx-auto px-6 py-6 text-xs text-white/50 flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
           <span>© {new Date().getFullYear()} Artifício RPG. Todos os direitos reservados.</span>
           <a
             id="footer-link-artificio"

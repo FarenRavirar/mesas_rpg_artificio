@@ -1,5 +1,6 @@
-import { Mail, MessageCircle, Hash, ExternalLink, Check } from 'lucide-react';
+import { Mail, MessageCircle, Hash, ExternalLink, Check, Copy } from 'lucide-react';
 import { useState } from 'react';
+import { useTracking } from '../../hooks/useTracking';
 
 type ContactChannel = 'whatsapp' | 'email' | 'discord' | 'form';
 
@@ -12,6 +13,7 @@ interface ContactMethod {
 
 interface MestreContactMethodsProps {
   contacts: ContactMethod[];
+  gmSlug: string;
 }
 
 const CHANNEL_CONFIG = {
@@ -71,12 +73,16 @@ function formatWhatsAppDisplay(value: string): string {
   return value;
 }
 
-function ContactCard({ contact }: { contact: ContactMethod }) {
+function ContactCard({ contact, gmSlug }: { contact: ContactMethod; gmSlug: string }) {
   const [copied, setCopied] = useState(false);
+  const { trackGmContactClick } = useTracking();
   const config = CHANNEL_CONFIG[contact.channel];
   const Icon = config.icon;
 
   const handleAction = () => {
+    // Registrar tracking
+    trackGmContactClick(gmSlug, contact.channel);
+
     if (contact.channel === 'whatsapp') {
       const cleanNumber = contact.value.replace(/\D/g, '');
       window.open(`https://wa.me/${cleanNumber}`, '_blank');
@@ -133,7 +139,7 @@ function ContactCard({ contact }: { contact: ContactMethod }) {
                 {copied ? (
                   <Check className="w-4 h-4 text-green-400" />
                 ) : (
-                  <Icon className="w-4 h-4 text-white/70" />
+                  <Copy className="w-4 h-4 text-white/70" />
                 )}
               </button>
             </div>
@@ -157,7 +163,7 @@ function ContactCard({ contact }: { contact: ContactMethod }) {
             </button>
           )}
 
-          {/* Link do servidor Discord (se tiver) */}
+          {/* Botão do servidor Discord (se tiver) */}
           {contact.channel === 'discord' && contact.discord_server_url && (
             <a
               href={contact.discord_server_url}
@@ -175,7 +181,7 @@ function ContactCard({ contact }: { contact: ContactMethod }) {
   );
 }
 
-export function MestreContactMethods({ contacts }: MestreContactMethodsProps) {
+export function MestreContactMethods({ contacts, gmSlug }: MestreContactMethodsProps) {
   if (!contacts || contacts.length === 0) {
     return null;
   }
@@ -186,7 +192,7 @@ export function MestreContactMethods({ contacts }: MestreContactMethodsProps) {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {contacts.map((contact, index) => (
-          <ContactCard key={index} contact={contact} />
+          <ContactCard key={index} contact={contact} gmSlug={gmSlug} />
         ))}
       </div>
     </section>

@@ -53,6 +53,57 @@
 | **GET** | `/tables` | ✅ Em Uso | PainelMestrePage.tsx, TableCardDashboard.tsx — retorna `image_url` (alias de `banner_url`) e objeto `vtt_platform` (`id`, `name`, `slug`, `logo_filename`, `website_url`) para cards do painel; inclui `communication_platform` resolvida |
 | **PATCH** | `/tables/:id/status` | ✅ Em Uso | PainelMestrePage.tsx (handleToggleTableStatus) - **Aceita apenas:** 'active', 'full', 'cancelled', 'ended' |
 | **DELETE** | `/tables/:id` | ✅ Em Uso | uiHelpers.ts, PainelMestrePage.tsx |
+| **GET** | `/insights` | ✅ Em Uso | GmInsightsDashboard.tsx (via useGmInsights hook) — Dashboard de insights agregados |
+
+**Detalhes de `GET /insights`:**
+- **Middleware:** `authMiddleware` (apenas dono do perfil GM)
+- **Resposta:**
+  ```json
+  {
+    "overview": {
+      "total_views": number,
+      "total_clicks": number,
+      "total_contacts": number,
+      "total_favorites": number,
+      "ctr": number,
+      "contact_rate": number
+    },
+    "tables": [
+      {
+        "id": string,
+        "slug": string,
+        "title": string,
+        "status": string,
+        "system_name": string | null,
+        "views": number,
+        "clicks": number,
+        "contacts": number,
+        "favorites": number,
+        "ctr": number,
+        "click_breakdown": {
+          "refactored_v4": number,
+          "cta_entrar": number,
+          "link_vtt": number
+        }
+      }
+    ],
+    "recommendations": [
+      {
+        "severity": "high" | "medium" | "low",
+        "table_slug": string,
+        "table_title": string,
+        "message": string
+      }
+    ]
+  }
+  ```
+- **Comportamento:**
+  - Busca todas as mesas ativas/full do GM
+  - Agrega métricas (views, clicks, contacts, favorites)
+  - Calcula CTR (click-through rate) e taxa de contato
+  - Busca breakdown de cliques por variant (refactored_v4, cta_entrar, link_vtt)
+  - Gera recomendações baseadas em performance
+- **Resposta erro:** `{ error: string }` (404 se perfil não encontrado)
 
 ### GM - Perfil Público (`routes/gm.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
@@ -88,10 +139,29 @@
 - **Resposta sucesso:** `{ success: true, message: string }`
 - **Resposta erro:** `{ error: string }`
 
-| **POST** | `/tables/:slug/view` | ❌ Pendente/Front | - |
-| **POST** | `/tables/:id/click` | ❌ Pendente/Front | - |
-| **POST** | `/tables/:id/contact` | ❌ Pendente/Front | - |
-| **POST** | `/tables/:id/favorite` | ❌ Pendente/Front | - |
+| **POST** | `/:slug/contact-click` | ✅ Em Uso | MestreContactMethods.tsx (via useTracking hook) — Registra clique em método de contato do mestre |
+
+**Detalhes de `POST /:slug/contact-click`:**
+- **Middleware:** `publicRateLimiter`
+- **Body obrigatório:** `{ channel: string }`
+- **Validações:**
+  - `channel`: deve ser um de: 'whatsapp', 'email', 'discord', 'form'
+  - `slug`: formato válido (alfanumérico com hífens)
+- **Comportamento:**
+  - Busca perfil GM pelo slug
+  - Registra clique no console (TODO: salvar em tabela gm_contact_clicks para analytics)
+  - Retorna 404 se mestre não encontrado
+- **Resposta sucesso:** `{ success: true }`
+- **Resposta erro:** `{ error: string }`
+
+### TABLES - Tracking (`routes/tables.ts`)
+| Metodo | Endpoint | Status | Chamado por (Frontend) |
+|---|---|---|---|
+| **POST** | `/tables/:slug/click` | ✅ Em Uso | TableCard.tsx, TableActionPanel.tsx (via useTracking hook) — Registra cliques em mesas (variants: 'refactored_v4', 'cta_entrar', 'link_vtt') |
+| **POST** | `/tables/:slug/view` | ✅ Em Uso | MesaPage.tsx — Registra visualização de mesa |
+| **POST** | `/tables/:slug/contact` | ❌ Pendente/Front | - |
+| **POST** | `/tables/:slug/favorite` | ❌ Pendente/Front | - |
+
 
 ### ADMIN (`routes/adminTables.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
