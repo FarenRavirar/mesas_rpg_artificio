@@ -1325,6 +1325,109 @@ fix(types): corrige mais 4 arquivos com children opcional
 
 ---
 
+## Bugs Pós-Deploy (Correções em Beta)
+
+### BUG-001: Erro "No routes matched location /gestao"
+
+**Data:** 18/04/2026 08:24 BRT  
+**Reportado por:** Usuário (teste manual)  
+**Severidade:** CRÍTICO (bloqueia acesso ao painel admin)
+
+**Erro no console:**
+```
+installHook.js:1 No routes matched location "/gestao"
+```
+
+**Causa raiz:**
+Rota `/gestao` estava dentro de bloco condicional `{!isLoading && isAdmin && (...)}` no `App.tsx` (linhas 53-59). Quando usuário acessa `/gestao` diretamente via URL antes do auth carregar, o React Router não encontra a rota porque ela ainda não foi renderizada.
+
+**Análise:**
+- Rota condicional depende de `isLoading` (auth carregado) e `isAdmin` (user.role === 'admin')
+- Se usuário navega diretamente para `/gestao`, a rota não existe no momento da navegação
+- `ProtectedRoute` já faz validação de role, então condicional é redundante
+
+**Solução aplicada:**
+Mover rota `/gestao` para fora do bloco condicional, deixando `ProtectedRoute` fazer a validação de admin.
+
+**Arquivo modificado:**
+- `frontend/src/App.tsx` (linhas 52-59)
+
+**Diff:**
+```diff
+  <Route path="/painel" element={<ProtectedRoute><PainelMestrePage /></ProtectedRoute>} />
+- {!isLoading && isAdmin && (
+-   <>
+-     <Route path="/gestao" element={<ProtectedRoute requiredRole="admin"><GestaoPage /></ProtectedRoute>} />
+-     {/* REMOVIDO: Sistema de ingestão automática desacoplado */}
+-     {/* <Route path="/admin/devtools" element={<ProtectedRoute requiredRole="admin"><AdminDevToolsPage /></ProtectedRoute>} /> */}
+-   </>
+- )}
++ <Route path="/gestao" element={<ProtectedRoute requiredRole="admin"><GestaoPage /></ProtectedRoute>} />
++ {/* REMOVIDO: Sistema de ingestão automática desacoplado */}
++ {/* <Route path="/admin/devtools" element={<ProtectedRoute requiredRole="admin"><AdminDevToolsPage /></ProtectedRoute>} /> */}
+```
+
+**Validação:**
+- [ ] Acessar `/gestao` diretamente via URL (sem estar logado)
+  - **Esperado:** Redireciona para `/login`
+- [ ] Acessar `/gestao` logado como player
+  - **Esperado:** Redireciona para `/`
+- [ ] Acessar `/gestao` logado como admin
+  - **Esperado:** Carrega painel admin normalmente
+- [ ] Console sem erros de rota
+
+**Status:** ✅ Corrigido (aguardando validação manual)
+
+---
+
+## Feature: Logo e Website para Sistemas
+
+**Data:** 18/04/2026 08:37 BRT  
+**Solicitação:** Adicionar campos `logo_filename` e `website_url` para sistemas raiz (apenas `node_type = 'system'`)  
+**Padrão:** Seguir implementação de VTT platforms (logo_filename + website_url)
+
+### Implementação
+
+**Checklist:**
+- [x] Migration 108 criada (`migration_108_systems_logo_website.sql`)
+- [x] Backend types.ts atualizado (SystemsTable)
+- [x] Backend routes/systems.ts atualizado:
+  - [x] SystemRecord interface
+  - [x] GET / SELECT com logo_filename e website_url
+  - [x] POST /admin com validação (apenas node_type='system')
+  - [x] PUT /admin/:id com validação (apenas node_type='system')
+- [x] Frontend types.ts atualizado (System interface)
+- [x] EntityInspector atualizado:
+  - [x] SystemFormData interface
+  - [x] Estado (logoFilename, websiteUrl)
+  - [x] useEffect de reset
+  - [x] useEffect de dirty tracking
+  - [x] handleSave com novos campos
+  - [x] Campos de formulário (visíveis apenas para node_type='system')
+- [x] CatalogTreeNode atualizado (exibição de logo na árvore)
+- [x] Diretório `/frontend/public/sys-logos/` criado
+
+**Arquivos modificados:**
+1. `database/migration_108_systems_logo_website.sql` (novo)
+2. `backend/src/db/types.ts` (SystemsTable)
+3. `backend/src/routes/systems.ts` (SystemRecord, GET, POST, PUT)
+4. `frontend/src/modules/admin/systems/types.ts` (System)
+5. `frontend/src/features/admin/components/EntityInspector.tsx` (formulário)
+6. `frontend/src/features/admin/components/CatalogTreeNode.tsx` (exibição)
+
+**Validação:**
+- [x] Aplicar migration em beta ✅ 18/04 08:46 BRT
+  - Idempotência testada (2 execuções sem erro)
+  - Colunas criadas: `logo_filename TEXT`, `website_url TEXT`
+  - Schema validado via `\d systems`
+- [ ] Criar sistema raiz com logo e website
+- [ ] Verificar que campos aparecem apenas para node_type='system'
+- [ ] Verificar que logo aparece na árvore
+- [ ] Editar sistema existente e adicionar logo
+- [ ] Criar edição/variante e verificar que campos NÃO aparecem
+
+---
+
 ## Referências
 
 - `docs/auditoria_sistemas_claude.md` — Análise completa (1181 linhas)

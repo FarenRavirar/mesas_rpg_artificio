@@ -1,4 +1,4 @@
-import { Trash2, Plus } from 'lucide-react';
+import { Trash2, Plus, Search } from 'lucide-react';
 
 interface Scenario {
   id: string;
@@ -16,9 +16,10 @@ interface Props {
   onCreate: () => void;
   onDelete: (id: string, name: string) => void;
   search: string;
+  onSearchChange: (value: string) => void;
 }
 
-export function ScenariosList({ scenarios, selectedId, onSelect, onCreate, onDelete, search }: Props) {
+export function ScenariosList({ scenarios, selectedId, onSelect, onCreate, onDelete, search, onSearchChange }: Props) {
   const filtered = scenarios.filter(s => {
     if (!search) return true;
     const q = search.toLowerCase();
@@ -29,15 +30,28 @@ export function ScenariosList({ scenarios, selectedId, onSelect, onCreate, onDel
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 py-3 border-b border-white/10 flex items-center gap-2">
-        <h3 className="flex-1 text-sm font-semibold text-white">Cenários ({filtered.length})</h3>
-        <button
-          onClick={onCreate}
-          className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded inline-flex items-center gap-1 text-sm"
-        >
-          <Plus size={14} />
-          Novo
-        </button>
+      <div className="px-4 py-3 border-b border-white/10 space-y-3">
+        <div className="flex items-center gap-2">
+          <h3 className="flex-1 text-sm font-semibold text-white">Cenários ({filtered.length})</h3>
+          <button
+            onClick={onCreate}
+            className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded inline-flex items-center gap-1 text-sm"
+          >
+            <Plus size={14} />
+            Novo
+          </button>
+        </div>
+        
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" size={16} />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Buscar por nome ou alias..."
+            className="w-full pl-9 pr-3 py-2 bg-white/5 border border-white/10 rounded text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-blue-500/50"
+          />
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto">

@@ -150,6 +150,8 @@ export interface SystemsTable {
   node_type: Generated<SystemNodeType>;
   depth: Generated<number>;
   path_slug: string | null;
+  logo_filename: string | null;
+  website_url: string | null;
   created_at: Generated<Date>;
 }
 

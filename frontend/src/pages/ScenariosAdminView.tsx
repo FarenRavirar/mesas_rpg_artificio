@@ -20,6 +20,7 @@ export function ScenariosAdminView() {
   const [loading, setLoading] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [inspectorMode, setInspectorMode] = useState<'edit' | 'create' | null>(null);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     fetchScenarios();
@@ -159,7 +160,8 @@ export function ScenariosAdminView() {
           onSelect={handleSelect}
           onCreate={handleCreate}
           onDelete={handleDelete}
-          search=""
+          search={search}
+          onSearchChange={setSearch}
         />
       }
       inspector={

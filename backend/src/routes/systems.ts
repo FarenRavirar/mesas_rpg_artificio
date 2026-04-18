@@ -15,6 +15,8 @@ interface SystemRecord {
   node_type: SystemNodeType;
   depth: number;
   path_slug: string | null;
+  logo_filename: string | null;
+  website_url: string | null;
   children_count: number;
   tables_count: number;
   aliases_count: number;
@@ -117,6 +119,7 @@ router.get('/', async (req: Request, res: Response) => {
       .select([
         's.id', 's.name', 's.name_pt', 's.slug', 
         's.parent_id', 's.node_type', 's.depth', 's.path_slug',
+        's.logo_filename', 's.website_url',
         sql<number>`COUNT(DISTINCT children.id)`.as('children_count'),
         sql<number>`COUNT(DISTINCT tables.id)`.as('tables_count'),
         sql<number>`COUNT(DISTINCT al.id)`.as('aliases_count'),
@@ -229,14 +232,14 @@ const slugify = (value: string): string => {
 
 // POST /api/v1/admin/systems — Criar novo sistema
 router.post('/admin', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
-  const { name, name_pt, node_type, parent_id, aliases } = req.body;
+  const { name, name_pt, node_type, parent_id, aliases, logo_filename, website_url } = req.body;
 
   if (!name || !node_type) {
     return res.status(400).json({ error: 'Nome e tipo são obrigatórios.' });
   }
 
-  if (!['system', 'edition', 'variant'].includes(node_type)) {
-    return res.status(400).json({ error: 'Tipo inválido. Use: system, edition ou variant.' });
+  if (!['system', 'edition', 'variant', 'subsystem'].includes(node_type)) {
+    return res.status(400).json({ error: 'Tipo inválido. Use: system, edition, variant ou subsystem.' });
   }
 
   if ((node_type === 'edition' || node_type === 'variant') && !parent_id) {
@@ -287,8 +290,10 @@ router.post('/admin', authMiddleware, requireRole('admin'), async (req: Request,
         parent_id: parent_id || null,
         depth,
         path_slug,
+        logo_filename: node_type === 'system' ? (logo_filename || null) : null,
+        website_url: node_type === 'system' ? (website_url || null) : null,
       })
-      .returning(['id', 'name', 'name_pt', 'slug', 'node_type', 'parent_id', 'depth', 'path_slug'])
+      .returning(['id', 'name', 'name_pt', 'slug', 'node_type', 'parent_id', 'depth', 'path_slug', 'logo_filename', 'website_url'])
       .executeTakeFirst();
 
     // Inserir aliases se fornecidos
@@ -319,10 +324,14 @@ router.post('/admin', authMiddleware, requireRole('admin'), async (req: Request,
 // PUT /api/v1/admin/systems/:id — Editar sistema
 router.put('/admin/:id', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { name, name_pt, node_type, parent_id } = req.body;
+  const { name, name_pt, node_type, parent_id, logo_filename, website_url } = req.body;
 
   if (!name || !node_type) {
     return res.status(400).json({ error: 'Nome e tipo são obrigatórios.' });
+  }
+
+  if (!['system', 'edition', 'variant', 'subsystem'].includes(node_type)) {
+    return res.status(400).json({ error: 'Tipo inválido. Use: system, edition, variant ou subsystem.' });
   }
 
   try {
@@ -381,9 +390,11 @@ router.put('/admin/:id', authMiddleware, requireRole('admin'), async (req: Reque
         parent_id: parent_id || null,
         depth,
         path_slug,
+        logo_filename: node_type === 'system' ? (logo_filename || null) : null,
+        website_url: node_type === 'system' ? (website_url || null) : null,
       })
       .where('id', '=', id)
-      .returning(['id', 'name', 'name_pt', 'slug', 'node_type', 'parent_id', 'depth', 'path_slug'])
+      .returning(['id', 'name', 'name_pt', 'slug', 'node_type', 'parent_id', 'depth', 'path_slug', 'logo_filename', 'website_url'])
       .executeTakeFirst();
 
     // Atualizar aliases se fornecidos

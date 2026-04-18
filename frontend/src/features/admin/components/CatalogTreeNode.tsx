@@ -54,6 +54,13 @@ export const CatalogTreeNode = memo(function CatalogTreeNode(props: Props) {
         <NodeTypeBadge type={node.node_type} />
 
         <div className="min-w-0 flex-1 flex items-center gap-2">
+          {node.logo_filename && (
+            <img
+              src={`/sys-logos/${node.logo_filename}`}
+              alt={node.name}
+              className="w-4 h-4 object-contain shrink-0"
+            />
+          )}
           <span className="truncate text-white font-medium">{node.name}</span>
           {node.name_pt && (
             <span className="truncate text-xs text-white/40">· {node.name_pt}</span>

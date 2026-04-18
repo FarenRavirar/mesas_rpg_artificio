@@ -139,12 +139,14 @@
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
 |---|---|---|---|
 | **GET** | `/` | ✅ Em Uso | SystemEditModal.tsx, UserSystemsSelector.tsx, CreateTableForm.tsx, SystemsPage.tsx, SystemsTree.tsx, useSystems.ts, CatalogoPage.tsx — Query params: `view` (tree/flat), `search`, `limit`, `cursor`; retorna contadores agregados: `children_count`, `tables_count`, `aliases_count` (adicionados em 18/04/2026 para UX BigTech) |
-| **POST** | `/admin` | ✅ Em Uso | SystemEditModal.tsx, UserSystemsSelector.tsx, CreateTableForm.tsx, SystemsPage.tsx, SystemsTree.tsx, useSystems.ts, CatalogoPage.tsx |
-| **PUT** | `/admin/:id` | ✅ Em Uso | SystemEditModal.tsx, UserSystemsSelector.tsx, CreateTableForm.tsx, SystemsPage.tsx, SystemsTree.tsx, useSystems.ts, CatalogoPage.tsx |
+| **POST** | `/admin` | ✅ Em Uso | SystemEditModal.tsx, UserSystemsSelector.tsx, CreateTableForm.tsx, SystemsPage.tsx, SystemsTree.tsx, useSystems.ts, CatalogoPage.tsx — Aceita `logo_filename` e `website_url` (apenas para `node_type='system'`) **[NOVO 18/04/2026]** |
+| **PUT** | `/admin/:id` | ✅ Em Uso | SystemEditModal.tsx, UserSystemsSelector.tsx, CreateTableForm.tsx, SystemsPage.tsx, SystemsTree.tsx, useSystems.ts, CatalogoPage.tsx — Aceita `logo_filename` e `website_url` (apenas para `node_type='system'`) **[NOVO 18/04/2026]** |
 | **DELETE** | `/admin/:id` | ✅ Em Uso | SystemEditModal.tsx, UserSystemsSelector.tsx, CreateTableForm.tsx, SystemsPage.tsx, SystemsTree.tsx, useSystems.ts, CatalogoPage.tsx |
 
 **Campos retornados por `GET /`:**
 - `id`, `name`, `name_pt`, `slug`, `parent_id`, `node_type`, `depth`, `path_slug`
+- `logo_filename` — String | null (nome do arquivo em `/sys-logos/`, ex: `dnd.svg`) **[NOVO 18/04/2026]**
+- `website_url` — String | null (URL oficial do sistema) **[NOVO 18/04/2026]**
 - `aliases` — Array de strings (aliases do sistema)
 - `has_children` — Boolean (se tem filhos)
 - `children_count` — Number (quantidade de sistemas filhos) **[NOVO 18/04/2026]**
@@ -167,9 +169,20 @@
 ### SYSTEMSUGGESTIONSADMIN (`routes/systemSuggestionsAdmin.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
 |---|---|---|---|
-| **GET** | `/system-suggestions` | ❌ Pendente/Front | - |
-| **PATCH** | `/system-suggestions/:id/approve` | ❌ Pendente/Front | - |
-| **PATCH** | `/system-suggestions/:id/reject` | ❌ Pendente/Front | - |
+| **GET** | `/system-suggestions` | ✅ Em Uso | GestaoPage.tsx — Query params: `status` (pending/approved/rejected/all); retorna sugestões com `node_type`, `rejection_reason`, `user_notified` |
+| **PATCH** | `/system-suggestions/:id/approve` | ✅ Em Uso | GestaoPage.tsx — Materializa sugestão em `systems` + `system_aliases`, cria notificação com `action_url` e `metadata`; retorna `{ success: true, data: { suggestion_id, system_id, path_slug } }` |
+| **PATCH** | `/system-suggestions/:id/reject` | ✅ Em Uso | GestaoPage.tsx — Atualiza status para 'rejected' + `rejection_reason`, cria notificação; retorna `{ success: true }` |
+
+**Campos de notificação (migration_106 - Abril/2026):**
+- `action_url` — URL de ação (ex: `/catalogo?system=[path_slug]`)
+- `metadata` — JSONB com `suggestion_id`, `suggestion_kind`, `system_id`, `path_slug`, `reason` (em rejeição)
+
+### SCENARIOSUGGESTIONSADMIN (`routes/scenarioSuggestionsAdmin.ts`)
+| Metodo | Endpoint | Status | Chamado por (Frontend) |
+|---|---|---|---|
+| **GET** | `/scenario-suggestions` | ✅ Em Uso | GestaoPage.tsx — Query params: `status` (pending/approved/rejected/all); retorna sugestões com `rejection_reason`, `user_notified` |
+| **PATCH** | `/scenario-suggestions/:id/approve` | ✅ Em Uso | GestaoPage.tsx — Materializa sugestão em `scenarios` + `scenario_aliases`, cria notificação com `action_url` e `metadata`; retorna `{ success: true, data: { suggestion_id, scenario_id, slug } }` |
+| **PATCH** | `/scenario-suggestions/:id/reject` | ✅ Em Uso | GestaoPage.tsx — Atualiza status para 'rejected' + `rejection_reason`, cria notificação; retorna `{ success: true }` |
 
 ### TABLES (`routes/tables.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |

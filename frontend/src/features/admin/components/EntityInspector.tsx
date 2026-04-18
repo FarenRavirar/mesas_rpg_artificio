@@ -22,6 +22,8 @@ export interface SystemFormData {
   node_type: 'system' | 'edition' | 'subsystem' | 'variant';
   parent_id: string | null;
   aliases: string[];
+  logo_filename?: string | null;
+  website_url?: string | null;
 }
 
 const VALID_CHILDREN: Record<string, Array<'system'|'edition'|'subsystem'|'variant'>> = {
@@ -56,6 +58,8 @@ export function EntityInspector(props: Props) {
     system?.node_type ?? validTypes[0] ?? 'system'
   );
   const [aliases, setAliases] = useState<string[]>(system?.aliases ?? []);
+  const [logoFilename, setLogoFilename] = useState(system?.logo_filename ?? '');
+  const [websiteUrl, setWebsiteUrl] = useState(system?.website_url ?? '');
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
 
@@ -65,6 +69,8 @@ export function EntityInspector(props: Props) {
     setNamePt(system?.name_pt ?? '');
     setNodeType(system?.node_type ?? validTypes[0] ?? 'system');
     setAliases(system?.aliases ?? []);
+    setLogoFilename(system?.logo_filename ?? '');
+    setWebsiteUrl(system?.website_url ?? '');
     setDirty(false);
   }, [system?.id, parentContext?.id, validTypes]);
 
@@ -78,9 +84,11 @@ export function EntityInspector(props: Props) {
     const changed =
       name !== system.name ||
       (namePt || null) !== (system.name_pt || null) ||
+      (logoFilename || null) !== (system.logo_filename || null) ||
+      (websiteUrl || null) !== (system.website_url || null) ||
       JSON.stringify(aliases) !== JSON.stringify(system.aliases ?? []);
     setDirty(changed);
-  }, [name, namePt, aliases, system, mode]);
+  }, [name, namePt, logoFilename, websiteUrl, aliases, system, mode]);
 
   // Slug preview
   const slugPreview = useMemo(() => {
@@ -108,6 +116,8 @@ export function EntityInspector(props: Props) {
         node_type: nodeType,
         parent_id: mode === 'create' ? (parentContext?.id ?? null) : (system?.parent_id ?? null),
         aliases: aliases.map(a => a.trim()).filter(Boolean),
+        logo_filename: logoFilename.trim() || null,
+        website_url: websiteUrl.trim() || null,
       });
       setDirty(false);
     } finally {
@@ -180,6 +190,30 @@ export function EntityInspector(props: Props) {
         <Field label={`Aliases (${aliases.length})`} hint="Nomes alternativos para busca.">
           <AliasesEditor value={aliases} onChange={setAliases} />
         </Field>
+
+        {/* Logo e Website - apenas para sistemas raiz */}
+        {nodeType === 'system' && (
+          <>
+            <Field label="Logo" hint="Nome do arquivo em /sys-logos/ (ex: dnd.svg)">
+              <input
+                value={logoFilename}
+                onChange={(e) => setLogoFilename(e.target.value)}
+                placeholder="dnd.svg"
+                className="w-full px-3 py-2 bg-[#0F1A2E] border border-white/10 rounded text-white focus:outline-none focus:border-blue-500"
+              />
+            </Field>
+
+            <Field label="Website Oficial" hint="URL completa (ex: https://dnd.wizards.com)">
+              <input
+                type="url"
+                value={websiteUrl}
+                onChange={(e) => setWebsiteUrl(e.target.value)}
+                placeholder="https://..."
+                className="w-full px-3 py-2 bg-[#0F1A2E] border border-white/10 rounded text-white focus:outline-none focus:border-blue-500"
+              />
+            </Field>
+          </>
+        )}
 
         {system && (system.tables_count ?? 0) > 0 && (
           <div className="mt-6 p-3 rounded bg-amber-500/5 border border-amber-500/20">

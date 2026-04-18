@@ -107,6 +107,44 @@ Durante a validação de tipos TypeScript para a Fase 1, foi identificado que a 
 
 **Estimativa:** 4h — Progresso: 3/3 passos (100%) ✅ **FASE 0.1 COMPLETA**
 
+### 2.3 Bugs Pós-Deploy e Melhorias (18/04/2026)
+
+**Status:** ✅ COMPLETO — Deploy beta validado, 3 bugs corrigidos, 1 feature implementada
+
+Após deploy beta e validação manual da UX BigTech, foram identificados e corrigidos bugs críticos:
+
+#### BUG-001: Rota `/gestao` não encontrada
+- **Sintoma:** `No routes matched location "/gestao"` ao acessar URL diretamente
+- **Causa:** Rota condicional `{!isLoading && isAdmin && (...)}` impedia acesso direto via URL
+- **Correção:** Movida rota para fora do bloco condicional, deixando `ProtectedRoute` fazer validação
+- **Arquivo:** `frontend/src/App.tsx`
+- **Status:** ✅ Corrigido
+
+#### BUG-002: Backend rejeitava `node_type='subsystem'`
+- **Sintoma:** `PUT /api/v1/systems/admin/:id` retornava 400 ao editar subsistema
+- **Causa:** Validação em POST/PUT só aceitava `['system', 'edition', 'variant']`
+- **Correção:** Adicionado `'subsystem'` à lista de validação em ambas as rotas
+- **Arquivo:** `backend/src/routes/systems.ts` (linhas 238, 328)
+- **Status:** ✅ Corrigido
+
+#### BUG-003: Cenários sem caixa de busca
+- **Sintoma:** Aba Cenários não exibia campo de busca
+- **Causa:** Estado `search` não existia e prop `onSearchChange` não era passada para `ScenariosList`
+- **Correção:** Adicionado `useState` para `search` em `ScenariosAdminView` e campo de busca renderizado em `ScenariosList`
+- **Arquivos:** `frontend/src/pages/ScenariosAdminView.tsx`, `frontend/src/features/admin/components/ScenariosList.tsx`
+- **Status:** ✅ Corrigido
+
+#### Feature: Logo e Website URL para Sistemas Raiz
+- **Objetivo:** Permitir que sistemas raiz (`node_type='system'`) tenham logo e link oficial
+- **Padrão:** Seguir implementação de `vtt_platforms` (logo_filename + website_url)
+- **Implementação:**
+  - Migration 108 criada (`migration_108_systems_logo_website.sql`)
+  - Backend: `SystemsTable` atualizado, GET/POST/PUT aceitam novos campos
+  - Frontend: Formulário exibe campos apenas para `node_type='system'`, logo renderizado na árvore
+  - Diretório `/frontend/public/sys-logos/` criado
+- **Validação:** Campos aparecem apenas para sistemas raiz, não para edições/variantes/subsistemas
+- **Status:** ✅ Implementado (aguardando aplicação de migration em beta)
+
 ---
 
 ## 3. Matriz de Achados
@@ -119,17 +157,17 @@ Durante a validação de tipos TypeScript para a Fase 1, foi identificado que a 
 | **A04** | CRÍTICO | `server.ts:108-120` não registra rota admin para cenários; arquivo `scenarioSuggestionsAdmin.ts` não existe | Sugestões de cenário nunca viram entidade. Subaba \"Sugestões\" no `GestaoPage.tsx` fica sem ação de aprovar para cenário. | Criar `routes/scenarioSuggestionsAdmin.ts` espelhando systems. Registrar no `server.ts`. Código pronto na Seção 6. **Decisão:** Approve materializa em `scenarios` (name, name_pt, slug, subgenres) + notificação com `suggestion_kind: 'scenario'`. Resposta: `{ success: true, data: { suggestion_id, scenario_id, slug } }`. Reject: `{ success: true }`. Cenários são flat (sem depth/path_slug/parent_id). | ✅ **RESOLVIDO** — Sessão `26-04-18_1` (18/04/2026). `scenarioSuggestionsAdmin.ts` criado e registrado. |
 | **A05** | CRÍTICO | `systems.ts:96-140` | Dois SELECT full-table + Map em memória + build recursivo em JS a cada chamada. `MAPA_DE_API.md` confirma 7 consumidores simultâneos (`SystemEditModal`, `UserSystemsSelector`, `CreateTableForm`, `SystemsPage`, `SystemsTree`, `useSystems`, `CatalogoPage`). Cada um refaz a query toda. | Paginação cursor-based em `view=flat`; `max_depth` parametrizado em `view=tree`; endpoint `/systems/:id/children`; ETag via `MAX(updated_at)`. **Decisão:** `view=tree` NUNCA pagina (cursor/limit ignorados com warning em log) - paginar árvore quebra montagem. Request sem cursor/limit retorna TODOS os registros (retrocompatibilidade). Response sempre inclui envelope `pagination: { next_cursor, has_more }`. | ✅ **RESOLVIDO** — Sessão `26-04-18_1` (18/04/2026). Paginação cursor-based implementada em `systems.ts` e `scenarios.ts`. |
 | **A06** | CRÍTICO | `useSystems.ts:8` (`System` importado de `./types`) + `useSystems.ts:63` (filter só em `name` e `slug`) | Tipo `System` não declara `name_pt` nem `aliases`. Busca do hook ignora aliases. Usuário digita \"D&D\" e não encontra \"Dungeons & Dragons\" porque alias não está no fetch local. | Atualizar `frontend/src/modules/admin/systems/types.ts` com `name_pt`, `aliases`, `path_slug`, `depth`, `node_type`, `parent_id`, `has_children`. Expandir filtro local em `frontend/src/modules/admin/systems/useSystems.ts` para cobrir aliases e `name_pt`. **Decisão:** Frontend mantém comportamento atual (carregar todos os registros). Backend garante retrocompatibilidade (request sem cursor retorna tudo + envelope pagination). | ✅ **RESOLVIDO** — Sessão `26-04-18_1` (18/04/2026). Tipos frontend atualizados, busca expandida implementada. |
-| **A07** | ALTO | `scenarios.ts:34-55` | Busca por texto carrega tudo e filtra em JS. Índice GIN `idx_scenarios_name_gin` (M12:27) é **ignorado**. | Trocar por `WHERE to_tsvector('portuguese', name) @@ plainto_tsquery('portuguese', ${search})`. | |
-| **A08** | ALTO | `systems.ts:230-308` (PUT admin) linha 300 `// TODO: Recalcular hierarquia` | Admin move sistema de pai; descendentes ficam com `depth`/`path_slug` obsoletos. Queries hierárquicas retornam sub-árvore truncada. | Extrair `reparentSystem()` com `WITH RECURSIVE` em transação. | |
-| **A09** | ALTO | `scenarios` sem FK para `systems`. `tables.scenario_id` solto. `MAPA_DE_API.md` não expõe relação scenarios↔systems | Impossível responder \"quais cenários existem para D&D\". API pública não consegue expor navegação canônica. | Decisão de produto: N:N via `scenario_systems(scenario_id, system_id)` ou \"cenário global com `default_system_id`\". Recomendo N:N (seção 7). | |
+| **A07** | ALTO | `scenarios.ts:34-55` | Busca por texto carrega tudo e filtra em JS. Índice GIN `idx_scenarios_name_gin` (M12:27) é **ignorado**. | Trocar por `WHERE to_tsvector('portuguese', name) @@ plainto_tsquery('portuguese', ${search})`. | ⏳ **PENDENTE** — Fase 2 |
+| **A08** | ALTO | `systems.ts:230-308` (PUT admin) linha 300 `// TODO: Recalcular hierarquia` | Admin move sistema de pai; descendentes ficam com `depth`/`path_slug` obsoletos. Queries hierárquicas retornam sub-árvore truncada. | Extrair `reparentSystem()` com `WITH RECURSIVE` em transação. | ⏳ **PENDENTE** — Fase 2 |
+| **A09** | ALTO | `scenarios` sem FK para `systems`. `tables.scenario_id` solto. `MAPA_DE_API.md` não expõe relação scenarios↔systems | Impossível responder \"quais cenários existem para D&D\". API pública não consegue expor navegação canônica. | Decisão de produto: N:N via `scenario_systems(scenario_id, system_id)` ou \"cenário global com `default_system_id`\". Recomendo N:N (seção 7). | ⏳ **PENDENTE** — Fase 3 |
 | **A10** | ALTO | `systemSuggestionsAdmin.ts:36-54, 67-95` | Approve e reject não criam `notifications`. Usuário sugeriu, esperou, nunca recebe aviso. | INSERT em `notifications` no mesmo transaction block. | ✅ **RESOLVIDO** — Sessão `26-04-18_1` (18/04/2026). Notificações implementadas em ambas as rotas admin. |
 | **A10.1** | ALTO | `notifications` (M06) sem `action_url` nem `metadata` | Notificação sem caminho de ação é dead-end operacional. Usuário lê, fecha, nunca volta. `metadata` JSONB ausente força parsing de string para consumers futuros. | Migration `106_notifications_action_metadata.sql`: `ADD COLUMN action_url TEXT`, `ADD COLUMN metadata JSONB NOT NULL DEFAULT '{}'`, `CREATE INDEX idx_notifications_metadata_gin USING gin(metadata)`. Textos: aprovação com `action_url: /catalogo?system=[path_slug]`, rejeição com `action_url: /perfil/minhas-sugestoes/[id]`, `metadata.suggestion_kind` para filtro futuro. **Decisão:** Opção A (migration) escolhida por eliminar dead-end, evitar parsing, alinhar com `user_links`/`gm_profiles` JSONB. | ✅ **RESOLVIDO** — Sessão `26-04-18_1` (18/04/2026). Migration 106 aplicada no beta. |
 | **A10.2** | ALTO | Aliases, description e subgenres não copiados ao aprovar sugestões | Usuário sugere \"Forgotten Realms\" (Reinos Esquecidos) com alias \"FR\" e subgêneros [\"Alta Fantasia\", \"Fantasia Medieval\"], mas ao aprovar esses dados são perdidos. `SystemsTable` usa tabela separada `system_aliases`, `ScenariosTable` não tem `description` nem tabela de aliases. | Migration `107_scenarios_aliases_fields.sql`: `ADD scenarios.description TEXT`, `ADD scenario_suggestions.subgenres TEXT[]`, `CREATE TABLE scenario_aliases`. Lógica de approve: copiar aliases para `system_aliases`/`scenario_aliases`, copiar description e subgenres. **Decisão:** Todos os campos são necessários para preservar informação completa das sugestões. | ✅ **RESOLVIDO** — Sessão `26-04-18_1` (18/04/2026). Migration 107 aplicada no beta, lógica de cópia implementada. |
-| **A11** | ALTO | `systems.ts:175-177, 256-258` usam `slug` raso para verificar colisão | \"5e\" debaixo de D&D colide com \"5e\" de Pathfinder. | Unicidade por `path_slug`. Slug raso fica não-único. | |
-| **A12** | ALTO | `SystemSuggestionModal.tsx:116` envia `suggestion_type`; `systemSuggestions.ts:23` lê `suggestion_type`; schema espera `node_type` | Três nomes para a mesma coisa. Qualquer refactor silencia bug. | Padronizar request body como `node_type` em toda cadeia. Aceitar `suggestion_type` como alias deprecado com warning. | |
-| **A13** | ALTO | `systems.ts:99-100` — `select` do GET público inclui `name_pt` ✅; `MAPA_DE_API.md` seção SYSTEMS não documenta campos retornados | Integradores externos não sabem da existência. Frontend internos confiam em \"vem quando vem\". | Documentar em `MAPA_DE_API.md` os campos de retorno de `GET /systems` e `GET /scenarios`. | |
-| **A14** | ALTO | `systemSuggestions.ts:58` usa `.returningAll()` | Campos administrativos futuros (`admin_notes`, `rejection_reason`) vazam para o usuário sugerinte. | Listar campos explicitamente: `['id','name','name_pt','description','parent_id','node_type','status','created_at']`. | |
-| **A15** | MÉDIO | `server.ts:114-115` ordem dos `app.use('/api/v1/gm', ...)` | `gmPanelRoutes` antes de `gmRoutes`. Patterns de `:slug` podem ser interceptados. Hoje não ocorre, mas é fonte de bug futuro. | Mover rotas autenticadas para prefixo distinto (`/api/v1/gm-panel`) ou garantir que `gmRoutes` públicas venham primeiro. | |
+| **A11** | ALTO | `systems.ts:175-177, 256-258` usam `slug` raso para verificar colisão | \"5e\" debaixo de D&D colide com \"5e\" de Pathfinder. | Unicidade por `path_slug`. Slug raso fica não-único. | ⏳ **PENDENTE** — Fase 2 |
+| **A12** | ALTO | `SystemSuggestionModal.tsx:116` envia `suggestion_type`; `systemSuggestions.ts:23` lê `suggestion_type`; schema espera `node_type` | Três nomes para a mesma coisa. Qualquer refactor silencia bug. | Padronizar request body como `node_type` em toda cadeia. Aceitar `suggestion_type` como alias deprecado com warning. | ⏳ **PENDENTE** — Fase 2 |
+| **A13** | ALTO | `systems.ts:99-100` — `select` do GET público inclui `name_pt` ✅; `MAPA_DE_API.md` seção SYSTEMS não documenta campos retornados | Integradores externos não sabem da existência. Frontend internos confiam em \"vem quando vem\". | Documentar em `MAPA_DE_API.md` os campos de retorno de `GET /systems` e `GET /scenarios`. | ✅ **RESOLVIDO** — Sessão `26-04-18_1` (18/04/2026). MAPA_DE_API.md atualizado com campos completos. |
+| **A14** | ALTO | `systemSuggestions.ts:58` usa `.returningAll()` | Campos administrativos futuros (`admin_notes`, `rejection_reason`) vazam para o usuário sugerinte. | Listar campos explicitamente: `['id','name','name_pt','description','parent_id','node_type','status','created_at']`. | ⏳ **PENDENTE** — Fase 4 |
+| **A15** | MÉDIO | `server.ts:114-115` ordem dos `app.use('/api/v1/gm', ...)` | `gmPanelRoutes` antes de `gmRoutes`. Patterns de `:slug` podem ser interceptados. Hoje não ocorre, mas é fonte de bug futuro. | Mover rotas autenticadas para prefixo distinto (`/api/v1/gm-panel`) ou garantir que `gmRoutes` públicas venham primeiro. | ⏳ **PENDENTE** — Fase 4 |
 
 | **A16** | MÉDIO | `importSistemas.ts:64` + `systemsTreeImport.ts:221` — dois scripts concorrentes geram slugs incompatíveis | Rodar ambos no mesmo banco cria registros duplicados com slugs distintos para o mesmo sistema conceitual. | Escolher uma fonte canônica (recomendo `systemsTreeImport.ts` por preservar hierarquia no markdown). Deprecar o outro, marcar no README. |
 | **A17** | MÉDIO | `scenarios.ts:159-162` bloqueia delete se houver mesa vinculada | Correto. Mas não retorna **quais** mesas. Admin precisa caçar manualmente. | `blocked_by: { tables: [{id, slug, title}...], limit: 10 }`. |

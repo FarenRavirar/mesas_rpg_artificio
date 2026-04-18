@@ -56,32 +56,52 @@ Iniciar execução sistemática da auditoria técnica documentada em `docs/audit
 
 ## Última Sessão
 
-**Data:** 18/04/2026 05:38 BRT  
-**Tipo:** Correção de Deploy — Sincronização de Tipos TypeScript  
+**Data:** 18/04/2026 08:41 BRT  
+**Tipo:** Correção de Bugs Pós-Deploy + Feature Logo/Website para Sistemas  
 **Arquivo:** `sessoes/26-04-18_1_auditoria-sistemas-etapa-1.md`  
 **O que foi feito:**
-- Resolvidos 24 problemas de tipos TypeScript que bloqueavam deploy beta
-- Corrigidos 8 arquivos: 3 de tipos base + 4 com uso de `children` + 1 com `aliases`
-- Reformulado `migrations_guide.md` (1207 → 205 linhas, 83% menor)
-- Aplicadas 2 lições aprendidas: sincronização SQL→Backend→Frontend e verificações de campos opcionais
-- Commits: `11414e3` (tipos base + guia) e `72d5ddc` (4 arquivos adicionais)
-- Deploy beta disparado com todas as correções (commit `72d5ddc`)
+- ✅ Deploy beta concluído com sucesso (commit `72d5ddc`)
+- ✅ UX BigTech validada pelo usuário (padrão split-view 3 colunas funcionando)
+- ✅ **BUG-001 corrigido:** Erro "No routes matched location /gestao"
+  - Causa: Rota condicional `{!isLoading && isAdmin && (...)}` impedia acesso direto via URL
+  - Solução: Movida rota `/gestao` para fora do bloco condicional, deixando `ProtectedRoute` fazer validação
+  - Arquivo: `frontend/src/App.tsx`
+- ✅ **BUG-002 corrigido:** Backend rejeitava `node_type='subsystem'`
+  - Causa: Validação em POST/PUT de sistemas só aceitava `['system', 'edition', 'variant']`
+  - Solução: Adicionado `'subsystem'` à lista de validação em ambas as rotas
+  - Arquivo: `backend/src/routes/systems.ts` (linhas 238, 328)
+- ✅ **BUG-003 corrigido:** Cenários sem caixa de busca
+  - Causa: Estado `search` não existia e prop `onSearchChange` não era passada para `ScenariosList`
+  - Solução: Adicionado `useState` para `search` em `ScenariosAdminView` e campo de busca renderizado em `ScenariosList`
+  - Arquivos: `frontend/src/pages/ScenariosAdminView.tsx`, `frontend/src/features/admin/components/ScenariosList.tsx`
+- ✅ **Feature implementada:** Logo e Website URL para sistemas raiz
+  - Migration 108 criada (`migration_108_systems_logo_website.sql`)
+  - Backend atualizado: types.ts, routes/systems.ts (GET, POST, PUT)
+  - Frontend atualizado: types.ts, EntityInspector.tsx (formulário), CatalogTreeNode.tsx (exibição)
+  - Diretório `/frontend/public/sys-logos/` criado
+  - Campos aparecem apenas para `node_type='system'`
+  - Validação: apenas sistemas raiz podem ter logo e website
+- ✅ Documentação atualizada:
+  - `MAPA_DE_API.md` — Campos `logo_filename` e `website_url` documentados em GET/POST/PUT de sistemas
+  - `sessoes/26-04-18_1_auditoria-sistemas-etapa-1.md` — Seção de bugs pós-deploy + feature de logo/website
 
-**Status:** ✅ Concluída. Deploy em andamento.
+**Status:** ✅ Concluída. Aguardando validação manual dos bugs corrigidos e aplicação da migration 108 em beta.
 
 ---
 
 ## Próxima Ação
 
-**Validar Deploy Beta e Continuar Auditoria de Sistemas**
+**Validação e Aplicação de Migration**
 
-1. **Aguardar conclusão do deploy beta** (commit `72d5ddc`)
-2. **Validar funcionalidade** após deploy:
-   - Containers rodando
-   - API respondendo
-   - Testar criação/edição de sistema com `'subsystem'`
-3. **Executar checklist de 8 pontos** da Fase 1 (migrations, rotas admin, paginação)
-4. **Criar sessão Etapa 2** para Fase 2 (Reparent recursivo, notificações, unicidade por path_slug)
+1. Testar bugs corrigidos em beta:
+   - BUG-001: Acessar `/gestao` diretamente via URL
+   - BUG-002: Criar/editar sistema com `node_type='subsystem'`
+   - BUG-003: Verificar caixa de busca na aba Cenários
+2. Aplicar `migration_108_systems_logo_website.sql` em beta
+3. Testar feature de logo/website:
+   - Criar sistema raiz com logo e website
+   - Verificar que campos aparecem apenas para `node_type='system'`
+   - Verificar exibição de logo na árvore
 
 
 **Data:** 17/04/2026 17:20 BRT  

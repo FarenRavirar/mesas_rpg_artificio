@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AuthProvider } from './contexts/AuthContext';
 import { ProfileProvider } from './contexts/ProfileContext';
 import { ConfirmProvider } from './components/ui/ConfirmDialog';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -26,9 +26,6 @@ import { queryClient } from './lib/queryClient';
 import './index.css';
 
 function AppRoutes() {
-  const { user, isLoading } = useAuth();
-  const isAdmin = user?.role === 'admin';
-
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
@@ -50,13 +47,9 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
       <Route path="/painel" element={<ProtectedRoute><PainelMestrePage /></ProtectedRoute>} />
-      {!isLoading && isAdmin && (
-        <>
-          <Route path="/gestao" element={<ProtectedRoute requiredRole="admin"><GestaoPage /></ProtectedRoute>} />
-          {/* REMOVIDO: Sistema de ingestão automática desacoplado */}
-          {/* <Route path="/admin/devtools" element={<ProtectedRoute requiredRole="admin"><AdminDevToolsPage /></ProtectedRoute>} /> */}
-        </>
-      )}
+      <Route path="/gestao" element={<ProtectedRoute requiredRole="admin"><GestaoPage /></ProtectedRoute>} />
+      {/* REMOVIDO: Sistema de ingestão automática desacoplado */}
+      {/* <Route path="/admin/devtools" element={<ProtectedRoute requiredRole="admin"><AdminDevToolsPage /></ProtectedRoute>} /> */}
     </Routes>
   );
 }

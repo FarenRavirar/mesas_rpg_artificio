@@ -7,6 +7,8 @@ export interface System {
   parent_id: string | null;
   depth?: number;
   path_slug: string | null;
+  logo_filename?: string | null;
+  website_url?: string | null;
   aliases?: string[];
   has_children?: boolean;
   children_count?: number;
