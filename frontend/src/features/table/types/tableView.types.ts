@@ -86,6 +86,8 @@ export interface TableViewModel {
 
   // Decisão rápida (Hero)
   system: string;
+  systemLogoFilename?: string | null;
+  systemWebsiteUrl?: string | null;
   experience: string;
   modality: string;
 

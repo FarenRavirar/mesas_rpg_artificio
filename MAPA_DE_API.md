@@ -205,6 +205,38 @@
 | **PUT** | `/:tableId/schedules/:id` | ❌ Pendente/Front | - |
 | **DELETE** | `/:tableId/schedules/:id` | ❌ Pendente/Front | - |
 
+### TABLES - Rotas Públicas (`routes/tables.ts`)
+| Metodo | Endpoint | Status | Chamado por (Frontend) |
+|---|---|---|---|
+| **GET** | `/` | ✅ Em Uso | CatalogoPage.tsx, useTables.ts — Catálogo público de mesas ativas. Query params: `system`, `modality`, `type`, `audience`, `price_type`, `experience_level`, `state`, `city`, `featured`, `search`, `seal`, `sort`, `page`, `limit`, `styles` |
+| **GET** | `/:slug` | ✅ Em Uso | MesaPage.tsx, useMesa.ts — Detalhes de mesa individual |
+| **POST** | `/:slug/view` | ✅ Em Uso | MesaPage.tsx — Registra visualização para métricas |
+| **POST** | `/:slug/click` | ✅ Em Uso | TableCard.tsx — Registra clique para CTR tracking |
+| **POST** | `/:id/contact` | ❌ Pendente/Front | - (rota planejada para métricas de contato) |
+| **POST** | `/:id/favorite` | ❌ Pendente/Front | - (rota planejada para sistema de favoritos) |
+
+**Campos retornados por `GET /` (catálogo):**
+- Identificação: `id`, `slug`, `title`, `description`
+- Sistema: `system_name`, `system_slug`, `system_logo_filename` **[NOVO 18/04/2026]**, `system_website_url` **[NOVO 18/04/2026]**
+- Mestre: `gm_slug`, `gm_avatar_url`, `gm_display_name`, `gm_badges`
+- Vagas: `slots_total`, `slots_filled`, `slots_open`
+- Preço: `price_type`, `price_value`
+- Modalidade: `modality`, `vtt_platform` (objeto com `id`, `name`, `slug`, `logo_filename`, `website_url`), `game_platform_custom`
+- Metadados: `status`, `type`, `audience`, `experience_level`, `language`, `featured`, `is_ddal`, `is_covil`
+- Cenário: `setting_name`, `setting_styles`, `synopsis_narrative`
+- Imagem: `cover_url`, `cover_crop_data`
+- Contatos: `contacts[]` (array de objetos com `channel`, `value`, `label`, `discord_server_url`, `sort_order`)
+
+**Campos retornados por `GET /:slug` (detalhes):**
+- Todos os campos do catálogo +
+- Detalhes: `price_frequency`, `starts_at`, `city`, `state`, `content_warnings`, `safety_tools`
+- Cenário: `scenario_name`
+- Horários: `schedules[]` (array de objetos TableSchedule)
+- Comunicação: `communication_platform`
+- Campos avançados: `master_display_name`, `campaign_length`, `level_range`, `billing_text`, `session_zero_free`, `synopsis`, `style_text`, `listing_excerpt`, `technical_requirements`, `requires_pc`, `requires_camera`, `requires_microphone`
+- Campos editoriais: `synopsis_narrative`, `benefits_text`, `table_gm_bio`
+- DDAL: `ddal_code`, `ddal_name`, `ddal_tier`, `ddal_season`, `ddal_duration`, `ddal_format`, `ddal_org_code`, `ddal_setting`, `ddal_rules_notes`
+
 ### COMMUNICATIONPLATFORMS (`routes/communicationPlatforms.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
 |---|---|---|---|

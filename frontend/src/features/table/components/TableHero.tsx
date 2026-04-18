@@ -1,6 +1,7 @@
 import type { TableViewModel, TableHeroVariant } from '../types/tableView.types';
 import { getTableBadges, getBadgeClasses } from '../../../utils/tableBadges';
 import { getButtonStyle, handleCTA } from '../utils/uiHelpers';
+import { SystemBadge } from '../../../components/SystemBadge';
 import bannerPlaceholder from '../../../assets/banner_placeholder.webp';
 
 interface TableHeroProps {
@@ -90,24 +91,55 @@ export function TableHero({ vm, variant = 'full' }: TableHeroProps) {
         {/* Quick Decision Info */}
         {variant === 'full' && (
           <div className="flex flex-wrap gap-3 text-sm mt-2">
-            <span className="text-white/90">🎲 {vm.system}</span>
+            {vm.system && (
+              <SystemBadge
+                name={vm.system}
+                logoFilename={vm.systemLogoFilename}
+                websiteUrl={vm.systemWebsiteUrl}
+                className="!text-sm !text-white/90"
+              />
+            )}
             <span className="text-white/90">🧠 {vm.experience}</span>
             {/* CORREÇÃO B01: Exibir logo VTT pequeno (20px) ao lado de modality */}
             {((vm.modality === 'online' || vm.modality === 'hibrida') && vm.vttPlatform) ? (
-              <span className="flex items-center gap-1.5 text-white/90" title={vm.vttPlatform.name}>
-                {vm.vttPlatform.logo_filename && (
-                  <img 
-                    src={`/vtt-logos/${vm.vttPlatform.logo_filename}`} 
-                    alt={vm.vttPlatform.name}
-                    className="h-5 w-auto object-contain"
-                    onError={(e) => {
-                      // CORREÇÃO E02: Esconder imagem se falhar carregamento
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
-                )}
-                <span>{vm.vttPlatform.name}</span>
-              </span>
+              vm.vttPlatform.website_url ? (
+                <a
+                  href={vm.vttPlatform.website_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-white/90 hover:text-white transition-colors"
+                  title={`${vm.vttPlatform.name} - Abrir site oficial`}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {vm.vttPlatform.logo_filename && (
+                    <img 
+                      src={`/vtt-logos/${vm.vttPlatform.logo_filename}`} 
+                      alt={vm.vttPlatform.name}
+                      className="h-5 w-auto object-contain"
+                      onError={(e) => {
+                        // CORREÇÃO E02: Esconder imagem se falhar carregamento
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  )}
+                  <span>{vm.vttPlatform.name}</span>
+                </a>
+              ) : (
+                <span className="flex items-center gap-1.5 text-white/90" title={vm.vttPlatform.name}>
+                  {vm.vttPlatform.logo_filename && (
+                    <img 
+                      src={`/vtt-logos/${vm.vttPlatform.logo_filename}`} 
+                      alt={vm.vttPlatform.name}
+                      className="h-5 w-auto object-contain"
+                      onError={(e) => {
+                        // CORREÇÃO E02: Esconder imagem se falhar carregamento
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  )}
+                  <span>{vm.vttPlatform.name}</span>
+                </span>
+              )
             ) : ((vm.modality === 'online' || vm.modality === 'hibrida') && vm.gamePlatformCustom) ? (
               <span className="text-white/90">🌐 {vm.gamePlatformCustom}</span>
             ) : (

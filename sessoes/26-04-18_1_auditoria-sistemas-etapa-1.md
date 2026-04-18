@@ -1428,6 +1428,71 @@ Mover rota `/gestao` para fora do bloco condicional, deixando `ProtectedRoute` f
 
 ---
 
+## Feature: Logo e Link para Sistemas e VTT nos Cards de Mesa
+
+**Data:** 18/04/2026 09:06 BRT  
+**Solicitação:** Exibir logo do sistema (quando disponível) e tornar nome clicável (quando tiver website_url) em todos os cards de mesa. Aplicar mesma lógica para VTT platforms.
+
+**Decisões:**
+- Links abrem em nova aba (`target="_blank"`)
+- Logo aparece em todos os lugares: catálogo, dashboard, perfil mestre, detalhes da mesa
+- Aplicar para sistemas E para VTT platforms
+
+**Plano de Implementação:**
+
+### Backend
+1. `backend/src/routes/tables.ts`
+   - GET / (catálogo): adicionar `s.logo_filename as system_logo_filename`, `s.website_url as system_website_url`
+   - GET /:slug (detalhes): adicionar mesmos campos
+
+### Frontend - Tipos
+2. `frontend/src/types/tables.ts`
+   - Adicionar `system_logo_filename?: string | null`
+   - Adicionar `system_website_url?: string | null`
+
+### Frontend - Componentes
+3. `frontend/src/components/SystemBadge.tsx` (novo)
+   - Componente reutilizável para exibir sistema com logo + link
+   - Props: name, logoFilename, websiteUrl, className
+   - Se websiteUrl: renderiza como `<a target="_blank">`
+   - Se logoFilename: exibe logo, senão fallback para Dice1
+
+4. `frontend/src/components/TableCard.tsx`
+   - Substituir badge de sistema (linhas 148-155) por SystemBadge
+   - Tornar logo VTT clicável (linhas 128-142) quando vtt_platform.website_url existir
+
+5. `frontend/src/components/TableCardDashboard.tsx`
+   - Aplicar SystemBadge (linha 118)
+
+6. `frontend/src/components/mestre/MestreFeaturedTable.tsx`
+   - Aplicar SystemBadge (linhas 49-51)
+
+7. Página de detalhes da mesa (TableHero ou similar)
+   - Aplicar mesma lógica
+
+**Checklist:**
+- [x] Backend: adicionar campos system_logo_filename e system_website_url em GET /tables
+- [x] Backend: adicionar campos system_logo_filename e system_website_url em GET /tables/:slug
+- [x] Frontend: atualizar tipos em types/tables.ts
+- [x] Frontend: criar componente SystemBadge.tsx
+- [x] Frontend: aplicar SystemBadge em TableCard.tsx
+- [x] Frontend: tornar logo VTT clicável em TableCard.tsx
+- [x] Frontend: aplicar SystemBadge em TableCardDashboard.tsx
+- [x] Frontend: tornar logo VTT clicável em TableCardDashboard.tsx
+- [x] Frontend: aplicar SystemBadge em MestreFeaturedTable.tsx
+- [x] Frontend: aplicar em página de detalhes da mesa (TableHero)
+- [x] Frontend: tornar logo VTT clicável em TableHero
+- [x] Frontend: atualizar TableViewModel types
+- [x] Frontend: atualizar tableViewMapper
+- [x] Documentação: atualizar MAPA_DE_API.md com novos campos
+- [ ] Testar: sistema com logo + website
+- [ ] Testar: sistema sem logo (fallback Dice1)
+- [ ] Testar: sistema sem website (não clicável)
+- [ ] Testar: VTT com logo + website (clicável)
+- [ ] Testar: VTT sem website (não clicável)
+
+---
+
 ## Referências
 
 - `docs/auditoria_sistemas_claude.md` — Análise completa (1181 linhas)

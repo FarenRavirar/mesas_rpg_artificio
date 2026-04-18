@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
-import { CheckCircle2, Star, Dice1, Globe, MapPin } from 'lucide-react';
+import { CheckCircle2, Star, Globe, MapPin } from 'lucide-react';
 import type { TableCard } from '../../types/tables';
 import { SlotsIndicator } from '../SlotsIndicator';
+import { SystemBadge } from '../SystemBadge';
 import { getSlotsVisualState } from '../../utils/slots';
 import bannerPlaceholder from '../../assets/banner_placeholder.webp';
 
@@ -47,9 +48,12 @@ export function MestreFeaturedTable({ table }: Props) {
         <div className="mestre-featured-table-content">
           <div className="mestre-featured-table-tags">
             {table.system_name && (
-              <span className="mestre-featured-table-tag">
-                <Dice1 className="w-3 h-3" /> {table.system_name}
-              </span>
+              <SystemBadge
+                name={table.system_name}
+                logoFilename={table.system_logo_filename}
+                websiteUrl={table.system_website_url}
+                className="!bg-transparent !border-white/20"
+              />
             )}
             <span className="mestre-featured-table-tag">
               {table.modality === 'online' ? <Globe className="w-3 h-3" /> : <MapPin className="w-3 h-3" />}

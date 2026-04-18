@@ -90,6 +90,8 @@ router.get('/', async (req: Request, res: Response) => {
         't.synopsis_narrative',
         's.name as system_name',
         's.slug as system_slug',
+        's.logo_filename as system_logo_filename',
+        's.website_url as system_website_url',
         'gm.slug as gm_slug',
         sql<string | null>`COALESCE(gm.avatar_url, p.avatar_url)`.as('gm_avatar_url'),
         'gm.badges as gm_badges',
@@ -351,6 +353,8 @@ router.get('/:slug', async (req: Request, res: Response) => {
         sql<string | null>`COALESCE(cp.name, t.communication_platform)`.as('communication_platform'),
         's.name as system_name',
         's.slug as system_slug',
+        's.logo_filename as system_logo_filename',
+        's.website_url as system_website_url',
         // CORREÇÃO DT-02: Retornar nome do cenário
         'sc.name as scenario_name',
         // CORREÇÃO A01: Retornar objeto vtt_platform completo

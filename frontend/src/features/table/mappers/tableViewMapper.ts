@@ -207,6 +207,8 @@ export function mapTableToView(table: TableDetail): TableViewModel {
 
     // Decisão rápida
     system: table.system_name ?? 'Sistema livre',
+    systemLogoFilename: table.system_logo_filename ?? undefined,
+    systemWebsiteUrl: table.system_website_url ?? undefined,
     experience: table.experience_level,
     modality: table.modality,
 

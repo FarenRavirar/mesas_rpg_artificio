@@ -53,6 +53,8 @@ export interface TableCard {
   contacts: TableContact[];
   system_name: string | null;
   system_slug: string | null;
+  system_logo_filename?: string | null;
+  system_website_url?: string | null;
   gm_slug: string | null;
   gm_avatar_url: string | null;
   gm_display_name: string | null;
