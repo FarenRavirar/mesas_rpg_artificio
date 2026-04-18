@@ -132,6 +132,8 @@ export interface GmProfilesTable {
   closed_group_systems: Generated<string[]>; // UUID[]
   closed_group_description: string | null;
   closed_group_min_price_cents: number | null;
+  preferred_vtt_platforms: Generated<string[]>; // UUID[] - VTT platforms que o mestre usa/prefere
+  contact_methods: unknown; // JSONB - Array<{ channel: string, value: string, label?: string, discord_server_url?: string }>
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }

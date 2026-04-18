@@ -11,6 +11,7 @@ import { TableContent } from '../features/table/components/TableContent';
 import { TableMaster } from '../features/table/components/TableMaster';
 import { TableSecurity } from '../features/table/components/TableSecurity';
 import { TableTechnical } from '../features/table/components/TableTechnical';
+import { MasterCard } from '../features/table/components/MasterCard';
 import { useAuth } from '../contexts/AuthContext'; // CORREÇÃO DT-026: Importar useAuth
 import { handleCTA, getButtonStyle } from '../features/table/utils/uiHelpers';
 
@@ -156,7 +157,8 @@ export const MesaPage = () => {
         <article className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
           <div className="space-y-5">
             {/* Fase 2.2: TableHero (substituindo hero section de 74 linhas) */}
-            {vm && <TableHero vm={vm} variant="full" />}
+            {/* showOverlay={false} = banner limpo (apenas imagem), informações estão na sidebar */}
+            {vm && <TableHero vm={vm} variant="full" showOverlay={false} />}
 
             {/* Fase 2.3: TableSchedules (substituindo schedules section de 68 linhas) */}
             {vm && <TableSchedules vm={vm} />}
@@ -187,9 +189,22 @@ export const MesaPage = () => {
             )}
           </div>
 
-          {/* Fase 2: TableActionPanel (substituindo aside de 72 linhas) */}
-          {/* CORREÇÃO DT-026: Passar variant baseado em canManage (owner OU admin) */}
-          {vm && <TableActionPanel vm={vm} variant={canManage ? 'owner' : 'full'} />}
+          {/* Sidebar */}
+          <aside className="space-y-4">
+            {/* Fase 2: TableActionPanel (substituindo aside de 72 linhas) */}
+            {/* CORREÇÃO DT-026: Passar variant baseado em canManage (owner OU admin) */}
+            {vm && <TableActionPanel vm={vm} variant={canManage ? 'owner' : 'full'} />}
+
+            {/* Card do Mestre */}
+            {vm && (
+              <MasterCard
+                masterName={vm.masterName}
+                masterSlug={vm.masterSlug}
+                masterAvatar={vm.masterAvatar}
+                masterBio={vm.masterBio}
+              />
+            )}
+          </aside>
         </article>
       </section>
 

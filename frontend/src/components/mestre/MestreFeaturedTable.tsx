@@ -43,6 +43,43 @@ export function MestreFeaturedTable({ table }: Props) {
           <span className="mestre-featured-table-badge">
             <Star className="w-4 h-4" /> Mesa em destaque
           </span>
+
+          {/* Logo VTT */}
+          {(table.modality === 'online' || table.modality === 'hibrida') && table.vtt_platform?.logo_filename && (
+            table.vtt_platform.website_url ? (
+              <a
+                href={table.vtt_platform.website_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="absolute bottom-3 right-3 h-9 min-w-9 px-2 rounded-lg bg-black/55 border border-white/20 backdrop-blur-sm inline-flex items-center justify-center hover:bg-black/70 hover:border-white/40 transition-colors"
+                title={`${table.vtt_platform.name} - Abrir site oficial`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <img
+                  src={`/vtt-logos/${table.vtt_platform.logo_filename}`}
+                  alt={table.vtt_platform.name}
+                  className="h-5 w-auto object-contain"
+                  onError={(event) => {
+                    event.currentTarget.parentElement?.classList.add('hidden');
+                  }}
+                />
+              </a>
+            ) : (
+              <span
+                className="absolute bottom-3 right-3 h-9 min-w-9 px-2 rounded-lg bg-black/55 border border-white/20 backdrop-blur-sm inline-flex items-center justify-center"
+                title={table.vtt_platform.name}
+              >
+                <img
+                  src={`/vtt-logos/${table.vtt_platform.logo_filename}`}
+                  alt={table.vtt_platform.name}
+                  className="h-5 w-auto object-contain"
+                  onError={(event) => {
+                    event.currentTarget.parentElement?.classList.add('hidden');
+                  }}
+                />
+              </span>
+            )
+          )}
         </div>
 
         <div className="mestre-featured-table-content">

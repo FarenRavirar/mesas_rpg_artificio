@@ -212,6 +212,8 @@ router.put('/profile', authMiddleware, async (req: Request, res: Response) => {
     closed_group_systems,
     closed_group_description,
     closed_group_min_price_cents,
+    preferred_vtt_platforms,
+    contact_methods,
   } = req.body;
 
   if (nickname !== undefined) {
@@ -262,6 +264,52 @@ router.put('/profile', authMiddleware, async (req: Request, res: Response) => {
       : closed_group_min_price_cents === null
         ? null
         : undefined;
+  const safePreferredVttPlatforms = Array.isArray(preferred_vtt_platforms)
+    ? preferred_vtt_platforms.filter(
+        (value) => typeof value === 'string' && /^[0-9a-fA-F-]{36}$/.test(value)
+      )
+    : undefined;
+  
+  // Validação de contact_methods (array de contatos)
+  const safeContactMethods = Array.isArray(contact_methods)
+    ? contact_methods
+        .filter((contact) => contact && typeof contact === 'object')
+        .map((contact) => {
+          const channel = contact.channel;
+          const value = typeof contact.value === 'string' ? contact.value.trim() : '';
+          
+          // Validar canal
+          if (!['whatsapp', 'email', 'discord', 'form'].includes(channel)) {
+            return null;
+          }
+          
+          // Validar WhatsApp (formato internacional)
+          if (channel === 'whatsapp') {
+            const whatsappRegex = /^\+\d{1,3}\d{6,14}$/;
+            if (!whatsappRegex.test(value)) {
+              return null; // WhatsApp inválido
+            }
+          }
+          
+          // Validar Email
+          if (channel === 'email') {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(value)) {
+              return null; // Email inválido
+            }
+          }
+          
+          return {
+            channel,
+            value: value.slice(0, 500),
+            label: typeof contact.label === 'string' ? contact.label.trim().slice(0, 100) : null,
+            discord_server_url: typeof contact.discord_server_url === 'string' 
+              ? contact.discord_server_url.trim().slice(0, 500) 
+              : null,
+          };
+        })
+        .filter((contact) => contact !== null)
+    : undefined;
 
   try {
     const gmProfile = await db
@@ -291,6 +339,8 @@ router.put('/profile', authMiddleware, async (req: Request, res: Response) => {
         closed_group_systems: safeClosedGroupSystems,
         closed_group_description: safeClosedGroupDescription,
         closed_group_min_price_cents: safeClosedGroupMinPriceCents,
+        preferred_vtt_platforms: safePreferredVttPlatforms,
+        contact_methods: safeContactMethods as any,
       })
       .where('id', '=', gmProfile.id)
       .returning([

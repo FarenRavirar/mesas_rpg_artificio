@@ -45,7 +45,7 @@
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
 |---|---|---|---|
 | **POST** | `/profile` | ✅ Em Uso | PainelMestrePage.tsx (CreateGmProfileForm) |
-| **PUT** | `/profile` | ❌ Pendente/Front | - (sem consumidor ativo no frontend) |
+| **PUT** | `/profile` | ✅ Em Uso | VttPlatformsEditor.tsx, ContactMethodsEditor.tsx (via PainelMestrePage.tsx) — **Aceita:** `nickname`, `bio_long`, `languages`, `specialties`, `badges`, `avatar_url`, `banner_url`, `tagline`, `promo_badge_text`, `selling_points`, `closed_group_enabled`, `closed_group_systems`, `closed_group_description`, `closed_group_min_price_cents`, `preferred_vtt_platforms` (UUID[]), `contact_methods` (Array<{channel, value, label?, discord_server_url?}>) — **Validação:** WhatsApp formato internacional (+55XXXXXXXXXXX sem espaços/parênteses/hífens), Email formato válido |
 | **GET** | `/me` | ✅ Em Uso | PainelMestrePage.tsx |
 | **GET** | `/tables/:id` | ✅ Em Uso | PainelMestrePage.tsx — retorno inclui campos canônicos/legados da tabela (`banner_url`, `cover_url`), `vtt_platform_id`, `game_platform_custom`, `communication_platform_id` e `communication_platform` resolvida (`COALESCE(cp.name, t.communication_platform)`); não inclui alias `image_url` |
 | **POST** | `/tables` | ✅ Em Uso | useCreateTableForm.ts, PainelMestrePage.tsx — submit corrigido em 15/04 para `${API_BASE}/api/v1/gm/tables` |
@@ -53,6 +53,41 @@
 | **GET** | `/tables` | ✅ Em Uso | PainelMestrePage.tsx, TableCardDashboard.tsx — retorna `image_url` (alias de `banner_url`) e objeto `vtt_platform` (`id`, `name`, `slug`, `logo_filename`, `website_url`) para cards do painel; inclui `communication_platform` resolvida |
 | **PATCH** | `/tables/:id/status` | ✅ Em Uso | PainelMestrePage.tsx (handleToggleTableStatus) - **Aceita apenas:** 'active', 'full', 'cancelled', 'ended' |
 | **DELETE** | `/tables/:id` | ✅ Em Uso | uiHelpers.ts, PainelMestrePage.tsx |
+
+### GM - Perfil Público (`routes/gm.ts`)
+| Metodo | Endpoint | Status | Chamado por (Frontend) |
+|---|---|---|---|
+| **GET** | `/:slug` | ✅ Em Uso | MestrePublicProfile.tsx, useMestre.ts — Perfil público do mestre com mesas ativas |
+| **POST** | `/:slug/view` | ✅ Em Uso | MestrePublicProfile.tsx — Registra visualização do perfil (deduplicação por session_id) |
+| **GET** | `/:slug/insights` | ✅ Em Uso | MestrePublicProfile.tsx — Métricas privadas (apenas dono ou admin) |
+
+**Campos retornados por `GET /:slug`:**
+- Perfil: `id`, `slug`, `display_name`, `bio_long`, `tagline`, `avatar_url`, `banner_url`, `languages`, `specialties`, `badges`, `selling_points`, `promo_badge_text`
+- Prova social: `discord_connected`, `discord_username`, `covil_verified`, `experience_years`, `average_price`, `tables_count`, `avg_rating`, `reviews_count`
+- Grupo fechado: `closed_group` (objeto com `enabled`, `systems`, `description`, `min_price_cents`)
+- **VTT Platforms preferidas:** `preferred_vtt_platforms` (Array<{id, name, slug, logo_filename, website_url}>) — Plataformas que o mestre usa/prefere
+- **Contatos:** `contact_methods` (Array<{channel, value, label?, discord_server_url?}>) — Múltiplos contatos do mestre (WhatsApp, Email, Discord, Formulário)
+- Links: `links` (Array com metadata Open Graph enriquecida)
+- Mesas: `tables` (Array com `system_name`, `system_slug`, `system_logo_filename`, `system_website_url`, `vtt_platform` completo, `contacts`)
+- Contexto: `viewer_context` ({is_owner, is_admin})
+
+| **POST** | `/:slug/contact` | ✅ Em Uso | MestreContactForm.tsx — Formulário de contato inline no perfil público do mestre |
+
+**Detalhes de `POST /:slug/contact`:**
+- **Middleware:** `publicRateLimiter` (proteção contra spam)
+- **Body obrigatório:** `{ name: string, email: string, message: string }`
+- **Validações:**
+  - `name`: obrigatório, máximo 100 caracteres
+  - `email`: obrigatório, formato válido (regex: `/^[^\s@]+@[^\s@]+\.[^\s@]+$/`)
+  - `message`: obrigatório, máximo 1000 caracteres
+- **Comportamento:**
+  - Busca email do mestre via slug
+  - Retorna 404 se mestre não encontrado
+  - Retorna 400 se validação falhar
+  - **Status atual:** Apenas registra no console (TODO: implementar envio real de email)
+- **Resposta sucesso:** `{ success: true, message: string }`
+- **Resposta erro:** `{ error: string }`
+
 | **POST** | `/tables/:slug/view` | ❌ Pendente/Front | - |
 | **POST** | `/tables/:id/click` | ❌ Pendente/Front | - |
 | **POST** | `/tables/:id/contact` | ❌ Pendente/Front | - |

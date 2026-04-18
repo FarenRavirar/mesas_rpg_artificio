@@ -13,47 +13,10 @@ interface TableActionPanelProps {
  * Reutilizável em: MesaPage, Painel do Mestre, Card expandido
  */
 export function TableActionPanel({ vm, variant = 'full' }: TableActionPanelProps) {
-  // Modo owner: apenas gestão, sem CTA de conversão
+  // Modo owner: gestão + preview completo (como visitante vê)
   if (variant === 'owner') {
     return (
       <aside className="space-y-3 lg:sticky lg:top-4">
-        {/* Info Rápida */}
-        <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-white/60">Sistema</span>
-            <span className="text-white font-medium">{vm.system}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-white/60">Experiência</span>
-            <span className="text-white font-medium">{vm.experience}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-white/60">Modalidade</span>
-            <span className="text-white font-medium">{vm.modality}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-white/60">Vagas</span>
-            <span className="text-white font-medium">
-              {vm.slotsLeft} {vm.slotsLeft === 1 ? 'disponível' : 'disponíveis'}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-white/60">Status</span>
-            <span className={`font-medium ${
-              vm.status === 'active' ? 'text-green-400' :
-              vm.status === 'cancelled' ? 'text-yellow-400' :
-              vm.status === 'full' ? 'text-orange-400' :
-              vm.status === 'ended' ? 'text-red-400' :
-              'text-white'
-            }`}>
-              {vm.status === 'active' && '✓ Ativa'}
-              {vm.status === 'cancelled' && '⏸ Desativada'}
-              {vm.status === 'full' && '🔒 Lotada'}
-              {vm.status === 'ended' && '✕ Encerrada'}
-            </span>
-          </div>
-        </div>
-
         {/* Gestão */}
         <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
           <p className="text-xs font-semibold text-white/60 uppercase tracking-wide mb-3">
@@ -116,6 +79,153 @@ export function TableActionPanel({ vm, variant = 'full' }: TableActionPanelProps
             Ação irreversível
           </p>
         </div>
+
+        {/* PREVIEW: Como visitantes veem */}
+        <div className="pt-4 border-t border-white/10">
+          <p className="text-xs font-semibold text-white/40 uppercase tracking-wide mb-3">
+            👁 Preview Público
+          </p>
+
+          {/* Preço */}
+          {vm.visibility.showPrice && vm.price !== undefined && (
+            <div className="p-4 rounded-xl bg-[#13213f] border border-orange-400/30 mb-3">
+              <p className="text-xs text-white/60 uppercase tracking-wide">Investimento</p>
+              <p className="text-2xl font-bold text-orange-400 mt-1">
+                R$ {vm.price}
+                {vm.priceFrequency && (
+                  <span className="text-sm text-white/60 font-normal ml-1">
+                    / {vm.priceFrequency}
+                  </span>
+                )}
+              </p>
+            </div>
+          )}
+
+          {/* Info Rápida */}
+          <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2 text-sm mb-3">
+            <div className="flex justify-between items-center">
+              <span className="text-white/60">Sistema</span>
+              {vm.systemLogoFilename || vm.systemWebsiteUrl ? (
+                <a 
+                  href={vm.systemWebsiteUrl || '#'} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 hover:opacity-80 transition"
+                  title={vm.system}
+                >
+                  {vm.systemLogoFilename ? (
+                    <img 
+                      src={`/system-logos/${vm.systemLogoFilename}`} 
+                      alt={vm.system}
+                      className="h-6 w-auto object-contain"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const parent = e.currentTarget.parentElement;
+                        if (parent && !parent.querySelector('.system-fallback')) {
+                          const span = document.createElement('span');
+                          span.className = 'system-fallback text-white font-medium';
+                          span.textContent = vm.system;
+                          parent.appendChild(span);
+                        }
+                      }}
+                    />
+                  ) : (
+                    <span className="text-white font-medium">{vm.system}</span>
+                  )}
+                </a>
+              ) : (
+                <span className="text-white font-medium">{vm.system}</span>
+              )}
+            </div>
+            <div className="flex justify-between">
+              <span className="text-white/60">Experiência</span>
+              <span className="text-white font-medium">{vm.experience}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-white/60">Modalidade</span>
+              <span className="text-white font-medium">{vm.modality}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-white/60">Vagas</span>
+              <span className="text-white font-medium">
+                {vm.slotsLeft} {vm.slotsLeft === 1 ? 'disponível' : 'disponíveis'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-white/60">Status</span>
+              <span className={`font-medium ${
+                vm.status === 'active' ? 'text-green-400' :
+                vm.status === 'cancelled' ? 'text-yellow-400' :
+                vm.status === 'full' ? 'text-orange-400' :
+                vm.status === 'ended' ? 'text-red-400' :
+                'text-white'
+              }`}>
+                {vm.status === 'active' && '✓ Ativa'}
+                {vm.status === 'cancelled' && '⏸ Desativada'}
+                {vm.status === 'full' && '🔒 Lotada'}
+                {vm.status === 'ended' && '✕ Encerrada'}
+              </span>
+            </div>
+          </div>
+
+          {/* Plataformas */}
+          {(vm.modality === 'online' || vm.modality === 'hibrida') && (vm.vttPlatform || vm.gamePlatformCustom || vm.communicationPlatform) && (
+            <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20 space-y-2 text-sm mb-3">
+              <h3 className="text-xs font-semibold text-purple-300/90 uppercase tracking-wide mb-2">
+                🎮 Plataformas
+              </h3>
+              {vm.vttPlatform && (
+                <div className="flex justify-between items-center">
+                  <span className="text-white/60">Jogo</span>
+                  {vm.vttPlatform.website_url ? (
+                    <a 
+                      href={vm.vttPlatform.website_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 hover:opacity-80 transition"
+                      title={`Abrir ${vm.vttPlatform.name}`}
+                    >
+                      {vm.vttPlatform.logo_filename && (
+                        <img 
+                          src={`/vtt-logos/${vm.vttPlatform.logo_filename}`} 
+                          alt={vm.vttPlatform.name}
+                          className="h-6 w-auto object-contain"
+                        />
+                      )}
+                      <span className="text-white font-medium text-sm">{vm.vttPlatform.name}</span>
+                    </a>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      {vm.vttPlatform.logo_filename && (
+                        <img 
+                          src={`/vtt-logos/${vm.vttPlatform.logo_filename}`} 
+                          alt={vm.vttPlatform.name}
+                          className="h-6 w-auto object-contain"
+                        />
+                      )}
+                      <span className="text-white font-medium text-sm">{vm.vttPlatform.name}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              {!vm.vttPlatform && vm.gamePlatformCustom && (
+                <div className="flex justify-between">
+                  <span className="text-white/60">Jogo</span>
+                  <span className="text-white font-medium">{vm.gamePlatformCustom}</span>
+                </div>
+              )}
+              {vm.communicationPlatform && (
+                <div className="flex justify-between">
+                  <span className="text-white/60">Comunicação</span>
+                  <span className="text-white font-medium">{vm.communicationPlatform}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Contatos */}
+          <TableContactsBlock contacts={vm.contacts} />
+        </div>
       </aside>
     );
   }
@@ -155,9 +265,39 @@ export function TableActionPanel({ vm, variant = 'full' }: TableActionPanelProps
 
       {/* Info Rápida */}
       <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2 text-sm">
-        <div className="flex justify-between">
+        <div className="flex justify-between items-center">
           <span className="text-white/60">Sistema</span>
-          <span className="text-white font-medium">{vm.system}</span>
+          {vm.systemLogoFilename || vm.systemWebsiteUrl ? (
+            <a 
+              href={vm.systemWebsiteUrl || '#'} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 hover:opacity-80 transition"
+              title={vm.system}
+            >
+              {vm.systemLogoFilename ? (
+                <img 
+                  src={`/system-logos/${vm.systemLogoFilename}`} 
+                  alt={vm.system}
+                  className="h-6 w-auto object-contain"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    const parent = e.currentTarget.parentElement;
+                    if (parent && !parent.querySelector('.system-fallback')) {
+                      const span = document.createElement('span');
+                      span.className = 'system-fallback text-white font-medium';
+                      span.textContent = vm.system;
+                      parent.appendChild(span);
+                    }
+                  }}
+                />
+              ) : (
+                <span className="text-white font-medium">{vm.system}</span>
+              )}
+            </a>
+          ) : (
+            <span className="text-white font-medium">{vm.system}</span>
+          )}
         </div>
         <div className="flex justify-between">
           <span className="text-white/60">Experiência</span>
@@ -185,29 +325,35 @@ export function TableActionPanel({ vm, variant = 'full' }: TableActionPanelProps
           {vm.vttPlatform && (
             <div className="flex justify-between items-center">
               <span className="text-white/60">Jogo</span>
-              <div className="flex items-center gap-2" title={vm.vttPlatform.name}>
-                {vm.vttPlatform.logo_filename ? (
-                  <img 
-                    src={`/vtt-logos/${vm.vttPlatform.logo_filename}`} 
-                    alt={vm.vttPlatform.name}
-                    className="h-8 w-auto object-contain"
-                    onError={(e) => {
-                      // Fallback: substituir imagem por texto estilizado
-                      const img = e.currentTarget;
-                      const parent = img.parentElement;
-                      if (parent && !parent.querySelector('.vtt-fallback-text')) {
-                        img.style.display = 'none';
-                        const textSpan = document.createElement('span');
-                        textSpan.className = 'vtt-fallback-text text-white font-medium text-sm';
-                        textSpan.textContent = vm.vttPlatform?.name || 'VTT';
-                        parent.appendChild(textSpan);
-                      }
-                    }}
-                  />
-                ) : (
+              {vm.vttPlatform.website_url ? (
+                <a 
+                  href={vm.vttPlatform.website_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 hover:opacity-80 transition"
+                  title={`Abrir ${vm.vttPlatform.name}`}
+                >
+                  {vm.vttPlatform.logo_filename && (
+                    <img 
+                      src={`/vtt-logos/${vm.vttPlatform.logo_filename}`} 
+                      alt={vm.vttPlatform.name}
+                      className="h-6 w-auto object-contain"
+                    />
+                  )}
                   <span className="text-white font-medium text-sm">{vm.vttPlatform.name}</span>
-                )}
-              </div>
+                </a>
+              ) : (
+                <div className="flex items-center gap-2">
+                  {vm.vttPlatform.logo_filename && (
+                    <img 
+                      src={`/vtt-logos/${vm.vttPlatform.logo_filename}`} 
+                      alt={vm.vttPlatform.name}
+                      className="h-6 w-auto object-contain"
+                    />
+                  )}
+                  <span className="text-white font-medium text-sm">{vm.vttPlatform.name}</span>
+                </div>
+              )}
             </div>
           )}
           {/* Plataforma customizada (quando não tem VTT cadastrada) */}

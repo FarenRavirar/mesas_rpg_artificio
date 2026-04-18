@@ -9,6 +9,8 @@ import { TableCardDashboard } from '../components/TableCardDashboard';
 import { LinksManager } from '../components/LinksManager';
 import { EditGmProfileForm } from './Painel/EditGmProfileForm';
 import { HelpCenter } from '../components/HelpCenter';
+import { VttPlatformsEditor } from '../components/mestre/VttPlatformsEditor';
+import { ContactMethodsEditor } from '../components/mestre/ContactMethodsEditor';
 // Componente refatorado
 import { CreateTableForm } from '../features/create-table/components/CreateTableForm';
 
@@ -37,6 +39,13 @@ interface GmProfile {
   specialties: string[];
   tables_count: number;
   avg_rating: number | null;
+  preferred_vtt_platforms?: string[];
+  contact_methods?: Array<{
+    channel: 'whatsapp' | 'email' | 'discord' | 'form';
+    value: string;
+    label?: string;
+    discord_server_url?: string;
+  }>;
 }
 
 interface MyTable {
@@ -603,6 +612,47 @@ export const PainelMestrePage = () => {
               <StatCard label="📈 Conversão" value={`${conversionRate}%`} />
             </div>
 
+            {/* Contact Methods Editor - PRIORIDADE: Contato é o principal */}
+            {gmProfile && (
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <ContactMethodsEditor
+                  contacts={gmProfile.contact_methods || []}
+                  onSave={async (contacts) => {
+                    const res = await fetch(`${API_BASE}/api/v1/gm/profile`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      credentials: 'include',
+                      body: JSON.stringify({ contact_methods: contacts }),
+                    });
+                    if (!res.ok) throw new Error('Erro ao salvar contatos');
+                    toast.success('Contatos atualizados!');
+                    refreshData();
+                  }}
+                />
+              </section>
+            )}
+
+            {/* VTT Platforms Editor */}
+            {gmProfile && (
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <VttPlatformsEditor
+                  selectedPlatforms={gmProfile.preferred_vtt_platforms || []}
+                  onSave={async (platformIds) => {
+                    const res = await fetch(`${API_BASE}/api/v1/gm/profile`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      credentials: 'include',
+                      body: JSON.stringify({ preferred_vtt_platforms: platformIds }),
+                    });
+                    if (!res.ok) throw new Error('Erro ao salvar plataformas');
+                    toast.success('Plataformas atualizadas!');
+                    refreshData();
+                  }}
+                />
+              </section>
+            )}
+
+            {/* Links - Após contatos */}
             {gmProfile && (
               <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
                 <LinksManager />

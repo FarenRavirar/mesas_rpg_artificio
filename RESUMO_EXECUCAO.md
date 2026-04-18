@@ -1,6 +1,6 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 18/04/2026 07:00 BRT
+**Última atualização:** 18/04/2026 12:40 BRT
 
 ---
 
@@ -56,53 +56,66 @@ Iniciar execução sistemática da auditoria técnica documentada em `docs/audit
 
 ## Última Sessão
 
-**Data:** 18/04/2026 08:41 BRT  
-**Tipo:** Correção de Bugs Pós-Deploy + Feature Logo/Website para Sistemas  
-**Arquivo:** `sessoes/26-04-18_1_auditoria-sistemas-etapa-1.md`  
+**Data:** 18/04/2026 12:40 BRT  
+**Tipo:** Features de Perfil do Mestre + Melhorias de UX  
+**Arquivo:** `sessoes/26-04-18_1_auditoria-sistemas-etapa-1.md` (extensão)  
 **O que foi feito:**
-- ✅ Deploy beta concluído com sucesso (commit `72d5ddc`)
-- ✅ UX BigTech validada pelo usuário (padrão split-view 3 colunas funcionando)
-- ✅ **BUG-001 corrigido:** Erro "No routes matched location /gestao"
-  - Causa: Rota condicional `{!isLoading && isAdmin && (...)}` impedia acesso direto via URL
-  - Solução: Movida rota `/gestao` para fora do bloco condicional, deixando `ProtectedRoute` fazer validação
-  - Arquivo: `frontend/src/App.tsx`
-- ✅ **BUG-002 corrigido:** Backend rejeitava `node_type='subsystem'`
-  - Causa: Validação em POST/PUT de sistemas só aceitava `['system', 'edition', 'variant']`
-  - Solução: Adicionado `'subsystem'` à lista de validação em ambas as rotas
-  - Arquivo: `backend/src/routes/systems.ts` (linhas 238, 328)
-- ✅ **BUG-003 corrigido:** Cenários sem caixa de busca
-  - Causa: Estado `search` não existia e prop `onSearchChange` não era passada para `ScenariosList`
-  - Solução: Adicionado `useState` para `search` em `ScenariosAdminView` e campo de busca renderizado em `ScenariosList`
-  - Arquivos: `frontend/src/pages/ScenariosAdminView.tsx`, `frontend/src/features/admin/components/ScenariosList.tsx`
-- ✅ **Feature implementada:** Logo e Website URL para sistemas raiz
-  - Migration 108 criada (`migration_108_systems_logo_website.sql`)
-  - Backend atualizado: types.ts, routes/systems.ts (GET, POST, PUT)
-  - Frontend atualizado: types.ts, EntityInspector.tsx (formulário), CatalogTreeNode.tsx (exibição)
-  - Diretório `/frontend/public/sys-logos/` criado
-  - Campos aparecem apenas para `node_type='system'`
-  - Validação: apenas sistemas raiz podem ter logo e website
-- ✅ Documentação atualizada:
-  - `MAPA_DE_API.md` — Campos `logo_filename` e `website_url` documentados em GET/POST/PUT de sistemas
-  - `sessoes/26-04-18_1_auditoria-sistemas-etapa-1.md` — Seção de bugs pós-deploy + feature de logo/website
 
-**Status:** ✅ Concluída. Aguardando validação manual dos bugs corrigidos e aplicação da migration 108 em beta.
+### 1. VTT Platforms Preferidas do Mestre ✅
+- Migration 109: Campo `preferred_vtt_platforms` (UUID[]) em `gm_profiles`
+- Backend: GET /gm/:slug retorna array de VTT platforms com dados completos
+- Backend: PUT /gm/profile aceita e valida `preferred_vtt_platforms`
+- Frontend: Tipos atualizados em `useProfile.ts` e `useMestre.ts`
+
+### 2. Sistema de Contatos do Mestre ✅
+- Migration 110: Campo `contact_methods` (JSONB array) em `gm_profiles`
+- Backend: GET /gm/:slug retorna array de contatos
+- Backend: PUT /gm/profile aceita e valida `contact_methods`
+- Validações: email (formato válido), WhatsApp (formato internacional +55...)
+- Suporte para múltiplos contatos: WhatsApp, Email, Discord, Formulário
+
+### 3. Preview Completo para Mestre/Admin ✅
+- **Problema corrigido:** Mestre não via informações completas da própria mesa
+- **Solução:** `TableActionPanel.tsx` modo owner agora mostra:
+  - Gestão (topo): editar, desativar, excluir
+  - Preview Público (abaixo): preço, informações, plataformas, contatos
+
+### 4. Sistema com Logo e Link Clicável ✅
+- Sistema agora exibe logo (se disponível)
+- Logo é clicável e abre website do sistema em nova aba
+- Fallback para texto se logo não carregar
+
+### 5. VTT Platform com Nome, Logo e Link ✅
+- Mostra nome + logo da plataforma VTT
+- Se tiver website_url, torna nome + logo clicáveis
+- Implementado em modos owner e público
+
+### Documentação Atualizada
+- `MAPA_DE_API.md`: Seção "GM - Perfil Público" adicionada
+- `MAPA_DE_API.md`: PUT /profile documentado com novos campos
+- `sessoes/26-04-18_1_auditoria-sistemas-etapa-1.md`: Extensão com todas as implementações
+
+### Arquivos Modificados (13)
+**Backend:** migration_109, migration_110, types.ts, gm.ts, gmPanel.ts  
+**Frontend:** useProfile.ts, useMestre.ts, TableActionPanel.tsx, MestreFeaturedTable.tsx, SystemBadge.tsx, tables.ts, tableView.types.ts  
+**Documentação:** MAPA_DE_API.md
+
+**Status:** ✅ Backend completo. Falta: componentes visuais (editores no painel + exibição no perfil público + formulário de contato + card do mestre na página da mesa).
 
 ---
 
 ## Próxima Ação
 
-**Validação e Aplicação de Migration**
+**Implementar Componentes Visuais**
 
-1. Testar bugs corrigidos em beta:
-   - BUG-001: Acessar `/gestao` diretamente via URL
-   - BUG-002: Criar/editar sistema com `node_type='subsystem'`
-   - BUG-003: Verificar caixa de busca na aba Cenários
-2. Aplicar `migration_108_systems_logo_website.sql` em beta
-3. Testar feature de logo/website:
-   - Criar sistema raiz com logo e website
-   - Verificar que campos aparecem apenas para `node_type='system'`
-   - Verificar exibição de logo na árvore
+1. Card do mestre na página da mesa (foto, nome, bio, link para perfil)
+2. Editor de VTT platforms no painel do mestre
+3. Editor de contatos no painel do mestre
+4. Exibir VTT platforms no perfil público do mestre
+5. Exibir contatos no perfil público do mestre
+6. Criar formulário inline de contato
 
+---
 
 **Data:** 17/04/2026 17:20 BRT  
 **Tipo:** Resolução de Pendências — Reformulação V4 Finalizada  
