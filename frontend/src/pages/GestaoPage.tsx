@@ -128,7 +128,17 @@ export const GestaoPage = () => {
       });
 
       if (response.ok) {
-        toast.success('Sistema aprovado com sucesso!');
+        const result = await response.json();
+        
+        // Novo contrato: { success: true, data: { suggestion_id, system_id, path_slug } }
+        // Antigo contrato: { success: true }
+        if (result.data && result.data.system_id) {
+          toast.success(`Sistema aprovado! ID: ${result.data.system_id}`);
+        } else {
+          // Fallback retrocompatível
+          toast.success('Sistema aprovado com sucesso!');
+        }
+        
         fetchSuggestions();
       } else {
         const data = await response.json();

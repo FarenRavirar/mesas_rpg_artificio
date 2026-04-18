@@ -82,6 +82,7 @@ const filterTreeBySearch = (nodes: SystemTreeNode[], search: string): SystemTree
 };
 
 // GET /api/v1/systems — Catálogo público de sistemas (flat + tree + aliases)
+// Suporta paginação cursor-based: ?limit=50&cursor=abc123
 router.get('/', async (req: Request, res: Response) => {
   const view = typeof req.query.view === 'string' ? req.query.view.toLowerCase() : 'flat';
   const search = typeof req.query.search === 'string'
@@ -89,20 +90,53 @@ router.get('/', async (req: Request, res: Response) => {
     : typeof req.query.q === 'string'
       ? req.query.q
       : '';
+  
+  // Paginação cursor-based
+  const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
+  const cursor = typeof req.query.cursor === 'string' ? req.query.cursor : undefined;
 
   try {
+    // REGRA: view=tree NUNCA pagina (precisa da árvore completa)
+    if (view === 'tree' && (limit || cursor)) {
+      console.warn('[GET /systems] view=tree ignora paginação (limit/cursor)');
+    }
+
+    const shouldPaginate = view !== 'tree' && limit !== undefined && limit > 0;
+
+    // Query base de systems
+    let systemsQuery = db
+      .selectFrom('systems')
+      .select(['id', 'name', 'name_pt', 'slug', 'parent_id', 'node_type', 'depth', 'path_slug'])
+      .orderBy('depth', 'asc')
+      .orderBy('name', 'asc');
+
+    // Aplicar cursor (continuar de onde parou)
+    if (shouldPaginate && cursor) {
+      systemsQuery = systemsQuery.where('id', '>', cursor);
+    }
+
+    // Aplicar limit (+1 para detectar has_more)
+    if (shouldPaginate) {
+      systemsQuery = systemsQuery.limit(limit + 1);
+    }
+
     const [systems, aliases] = await Promise.all([
-      db
-        .selectFrom('systems')
-        .select(['id', 'name', 'name_pt', 'slug', 'parent_id', 'node_type', 'depth', 'path_slug'])
-        .orderBy('depth', 'asc')
-        .orderBy('name', 'asc')
-        .execute() as Promise<SystemRecord[]>,
+      systemsQuery.execute() as Promise<SystemRecord[]>,
       db
         .selectFrom('system_aliases')
         .select(['system_id', 'alias'])
         .execute(),
     ]);
+
+    // Detectar se há mais páginas
+    let hasMore = false;
+    let nextCursor: string | null = null;
+    
+    if (shouldPaginate && systems.length > limit) {
+      hasMore = true;
+      systems.pop(); // Remove o item extra
+      nextCursor = systems[systems.length - 1]?.id || null;
+    }
 
     const aliasesBySystem = new Map<string, string[]>();
     for (const row of aliases) {
@@ -128,7 +162,14 @@ router.get('/', async (req: Request, res: Response) => {
         ? filterTreeBySearch(fullTree, search)
         : fullTree;
 
-      return res.json({ data: filteredTree });
+      // view=tree sempre retorna tudo (sem paginação)
+      return res.json({ 
+        data: filteredTree,
+        pagination: {
+          next_cursor: null,
+          has_more: false,
+        },
+      });
     }
 
     const normalizedSearch = normalizeText(search);
@@ -141,7 +182,14 @@ router.get('/', async (req: Request, res: Response) => {
       })
       : normalizedNodes;
 
-    return res.json({ data: filteredFlat });
+    // Envelope de resposta com paginação
+    return res.json({ 
+      data: filteredFlat,
+      pagination: {
+        next_cursor: shouldPaginate ? nextCursor : null,
+        has_more: shouldPaginate ? hasMore : false,
+      },
+    });
   } catch (error: any) {
     console.error('[GET /systems]', error);
     return res.status(500).json({ error: 'Erro ao buscar sistemas.' });

@@ -58,12 +58,17 @@ export function useSystems() {
     }
   };
 
-  const filteredSystems = systems.filter((sys) =>
-    searchQuery
-      ? sys.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        sys.slug.toLowerCase().includes(searchQuery.toLowerCase())
-      : true
-  );
+  const filteredSystems = systems.filter((sys) => {
+    if (!searchQuery) return true;
+    
+    const query = searchQuery.toLowerCase();
+    
+    // Busca em name, name_pt, slug e aliases
+    return sys.name.toLowerCase().includes(query) ||
+      sys.slug.toLowerCase().includes(query) ||
+      (sys.name_pt && sys.name_pt.toLowerCase().includes(query)) ||
+      (sys.aliases && sys.aliases.some(alias => alias.toLowerCase().includes(query)));
+  });
 
   return {
     systems: filteredSystems,

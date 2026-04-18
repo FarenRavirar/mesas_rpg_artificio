@@ -40,15 +40,34 @@
 
 ## Próxima Ação
 
-1. Deploy para beta das alterações da sessão 10 (Central de Ajuda, TableCard fluido, validações finais).
-2. Validação operacional do OG dinâmico em ambiente real (Facebook Debugger, WhatsApp e Discord).
-3. Teste funcional manual da Central de Ajuda no painel do mestre.
+**Auditoria Completa de Sistemas, Edições, Variantes e Cenários**
+
+Iniciar execução sistemática da auditoria técnica documentada em `docs/auditoria_sistemas_claude.md` e `docs/sistemas_auditoria_codex.md`. Trabalho será dividido em múltiplas sessões seguindo o roadmap de 4 fases:
+
+1. **Fase 1 (Correções Críticas):** Migrations 104/105, materialização de aprovação, rota admin de cenários, paginação, alinhamento de tipos
+2. **Fase 2 (Fluxo de Gestão):** Reparent recursivo, notificações, unicidade por path_slug, wizard de sugestão, bloqueadores detalhados
+3. **Fase 3 (API Pública):** Contrato público versionado, OpenAPI, lookup em lote, N:N scenario_systems
+4. **Fase 4 (Qualidade e Escala):** GIN queries, documentação, hardening, script canônico de import
 
 
 ---
 
 
 ## Última Sessão
+
+**Data:** 18/04/2026 03:51 BRT  
+**Tipo:** Planejamento — Auditoria de Sistemas (Etapa 1)  
+**Arquivo:** `sessoes/26-04-18_1_auditoria-sistemas-etapa-1.md`  
+**O que será feito:**
+- Análise completa dos documentos de auditoria (`auditoria_sistemas_claude.md` + `sistemas_auditoria_codex.md`)
+- Criação do plano de execução para Fase 1 (Correções Críticas)
+- Identificação de 20 problemas catalogados (6 CRÍTICOS, 5 ALTOS, 7 MÉDIOS, 2 BAIXOS)
+- Definição de gates de saída e critérios de conclusão por fase
+- Preparação para execução das migrations 104/105 e refatoração de rotas admin
+
+**Status:** ⏳ Em planejamento
+
+---
 
 **Data:** 17/04/2026 17:20 BRT  
 **Tipo:** Resolução de Pendências — Reformulação V4 Finalizada  

@@ -181,6 +181,7 @@ export interface ScenariosTable {
   name: string;
   name_pt: string | null;
   slug: string;
+  description: string | null; // Migration 107
   subgenres: Generated<string[]>;
   created_at: Generated<Date>;
 }
@@ -188,6 +189,21 @@ export interface ScenariosTable {
 export type Scenario = Selectable<ScenariosTable>;
 export type NewScenario = Insertable<ScenariosTable>;
 export type ScenarioUpdate = Updateable<ScenariosTable>;
+
+// Scenario Aliases (Migration 107)
+export interface ScenarioAliasesTable {
+  id: Generated<string>;
+  scenario_id: string;
+  alias: string;
+  alias_slug: string;
+  is_official: Generated<boolean>;
+  created_at: Generated<Date>;
+}
+
+export type ScenarioAlias = Selectable<ScenarioAliasesTable>;
+export type NewScenarioAlias = Insertable<ScenarioAliasesTable>;
+export type ScenarioAliasUpdate = Updateable<ScenarioAliasesTable>;
+
 
 export type TableStatus = 'draft' | 'active' | 'full' | 'cancelled' | 'ended' | 'pending_review';
 export type TableType = 'campanha' | 'one-shot' | 'oneshot-serie' | 'aberta';
@@ -357,6 +373,8 @@ export interface ScenarioSuggestionsTable {
   name: string;
   name_pt: string | null;
   description: string | null;
+  aliases: string[] | null;
+  subgenres: Generated<string[]>; // Migration 107
   status: Generated<SuggestionStatus>;
   reviewed_by: string | null;
   reviewed_at: Date | null;
@@ -379,6 +397,8 @@ export interface NotificationsTable {
   title: string;
   message: string;
   link: string | null;
+  action_url: string | null; // Migration 106
+  metadata: Generated<unknown>; // Migration 106 - JSONB
   read: Generated<boolean>;
   created_at: Generated<Date>;
 }
@@ -477,6 +497,7 @@ export interface Database {
   tags: TagsTable;
   platforms: PlatformsTable;
   scenarios: ScenariosTable;
+  scenario_aliases: ScenarioAliasesTable; // Migration 107
   tables: TablesTable;
   table_contacts: TableContactsTable;
   table_schedules: TableSchedulesTable;
