@@ -87,7 +87,10 @@ export function useSystems() {
   const updateSystem = async (id: string, formData: {
     name: string;
     name_pt: string | null;
+    node_type: string;
     aliases: string[];
+    logo_filename?: string | null;
+    website_url?: string | null;
   }) => {
     try {
       const response = await fetch(`${API_BASE}/api/v1/systems/admin/${id}`, {
