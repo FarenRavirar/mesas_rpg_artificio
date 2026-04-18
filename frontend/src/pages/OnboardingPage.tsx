@@ -63,8 +63,10 @@ const flattenSystemTree = (nodes: SystemTreeNode[]): SystemTreeNode[] => {
 
   const visit = (node: SystemTreeNode) => {
     result.push(node);
-    for (const child of node.children) {
-      visit(child);
+    if (node.children) {
+      for (const child of node.children) {
+        visit(child);
+      }
     }
   };
 

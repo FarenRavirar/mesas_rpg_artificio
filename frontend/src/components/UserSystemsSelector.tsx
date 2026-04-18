@@ -57,8 +57,8 @@ export const UserSystemsSelector = React.memo(function UserSystemsSelector({
   // Memoizar busca de sistema para evitar re-computação
   const findSystem = useCallback((systemId: string): SystemTreeNode | undefined => {
     return tree.find(s => s.id === systemId) || 
-           tree.flatMap(s => s.children).find(c => c.id === systemId) ||
-           tree.flatMap(s => s.children.flatMap(c => c.children)).find(v => v.id === systemId);
+           tree.flatMap(s => s.children ?? []).find(c => c?.id === systemId) ||
+           tree.flatMap(s => s.children ?? []).flatMap(c => c?.children ?? []).find(v => v?.id === systemId);
   }, [tree]);
 
   if (loading) {

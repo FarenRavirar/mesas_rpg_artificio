@@ -39,7 +39,9 @@ const flattenTree = (nodes: SystemTreeNode[], breadcrumb: string[] = []): any[] 
       path_slug: node.path_slug,
       pathLabel: path.join(' > '),
     });
-    flattened.push(...flattenTree(node.children, path));
+    if (node.children) {
+      flattened.push(...flattenTree(node.children, path));
+    }
   }
   return flattened;
 };
