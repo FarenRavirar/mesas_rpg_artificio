@@ -44,12 +44,20 @@ function buildRecommendations(metrics: MetricRow[]): Recommendation[] {
   const recs: Recommendation[] = [];
 
   for (const group of byTitle.values()) {
-    // Se há múltiplas mesas com mesmo título, agrega a primeira e indica quantidade
     const first = group[0];
     const count = group.length;
-    const suffix = count > 1 ? ` (${count} instâncias)` : '';
 
-    // Soma métricas do grupo para evitar falso positivo (ex.: "0 views" quando uma das 3 mesas tem views)
+    // Se há duplicidade, gerar recomendação específica de consolidação
+    if (count > 1) {
+      recs.push({
+        table_slug: first.slug,
+        severity: 'medium',
+        message: `Mesa "${first.title}" está publicada ${count} vezes com status ativo. Consolide em uma única publicação para concentrar métricas.`,
+      });
+      continue;
+    }
+
+    // Soma métricas do grupo (count === 1 aqui)
     const totalViews = group.reduce((s, m) => s + m.views, 0);
     const totalClicks = group.reduce((s, m) => s + m.clicks, 0);
     const totalContacts = group.reduce((s, m) => s + m.contacts, 0);
@@ -58,7 +66,7 @@ function buildRecommendations(metrics: MetricRow[]): Recommendation[] {
       recs.push({
         table_slug: first.slug,
         severity: 'high',
-        message: `Mesa "${first.title}"${suffix} tem ${totalViews} visualizações e zero contatos. Revise capa, preço e descrição.`,
+        message: `Mesa "${first.title}" tem ${totalViews} visualizações e zero contatos. Revise capa, preço e descrição.`,
       });
       continue;
     }
@@ -66,7 +74,7 @@ function buildRecommendations(metrics: MetricRow[]): Recommendation[] {
       recs.push({
         table_slug: first.slug,
         severity: 'medium',
-        message: `Mesa "${first.title}"${suffix} recebe cliques mas não gera contato. Teste um CTA mais direto na descrição.`,
+        message: `Mesa "${first.title}" recebe cliques mas não gera contato. Teste um CTA mais direto na descrição.`,
       });
       continue;
     }
@@ -74,7 +82,7 @@ function buildRecommendations(metrics: MetricRow[]): Recommendation[] {
       recs.push({
         table_slug: first.slug,
         severity: 'low',
-        message: `Mesa "${first.title}"${suffix} ainda não recebeu tráfego. Compartilhe o link em suas redes.`,
+        message: `Mesa "${first.title}" ainda não recebeu tráfego. Compartilhe o link em suas redes.`,
       });
     }
   }
@@ -109,7 +117,7 @@ router.get('/:slug', publicRateLimiter, optionalAuth, async (req: Request, res: 
         'gm.closed_group_systems',
         'gm.closed_group_description',
         'gm.closed_group_min_price_cents',
-        'gm.tables_count',
+        sql<number>`(SELECT COUNT(*)::int FROM tables WHERE gm_id = gm.id AND status = 'active')`.as('tables_count'),
         'gm.avg_rating',
         'gm.reviews_count',
         'gm.created_at',
@@ -389,6 +397,7 @@ router.get('/:slug/insights', authRateLimiter, authMiddleware, async (req: Reque
         sql<number>`COALESCE(tm.favorites_count, 0)`.as('favorites'),
       ])
       .where('t.gm_id', '=', gm.id)
+      .where('t.status', '=', 'active')
       .orderBy('t.created_at', 'desc')
       .execute();
 

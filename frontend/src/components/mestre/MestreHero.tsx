@@ -79,9 +79,19 @@ export function MestreHero({ profile, mappedTables, totalOpenSlots: _totalOpenSl
           <span className="hero-title-accent">{profile.display_name}</span>
         </h1>
 
-        {profile.bio_long && (
-          <p className="hero-bio">{profile.bio_long}</p>
-        )}
+        {(() => {
+          if (profile.tagline) {
+            return <p className="hero-bio">{profile.tagline}</p>;
+          }
+          if (profile.bio_long) {
+            const firstSentence = profile.bio_long.split(/[.!?]\s+/)[0];
+            const truncated = firstSentence.length > 140 
+              ? firstSentence.slice(0, 140) + '…' 
+              : firstSentence + (profile.bio_long.includes('.') ? '.' : '');
+            return <p className="hero-bio">{truncated}</p>;
+          }
+          return null;
+        })()}
 
         <div className="hero-ctas">
           <button

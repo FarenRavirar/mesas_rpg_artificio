@@ -102,14 +102,6 @@ export const MestrePage = () => {
 
       <MestreSellingPoints sellingPoints={profile.selling_points ?? []} />
 
-      {mappedTables.length > 0 && (
-        <MestreFinalCta
-          totalOpenSlots={totalOpenSlots}
-          tablesCount={mappedTables.length}
-          mappedTables={mappedTables}
-        />
-      )}
-
       <MestreTablesSection mappedTables={mappedTables} />
 
       <MestreClosedGroupSection closedGroup={profile.closed_group} />
@@ -128,6 +120,14 @@ export const MestrePage = () => {
             <LinksDisplay links={links} />
           </div>
         </section>
+      )}
+
+      {mappedTables.length > 0 && (
+        <MestreFinalCta
+          totalOpenSlots={totalOpenSlots}
+          tablesCount={mappedTables.length}
+          mappedTables={mappedTables}
+        />
       )}
     </main>
   );

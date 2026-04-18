@@ -105,6 +105,9 @@ function LinkCard({ link }: LinkCardProps) {
   // Apenas YouTube, Spotify e Twitch têm embed pesado
   const hasHeavyEmbed = ['youtube', 'spotify', 'twitch'].includes(link.type) && link.embed_url;
   
+  // Canal YouTube sem embed (URLs com /@handle)
+  const isChannelLike = link.type === 'youtube' && !link.embed_url;
+  
   // Redes sociais têm preview leve
   const isSocial = CATEGORIES.social.includes(link.type);
 
@@ -116,6 +119,27 @@ function LinkCard({ link }: LinkCardProps) {
         </div>
         <span className="link-card-type">{label}</span>
       </div>
+
+      {/* Canal YouTube sem embed (preview leve) */}
+      {isChannelLike && (
+        <div className="link-card-channel-preview">
+          <Icon className="w-10 h-10" />
+          <div>
+            <p className="link-card-channel-handle">
+              {(() => {
+                try {
+                  const pathname = new URL(link.url).pathname;
+                  const handle = pathname.replace(/^\/+/, '').split('/')[0];
+                  return handle.startsWith('@') ? handle : `@${handle}`;
+                } catch {
+                  return 'Canal';
+                }
+              })()}
+            </p>
+            <p className="link-card-channel-label">Abrir canal no YouTube</p>
+          </div>
+        </div>
+      )}
 
       {/* Embeds pesados (YouTube, Spotify, Twitch) */}
       {hasHeavyEmbed && (
@@ -134,7 +158,7 @@ function LinkCard({ link }: LinkCardProps) {
 
 
       {/* Thumbnail para artigos/sites */}
-      {!hasHeavyEmbed && !isSocial && link.thumbnail_url && (
+      {!hasHeavyEmbed && !isSocial && !isChannelLike && link.thumbnail_url && (
         <div className="link-card-thumbnail">
           <img src={link.thumbnail_url} alt={link.title || ''} />
         </div>

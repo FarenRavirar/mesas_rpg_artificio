@@ -19,7 +19,7 @@ export function MestreFinalCta({ totalOpenSlots, tablesCount, mappedTables }: Pr
   });
 
   // Definir cenário baseado em dados reais
-  let ctaData: { emoji: string; title: string; subtitle: string; cta: string };
+  let ctaData: { emoji: string; title: string; subtitle: string; cta: string; hint: string | null };
 
   if (totalOpenSlots === 0) {
     // Cenário 1: Totalmente lotado
@@ -27,7 +27,8 @@ export function MestreFinalCta({ totalOpenSlots, tablesCount, mappedTables }: Pr
       emoji: '📋',
       title: 'Lista de espera disponível',
       subtitle: 'Entre em contato para ser avisado quando abrirem novas vagas',
-      cta: 'Entrar na lista de espera'
+      cta: 'Entrar na lista de espera',
+      hint: 'Vamos te avisar assim que uma vaga abrir.'
     };
   } else if (hasUrgentTable || occupancyRate >= 0.75) {
     // Cenário 2: Urgente (mesa crítica OU 75%+ ocupado)
@@ -35,7 +36,8 @@ export function MestreFinalCta({ totalOpenSlots, tablesCount, mappedTables }: Pr
       emoji: '🔥',
       title: 'Últimas vagas disponíveis',
       subtitle: `${totalOpenSlots} ${totalOpenSlots === 1 ? 'vaga restante' : 'vagas restantes'} em ${tablesCount} ${tablesCount === 1 ? 'mesa' : 'mesas'}`,
-      cta: 'Ver mesas e garantir vaga'
+      cta: 'Ver mesas e garantir vaga',
+      hint: '⏰ As vagas preenchem rápido. Não perca sua chance!'
     };
   } else if (occupancyRate >= 0.5) {
     // Cenário 3: Preenchendo (50-74% ocupado)
@@ -43,7 +45,8 @@ export function MestreFinalCta({ totalOpenSlots, tablesCount, mappedTables }: Pr
       emoji: '⚡',
       title: 'Vagas preenchendo rápido',
       subtitle: `${totalOpenSlots} vagas disponíveis — garanta a sua antes que acabem`,
-      cta: 'Ver mesas disponíveis'
+      cta: 'Ver mesas disponíveis',
+      hint: 'A maioria das mesas já tem jogadores confirmados.'
     };
   } else {
     // Cenário 4: Disponível (< 50% ocupado)
@@ -51,7 +54,8 @@ export function MestreFinalCta({ totalOpenSlots, tablesCount, mappedTables }: Pr
       emoji: '✨',
       title: 'Vagas abertas para novas aventuras',
       subtitle: `${totalOpenSlots} vagas disponíveis em ${tablesCount} ${tablesCount === 1 ? 'mesa ativa' : 'mesas ativas'}`,
-      cta: 'Explorar mesas'
+      cta: 'Explorar mesas',
+      hint: null
     };
   }
 
@@ -66,9 +70,11 @@ export function MestreFinalCta({ totalOpenSlots, tablesCount, mappedTables }: Pr
           <a href="#mesas" className="cta-button cta-button-large">
             {ctaData.cta}
           </a>
-          <p className="final-cta-hint">
-            ⏰ As vagas preenchem rápido. Não perca sua chance!
-          </p>
+          {ctaData.hint && (
+            <p className="final-cta-hint">
+              {ctaData.hint}
+            </p>
+          )}
         </div>
       </div>
     </section>
