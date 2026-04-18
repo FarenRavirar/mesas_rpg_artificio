@@ -345,6 +345,104 @@ END $$;
 
 **Lição:** Padronizar nomenclatura ANTES de criar migration. Se já existe conflito, criar migration de alinhamento.
 
+### Erro 10: Tipos Desatualizados no Frontend (TypeScript)
+
+**Problema encontrado:** Migration 104 adiciona `'subsystem'` ao `node_type`, mas frontend tem tipo hardcoded sem `'subsystem'`.
+
+**Sintoma (GitHub Actions):**
+```
+deploy-beta
+Interface 'TreeNode' incorrectly extends interface 'System'.
+Type 'System | null' is not assignable to parameter of type '{ ... node_type: "variant" | "system" | "edition" ... }'.
+```
+
+**Causa raiz:**
+```typescript
+// backend/src/db/types.ts (atualizado corretamente)
+export interface SystemsTable {
+  node_type: 'system' | 'edition' | 'variant' | 'subsystem'; // ✅
+}
+
+// frontend/src/modules/admin/systems/types.ts (atualizado corretamente)
+export interface System {
+  node_type: 'system' | 'edition' | 'variant' | 'subsystem'; // ✅
+}
+
+// frontend/src/components/SystemEditModal.tsx (ESQUECIDO!)
+interface SystemEditModalProps {
+  system: {
+    node_type: 'system' | 'edition' | 'variant'; // ❌ Falta 'subsystem'
+  } | null;
+}
+
+const [nodeType, setNodeType] = useState<'system' | 'edition' | 'variant'>('system'); // ❌
+```
+
+**Impacto:**
+- Build do frontend falha no GitHub Actions
+- Deploy é bloqueado
+- Erro só aparece no CI/CD, não localmente (se não rodar `tsc`)
+
+✅ **SOLUÇÃO:**
+
+**1. Checklist obrigatório ao alterar enums/tipos:**
+
+```bash
+# Após criar migration que altera enum (ex: node_type)
+# 1. Atualizar backend/src/db/types.ts
+# 2. Buscar TODAS as ocorrências no frontend
+grep -r "node_type.*system.*edition.*variant" frontend/src/
+
+# 3. Atualizar TODOS os arquivos encontrados
+# 4. Rodar TypeScript no frontend
+cd frontend && npx tsc --noEmit
+
+# 5. Rodar TypeScript no backend
+cd backend && npx tsc --noEmit
+```
+
+**2. Arquivos que SEMPRE verificar ao alterar `node_type`:**
+
+| Arquivo | O que verificar |
+|---|---|
+| `backend/src/db/types.ts` | Interface `SystemsTable` |
+| `frontend/src/modules/admin/systems/types.ts` | Interface `System` |
+| `frontend/src/components/SystemEditModal.tsx` | Interface `SystemEditModalProps` + `useState` |
+| `frontend/src/modules/admin/systems/SystemsTree.tsx` | Interface `TreeNode extends System` |
+| `frontend/src/modules/admin/systems/SystemsPage.tsx` | Interface `TreeNode extends System` |
+
+**3. Pattern para buscar tipos inline:**
+
+```bash
+# Buscar definições inline de node_type
+grep -rn "node_type.*:.*'system'" frontend/src/ | grep -v "subsystem"
+
+# Buscar useState com tipos restritos
+grep -rn "useState<.*system.*edition.*variant" frontend/src/
+```
+
+**4. Adicionar opção no select (se aplicável):**
+
+```tsx
+// ✅ Sempre adicionar nova opção no formulário
+<select value={nodeType} onChange={...}>
+  <option value="system">Sistema Base</option>
+  <option value="edition">Edição</option>
+  <option value="variant">Variante</option>
+  <option value="subsystem">Subsistema</option> {/* NOVO */}
+</select>
+```
+
+**Lição crítica:** Mudanças estruturais em enums/tipos exigem sincronização em **3 camadas**:
+1. **Schema (SQL)** - Migration
+2. **Backend (TypeScript)** - `types.ts`
+3. **Frontend (TypeScript)** - Múltiplos arquivos (types, modals, forms)
+
+**Prevenção:**
+- Sempre rodar `npx tsc --noEmit` em backend E frontend antes de commit
+- Adicionar hook pre-commit para validar TypeScript
+- Documentar tipos canônicos em `ARQUITETURA_PROJETO.md`
+
 ---
 
 ## Comandos SQL Seguros

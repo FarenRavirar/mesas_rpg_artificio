@@ -797,6 +797,65 @@ A Fase 1 está 100% concluída quando:
 
 ---
 
+## Lições Aprendidas
+
+### L01: Sincronização de Tipos Entre Backend e Frontend
+
+**Problema:** Deploy beta falhou com erro TypeScript porque `SystemEditModal.tsx` tinha tipo `node_type` sem `'subsystem'`.
+
+**Causa raiz:**
+- Migration 104 adicionou `'subsystem'` ao enum `node_type`
+- `backend/src/db/types.ts` foi atualizado ✅
+- `frontend/src/modules/admin/systems/types.ts` foi atualizado ✅
+- `frontend/src/components/SystemEditModal.tsx` foi **esquecido** ❌
+
+**Erro no GitHub Actions:**
+```
+Interface 'TreeNode' incorrectly extends interface 'System'.
+Type 'System | null' is not assignable to parameter of type '{ ... node_type: "variant" | "system" | "edition" ... }'.
+```
+
+**Solução aplicada:**
+1. Atualizar `SystemEditModal.tsx` linha 13: adicionar `'subsystem'` ao tipo
+2. Atualizar `SystemEditModal.tsx` linha 37: adicionar `'subsystem'` ao `useState`
+3. Atualizar `SystemEditModal.tsx` linha 221: adicionar opção `<option value="subsystem">Subsistema</option>`
+
+**Prevenção futura (documentado em `migrations_guide.md` Erro 10):**
+
+**Checklist obrigatório ao alterar enums:**
+```bash
+# 1. Buscar TODAS as ocorrências no frontend
+grep -r "node_type.*system.*edition.*variant" frontend/src/
+
+# 2. Atualizar TODOS os arquivos encontrados
+# 3. Rodar TypeScript no frontend
+cd frontend && npx tsc --noEmit
+
+# 4. Rodar TypeScript no backend
+cd backend && npx tsc --noEmit
+```
+
+**Arquivos que SEMPRE verificar ao alterar `node_type`:**
+- `backend/src/db/types.ts` (interface `SystemsTable`)
+- `frontend/src/modules/admin/systems/types.ts` (interface `System`)
+- `frontend/src/components/SystemEditModal.tsx` (interface + useState + select)
+- `frontend/src/modules/admin/systems/SystemsTree.tsx` (interface `TreeNode`)
+- `frontend/src/modules/admin/systems/SystemsPage.tsx` (interface `TreeNode`)
+
+**Lição crítica:** Mudanças estruturais em enums exigem sincronização em **3 camadas**:
+1. **Schema (SQL)** - Migration
+2. **Backend (TypeScript)** - `types.ts`
+3. **Frontend (TypeScript)** - Múltiplos arquivos (types, modals, forms)
+
+**Impacto:** Deploy bloqueado por 5 minutos até correção. Sem impacto em produção (detectado em beta).
+
+**Documentação atualizada:**
+- ✅ `migrations_guide.md` — Adicionado Erro 10 com checklist completo
+- ✅ `sessoes/26-04-18_1_auditoria-sistemas-etapa-1.md` — Esta lição documentada
+- ⏳ Commit pendente com correção
+
+---
+
 ## Referências
 
 - `docs/auditoria_sistemas_claude.md` — Análise completa (1181 linhas)

@@ -10,7 +10,7 @@ interface SystemEditModalProps {
     name: string;
     name_pt?: string | null;
     slug: string;
-    node_type: 'system' | 'edition' | 'variant';
+    node_type: 'system' | 'edition' | 'variant' | 'subsystem';
     parent_id: string | null;
     aliases?: string[];
   } | null;
@@ -34,7 +34,7 @@ export const SystemEditModal = ({ system, systemsTree, onClose, onSuccess }: Sys
   const [name, setName] = useState('');
   const [namePt, setNamePt] = useState('');
   const [slug, setSlug] = useState('');
-  const [nodeType, setNodeType] = useState<'system' | 'edition' | 'variant'>('system');
+  const [nodeType, setNodeType] = useState<'system' | 'edition' | 'variant' | 'subsystem'>('system');
   const [parentId, setParentId] = useState<string>('');
   const [aliases, setAliases] = useState<string[]>([]);
   const [aliasInput, setAliasInput] = useState('');
@@ -218,6 +218,7 @@ export const SystemEditModal = ({ system, systemsTree, onClose, onSuccess }: Sys
               <option value="system">Sistema Base</option>
               <option value="edition">Edição</option>
               <option value="variant">Variante</option>
+              <option value="subsystem">Subsistema</option>
             </select>
           </div>
 
