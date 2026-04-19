@@ -1,18 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import toast from 'react-hot-toast';
 import type { System } from './types';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
-
-type BlockedByItem = {
-  type: 'tables' | 'children' | string;
-  count: number;
-};
-
-const BLOCKED_BY_LABEL: Record<string, string> = {
-  tables: 'mesas vinculadas',
-  children: 'sistemas filhos',
-};
 
 export function useSystems() {
   const [systems, setSystems] = useState<System[]>([]);
@@ -20,11 +10,6 @@ export function useSystems() {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
-
-  const totalCount = useMemo(() => {
-    const countNode = (node: System): number => 1 + (node.children ?? []).reduce((acc, child) => acc + countNode(child), 0);
-    return systemsTree.reduce((acc, node) => acc + countNode(node), 0);
-  }, [systemsTree]);
 
   const fetchSystems = async () => {
     setLoading(true);
@@ -131,13 +116,8 @@ export function useSystems() {
     }
   };
 
-  const deleteSystem = async (
-    id: string,
-    name: string,
-    options?: { skipConfirm?: boolean }
-  ): Promise<boolean> => {
-    const shouldConfirm = !options?.skipConfirm;
-    if (shouldConfirm && !confirm(`Deletar sistema "${name}"? Esta ação não pode ser desfeita.`)) return false;
+  const deleteSystem = async (id: string, name: string) => {
+    if (!confirm(`Deletar sistema "${name}"? Esta ação não pode ser desfeita.`)) return;
 
     try {
       const response = await fetch(`${API_BASE}/api/v1/systems/admin/${id}`, {
@@ -148,35 +128,19 @@ export function useSystems() {
       if (response.ok) {
         toast.success('Sistema deletado!');
         await fetchTree();
-        return true;
-      }
-
-      let errorMessage = 'Erro ao deletar sistema';
-      try {
-        const data = await response.json();
-        const blockedBy = Array.isArray(data?.blocked_by) ? (data.blocked_by as BlockedByItem[]) : [];
-
-        if (blockedBy.length > 0) {
-          const details = blockedBy
-            .map(({ type, count }) => {
-              const label = BLOCKED_BY_LABEL[type] ?? type;
-              return `${count} ${label}`;
-            })
-            .join(' • ');
-          errorMessage = `Não foi possível deletar: ${details}.`;
-        } else {
-          errorMessage = data?.error || errorMessage;
+      } else {
+        let errorMessage = 'Erro ao deletar sistema';
+        try {
+          const data = await response.json();
+          errorMessage = data.error || errorMessage;
+        } catch {
+          // Mantém fallback quando resposta não é JSON
         }
-      } catch {
-        // Mantém fallback quando resposta não é JSON
+        toast.error(errorMessage);
       }
-
-      toast.error(errorMessage);
-      return false;
     } catch (error) {
       console.error('[useSystems] Erro ao deletar sistema:', error);
       toast.error('Erro ao deletar sistema');
-      return false;
     }
   };
 
@@ -195,7 +159,6 @@ export function useSystems() {
   return {
     systems: filteredSystems,
     systemsTree,
-    totalCount,
     loading,
     searchQuery,
     setSearchQuery,

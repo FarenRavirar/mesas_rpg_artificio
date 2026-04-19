@@ -79,67 +79,13 @@ const filterTreeBySearch = (nodes: SystemTreeNode[], search: string): SystemTree
     return {
       ...node,
       children: filteredChildren,
-      has_children: (node.children_count ?? 0) > 0,
+      has_children: filteredChildren.length > 0,
     };
   };
 
   return nodes
     .map(visit)
     .filter((node): node is SystemTreeNode => Boolean(node));
-};
-
-const SYSTEMS_TREE_CACHE_TTL_MS = 60 * 1000;
-
-type SystemsTreeCacheEntry = {
-  data: SystemTreeNode[];
-  expiresAt: number;
-};
-
-let systemsTreeCache: SystemsTreeCacheEntry | null = null;
-
-const invalidateSystemsTreeCache = () => {
-  systemsTreeCache = null;
-};
-
-const loadSystemsTreeFromDb = async (): Promise<SystemTreeNode[]> => {
-  const [systems, aliases] = await Promise.all([
-    db
-      .selectFrom('systems as s')
-      .leftJoin('systems as children', 'children.parent_id', 's.id')
-      .leftJoin('tables', 'tables.system_id', 's.id')
-      .leftJoin('system_aliases as al', 'al.system_id', 's.id')
-      .select([
-        's.id', 's.name', 's.name_pt', 's.slug',
-        's.parent_id', 's.node_type', 's.depth', 's.path_slug',
-        's.logo_filename', 's.website_url',
-        sql<number>`COUNT(DISTINCT children.id)`.as('children_count'),
-        sql<number>`COUNT(DISTINCT tables.id)`.as('tables_count'),
-        sql<number>`COUNT(DISTINCT al.id)`.as('aliases_count'),
-      ])
-      .groupBy(['s.id'])
-      .orderBy('s.depth', 'asc')
-      .orderBy('s.name', 'asc')
-      .execute() as Promise<SystemRecord[]>,
-    db
-      .selectFrom('system_aliases')
-      .select(['system_id', 'alias'])
-      .execute(),
-  ]);
-
-  const aliasesBySystem = new Map<string, string[]>();
-  for (const row of aliases) {
-    const current = aliasesBySystem.get(row.system_id) ?? [];
-    aliasesBySystem.set(row.system_id, [...current, row.alias]);
-  }
-
-  const normalizedNodes: SystemTreeNode[] = systems.map((system) => ({
-    ...system,
-    aliases: aliasesBySystem.get(system.id) ?? [],
-    has_children: (system.children_count ?? 0) > 0,
-    children: [],
-  }));
-
-  return buildTree(normalizedNodes);
 };
 
 // GET /api/v1/systems — Catálogo público de sistemas (flat + tree + aliases)
@@ -151,7 +97,7 @@ router.get('/', async (req: Request, res: Response) => {
     : typeof req.query.q === 'string'
       ? req.query.q
       : '';
-
+  
   // Paginação cursor-based
   const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
   const cursor = typeof req.query.cursor === 'string' ? req.query.cursor : undefined;
@@ -164,32 +110,6 @@ router.get('/', async (req: Request, res: Response) => {
 
     const shouldPaginate = view !== 'tree' && limit !== undefined && limit > 0;
 
-    if (view === 'tree') {
-      const now = Date.now();
-      const normalizedSearch = search.trim();
-
-      if (!systemsTreeCache || systemsTreeCache.expiresAt <= now) {
-        const freshTree = await loadSystemsTreeFromDb();
-        systemsTreeCache = {
-          data: freshTree,
-          expiresAt: now + SYSTEMS_TREE_CACHE_TTL_MS,
-        };
-      }
-
-      const baseTree = systemsTreeCache.data;
-      const filteredTree = normalizedSearch.length > 0
-        ? filterTreeBySearch(baseTree, normalizedSearch)
-        : baseTree;
-
-      return res.json({
-        data: filteredTree,
-        pagination: {
-          next_cursor: null,
-          has_more: false,
-        },
-      });
-    }
-
     // Query base de systems com contadores agregados
     let systemsQuery = db
       .selectFrom('systems as s')
@@ -197,7 +117,7 @@ router.get('/', async (req: Request, res: Response) => {
       .leftJoin('tables', 'tables.system_id', 's.id')
       .leftJoin('system_aliases as al', 'al.system_id', 's.id')
       .select([
-        's.id', 's.name', 's.name_pt', 's.slug',
+        's.id', 's.name', 's.name_pt', 's.slug', 
         's.parent_id', 's.node_type', 's.depth', 's.path_slug',
         's.logo_filename', 's.website_url',
         sql<number>`COUNT(DISTINCT children.id)`.as('children_count'),
@@ -229,7 +149,7 @@ router.get('/', async (req: Request, res: Response) => {
     // Detectar se há mais páginas
     let hasMore = false;
     let nextCursor: string | null = null;
-
+    
     if (shouldPaginate && systems.length > limit) {
       hasMore = true;
       systems.pop(); // Remove o item extra
@@ -242,12 +162,33 @@ router.get('/', async (req: Request, res: Response) => {
       aliasesBySystem.set(row.system_id, [...current, row.alias]);
     }
 
+    const parentIds = new Set<string>();
+    for (const system of systems) {
+      if (system.parent_id) parentIds.add(system.parent_id);
+    }
+
     const normalizedNodes: SystemTreeNode[] = systems.map((system) => ({
       ...system,
       aliases: aliasesBySystem.get(system.id) ?? [],
-      has_children: (system.children_count ?? 0) > 0,
+      has_children: parentIds.has(system.id),
       children: [],
     }));
+
+    if (view === 'tree') {
+      const fullTree = buildTree(normalizedNodes);
+      const filteredTree = search.trim().length > 0
+        ? filterTreeBySearch(fullTree, search)
+        : fullTree;
+
+      // view=tree sempre retorna tudo (sem paginação)
+      return res.json({ 
+        data: filteredTree,
+        pagination: {
+          next_cursor: null,
+          has_more: false,
+        },
+      });
+    }
 
     const normalizedSearch = normalizeText(search);
     const filteredFlat = normalizedSearch
@@ -260,7 +201,7 @@ router.get('/', async (req: Request, res: Response) => {
       : normalizedNodes;
 
     // Envelope de resposta com paginação
-    return res.json({
+    return res.json({ 
       data: filteredFlat,
       pagination: {
         next_cursor: shouldPaginate ? nextCursor : null,
@@ -373,10 +314,8 @@ router.post('/admin', authMiddleware, requireRole('admin'), async (req: Request,
       }
     }
 
-    invalidateSystemsTreeCache();
     return res.status(201).json({ data: newSystem });
   } catch (error: any) {
-    invalidateSystemsTreeCache();
     console.error('[POST /admin/systems]', error);
     return res.status(500).json({ error: 'Erro ao criar sistema.' });
   }
@@ -486,10 +425,8 @@ router.put('/admin/:id', authMiddleware, requireRole('admin'), async (req: Reque
 
     // TODO: Recalcular hierarquia de filhos se parent_id mudou
 
-    invalidateSystemsTreeCache();
     return res.json({ data: updated });
   } catch (error: any) {
-    invalidateSystemsTreeCache();
     console.error('[PUT /admin/systems/:id]', error);
     return res.status(500).json({ error: 'Erro ao atualizar sistema.' });
   }
@@ -518,6 +455,12 @@ router.delete('/admin/:id', authMiddleware, requireRole('admin'), async (req: Re
       .where('system_id', '=', id)
       .executeTakeFirst();
 
+    if (tablesCount && Number(tablesCount.count) > 0) {
+      return res.status(409).json({
+        error: `Não é possível deletar este sistema. Existem ${tablesCount.count} mesa(s) vinculada(s).`,
+      });
+    }
+
     // Verificar se há sistemas filhos
     const childrenCount = await db
       .selectFrom('systems')
@@ -525,30 +468,9 @@ router.delete('/admin/:id', authMiddleware, requireRole('admin'), async (req: Re
       .where('parent_id', '=', id)
       .executeTakeFirst();
 
-    const tablesBlocked = Number(tablesCount?.count ?? 0);
-    const childrenBlocked = Number(childrenCount?.count ?? 0);
-
-    const blockedBy: Array<{ type: 'tables' | 'children'; count: number }> = [];
-
-    if (tablesBlocked > 0) {
-      blockedBy.push({ type: 'tables', count: tablesBlocked });
-    }
-
-    if (childrenBlocked > 0) {
-      blockedBy.push({ type: 'children', count: childrenBlocked });
-    }
-
-    if (blockedBy.length > 0) {
-      const details = blockedBy
-        .map((item) => {
-          if (item.type === 'tables') return `${item.count} mesa(s) vinculada(s)`;
-          return `${item.count} sistema(s) filho(s)`;
-        })
-        .join(' e ');
-
+    if (childrenCount && Number(childrenCount.count) > 0) {
       return res.status(409).json({
-        error: `Não é possível deletar este sistema. Bloqueado por ${details}.`,
-        blocked_by: blockedBy,
+        error: `Não é possível deletar este sistema. Existem ${childrenCount.count} sistema(s) filho(s).`,
       });
     }
 
@@ -564,10 +486,8 @@ router.delete('/admin/:id', authMiddleware, requireRole('admin'), async (req: Re
       .where('id', '=', id)
       .execute();
 
-    invalidateSystemsTreeCache();
     return res.json({ data: { message: 'Sistema deletado com sucesso.' } });
   } catch (error: any) {
-    invalidateSystemsTreeCache();
     console.error('[DELETE /admin/systems/:id]', error);
     return res.status(500).json({ error: 'Erro ao deletar sistema.' });
   }

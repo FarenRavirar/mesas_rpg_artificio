@@ -1,6 +1,6 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 19/04/2026 02:15 BRT
+**Última atualização:** 18/04/2026 12:53 BRT
 
 ---
 
@@ -56,43 +56,47 @@ Iniciar execução sistemática da auditoria técnica documentada em `docs/audit
 
 ## Última Sessão
 
-**Data:** 19/04/2026 02:15 BRT  
-**Tipo:** Auditoria de Arquitetura de Sistemas — Fase 0/1 (conferência, saneamento e validação final técnica)  
+**Data:** 18/04/2026 12:53 BRT  
+**Tipo:** Benchmarks Dinâmicos no Insights do Mestre  
 **Arquivo:** `sessoes/26-04-18_1_auditoria-sistemas-etapa-1.md` (extensão)  
 **O que foi feito:**
 
-### 1. Backend — estabilidade e mitigação de risco ✅
-- Cache em memória com TTL + invalidação em mutações na árvore de sistemas (`GET /api/v1/systems?view=tree`)
-- Contadores agregados mantidos no payload (`children_count`, `tables_count`, `aliases_count`)
-- Paginação cursor em `GET /systems` validada no código (com regra explícita para `view=tree`)
+### 1. Backend — benchmark dinâmico por quartis ✅
+- Migration `database/migration_113_benchmark_snapshots.sql` adicionada para materialização de snapshots
+- Serviço `backend/src/services/benchmarkService.ts` criado com cálculo de P25/P50/P75
+- Cache em memória com TTL de 1 hora para evitar recálculo pesado por request
+- Fallback de disponibilidade por amostra mínima (`minimum_sample_size = 10`)
 
-### 2. Frontend — segurança operacional no admin ✅
-- Fluxo de deleção com alerta prévio contextual no inspector
-- `deleteSystem` com `skipConfirm` para confirmação centralizada na UI
-- Migração aplicada no fluxo principal (`SystemsAdminView`) com `EntityInspector` e `CatalogTree`
+### 2. API — insights relativos por contexto de plataforma ✅
+- `GET /api/v1/gm/insights` integrado ao benchmark service
+- Recomendações fixas substituídas por recomendações relativas ao funil da plataforma
+- Fallback temporal por mesa (`trend.views_last_7d`) quando benchmark indisponível
+- Payload expandido com `benchmarks`, `benchmark_position` e `trend`
 
-### 3. Governança de deploy — bloqueadores técnicos fechados ✅
-- Changelog consolidado em entrada única do dia: `database/changelogs.json`
-- Saneamento da árvore concluído: removidas alterações fora do escopo da Etapa 1
-- Árvore pós-saneamento contém apenas arquivos da rodada de auditoria
+### 3. Frontend — dashboard contextualizado ✅
+- `frontend/src/hooks/useGmInsights.ts` atualizado para o novo contrato
+- `frontend/src/components/mestre/GmInsightsDashboard.tsx` atualizado com:
+  - contexto de benchmark (amostra + última atualização)
+  - badges de posição relativa (Q1, Q2, Q3, Q4)
+  - estado transparente de fallback por tendência
 
-### 4. Validação técnica pós-saneamento ✅
-- `backend`: `npx tsc --noEmit` sem erros
-- `frontend`: `npx tsc --noEmit` sem erros
+### 4. Validação técnica ✅
+- `backend`: `npm run build` sem erros
+- `frontend`: `npm run build` sem erros
 
-**Status:** Em andamento (bloqueadores técnicos fechados).  
-**Pendentes:** validação runtime manual (Gate 4) e teste E2E manual do fluxo `approve`.
+**Status:** ✅ Implementação concluída e validada tecnicamente.  
+**Pendente:** validação funcional em beta (com dados reais) + monitoramento de percepção dos mestres.
 
 ---
 
 ## Próxima Ação
 
-**Fechar pendências manuais para liberar deploy em `dev`**
+**Validação Funcional em Beta do Insights Dinâmico**
 
-1. Validar runtime dos consumidores críticos do `GET /systems` (Gate 4) no navegador
-2. Executar teste manual do fluxo `PATCH /api/v1/admin/system-suggestions/:id/approve` e confirmar criação do sistema
-3. Atualizar os itens `[ ]` no dossiê e na sessão somente após evidência de execução manual
-4. Revalidar status final de prontidão para deploy em `dev` após fechamento dos gates manuais
+1. Validar comportamento com mestres de baixa amostra (1–2 mesas)
+2. Confirmar exibição de fallback de tendência quando benchmark não estiver disponível
+3. Revisar clareza das recomendações relativas para evitar desmotivação
+4. Monitorar regressão de performance do endpoint de insights após uso real
 
 ---
 
