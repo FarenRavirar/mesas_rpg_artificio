@@ -14,6 +14,7 @@ interface Props {
   onSave: (data: SystemFormData) => Promise<void>;
   onDelete?: () => Promise<void>;
   onCancel: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 export interface SystemFormData {
@@ -42,7 +43,7 @@ const TYPE_LABEL = {
 } as const;
 
 export function EntityInspector(props: Props) {
-  const { mode, system, parentContext, allSystems, onSave, onDelete, onCancel } = props;
+  const { mode, system, parentContext, allSystems, onSave, onDelete, onCancel, onDirtyChange } = props;
 
   const validTypes = useMemo(() => {
     if (mode === 'edit' && system) {
@@ -89,6 +90,10 @@ export function EntityInspector(props: Props) {
       JSON.stringify(aliases) !== JSON.stringify(system.aliases ?? []);
     setDirty(changed);
   }, [name, namePt, logoFilename, websiteUrl, aliases, system, mode]);
+
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
 
   // Slug preview
   const slugPreview = useMemo(() => {

@@ -8,6 +8,7 @@ interface Props {
   onTypeFilterChange: (types: Array<System['node_type']>) => void;
   onCreateRoot: () => void;
   resultsCount: number;
+  totalCount?: number;
 }
 
 const TYPE_OPTIONS: Array<{ value: System['node_type']; label: string }> = [
@@ -18,7 +19,7 @@ const TYPE_OPTIONS: Array<{ value: System['node_type']; label: string }> = [
 ];
 
 export function CatalogToolbar(props: Props) {
-  const { search, onSearchChange, typeFilter, onTypeFilterChange, onCreateRoot, resultsCount } = props;
+  const { search, onSearchChange, typeFilter, onTypeFilterChange, onCreateRoot, resultsCount, totalCount } = props;
 
   const toggleType = (type: System['node_type']) => {
     if (typeFilter.includes(type)) {
@@ -76,7 +77,9 @@ export function CatalogToolbar(props: Props) {
           </button>
         )}
         <span className="ml-auto text-xs text-white/40">
-          {resultsCount} {resultsCount === 1 ? 'resultado' : 'resultados'}
+          {typeof totalCount === 'number'
+            ? `${resultsCount}/${totalCount} ${resultsCount === 1 ? 'resultado' : 'resultados'}`
+            : `${resultsCount} ${resultsCount === 1 ? 'resultado' : 'resultados'}`}
         </span>
       </div>
     </div>
