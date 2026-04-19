@@ -20,15 +20,15 @@ export const SiteFooter = () => {
               Compromissos públicos
             </h2>
             <ul className="space-y-3.5 text-sm text-white/80">
-              <li className="inline-flex items-start gap-2.5 leading-relaxed" id="footer-commitment-free">
+              <li className="flex items-start gap-2.5 leading-relaxed" id="footer-commitment-free">
                 <Heart className="w-4 h-4 mt-0.5 shrink-0 text-emerald-300" />
                 100% gratuito para sempre
               </li>
-              <li className="inline-flex items-start gap-2.5 leading-relaxed" id="footer-commitment-no-ads">
+              <li className="flex items-start gap-2.5 leading-relaxed" id="footer-commitment-no-ads">
                 <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-amber-300" />
                 Sem anúncios
               </li>
-              <li className="inline-flex items-start gap-2.5 leading-relaxed" id="footer-commitment-privacy">
+              <li className="flex items-start gap-2.5 leading-relaxed" id="footer-commitment-privacy">
                 <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0 text-sky-300" />
                 Sem coleta desnecessária de dados
               </li>
