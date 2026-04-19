@@ -3,7 +3,7 @@ import { Heart, ShieldCheck, Sparkles, Code2, Bug, Lightbulb } from 'lucide-reac
 export const SiteFooter = () => {
   return (
     <footer className="mt-24 border-t border-white/10 bg-[#0e1a30] text-white/75">
-      <div className="container mx-auto max-w-7xl px-6 pt-16 pb-12">
+      <div className="mx-auto w-full max-w-7xl px-6 pt-16 pb-12">
         <div className="grid grid-cols-1 md:grid-cols-[1.45fr_1fr_1fr] gap-y-12 md:gap-x-12 lg:gap-x-16">
           <section aria-labelledby="footer-brand-title" className="max-w-xl">
             <h2 id="footer-brand-title" className="text-xl font-semibold text-white tracking-[0.01em]">
@@ -82,7 +82,7 @@ export const SiteFooter = () => {
       </div>
 
       <div className="border-t border-white/10">
-        <div className="container mx-auto max-w-7xl px-6 py-7 text-xs text-white/55 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+        <div className="mx-auto w-full max-w-7xl px-6 py-7 text-xs text-white/55 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
           <span>© {new Date().getFullYear()} Artifício RPG. Todos os direitos reservados.</span>
           <a
             id="footer-link-artificio"
