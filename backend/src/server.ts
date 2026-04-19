@@ -122,7 +122,26 @@ app.use('/og', ogRoutes);
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('[Global Error]', err);
-  res.status(500).json({ error: 'Erro interno no servidor.' });
+
+  if (res.headersSent) {
+    return next(err);
+  }
+
+  if (err?.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'JSON inválido no corpo da requisição.' });
+  }
+
+  const status = typeof err?.status === 'number'
+    ? err.status
+    : typeof err?.statusCode === 'number'
+      ? err.statusCode
+      : 500;
+
+  if (status >= 500) {
+    return res.status(500).json({ error: 'Erro interno no servidor.' });
+  }
+
+  return res.status(status).json({ error: err?.message || 'Requisição inválida.' });
 });
 
 app.listen(port, () => {

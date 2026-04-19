@@ -289,6 +289,13 @@ const slugify = (value: string): string => {
     .replace(/-+/g, '-');
 };
 
+const VALID_PARENT: Record<SystemNodeType, SystemNodeType[] | null> = {
+  system: null,
+  edition: ['system'],
+  subsystem: ['system'],
+  variant: ['edition', 'subsystem'],
+};
+
 // POST /api/v1/admin/systems — Criar novo sistema
 router.post('/admin', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
   const { name, name_pt, node_type, parent_id, aliases, logo_filename, website_url } = req.body;
@@ -301,8 +308,12 @@ router.post('/admin', authMiddleware, requireRole('admin'), async (req: Request,
     return res.status(400).json({ error: 'Tipo inválido. Use: system, edition, variant ou subsystem.' });
   }
 
-  if ((node_type === 'edition' || node_type === 'variant') && !parent_id) {
-    return res.status(400).json({ error: 'Edições e variantes precisam de um sistema pai.' });
+  if (node_type !== 'system' && !parent_id) {
+    return res.status(400).json({ error: `${node_type} precisa de um sistema pai.` });
+  }
+
+  if (node_type === 'system' && parent_id) {
+    return res.status(400).json({ error: 'Sistema base não pode ter pai.' });
   }
 
   try {
@@ -326,12 +337,19 @@ router.post('/admin', authMiddleware, requireRole('admin'), async (req: Request,
     if (parent_id) {
       const parent = await db
         .selectFrom('systems')
-        .select(['depth', 'path_slug'])
+        .select(['depth', 'path_slug', 'node_type'])
         .where('id', '=', parent_id)
         .executeTakeFirst();
 
       if (!parent) {
         return res.status(404).json({ error: 'Sistema pai não encontrado.' });
+      }
+
+      const allowedParentTypes = VALID_PARENT[node_type as SystemNodeType];
+      if (allowedParentTypes && !allowedParentTypes.includes(parent.node_type)) {
+        return res.status(400).json({
+          error: `${node_type} só pode ser filho de: ${allowedParentTypes.join(' ou ')}.`,
+        });
       }
 
       depth = parent.depth + 1;
@@ -395,6 +413,14 @@ router.put('/admin/:id', authMiddleware, requireRole('admin'), async (req: Reque
     return res.status(400).json({ error: 'Tipo inválido. Use: system, edition, variant ou subsystem.' });
   }
 
+  if (node_type !== 'system' && !parent_id) {
+    return res.status(400).json({ error: `${node_type} precisa de um sistema pai.` });
+  }
+
+  if (node_type === 'system' && parent_id) {
+    return res.status(400).json({ error: 'Sistema base não pode ter pai.' });
+  }
+
   try {
     // Verificar se sistema existe
     const existing = await db
@@ -428,12 +454,19 @@ router.put('/admin/:id', authMiddleware, requireRole('admin'), async (req: Reque
     if (parent_id) {
       const parent = await db
         .selectFrom('systems')
-        .select(['depth', 'path_slug'])
+        .select(['depth', 'path_slug', 'node_type'])
         .where('id', '=', parent_id)
         .executeTakeFirst();
 
       if (!parent) {
         return res.status(404).json({ error: 'Sistema pai não encontrado.' });
+      }
+
+      const allowedParentTypes = VALID_PARENT[node_type as SystemNodeType];
+      if (allowedParentTypes && !allowedParentTypes.includes(parent.node_type)) {
+        return res.status(400).json({
+          error: `${node_type} só pode ser filho de: ${allowedParentTypes.join(' ou ')}.`,
+        });
       }
 
       depth = parent.depth + 1;

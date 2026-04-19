@@ -67,13 +67,16 @@ router.patch('/system-suggestions/:id/approve', async (req: Request, res: Respon
       const slug = slugify(suggestion.name);
       
       let pathSlug = slug;
+      let depth = 0;
       if (suggestion.parent_id) {
         const parent = await trx
           .selectFrom('systems')
-          .select('path_slug')
+          .select(['path_slug', 'depth'])
           .where('id', '=', suggestion.parent_id)
           .executeTakeFirst();
+
         pathSlug = parent ? `${parent.path_slug}/${slug}` : slug;
+        depth = (parent?.depth ?? 0) + 1;
       }
 
       const existingSystem = await trx
@@ -87,8 +90,6 @@ router.patch('/system-suggestions/:id/approve', async (req: Request, res: Respon
       }
 
       // 4. INSERT em systems
-      const depth = suggestion.parent_id ? 
-        (await trx.selectFrom('systems').select('depth').where('id', '=', suggestion.parent_id).executeTakeFirst())?.depth ?? 0 + 1 : 0;
 
       const newSystem = await trx
         .insertInto('systems')
