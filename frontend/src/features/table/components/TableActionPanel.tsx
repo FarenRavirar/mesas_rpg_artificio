@@ -19,7 +19,7 @@ export function TableActionPanel({ vm, variant = 'full' }: TableActionPanelProps
   // Modo owner: gestão + preview completo (como visitante vê)
   if (variant === 'owner') {
     return (
-      <aside className="space-y-3 lg:sticky lg:top-4">
+      <aside className="space-y-4">
         {/* Gestão */}
         <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
           <p className="text-xs font-semibold text-white/60 uppercase tracking-wide mb-3">
@@ -244,7 +244,7 @@ export function TableActionPanel({ vm, variant = 'full' }: TableActionPanelProps
 
   // Modo público: CTA + conversão
   return (
-    <aside className="space-y-4 lg:sticky lg:top-4">
+    <aside className="space-y-4">
       
       {/* CTA Primário */}
       <button
