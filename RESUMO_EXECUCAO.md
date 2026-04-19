@@ -1,6 +1,6 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 19/04/2026 02:15 BRT
+**Última atualização:** 19/04/2026 03:22 BRT
 
 ---
 
@@ -41,14 +41,12 @@
 
 ## Próxima Ação
 
-**Auditoria Completa de Sistemas, Edições, Variantes e Cenários**
+**Sessão 26-04-19_1 — Validação Manual, Correção de Bugs e Ajustes (Etapa 1)**
 
-Iniciar execução sistemática da auditoria técnica documentada em `docs/auditoria_sistemas_claude.md` e `docs/sistemas_auditoria_codex.md`. Trabalho será dividido em múltiplas sessões seguindo o roadmap de 4 fases:
-
-1. **Fase 1 (Correções Críticas):** Migrations 104/105, materialização de aprovação, rota admin de cenários, paginação, alinhamento de tipos
-2. **Fase 2 (Fluxo de Gestão):** Reparent recursivo, notificações, unicidade por path_slug, wizard de sugestão, bloqueadores detalhados
-3. **Fase 3 (API Pública):** Contrato público versionado, OpenAPI, lookup em lote, N:N scenario_systems
-4. **Fase 4 (Qualidade e Escala):** GIN queries, documentação, hardening, script canônico de import
+1. Executar validação runtime dos fluxos críticos de sistemas/cenários no `/gestao` (Gate 4)
+2. Executar teste E2E manual do fluxo `PATCH /api/v1/admin/system-suggestions/:id/approve`
+3. Registrar bugs com severidade e corrigir CRÍTICO/ALTO na mesma rodada
+4. Revalidar `tsc`/`build` e atualizar sessão + resumo + índice com evidências
 
 
 ---
@@ -56,9 +54,9 @@ Iniciar execução sistemática da auditoria técnica documentada em `docs/audit
 
 ## Última Sessão
 
-**Data:** 19/04/2026 02:15 BRT  
-**Tipo:** Auditoria de Arquitetura de Sistemas — Fase 0/1 (conferência, saneamento e validação final técnica)  
-**Arquivo:** `sessoes/26-04-18_1_auditoria-sistemas-etapa-1.md` (extensão)  
+**Data:** 19/04/2026 03:12 BRT  
+**Tipo:** Auditoria de Arquitetura de Sistemas — fechamento técnico + correção de build + deploy beta  
+**Arquivo:** `sessoes/26-04-18_1_auditoria-sistemas-etapa-1.md` (extensão finalizada)  
 **O que foi feito:**
 
 ### 1. Backend — estabilidade e mitigação de risco ✅
@@ -66,33 +64,37 @@ Iniciar execução sistemática da auditoria técnica documentada em `docs/audit
 - Contadores agregados mantidos no payload (`children_count`, `tables_count`, `aliases_count`)
 - Paginação cursor em `GET /systems` validada no código (com regra explícita para `view=tree`)
 
-### 2. Frontend — segurança operacional no admin ✅
+### 2. Frontend — correção de contratos e build ✅
 - Fluxo de deleção com alerta prévio contextual no inspector
 - `deleteSystem` com `skipConfirm` para confirmação centralizada na UI
-- Migração aplicada no fluxo principal (`SystemsAdminView`) com `EntityInspector` e `CatalogTree`
+- Componente `CommandPalette` restaurado no caminho esperado por `SystemsAdminView`
+- Contratos alinhados:
+  - `CatalogToolbar` com `totalCount?: number`
+  - `EntityInspector` com `onDirtyChange?: (dirty: boolean) => void`
 
 ### 3. Governança de deploy — bloqueadores técnicos fechados ✅
 - Changelog consolidado em entrada única do dia: `database/changelogs.json`
 - Saneamento da árvore concluído: removidas alterações fora do escopo da Etapa 1
-- Árvore pós-saneamento contém apenas arquivos da rodada de auditoria
+- Deploy beta automático concluído com sucesso (run `24622532572`)
 
-### 4. Validação técnica pós-saneamento ✅
+### 4. Validação técnica pós-correção ✅
 - `backend`: `npx tsc --noEmit` sem erros
 - `frontend`: `npx tsc --noEmit` sem erros
+- `frontend`: `npm run build` sem erros
 
-**Status:** Em andamento (bloqueadores técnicos fechados).  
-**Pendentes:** validação runtime manual (Gate 4) e teste E2E manual do fluxo `approve`.
+**Status:** Implementação e deploy concluídos em `dev`.  
+**Pendentes:** validação runtime manual (Gate 4), teste E2E manual do fluxo `approve`, correção de bugs/regressões identificados manualmente.
 
 ---
 
 ## Próxima Ação
 
-**Fechar pendências manuais para liberar deploy em `dev`**
+**Sessão 26-04-19_1 — Validação Manual, Correção de Bugs e Ajustes (Etapa 1)**
 
-1. Validar runtime dos consumidores críticos do `GET /systems` (Gate 4) no navegador
-2. Executar teste manual do fluxo `PATCH /api/v1/admin/system-suggestions/:id/approve` e confirmar criação do sistema
-3. Atualizar os itens `[ ]` no dossiê e na sessão somente após evidência de execução manual
-4. Revalidar status final de prontidão para deploy em `dev` após fechamento dos gates manuais
+1. Executar validação runtime dos fluxos críticos de sistemas/cenários no `/gestao` (Gate 4)
+2. Executar teste E2E manual do fluxo `PATCH /api/v1/admin/system-suggestions/:id/approve`
+3. Registrar bugs com severidade e corrigir CRÍTICO/ALTO na mesma rodada
+4. Revalidar `tsc`/`build` e atualizar sessão + resumo + índice com evidências
 
 ---
 

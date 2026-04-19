@@ -1,6 +1,6 @@
 # Índice de Sessões
 
-Última atualização: 17/04/2026 17:20 BRT
+Última atualização: 19/04/2026 03:20 BRT
 
 ---
 
@@ -105,9 +105,17 @@
 
 ---
 
+## 19/04/2026 (1 sessão)
+
+| # | Arquivo |
+|---|---|
+| 1 | `26-04-19_1_validacao-manual-bugs-ajustes-etapa-1.md` |
+
+---
+
 ## Sessão Mais Recente
 
-`26-04-18_1_auditoria-sistemas-etapa-1.md`
+`26-04-19_1_validacao-manual-bugs-ajustes-etapa-1.md`
 
 ---
 
@@ -123,4 +131,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-04-18_2_*`
+**Próxima sessão:** `26-04-19_2_*`

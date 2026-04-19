@@ -11,7 +11,7 @@ export function AdminWorkspaceLayout({ workspace, inspector, onCloseInspector }:
   const inspectorOpen = inspector !== null;
 
   return (
-    <div className="flex h-[calc(100vh-var(--header-height))] overflow-hidden">
+    <div className="flex overflow-hidden" style={{ height: 'calc(100vh - var(--header-height, 0px))' }}>
       <section className="flex-1 min-w-0 overflow-y-auto border-r border-white/10">
         {workspace}
       </section>

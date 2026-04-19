@@ -2008,6 +2008,12 @@ Mover rota `/gestao` para fora do bloco condicional, deixando `ProtectedRoute` f
 - [x] `frontend/src/pages/SystemsAdminView.tsx`
   - Pré-alerta contextual de exclusão com base em `tables_count` e `children_count`
   - Chamada de deleção ajustada para `deleteSystem(..., { skipConfirm: true })`
+- [x] `frontend/src/features/admin/components/CommandPalette.tsx`
+  - Componente restaurado no caminho esperado pelo `SystemsAdminView`
+- [x] `frontend/src/features/admin/components/CatalogToolbar.tsx`
+  - Contrato alinhado com `totalCount?: number`
+- [x] `frontend/src/features/admin/components/EntityInspector.tsx`
+  - Contrato alinhado com `onDirtyChange?: (dirty: boolean) => void`
 - [x] `docs/auditoria_sistemas_claude.md`
   - Seção `Riscos e mitigação` atualizada com status de mitigação implementada
   - Inclusão da seção **Checklist operacional (manual) — Gates e riscos**
@@ -2016,11 +2022,21 @@ Mover rota `/gestao` para fora do bloco condicional, deixando `ProtectedRoute` f
 
 - [x] `npx tsc --noEmit` em `backend/` sem erros
 - [x] `npx tsc --noEmit` em `frontend/` sem erros
+- [x] `npm run build` em `frontend/` sem erros
+- [x] Deploy beta por push em `dev` concluído com sucesso (run `24622532572`)
 
-### Pendências manuais desta extensão
+### Pendências transferidas para a próxima sessão
 
-- [ ] Executar validação runtime no navegador para os itens `[ ]` do checklist operacional em `docs/auditoria_sistemas_claude.md`.
-  - Bloqueio atual: sem ambiente de teste local; validação depende de deploy em `dev`.
-  - **Próxima sessão (obrigatória):** validação manual online + correção de bugs identificados + ajustes e fechamento desta sessão.
+- [x] Criar próxima sessão de validação manual + correção de bugs + ajustes finais
+- [x] Registrar vínculo da próxima sessão: `26-04-19_1_validacao-manual-bugs-ajustes-etapa-1.md`
+- [x] Atualizar `sessoes/index.md` com a sessão `26-04-19_1_validacao-manual-bugs-ajustes-etapa-1.md`
+- [ ] Executar validação runtime no navegador para os itens `[ ]` do checklist operacional em `docs/auditoria_sistemas_claude.md`
+- [ ] Executar teste E2E manual do fluxo `PATCH /api/v1/admin/system-suggestions/:id/approve`
+- [ ] Corrigir bugs/regressões encontrados na validação runtime
+
+### Status da sessão
+
+**Status técnico:** encerrada para implementação e deploy em `dev`.  
+**Status operacional:** pendências de validação manual e correção de bugs abertas na próxima sessão.
 
 ---
