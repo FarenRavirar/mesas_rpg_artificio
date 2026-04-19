@@ -114,6 +114,7 @@ export const MesaPage = () => {
   const isOwner = !!(user && table && (table as any).gm_user_id === user.id);
   const isAdmin = user?.role === 'admin';
   const canManage = isOwner || isAdmin;
+  const showMasterCard = table?.publisher_role === 'gm';
 
   if (loading) {
     return (
@@ -196,7 +197,7 @@ export const MesaPage = () => {
             {vm && <TableActionPanel vm={vm} variant={canManage ? 'owner' : 'full'} />}
 
             {/* Card do Mestre */}
-            {vm && (
+            {vm && showMasterCard && (
               <MasterCard
                 masterName={vm.masterName}
                 masterSlug={vm.masterSlug}
