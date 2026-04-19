@@ -1,10 +1,19 @@
 import { Router, Request, Response } from 'express';
+import rateLimit from 'express-rate-limit';
 import { authMiddleware, requireRole } from '../middleware/auth';
 import { db } from '../db';
 
 const router = Router();
 
-router.use(authMiddleware, requireRole('admin'));
+const adminScenarioSuggestionsLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 100, // máximo de 100 requisições por IP por janela
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Muitas requisições. Tente novamente em alguns minutos.' },
+});
+
+router.use(authMiddleware, requireRole('admin'), adminScenarioSuggestionsLimiter);
 
 // GET /api/v1/admin/scenario-suggestions - Listar todas as sugestões
 router.get('/scenario-suggestions', async (req: Request, res: Response) => {
