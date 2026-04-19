@@ -8,7 +8,7 @@
 ## Vínculos
 
 **Sessão Anterior:** `26-04-17_10_pendencias-reformulacao-v4.md`  
-**Próxima Sessão:** `26-04-18_2_auditoria-sistemas-etapa-2.md` (a ser criada)
+**Próxima Sessão:** `26-04-19_1_validacao-manual-bugs-ajustes-etapa-1.md` (foco: validação manual online, correção de bugs e ajustes finais desta sessão)
 
 ---
 
@@ -346,24 +346,31 @@ Admin atual é **lista plana + modal genérico**. BigTech é **árvore + inspect
 ### Gates de Validação
 
 #### Gate 1 (após Bloco 3)
-- [ ] Backend retorna contadores
-- [ ] Árvore renderiza com métricas
-- [ ] Expand/collapse com teclado
+- [x] Backend retorna contadores (`children_count`, `tables_count`, `aliases_count`)
+- [x] Árvore renderiza com métricas (`EntityCounters`)
+- [x] Expand/collapse com teclado (`ArrowRight`/`ArrowLeft`)
+- [ ] Validação manual runtime (navegador): contadores visíveis + teclado sem regressão
 
 #### Gate 2 (após Bloco 4)
-- [ ] Inspector abre ao selecionar
-- [ ] Edição inline funciona
-- [ ] Tipo bloqueado em edição
+- [x] Inspector abre ao selecionar
+- [x] Edição inline funciona
+- [x] Tipo bloqueado em edição
+- [x] Dirty-state protegido com confirmação centralizada de descarte
+- [ ] Validação manual runtime (navegador): editar/cancelar/salvar + aliases
 
 #### Gate 3 (após Bloco 5)
-- [ ] Criar sistema-base via toolbar
-- [ ] Criar filho via botão "➕"
-- [ ] Busca e filtros funcionam
+- [x] Criar sistema-base via toolbar
+- [x] Criar filho via botão "+"
+- [x] Busca e filtros funcionam
+- [x] Correção técnica: auto-expand movido de `useMemo` para `useEffect` idempotente
+- [x] Acessibilidade: ação de criar filho também por teclado (`+` e `Insert`)
+- [ ] Validação manual runtime (navegador): fluxos de criação completos
 
 #### Gate 4 (regressão)
-- [ ] 7 consumidores de `GET /systems` OK
-- [ ] `CreateTableForm` funciona
-- [ ] Catálogo público OK
+- [x] 7 consumidores de `GET /systems` mapeados no código
+- [x] `CreateTableForm` permanece funcional por código
+- [x] Catálogo público permanece funcional por código
+- [ ] Validação manual runtime (navegador): regressão dos consumidores críticos
 
 ---
 
@@ -379,11 +386,13 @@ Admin atual é **lista plana + modal genérico**. BigTech é **árvore + inspect
    - Labels contextuais
    - **Adaptação:** Migrar para `EntityInspector`
 
-3. ⚠️ **`SystemEditModal.tsx`:**
-   - **Ação:** Desmontar, migrar lógica
+3. ✅ **`SystemEditModal.tsx`:**
+   - **Status:** Removido do repositório
+   - **Evidência:** `frontend/src/components/SystemEditModal.tsx` excluído e sem referência ativa no frontend
 
-4. ⚠️ **`SystemsTree.tsx`:**
-   - **Ação:** Substituir por `CatalogTree`
+4. ✅ **`SystemsTree.tsx`:**
+   - **Status:** Removido do repositório
+   - **Evidência:** `frontend/src/modules/admin/systems/SystemsTree.tsx` excluído e sem referência ativa no frontend
 
 ---
 
@@ -403,24 +412,24 @@ Admin atual é **lista plana + modal genérico**. BigTech é **árvore + inspect
 ### Fase 0 — Refatoração UX Admin (PRIORIDADE MÁXIMA)
 **Escopo:** Implementar padrão BigTech (split-view 3 colunas)  
 **Gate de saída:**
-- [ ] Bloco 1-6 completos
-- [ ] Gate 4: Regressão OK
+- [x] Bloco 1-6 completos
+- [ ] Gate 4: Regressão OK (pendente validação runtime manual dos consumidores críticos)
 
 **Prazo estimado:** 2 dias (14h)
 
 ### Fase 1 — Correções Críticas
 **Escopo:** A01, A02, A03, A04, A05, A06  
 **Gate de saída:**
-- [ ] Migrations 104 e 105 aplicadas em dev
-- [ ] `approve` cria sistema (teste E2E)
-- [ ] Rota `scenarioSuggestionsAdmin` existente e registrada
-- [ ] Paginação cursor em `GET /systems`
-- [ ] Frontend `System` alinhado ao backend
-- [ ] `tsc --noEmit` sem erros (backend + frontend)
+- [x] Migrations 104 e 105 aplicadas em dev
+- [ ] `approve` cria sistema (teste E2E manual pendente)
+- [x] Rota `scenarioSuggestionsAdmin` existente e registrada
+- [x] Paginação cursor em `GET /systems`
+- [x] Frontend `System` alinhado ao backend
+- [x] `tsc --noEmit` sem erros (backend + frontend)
 
 **Prazo estimado:** 2-3 dias
 
-### Fase 2 — Fluxo de Gestão (PRÓXIMA SESSÃO)
+### Fase 2 — Fluxo de Gestão (APÓS SESSÃO DE VALIDAÇÃO MANUAL)
 **Escopo:** A08, A10, A11, A12, A17, A18, PROB-09, PROB-12  
 **Prazo estimado:** 4-6 dias
 
@@ -1025,7 +1034,7 @@ CREATE TABLE IF NOT EXISTS scenario_aliases (
 - [ ] Verificar `metadata` contém `reason: "Duplicado"`
 
 ### Documentação
-- [ ] Atualizar `docs/auditoria_sistemas_claude.md` marcando A01, A02, A03, A04, A05, A06, A10.1, A10.2 como ✅ resolvidos
+- [x] Atualizar `docs/auditoria_sistemas_claude.md` marcando A01, A02, A03, A04, A05, A06, A10.1, A10.2 como ✅ resolvidos
 - [ ] Atualizar `RESUMO_EXECUCAO.md` com sessão concluída
 - [ ] Atualizar `sessoes/index.md` com nova sessão
 
@@ -1983,5 +1992,35 @@ Mover rota `/gestao` para fora do bloco condicional, deixando `ProtectedRoute` f
 - [x] Dashboard atualizado com posição relativa e fallback temporal
 - [x] Validação técnica backend/frontend concluída
 - [x] Atualizar RESUMO_EXECUCAO.md
+
+---
+
+## 🔄 EXTENSÃO — Auditoria Sistemas (19/04/2026 01:18 BRT)
+
+### Escopo executado nesta extensão
+
+- [x] `backend/src/routes/systems.ts`
+  - Cache em memória para `GET /api/v1/systems?view=tree` com `TTL = 60s`
+  - Invalidação automática de cache em mutações admin (`POST`, `PUT`, `DELETE`)
+- [x] `frontend/src/modules/admin/systems/useSystems.ts`
+  - `deleteSystem` expandido com `options?: { skipConfirm?: boolean }`
+  - Evita confirmação duplicada quando a confirmação já ocorreu no nível da página
+- [x] `frontend/src/pages/SystemsAdminView.tsx`
+  - Pré-alerta contextual de exclusão com base em `tables_count` e `children_count`
+  - Chamada de deleção ajustada para `deleteSystem(..., { skipConfirm: true })`
+- [x] `docs/auditoria_sistemas_claude.md`
+  - Seção `Riscos e mitigação` atualizada com status de mitigação implementada
+  - Inclusão da seção **Checklist operacional (manual) — Gates e riscos**
+
+### Validação técnica desta extensão
+
+- [x] `npx tsc --noEmit` em `backend/` sem erros
+- [x] `npx tsc --noEmit` em `frontend/` sem erros
+
+### Pendências manuais desta extensão
+
+- [ ] Executar validação runtime no navegador para os itens `[ ]` do checklist operacional em `docs/auditoria_sistemas_claude.md`.
+  - Bloqueio atual: sem ambiente de teste local; validação depende de deploy em `dev`.
+  - **Próxima sessão (obrigatória):** validação manual online + correção de bugs identificados + ajustes e fechamento desta sessão.
 
 ---
