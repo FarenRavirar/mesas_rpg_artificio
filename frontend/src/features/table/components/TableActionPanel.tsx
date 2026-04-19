@@ -109,33 +109,41 @@ export function TableActionPanel({ vm, variant = 'full' }: TableActionPanelProps
             <div className="flex justify-between items-center">
               <span className="text-white/60">Sistema</span>
               {vm.systemLogoFilename || vm.systemWebsiteUrl ? (
-                <a 
-                  href={vm.systemWebsiteUrl || '#'} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 hover:opacity-80 transition"
-                  title={vm.system}
-                >
-                  {vm.systemLogoFilename ? (
-                    <img 
-                      src={`/system-logos/${vm.systemLogoFilename}`} 
-                      alt={vm.system}
-                      className="h-6 w-auto object-contain"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                        const parent = e.currentTarget.parentElement;
-                        if (parent && !parent.querySelector('.system-fallback')) {
-                          const span = document.createElement('span');
-                          span.className = 'system-fallback text-white font-medium';
-                          span.textContent = vm.system;
-                          parent.appendChild(span);
-                        }
-                      }}
-                    />
-                  ) : (
+                vm.systemWebsiteUrl ? (
+                  <a
+                    href={vm.systemWebsiteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 hover:opacity-80 transition"
+                    title={vm.system}
+                  >
                     <span className="text-white font-medium">{vm.system}</span>
-                  )}
-                </a>
+                    {vm.systemLogoFilename && (
+                      <img
+                        src={`/sys-logos/${vm.systemLogoFilename}`}
+                        alt={vm.system}
+                        className="h-5 w-auto object-contain"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    )}
+                  </a>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <span className="text-white font-medium">{vm.system}</span>
+                    {vm.systemLogoFilename && (
+                      <img
+                        src={`/sys-logos/${vm.systemLogoFilename}`}
+                        alt={vm.system}
+                        className="h-5 w-auto object-contain"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    )}
+                  </span>
+                )
               ) : (
                 <span className="text-white font-medium">{vm.system}</span>
               )}
@@ -275,33 +283,41 @@ export function TableActionPanel({ vm, variant = 'full' }: TableActionPanelProps
         <div className="flex justify-between items-center">
           <span className="text-white/60">Sistema</span>
           {vm.systemLogoFilename || vm.systemWebsiteUrl ? (
-            <a 
-              href={vm.systemWebsiteUrl || '#'} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 hover:opacity-80 transition"
-              title={vm.system}
-            >
-              {vm.systemLogoFilename ? (
-                <img 
-                  src={`/system-logos/${vm.systemLogoFilename}`} 
-                  alt={vm.system}
-                  className="h-6 w-auto object-contain"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                    const parent = e.currentTarget.parentElement;
-                    if (parent && !parent.querySelector('.system-fallback')) {
-                      const span = document.createElement('span');
-                      span.className = 'system-fallback text-white font-medium';
-                      span.textContent = vm.system;
-                      parent.appendChild(span);
-                    }
-                  }}
-                />
-              ) : (
+            vm.systemWebsiteUrl ? (
+              <a
+                href={vm.systemWebsiteUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 hover:opacity-80 transition"
+                title={vm.system}
+              >
                 <span className="text-white font-medium">{vm.system}</span>
-              )}
-            </a>
+                {vm.systemLogoFilename && (
+                  <img
+                    src={`/sys-logos/${vm.systemLogoFilename}`}
+                    alt={vm.system}
+                    className="h-5 w-auto object-contain"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                )}
+              </a>
+            ) : (
+              <span className="flex items-center gap-2">
+                <span className="text-white font-medium">{vm.system}</span>
+                {vm.systemLogoFilename && (
+                  <img
+                    src={`/sys-logos/${vm.systemLogoFilename}`}
+                    alt={vm.system}
+                    className="h-5 w-auto object-contain"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                )}
+              </span>
+            )
           ) : (
             <span className="text-white font-medium">{vm.system}</span>
           )}

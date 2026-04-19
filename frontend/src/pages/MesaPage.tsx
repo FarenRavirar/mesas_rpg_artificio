@@ -190,7 +190,7 @@ export const MesaPage = () => {
           </div>
 
           {/* Sidebar */}
-          <aside className="space-y-4 lg:sticky lg:top-4 z-10">
+          <aside className="space-y-4 z-10">
             {/* Fase 2: TableActionPanel (substituindo aside de 72 linhas) */}
             {/* CORREÇÃO DT-026: Passar variant baseado em canManage (owner OU admin) */}
             {vm && <TableActionPanel vm={vm} variant={canManage ? 'owner' : 'full'} />}

@@ -105,19 +105,7 @@ export const MestrePage = () => {
 
       <MestreSellingPoints sellingPoints={profile.selling_points ?? []} />
 
-      <MestreTablesSection mappedTables={mappedTables} />
-
-      <MestreClosedGroupSection closedGroup={profile.closed_group} />
-
-      {canSeeInsights && (insightsLoading || metrics.length > 0) && (
-        <MestreInsightsSection insightsLoading={insightsLoading} metrics={metrics} />
-      )}
-
-      {canSeeInsights && recommendations.length > 0 && (
-        <MestreRecommendationsSection recommendations={recommendations} />
-      )}
-
-      {/* PRIORIDADE: Contato é o principal - ANTES de Links */}
+      {/* PRIORIDADE: Contato é o principal - ANTES de Mesas Disponíveis */}
       
       {/* Contact Methods */}
       {profile.contact_methods && profile.contact_methods.length > 0 && (
@@ -138,6 +126,18 @@ export const MestrePage = () => {
         <section className="container" style={{ marginTop: '3rem' }}>
           <MestreContactForm mestreSlug={slug} />
         </section>
+      )}
+
+      <MestreTablesSection mappedTables={mappedTables} />
+
+      <MestreClosedGroupSection closedGroup={profile.closed_group} />
+
+      {canSeeInsights && (insightsLoading || metrics.length > 0) && (
+        <MestreInsightsSection insightsLoading={insightsLoading} metrics={metrics} />
+      )}
+
+      {canSeeInsights && recommendations.length > 0 && (
+        <MestreRecommendationsSection recommendations={recommendations} />
       )}
 
       {/* Links - Após contatos */}

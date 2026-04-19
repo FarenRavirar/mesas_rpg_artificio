@@ -2,7 +2,7 @@ import { Heart, ShieldCheck, Sparkles, Code2, Bug, Lightbulb } from 'lucide-reac
 
 export const SiteFooter = () => {
   return (
-    <footer className="mt-16 border-t border-white/10 bg-[#0e1a30] text-white/75">
+    <footer className="mt-24 border-t border-white/10 bg-[#0e1a30] text-white/75">
       <div className="container mx-auto px-6 py-10 grid grid-cols-1 md:grid-cols-[1.3fr_1fr_1fr] gap-8">
         <section aria-labelledby="footer-brand-title">
           <h2 id="footer-brand-title" className="text-lg font-bold text-white tracking-wide">

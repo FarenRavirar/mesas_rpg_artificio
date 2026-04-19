@@ -36,7 +36,7 @@
 - [ ] Testar filtro por tipo (`system`, `edition`, `subsystem`, `variant`)
 - [ ] Testar criação de sistema raiz
 - [ ] Testar criação de filho via árvore (`+` em node)
-- [ ] Testar edição no inspector lateral
+- [x] Testar edição no inspector lateral
 - [ ] Testar deleção com aviso contextual (`tables_count` e `children_count`)
 - [ ] Testar fluxo de cenários na aba correspondente
 - [ ] Validar que outras abas não regrediram (Plataformas, Mesas, Sugestões)
@@ -48,14 +48,14 @@
 - [ ] Confirmar ausência de erro de contrato na resposta
 
 ### Triagem e Correção de Bugs
-- [ ] Registrar bugs encontrados com severidade (CRÍTICO/ALTO/MÉDIO/BAIXO)
-- [ ] Corrigir bugs CRÍTICO/ALTO na mesma sessão
+- [x] Registrar bugs encontrados com severidade (CRÍTICO/ALTO/MÉDIO/BAIXO)
+- [x] Corrigir bugs CRÍTICO/ALTO na mesma sessão
 - [ ] Corrigir bugs MÉDIO quando houver segurança de baixo risco de regressão
 - [ ] Documentar explicitamente bugs não corrigidos (motivo + impacto + próximo passo)
 
 ### Validação Técnica Pós-Correção
 - [ ] `backend`: `npx tsc --noEmit`
-- [ ] `frontend`: `npx tsc --noEmit`
+- [x] `frontend`: `npx tsc --noEmit`
 - [ ] `frontend`: `npm run build`
 - [ ] Revalidar no navegador os fluxos impactados pelas correções
 
@@ -70,8 +70,8 @@
 
 | ID | Severidade | Fluxo afetado | Evidência | Causa raiz (hipótese) | Status |
 |---|---|---|---|---|---|
-| BUG-001 | | | | | [ ] |
-| BUG-002 | | | | | [ ] |
+| BUG-001 | ALTO | `/gestao` (CRUD > Sistemas) | Seleção de item em lista longa mantinha inspector preso no topo da viewport | Altura/scroll do workspace sem fallback consistente para header e sem foco de rolagem adequado entre colunas | [x] |
+| BUG-002 | ALTO | `/gestao` (CRUD > Sistemas) | Após ajuste inicial, a árvore de sistemas ficou sem rolagem vertical | Container da árvore com `overflow-hidden` bloqueando scroll da lista | [x] |
 | BUG-003 | | | | | [ ] |
 
 ---
