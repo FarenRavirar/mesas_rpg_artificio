@@ -1,5 +1,13 @@
 [
   {
+    "id": "2026-04-19-atualizacoes-do-dia",
+    "title": "Gestão de sistemas ficou mais fluida em listas grandes",
+    "body": "Publicamos uma atualização para facilitar manutenção quando há muitos sistemas cadastrados:\n\n• **Lista de sistemas voltou a rolar normalmente** - Agora dá para navegar por muitos itens sem travar\n• **Painel de edição continua acessível durante a manutenção** - A área de edição permanece utilizável sem exigir voltar manualmente para o topo\n\n_Atualização unificada publicada em 19/04/2026 às 04:24_",
+    "type": "app",
+    "published": true,
+    "created_at": "2026-04-19T04:24:00-03:00"
+  },
+  {
     "id": "2026-04-18-atualizacoes-do-dia",
     "title": "Painel do mestre e gestão de sistemas ficaram mais claros e confiáveis",
     "body": "Publicamos uma atualização unificada para melhorar leitura de desempenho e operação no painel de gestão:\n\n• **Comparação de desempenho mais justa no painel do mestre** - Em vez de metas fixas, o painel compara sua mesa com o comportamento real das outras mesas\n• **Faixas de desempenho mais fáceis de entender (Q1 a Q4)** - A posição da sua mesa fica mais clara, sem leitura técnica\n• **Contexto visível da análise** - O painel mostra quando os dados foram atualizados e qual a base usada\n• **Feedback mais transparente para contas com pouco histórico** - Quando ainda não há base suficiente para comparação, o sistema mostra tendência recente\n• **Gestão de sistemas mais rápida em consultas repetidas** - A árvore administrativa responde melhor em usos seguidos\n• **Aviso prévio antes de exclusão com impacto** - Antes de excluir, o painel informa quando há mesas vinculadas ou itens dependentes\n• **Mensagens de bloqueio mais claras** - Quando a exclusão não pode acontecer, o motivo aparece de forma direta\n\n_Atualização unificada publicada em 18/04/2026 às 13:08_",

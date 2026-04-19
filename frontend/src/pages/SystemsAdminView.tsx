@@ -168,7 +168,7 @@ export function SystemsAdminView({ onInspectorDirtyChange }: SystemsAdminViewPro
               resultsCount={resultsCount}
               totalCount={totalCount}
             />
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 min-h-0 overflow-y-auto">
               <CatalogTree
                 systems={systemsTree}
                 selectedId={selectedId}
