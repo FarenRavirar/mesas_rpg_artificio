@@ -4,7 +4,7 @@
 *.css text eol=lf
 *.md text eol=lf
 
-# Forçar LF em arquivos críticos de infra, independente do OS
+# Enforce LF on critical infra files (cross-OS)
 database/*.sql text eol=lf
 scripts/deploy/*.sh text eol=lf
 testes/deploy/*.sh text eol=lf
