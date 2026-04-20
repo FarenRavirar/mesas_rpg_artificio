@@ -150,5 +150,67 @@ consumidores desse contrato no repositório:
 
 - Criou migration com `column X` → grep em todos `.sh` e `.ts` por usos de X.
 - Mudou parâmetro de função → grep por todas as chamadas.
-- Se encontrar divergência, RELATAR ao mantenedor antes de decidir qual é 
-  canônico.
+- Se encontrar divergência, RELATAR ao mantenedor antes de decidir qual é canônico.
+
+## 10. Infraestrutura do projeto — regras ambientais
+
+### 10.1 Docker e banco de dados vivem na VM remota, SEMPRE
+
+Este projeto NÃO tem Docker local no ambiente de desenvolvimento Windows. 
+Docker e Postgres vivem EXCLUSIVAMENTE na VM Oracle Cloud, acessada via:
+
+    ssh -F C:/projetos/config faren
+
+Regras invioláveis:
+
+- ❌ NUNCA assumir que `docker` existe local.
+- ❌ NUNCA propor `docker run` ou `docker compose` como comando direto 
+  em máquina Windows do mantenedor.
+- ❌ NUNCA declarar BLOCKED por ausência de docker sem antes tentar a 
+  invocação remota via SSH.
+- ✅ SEMPRE prefixar comandos docker com: `ssh -F C:/projetos/config faren "docker ..."`.
+- ✅ Para testes que envolvem Postgres descartável, criar container na VM 
+  com nome distinto (ex: `mesas-test-pg-<timestamp>`) e portas não-colidentes.
+
+### 10.2 Banco de dados canônicos
+
+| Ambiente | Container | Pasta VM | URL pública |
+|---|---|---|---|
+| Beta | `mesas-beta-db` | `/opt/mesas-beta/` | `mesasbeta.artificiorpg.com` |
+| Prod | `mesas-db` | `/opt/mesas/` | `mesas.artificiorpg.com` |
+| Teste (efêmero) | `mesas-test-pg-*` | `/tmp/mesas-test/` | não exposto |
+
+Qualquer comando que envolva banco de dados deve especificar container-alvo 
+EXPLICITAMENTE. Default implícito é proibido.
+
+### 10.3 Protocolo antes de declarar BLOCKED por dependência
+
+Antes de reportar "BLOCKED: binário X ausente":
+
+1. Verificar se X é ferramenta de desenvolvimento do mantenedor 
+   (ex: `bats`, `git`, `jq`).
+2. Se X é infraestrutura do projeto (ex: `docker`, `psql`, `postgres`), 
+   verificar se vive remoto. Consultar seção 10.1 e 10.2.
+3. Se X é ferramenta cross-platform (ex: `sed`, `find`), verificar se 
+   existe em Git Bash ou WSL antes de declarar ausente.
+4. Só declarar BLOCKED após passos 1-3 esgotados.
+
+Exemplo proibido:
+   "docker não encontrado no Windows → BLOCKED"
+
+Exemplo aceito:
+   "docker local ausente (Windows); verificada infra remota via SSH; 
+    container disponível em mesas-beta-db; procedendo com invocação SSH"
+
+### 10.4 Placeholder é proibido
+
+Código marcado como "placeholder", "TODO", "for now it will fail", "mock 
+temporário sem semântica", ou similar é PROIBIDO em qualquer commit SDD.
+
+Se uma função precisa ser stub por dependência ausente, o stub deve:
+   - Retornar erro explícito com mensagem "NOT IMPLEMENTED: <nome>"
+   - Ter teste correspondente marcado @skip com justificativa
+   - Ter issue/task em tasks.md apontando prazo para implementação
+
+Nunca escrever `exit 1` sem lógica que o justifique. Nunca escrever 
+`assert_failure` sem assertion de conteúdo depois.
