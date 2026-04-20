@@ -172,13 +172,17 @@ Refatoração elimina os três: enforcer de diretório no CI (fecha #1), documen
 **Resoluções:**
 
 1. **Falha de SSH no preflight-prod:** Bloqueante rígido (falha o job).
-2. **Autorização `ALLOW_MANUAL_MIGRATIONS`:** Qualquer mantenedor com acesso ao manual trigger.
+2. **Autorização `ALLOW_MANUAL_MIGRATIONS`:** Restrito ao owner do repositório (GitHub role admin). Validar via `github.actor` no workflow_dispatch de deploy-prod.yml e promote-to-prod.yml. Mantenedores adicionais requerem PR próprio alterando a allowlist de atores no workflow.
 3. **Timeout `pg_advisory_lock`:** 60s com warning no console aos 30s.
 4. **Migrations antigas sem cabeçalho:** Adicionar cabeçalho editando diretamente os arquivos retroativamente.
-5. **Formato comentário preflight:** Compacto e focado na ação (Orientado ao gate, com check status e diff curto).
+5. **Formato comentário preflight:** Deve ser tabular, rápido de ler e sem narração (parseável em 5s). Deve conter três seções obrigatórias com status de bloqueio, exigindo versões do postgres. Exemplo de estrutura:
+   - **PostgreSQL**: beta `15.8` · prod `15.8`
+   - **Status**: GO (diff #1 limpo) | ATTENTION (diff #1 online-safe) | BLOCKED (diff #1 manual-risk OU drift reverso OU falha de SSH)
+   - **1. PROD vs HEAD(main) — BLOQUEANTE**: Tabela `version|classe|ação`.
+   - **2. BETA vs HEAD(dev) — Informativo**: Check de conformidade com branch de homologação.
+   - **3. BETA vs PROD — Informativo**: Diffs causados por `dev` à frente.
 6. **Allowlist inicial:** Mantida a original (`./database/`, `./testes/deploy/fixtures/`, `./specs/**/fixtures/`).
 7. **Idempotência no reconcile_migrations.sh:** Idempotente com sucesso (exit 0) mas com log distinguindo `SKIP` vs `NEW`. Deve rejeitar mark-applied se não houver `.sql` correspondente.
-8. **Prevenção de Perdas:** Todos os bancos de dados (beta e prod) devem passar por backup documentado no filesystem antes que a fase 2 ou as refatorações impactem o ambiente vivo.
 
 ---
 
