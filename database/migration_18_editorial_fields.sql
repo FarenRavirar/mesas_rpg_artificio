@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- Migration 18: Campos editoriais separados (REQ-28 Fase 2)
 -- Data: 2026-04-05
 -- Descrição: Adiciona campos para separar blocos editoriais (synopsis_narrative, benefits_text, gm_bio)

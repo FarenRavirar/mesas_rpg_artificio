@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- Migration 07: Fase B - Funcionalidades Avançadas do Parser
 -- Adiciona 15 novos campos para múltiplos horários, vagas detalhadas,
 -- classificações de sistema/pagamento/candidato e separação mestre/anunciante

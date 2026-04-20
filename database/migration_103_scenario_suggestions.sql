@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- Migration 103: sugestões multilíngues e sugestões de cenários
 -- 1) Adiciona name_pt em system_suggestions
 -- 2) Cria scenario_suggestions

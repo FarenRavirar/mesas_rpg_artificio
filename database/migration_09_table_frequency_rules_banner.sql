@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- =============================================================================
 -- migration_09_table_frequency_rules_banner.sql
 -- Adiciona campos de frequência, regras/observações e banner_url

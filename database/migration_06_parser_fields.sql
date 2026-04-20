@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- Migration 06: Adicionar campos extraídos pelo parser Python
 -- Data: 2026-04-05
 -- Descrição: Adiciona 7 campos opcionais e 3 campos de metadados do parser

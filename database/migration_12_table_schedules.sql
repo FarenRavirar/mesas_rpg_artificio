@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- Migration 12: Tabela table_schedules para múltiplos horários
 -- REQ-27: Agenda Estruturada
 -- Data: 05/04/2026

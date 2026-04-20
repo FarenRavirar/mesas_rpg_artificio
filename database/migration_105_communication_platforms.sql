@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- Migration 105: Plataformas de comunicação estruturadas
 -- Cria tabela communication_platforms e adiciona referência em tables
 

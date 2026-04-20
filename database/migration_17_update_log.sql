@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- Migration 17: Sistema de Changelog/Atualizações
 -- Criado em: 2026-04-08
 -- Descrição: Tabela para registro de atualizações do sistema (changelog público)

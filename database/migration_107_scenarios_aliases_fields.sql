@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- Migration 107: Adiciona campos faltantes para scenarios e aliases
 -- Problema: scenarios sem description, scenario_suggestions sem subgenres, falta tabela scenario_aliases
 -- Solução: ADD description em scenarios, ADD subgenres em scenario_suggestions, CREATE scenario_aliases

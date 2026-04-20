@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- Migration 17: Cenário e Estilos com Sugestões Automáticas
 -- REQ-28: Implementar campos de cenário e estilos com auto-sugestão
 -- Data: 05/04/2026

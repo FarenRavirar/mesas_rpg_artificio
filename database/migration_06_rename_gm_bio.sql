@@ -1,3 +1,9 @@
+-- @class: manual-risk
+-- @requires-backup: true
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- Migration 06: Renomear gm_bio para table_gm_bio
 -- Data: 2026-04-07
 -- Motivo: Eliminar conflito de nomenclatura com gm_profiles.bio_long

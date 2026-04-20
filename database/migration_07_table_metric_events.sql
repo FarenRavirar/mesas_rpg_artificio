@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- Migration 07: Tabela de eventos de métricas para anti-abuso
 -- Registra cada ação de métrica (view, click, contact, favorite) com fingerprint do cliente
 -- Permite deduplicação e rate limiting por IP/user-agent

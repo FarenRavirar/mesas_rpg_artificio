@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- =============================================================================
 -- migration_01_base_schema.sql
 -- Schema base do Anúncios de Mesas RPG — Artifício RPG

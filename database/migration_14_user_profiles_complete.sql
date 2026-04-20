@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- =============================================================================
 -- migration_14_user_profiles_complete.sql
 -- Sistema completo de perfil de usuário (jogador + mestre + Discord)

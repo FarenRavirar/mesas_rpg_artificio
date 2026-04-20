@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- Migration 109: Open Graph Metadata Cache and Retry Logic para user_links
 -- Adiciona campos de estado e retenção para o worker de enriquecimento OG
 -- Idempotente via IF NOT EXISTS

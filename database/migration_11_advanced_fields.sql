@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- Migration 11: Campos avançados para formulário expandido
 -- REQ-26: Formulário Expandido
 -- Data: 05/04/2026

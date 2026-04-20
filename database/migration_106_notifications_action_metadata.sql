@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- Migration 106: Adiciona action_url e metadata JSONB em notifications
 -- Problema: Notificação sem caminho de ação é dead-end operacional
 -- Solução: ADD action_url TEXT + metadata JSONB + índice GIN
