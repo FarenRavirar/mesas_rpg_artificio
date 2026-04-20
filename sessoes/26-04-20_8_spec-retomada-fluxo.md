@@ -61,9 +61,17 @@
 - [x] Rodou comando de instalação global `uv tool install` com Encoding formatado em UTF-8.
 - [x] Rodou `specify init` com agent `agy` configurando infra powershell (`ps`).
 - [x] Analise do diff: Pastas `.specify/` e `.agents/skills/` geradas. E também `.agent/`.
-- [/] Aguardando aprovação ("aprovado") para invocar o commit da Fase B.
-- [x] Atualizar RESUMO_EXECUCAO.md.
-- [x] Atualizar index.md.
+- [x] Aguardando aprovação ("aprovado") para invocar o commit da Fase B.
+- [x] Commit da ferramenta SDD de infra finalizado: `chore(sdd): instala spec-kit ...`
+- [x] INICIANDO FASE C: Gerando `constitution.md` personalizado e arquivos de governança.
+- [x] Sobrescrito o `constitution.md` oficial com as regras brownfield customizadas na Entrevista FASE A.
+- [x] Criado o `docs/sdd/README.md` (regras e chamadas CLI SDD).
+- [x] Criado o `docs/sdd/MAPEAMENTO_SDD.md` (ponte com documentos canônicas).
+- [x] Criado o `docs/sdd/BRANCH_POLICY.md` (regras de workflow em PRs).
+- [/] Aguardando "aprovado" para finalizar Fase C com o commit sugerido.
+
+## Status Final da Sessão
+Todos os artefatos base da metodologia SDD foram registrados neste repositório Brownfield conforme os limites da governança AGENTS.md.
 
 ## Arquivos que serão modificados
 - `sessoes/26-04-20_8_spec-retomada-fluxo.md`

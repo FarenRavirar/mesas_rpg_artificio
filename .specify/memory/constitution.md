@@ -1,50 +1,51 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# Constituição do Projeto Mesas RPG Artifício
 
-## Core Principles
+> Subordinada a AGENTS.md e demais MDs canônicos na raiz.
+> Conflito → MDs canônicos da raiz vencem.
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+## 1. Identidade
+- Projeto: Mesas RPG Artifício
+- Tipo: Brownfield, TypeScript, monorepo (backend/frontend/database).
+- Ambientes: beta (mesasbeta.artificiorpg.com), produção (mesas.artificiorpg.com).
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+## 2. Princípios inegociáveis
+- Gratuito para a comunidade, sem anúncios, coleta mínima de dados.
+- Nenhuma decisão de produto é tomada pelo agente — sempre perguntar.
+- TypeScript estrito. Proibido `any` implícito.
+- Toda mudança de schema passa por migrations_guide.md.
+- Nenhum código em produção sem PRE_DEPLOY_CHECKLIST.md verde.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+## 3. Branch policy (via Fase A)
+- Branch-base dos PRs: dev
+- Branch por feature: sim, criada automaticamente pelo Spec Kit com nome NNN-nome-semantico
+- Nomenclatura: feat/NNN-nome
+- Deletar após merge: sim automático
+- Remote: origin atual
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+## 4. Stack travada
+- Runtime: Node.js 22 LTS
+- Gerenciador: npm
+- Frontend: React + Vite + TypeScript (conforme RESUMO_EXECUCAO.md)
+- Backend: Node.js + TypeScript
+- Banco: PostgreSQL 16
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+## 5. Convenções
+- Idioma SDD: pt-BR
+- PR policy: PR por feature spec completa
+- Testes: estritos localmente/unidade quando independentes, ou integrados em dev quando exigirem banco de dados/VM/acessos externos
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## 6. Guardrails técnicos (auto-aplicados, não perguntar)
+- APIs HTTP: status codes 400, 401, 403, 404, 409, 422, 429, 500 sempre.
+- Validação de input obrigatória em endpoint externo.
+- Timeout explícito em chamada externa.
+- Logs estruturados, sem PII, com traceId.
+- Segredos via env vars, nunca em código.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+## 7. Camadas imutáveis (não reescrever)
+AGENTS.md, ARQUITETURA_PROJETO.md, BACKLOG_OPERACIONAL.md, MAPA_DE_API.md, FILA_IMPLEMENTACAO.md, ERRORS_SOLUTIONS.md, OPERACAO_PRODUCAO.md, PRE_DEPLOY_CHECKLIST.md, migrations_guide.md. 
+*(Exceção: Resposta Pergunta 10 - Todos podem mudar se for justificado e melhor para o projeto sob a ótica da Implementação SDD)*
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
-
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
-
-## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
-
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
-
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+## 8. Protocolo de divergência
+- Ambiguidade → parar e perguntar.
+- Conflito entre spec e MD canônico → MD canônico vence. Reportar.
+- Necessidade fora de escopo → propor ADR em specs/NNN/adr-*.md, aguardar aprovação.
