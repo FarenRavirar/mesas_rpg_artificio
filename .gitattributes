@@ -9,4 +9,3 @@ database/*.sql text eol=lf
 scripts/deploy/*.sh text eol=lf
 testes/deploy/*.sh text eol=lf
 testes/deploy/*.bats text eol=lf
-
