@@ -152,6 +152,7 @@ no changes added to commit (use "git add" and/or "git commit -a")
 ## Trabalhos adicionais documentados
 
 - Edição de enforcement na seção "INÍCIO OBRIGATÓRIO DE SESSÃO" no `AGENTS.md` a respeito do F15, aprovada pelo ADR-006.
+- Git Push completo do refactoring de governaça realizado com sucesso: `1fb2791..41894a7  001-gate-migrations-refactor -> 001-gate-migrations-refactor`.
 
 ## Commits desta sessão
 
