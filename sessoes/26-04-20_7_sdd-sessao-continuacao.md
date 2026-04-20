@@ -140,8 +140,6 @@ A sessão só estará concluída quando:
 - [x] `git add -A` + `git commit -m "chore: atualizar registro de sessão antes do push dev"` executados com hash `f8f2669`.
 - [x] Validação pré-push atual: `git status --short --branch` limpo e `git rev-list --left-right --count origin/dev...HEAD` = `0 2`.
 
-- [x] Validação pré-push atual: `git status --short --branch` limpo e `git rev-list --left-right --count origin/dev...HEAD` = `0 2`.
-
 ## Continuação — 20/04/2026 16:20 BRT
 
 ### O que vai fazer agora
@@ -163,3 +161,37 @@ A sessão só estará concluída quando:
 - [x] ARQUITETURA_PROJETO.md e MAPA_DE_API.md NÃO aparecem no diff (já sincronizados).
 - [x] RESUMO_EXECUCAO.md: HEAD está mais novo (não reverter).
 - [x] Conclusão técnica: documentação já está sincronizada; 30 branches `docs/sync-arquitetura-*` obsoletas pendentes de limpeza.
+
+## Continuação — 20/04/2026 16:44 BRT
+
+### O que vai fazer agora
+1. Executar limpeza remota das branches `docs/sync-arquitetura-*` em uma única operação.
+2. Validar que não restaram branches desse padrão no remoto.
+
+### O que precisa ser feito agora
+- [x] Excluir 30 branches `docs/sync-arquitetura-*` no remoto.
+- [x] Validar lista remota após exclusão.
+
+### O que foi feito agora
+- [x] Duplicação da sessão corrigida (linha repetida de validação pré-push removida).
+- [x] Usuário autorizou explicitamente continuidade da limpeza remota.
+- [x] Exclusão remota em lote executada com sucesso para as 30 branches `docs/sync-arquitetura-*`.
+- [x] Validação pós-limpeza executada: `git branch -r --list "origin/docs/sync-arquitetura-*"` sem resultados.
+
+## Continuação — 20/04/2026 16:54 BRT
+
+### O que vai fazer agora
+1. Atualizar `RESUMO_EXECUCAO.md` com o fechamento da sincronização documental e limpeza remota.
+2. Criar uma nova sessão dedicada exclusivamente ao retorno do fluxo `spec_claude.md`.
+3. Atualizar `sessoes/index.md` para apontar a nova sessão como mais recente.
+
+### O que precisa ser feito agora
+- [x] Atualizar `RESUMO_EXECUCAO.md`.
+- [x] Criar `sessoes/26-04-20_8_spec-retomada-fluxo.md`.
+- [x] Atualizar `sessoes/index.md`.
+
+### O que foi feito agora
+- [x] Usuário solicitou explicitamente atualização do resumo e abertura de sessão dedicada ao spec.
+- [x] `RESUMO_EXECUCAO.md` atualizado com fechamento da sincronização documental e próxima ação apontando para sessão dedicada do spec.
+- [x] Sessão dedicada criada: `sessoes/26-04-20_8_spec-retomada-fluxo.md`.
+- [x] `sessoes/index.md` atualizado com sessão 8 como mais recente.
