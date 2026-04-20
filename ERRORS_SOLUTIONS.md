@@ -635,15 +635,16 @@ ssh -F C:\projetos\config faren "docker exec mesas-app wget -qO- http://127.0.0.
 ## E150 - Rotas críticas falham após deploy com frontend healthy (stale upstream no Nginx)
 
 **Sintoma:**
-Após deploy/restart de containers, as rotas `GET /api/v1/tables` e `GET /auth/google` passam a falhar (tipicamente `502`) mesmo com containers `mesas-api` e frontend em estado `healthy`.
+Após deploy/restart de containers, as rotas `GET /api/v1/tables`, `GET /api/v1/systems?view=tree` e `GET /auth/google` passam a falhar (tipicamente `502`) mesmo com containers `mesas-api` e frontend em estado `healthy`.
 
 **Causa raiz confirmada (16/04/2026):**
-O Nginx no frontend manteve resolução de upstream antiga para o container de API após troca de IP interno no Docker network. Com isso, o proxy continuou tentando encaminhar para IP inválido, afetando principalmente as rotas de listagem de mesas e redirecionamento OAuth.
+O Nginx no frontend manteve resolução de upstream antiga para o container de API após troca de IP interno no Docker network. Com isso, o proxy continuou tentando encaminhar para IP inválido, afetando principalmente as rotas de listagem de mesas, árvore de sistemas e redirecionamento OAuth.
 
 **Diagnóstico rápido:**
 1. Validar rotas críticas:
 ```bash
 curl -s -o /dev/null -w "%{http_code}" "https://mesasbeta.artificiorpg.com/api/v1/tables?limit=1"
+curl -s -o /dev/null -w "%{http_code}" "https://mesasbeta.artificiorpg.com/api/v1/systems?view=tree"
 curl -s -D /tmp/beta_oauth.headers -o /dev/null -w "%{http_code}" "https://mesasbeta.artificiorpg.com/auth/google?frontend_redirect=https%3A%2F%2Fmesasbeta.artificiorpg.com"
 grep -i '^location: https://accounts.google.com/o/oauth2/v2/auth' /tmp/beta_oauth.headers
 ```
@@ -664,11 +665,11 @@ docker restart mesas-beta-frontend
 docker restart mesas-app
 ```
 2. Aguardar `Health.Status=healthy` no frontend.
-3. Revalidar `tables` e `auth/google`.
+3. Revalidar `tables`, `systems?view=tree` e `auth/google`.
 4. Se falhar novamente, marcar deploy como falho e coletar logs de frontend/API.
 
 **Prevenção obrigatória:**
-1. Workflows `deploy-beta.yml` e `deploy-prod.yml` devem validar rotas críticas (`/api/v1/tables?limit=1` e `/auth/google?frontend_redirect=...`) após health dos containers.
+1. Workflows `deploy-beta.yml`, `deploy-prod.yml` e `promote-to-prod.yml` devem validar rotas críticas (`/api/v1/tables?limit=1`, `/api/v1/systems?view=tree` e `/auth/google?frontend_redirect=...`) após health dos containers.
 2. Em falha dessas rotas com containers healthy, executar auto-recuperação controlada (`docker restart` do frontend), aguardar health e revalidar uma única vez.
 3. Persistindo falha após segunda validação, abortar deploy e manter evidências em log.
 4. Checklist operacional deve conter gate explícito dessas validações (PRE_DEPLOY_CHECKLIST.md e OPERACAO_PRODUCAO.md).

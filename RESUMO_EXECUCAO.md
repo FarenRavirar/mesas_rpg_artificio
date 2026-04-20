@@ -1,6 +1,6 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 20/04/2026 07:52 BRT
+**Última atualização:** 20/04/2026 15:28 BRT
 
 ---
 
@@ -41,39 +41,35 @@
 
 ## Próxima Ação
 
-**Executar deploy em dev (beta) e validar fluxo funcional da atividade admin no ambiente de interface**
+**Retomar o fluxo SDD no ponto interrompido (aguardando comando "continue") com sessão ativa obrigatória já aberta**
 
-1. Publicar alterações para `dev` (beta).
-2. Executar Gate C funcional em beta com eventos reais (`user.registered`, `table.*`, `system_suggestion.*`, `scenario_suggestion.*`).
-3. Rodar testes manuais T1–T13 da FASE D em `/gestao` (aba Atividades/filtros/paginação) após deploy.
+1. Confirmar retomada do fluxo do `spec_claude.md` a partir da leitura preparatória já concluída.
+2. Executar PRERREQUISITOS da Seção 2 em modo read-only (`git --version`, `python3 --version`, `uv --version`, `git status`).
+3. Iniciar FASE A (15 perguntas, uma por vez) e aguardar `aprovado` ao final.
 
 ---
 
 ## Última Sessão
 
-**Data:** 20/04/2026 07:52 BRT  
-**Tipo:** Execução — Atividade Admin (pré-deploy dev)  
-**Arquivo:** `sessoes/26-04-20_6_atividade-predeploy-dev.md`  
+**Data:** 20/04/2026 15:28 BRT  
+**Tipo:** Governança SDD — sessão contínua + alinhamento de protocolo  
+**Arquivo:** `sessoes/26-04-20_7_sdd-sessao-continuacao.md`  
 **O que foi feito:**
 
-### 1. Governança atualizada ✅
-- `AGENTS.md` atualizado: changelog agora obrigatório apenas para mudanças que impactam mestres/usuários finais
-- Mudanças exclusivas de área administrativa interna foram formalmente isentas de changelog
+### 1. Sessão ativa criada e indexada ✅
+- Criado `sessoes/26-04-20_7_sdd-sessao-continuacao.md` com estrutura obrigatória.
+- `sessoes/index.md` atualizado (20/04 passa para 7 sessões, sessão mais recente aponta para `_7_`).
 
-### 2. Revalidação técnica pré-deploy concluída ✅
-- Backend: `npx tsc --noEmit` (exit code 0)
-- Frontend: `npm run build` (exit code 0)
+### 2. Regra de sessão contínua alinhada no fluxo SDD ✅
+- `spec_claude.md` atualizado no modo de operação: `SESSÃO ATIVA → ENTREVISTAR → CONFIRMAR → INSTALAR → IMPLEMENTAR`.
+- Prompt de ativação (seção 9) recebeu passo `0. PROTOCOLO DE SESSÃO` com obrigação de abrir/retomar e atualizar sessão antes/depois de cada etapa.
 
-### 3. Estado funcional do Gate C em beta aferido ⚠️
-- Consulta SQL read-only executada em `activity_log` para `user.registered`, `table.*`, `system_suggestion.*`, `scenario_suggestion.*`
-- Resultado atual: `(0 rows)`
-- Conclusão: sem evidência funcional de tráfego real até o momento
+### 3. Situação atual ⚠️
+- Sessão `26-04-20_7` permanece ativa para continuidade do fluxo SDD.
+- Próximo gate operacional: usuário enviar `continue` para retomar PRERREQUISITOS + FASE A.
 
-### 4. Diretriz operacional registrada ✅
-- Testes T1–T13 e validação funcional ponta a ponta definidos para execução após deploy em dev (beta), conforme comando explícito do usuário
-- `sessoes/adm_atv.md` atualizado com a diretriz e evidências técnicas pré-deploy
+**Status:** Governança de sessão reforçada e rastreabilidade reestabelecida; execução SDD aguardando retomada explícita.
 
-**Status:** Pré-requisitos técnicos/documentais executados; validação funcional em ambiente dev permanece pendente de geração de eventos reais após deploy.
 
 
 

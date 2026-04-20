@@ -24,6 +24,9 @@
 - [x] Atualizar `sessoes/adm_atv.md` com status real dos bloqueios e decisão de T1–T13 pós-deploy.
 - [x] Atualizar `RESUMO_EXECUCAO.md`.
 - [x] Atualizar `sessoes/index.md`.
+- [x] Publicar para `dev` e concluir deploy beta.
+- [x] Aplicar rate limit em `GET /api/v1/admin/activity`.
+- [x] Aplicar botão "Todos" no filtro de tipo de evento como padrão visual inicial.
 
 ## Arquivos que serão modificados
 - `AGENTS.md`
@@ -31,6 +34,8 @@
 - `sessoes/26-04-20_6_atividade-predeploy-dev.md`
 - `RESUMO_EXECUCAO.md`
 - `sessoes/index.md`
+- `backend/src/routes/activityLog.ts`
+- `frontend/src/modules/admin/activity/components/ActivityFilters.tsx`
 
 ## Critério de conclusão explícito
 A sessão só estará concluída quando:
@@ -47,3 +52,13 @@ A sessão só estará concluída quando:
 - Backend: `npx tsc --noEmit` (exit code 0).
 - Frontend: `npm run build` (exit code 0).
 - `activity_log` existente no banco e com `total_logs = 0` no momento da checagem.
+- Deploy beta após push em `dev`:
+  - Workflow `Deploy Beta` run `24664678833` concluído com `success`.
+  - SHA publicado: `13cccac19afe8d700d6ce10ddbf3dda962a34a0a`.
+- Verificações pós-deploy:
+  - `GET /api/v1/health` → status ok (beta + db connected).
+  - `GET /api/v1/tables?limit=1` → HTTP 200.
+- Ajustes técnicos aplicados pós-deploy:
+  - `backend/src/routes/activityLog.ts`: `authRateLimiter` antes de `authMiddleware`/`requireRole('admin')`.
+  - `frontend/src/modules/admin/activity/components/ActivityFilters.tsx`: chip "Todos" (`activity-group-all`) ativo por padrão quando `actions=[]`.
+  - Validação técnica: backend `npx tsc --noEmit` e frontend `npx tsc --noEmit` sem erros.

@@ -24,6 +24,8 @@ export const CatalogoPage = () => {
 
   // STATE - Árvore de sistemas e busca
   const [systemsTree, setSystemsTree] = useState<SystemTreeNode[]>([]);
+  const [systemsTreeError, setSystemsTreeError] = useState<string | null>(null);
+  const [systemsTreeReloadKey, setSystemsTreeReloadKey] = useState(0);
   const [systemSearch, setSystemSearch] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
@@ -118,6 +120,10 @@ export const CatalogoPage = () => {
     }));
   };
 
+  const retrySystemsTree = () => {
+    setSystemsTreeReloadKey((current) => current + 1);
+  };
+
   // ============================================================================
   // COMPUTED
   // ============================================================================
@@ -165,17 +171,21 @@ export const CatalogoPage = () => {
   useEffect(() => {
     const loadSystemsTree = async () => {
       try {
+        setSystemsTreeError(null);
+
         const res = await fetch('/api/v1/systems?view=tree');
-        if (!res.ok) throw new Error('Erro ao carregar sistemas');
+        if (!res.ok) throw new Error(`Erro ao carregar sistemas (HTTP ${res.status})`);
+
         const json = await res.json();
         setSystemsTree(json.data ?? []);
       } catch (err) {
         console.error('[CatalogoPage] systems tree', err);
+        setSystemsTreeError('Não foi possível carregar os sistemas agora. Tente novamente.');
       }
     };
 
     loadSystemsTree();
-  }, []);
+  }, [systemsTreeReloadKey]);
 
   // Scroll to top quando filtros mudam (não na paginação)
   useEffect(() => {
@@ -210,6 +220,22 @@ export const CatalogoPage = () => {
           </div>
         </div>
       </div>
+
+      {systemsTreeError && (
+        <section className="container mx-auto px-6 pt-4" aria-live="polite">
+          <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 flex items-center justify-between gap-3">
+            <p className="text-sm text-amber-100">{systemsTreeError}</p>
+            <button
+              id="catalog-retry-systems-tree"
+              type="button"
+              onClick={retrySystemsTree}
+              className="shrink-0 rounded-lg border border-amber-300/40 bg-amber-500/20 px-3 py-1.5 text-xs font-semibold text-amber-50 hover:bg-amber-500/30 transition-colors"
+            >
+              Tentar novamente
+            </button>
+          </div>
+        </section>
+      )}
 
       {/* FILTROS - DESKTOP */}
       <div className="hidden md:block border-b border-white/10 bg-[#0a1628]/60 backdrop-blur-sm sticky top-[88px] z-20">

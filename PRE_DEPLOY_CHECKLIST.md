@@ -89,6 +89,7 @@ A Produção (`mesas.artificiorpg.com`) reflete os arquivos em `/opt/mesas/` ser
    - [ ] Testou se a API retornou um Code `200` com `{ status: 'ok' }` e `db: 'connected'`?
 6. **Verificação obrigatória do gate de migration (apply_required_migrations.sh):**
    - [ ] Run do workflow contém log `[migrations] schema em conformidade para runtime.`
+   - [ ] Se houver endpoint/consulta nova dependente de colunas adicionais, o bloco de schema mínimo no `apply_required_migrations.sh` foi atualizado para validar essas colunas
    - [ ] Se houve migration classificada como `MANUAL_RISK_MIGRATIONS` em produção: backup confirmado + evidência de execução controlada
 7. **Verificação obrigatória de isolamento Beta (E144):**
    - [ ] `curl -s -o /dev/null -w "%{http_code}" https://mesasbeta.artificiorpg.com` retorna `200`
@@ -104,8 +105,10 @@ A Produção (`mesas.artificiorpg.com`) reflete os arquivos em `/opt/mesas/` ser
    - [ ] Script remoto do deploy beta deve adquirir lock exclusivo (`flock /tmp/mesas-beta-deploy.lock`)
 10. **Verificação obrigatória de rotas críticas + auto-recuperação (E150):**
    - [ ] Beta: `GET /api/v1/tables?limit=1` deve retornar `200`
+   - [ ] Beta: `GET /api/v1/systems?view=tree` deve retornar `200`
    - [ ] Beta: `GET /auth/google?frontend_redirect=...` deve retornar `302` com header `Location` apontando para `https://accounts.google.com/o/oauth2/v2/auth`
    - [ ] Produção: `GET /api/v1/tables?limit=1` deve retornar `200`
+   - [ ] Produção: `GET /api/v1/systems?view=tree` deve retornar `200`
    - [ ] Produção: `GET /auth/google?frontend_redirect=...` deve retornar `302` com header `Location` válido do Google OAuth
    - [ ] Se alguma rota crítica falhar após containers estarem `healthy`, o deploy deve executar `docker restart` no frontend do ambiente, aguardar health `healthy` e revalidar uma vez
    - [ ] Se a segunda validação falhar, o deploy deve ser marcado como falho

@@ -8,19 +8,23 @@ on:
         required: true
         type: string
 
+concurrency:
+  group: production-deploy-lock
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
 jobs:
-  # CORRECAO WF-TS-01 (promote): Validar TypeScript ANTES de mergear dev em main
-  # Se o build falhar aqui, o merge nao acontece e producao nao e afetada
+  # CORRECAO WF-TS-01 (promote): Validar TypeScript ANTES de promover para producao
+  # Se o build falhar aqui, o deploy nao acontece e producao nao e afetada
   typecheck:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: dev
+          ref: main
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -37,7 +41,7 @@ jobs:
         run: npx tsc --noEmit
         working-directory: frontend
 
-  merge:
+  governance_gate:
     needs: typecheck
     runs-on: ubuntu-latest
     steps:
@@ -46,26 +50,35 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Merge dev to main
+      - name: Validate promotion governance (PR-first)
         run: |
           set -euo pipefail
 
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-
-          git fetch origin main dev --tags
-          git checkout main
-          git merge origin/dev --no-ff -m "chore: promote beta to production ${{ inputs.version }}"
-
-          if ! git rev-parse "${{ inputs.version }}" >/dev/null 2>&1; then
-            git tag -a "${{ inputs.version }}" -m "Release ${{ inputs.version }}"
+          if [ "${GITHUB_REF_NAME}" != "main" ]; then
+            echo "ERRO: Promocao para producao deve ser executada a partir da branch main"
+            echo "Promocao bloqueada: finalize o fluxo de PR dev -> main antes de disparar este workflow."
+            exit 1
           fi
 
-          git push origin main
-          git push origin "${{ inputs.version }}" || echo "Tag ja existe"
+          git fetch origin main dev --prune
+          AHEAD_BEHIND=$(git rev-list --left-right --count origin/main...origin/dev)
+          MAIN_AHEAD=$(echo "$AHEAD_BEHIND" | awk '{print $1}')
+          DEV_AHEAD=$(echo "$AHEAD_BEHIND" | awk '{print $2}')
+
+          if [ "$DEV_AHEAD" -gt 0 ]; then
+            echo "ERRO: branch dev esta ${DEV_AHEAD} commit(s) a frente da main."
+            echo "Promocao bloqueada: abra/aprove PR dev -> main e refaca o workflow apos merge."
+            exit 1
+          fi
+
+          if [ "$MAIN_AHEAD" -gt 0 ]; then
+            echo "AVISO: main esta ${MAIN_AHEAD} commit(s) a frente de dev. Seguindo com promocao a partir de main."
+          fi
+
+          echo "Governanca validada: workflow executando a partir de main, sem pendencias de dev -> main."
 
   deploy:
-    needs: merge
+    needs: governance_gate
     runs-on: ubuntu-latest
     environment:
       name: production
@@ -82,7 +95,8 @@ jobs:
             set -euo pipefail
 
             cd /opt/mesas
-            git pull origin main
+            git fetch origin main --tags
+            git reset --hard origin/main
 
             # CORRECAO WF-ROLLBACK-01 (promote): rollback automatico se build falhar apos o down
             rollback() {
@@ -146,6 +160,61 @@ jobs:
               fi
               sleep 3
             done
+
+            PROD_TABLES_URL="https://mesas.artificiorpg.com/api/v1/tables?limit=1"
+            PROD_SYSTEMS_TREE_URL="https://mesas.artificiorpg.com/api/v1/systems?view=tree"
+            PROD_OAUTH_URL="https://mesas.artificiorpg.com/auth/google?frontend_redirect=https%3A%2F%2Fmesas.artificiorpg.com"
+
+            check_prod_critical_routes() {
+              local tables_code systems_tree_code oauth_code
+
+              tables_code=$(curl -sS -o /tmp/prod_tables_check.json -w "%{http_code}" "$PROD_TABLES_URL" || true)
+              systems_tree_code=$(curl -sS -o /tmp/prod_systems_tree_check.json -w "%{http_code}" "$PROD_SYSTEMS_TREE_URL" || true)
+              oauth_code=$(curl -sS -D /tmp/prod_oauth_check.headers -o /dev/null -w "%{http_code}" "$PROD_OAUTH_URL" || true)
+
+              if [ "$tables_code" != "200" ]; then
+                echo "ERRO: /api/v1/tables retornou HTTP $tables_code em producao (E150)"
+                return 1
+              fi
+
+              if [ "$systems_tree_code" != "200" ]; then
+                echo "ERRO: /api/v1/systems?view=tree retornou HTTP $systems_tree_code em producao (E150)"
+                return 1
+              fi
+
+              if [ "$oauth_code" != "302" ] || ! grep -qi '^location: https://accounts.google.com/o/oauth2/v2/auth' /tmp/prod_oauth_check.headers; then
+                echo "ERRO: /auth/google nao retornou redirect valido em producao (HTTP $oauth_code) (E150)"
+                return 1
+              fi
+
+              return 0
+            }
+
+            if ! check_prod_critical_routes; then
+              echo "AVISO: Rotas criticas de producao falharam. Tentando auto-recuperacao E150 (restart do frontend)..."
+              docker restart mesas-app
+
+              FRONTEND_RETRIES=0
+              until [ "$(docker inspect --format '{{.State.Health.Status}}' "$FRONTEND_CONTAINER" 2>/dev/null || echo 'missing')" = "healthy" ]; do
+                FRONTEND_RETRIES=$((FRONTEND_RETRIES+1))
+                if [ $FRONTEND_RETRIES -ge $MAX_FRONTEND_RETRIES ]; then
+                  echo "ERRO: Frontend de producao nao voltou healthy apos recuperacao E150"
+                  docker inspect "$FRONTEND_CONTAINER" --format '{{json .State.Health}}' || true
+                  docker compose -f docker-compose.prod.yml logs mesas-app mesas-api --tail=120
+                  exit 1
+                fi
+                sleep 3
+              done
+
+              sleep 5
+
+              if ! check_prod_critical_routes; then
+                echo "ERRO: Rotas criticas de producao permanecem falhando apos recuperacao E150"
+                docker compose -f docker-compose.prod.yml ps
+                docker compose -f docker-compose.prod.yml logs mesas-app mesas-api mesas-db --tail=120
+                exit 1
+              fi
+            fi
 
             docker compose -f docker-compose.prod.yml ps
             docker image prune -f

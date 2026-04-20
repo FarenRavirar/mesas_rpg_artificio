@@ -14,7 +14,13 @@ Execute nesta ordem, sem pular etapas:
 3. Verificar se existe sessão ativa com checklist incompleta em `/sessoes/`
 4. **Se existir sessão ativa incompleta:** continuar nela; **é proibido criar nova sessão**
 5. **Só criar nova sessão** quando houver pedido explícito do usuário **ou** quando a sessão ativa estiver 100% concluída e o usuário autorizar avançar
-6. Só iniciar trabalho após concluir os passos acima
+6. Abrir/retomar o arquivo da sessão escolhida e registrar imediatamente:
+   - o que vai fazer
+   - o que precisa ser feito
+   - o que foi feito
+7. Atualizar a sessão **antes** de qualquer alteração técnica
+8. Atualizar a sessão após cada etapa executada (progresso contínuo)
+9. Só iniciar trabalho após concluir os passos acima
 
 ---
 
@@ -329,12 +335,13 @@ Fluxo: `feature/<escopo>` → `dev` (beta) → aprovação → `main` (produçã
 ## FORMATO DE RESPOSTA
 
 ```
-Contexto    — o que foi entendido
-Plano       — o que será feito (lista numerada)
-Execução    — patches incrementais
-Validação   — o que foi verificado
-Riscos      — o que pode dar errado
-Rollback    — como desfazer se necessário
+Contexto         — o que foi entendido
+Plano            — o que será feito (lista numerada)
+Execução         — patches incrementais
+Validação        — o que foi verificado
+Riscos           — o que pode dar errado
+Rollback         — como desfazer se necessário
+Próximos Passos  — próximos passos objetivos e imediatos
 ```
 
 ---

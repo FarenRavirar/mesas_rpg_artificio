@@ -468,6 +468,7 @@ Dependências: Fase B (rota funcionando).
   - **Tipo de evento**: **multi-select real** (permitir múltiplas ações simultâneas) com agrupamento por área e cliques rápidos:
     - Ações selecionáveis com suporte a múltiplos valores (multi-select)
     - Cliques específicos por área (botões/chips) para seleção rápida:
+      - **Todos** → estado padrão ao abrir (sem filtros de ação ativos; `actions=[]`)
       - Usuários → Novos cadastros
       - Mesas → Novas mesas / Edições / Exclusões / Mudanças de status
       - Sugestões → Sugestões de sistemas / Sugestões de cenários
@@ -640,6 +641,8 @@ Evidência B (typecheck backend):
 Decisão 5 (20/04): Gate B dispensado por autorização explícita do usuário para seguir para a próxima implementação sem validação por cookie admin neste momento.
 Decisão 6 (20/04): FASE D adotará multi-select real no filtro de tipo de evento, com cliques rápidos por área no padrão visual já usado em Gestão.
 Decisão 7 (20/04): T1–T13 serão executados somente após deploy em dev (beta), por diretriz explícita do usuário, mantendo o checklist técnico pré-deploy separado da validação visual/interação.
+Decisão 8 (20/04): rota `GET /api/v1/admin/activity` passa a aplicar `authRateLimiter` antes de `authMiddleware`/`requireRole('admin')` para reduzir risco de abuso em endpoint de leitura intensiva.
+Decisão 9 (20/04): `ActivityFilters` recebe chip "Todos" (`id=activity-group-all`) e este passa a ser o estado visual padrão quando `actions=[]` na abertura da aba.
 
 Evidência B (dispensa de validação funcional):
 - Gate B permaneceu sem execução de `curl -H "Cookie: $COOKIE" ...` por bloqueio de cookie local.
@@ -692,6 +695,16 @@ Evidência Pré-Deploy (20/04):
   - Query executada em `mesas_rpg.activity_log` filtrando `user.registered`, `table.*`, `system_suggestion.*`, `scenario_suggestion.*`.
   - Resultado atual: `(0 rows)`.
   - Status: sem evidência de tráfego funcional registrada ainda; validação ponta a ponta permanece pendente para execução após deploy em dev conforme diretriz operacional.
+
+Evidência Pós-Deploy DEV (20/04):
+- Deploy beta concluído com sucesso via workflow `Deploy Beta` (run `24664678833`, SHA `13cccac19afe8d700d6ce10ddbf3dda962a34a0a`).
+- Healthcheck beta: `GET /api/v1/health` retornando `{"status":"ok","environment":"beta","db":"connected"...}`.
+- Endpoint crítico: `GET /api/v1/tables?limit=1` retornando `200`.
+- Ajuste de segurança aplicado: `backend/src/routes/activityLog.ts` com `router.use(authRateLimiter)` antes de auth/role.
+- Ajuste de UX aplicado: `frontend/src/modules/admin/activity/components/ActivityFilters.tsx` com chip "Todos" como opção explícita e estado padrão visual ao abrir.
+- Validação técnica dos ajustes:
+  - Backend `npx tsc --noEmit` → exit code 0.
+  - Frontend `npx tsc --noEmit` → exit code 0.
 ```
 
 ---

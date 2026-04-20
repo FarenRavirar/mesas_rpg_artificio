@@ -155,16 +155,23 @@ jobs:
             fi
 
             BETA_TABLES_URL="https://mesasbeta.artificiorpg.com/api/v1/tables?limit=1"
+            BETA_SYSTEMS_TREE_URL="https://mesasbeta.artificiorpg.com/api/v1/systems?view=tree"
             BETA_OAUTH_URL="https://mesasbeta.artificiorpg.com/auth/google?frontend_redirect=https%3A%2F%2Fmesasbeta.artificiorpg.com"
 
             check_beta_critical_routes() {
-              local tables_code oauth_code
+              local tables_code systems_tree_code oauth_code
 
               tables_code=$(curl -sS -o /tmp/beta_tables_check.json -w "%{http_code}" "$BETA_TABLES_URL" || true)
+              systems_tree_code=$(curl -sS -o /tmp/beta_systems_tree_check.json -w "%{http_code}" "$BETA_SYSTEMS_TREE_URL" || true)
               oauth_code=$(curl -sS -D /tmp/beta_oauth_check.headers -o /dev/null -w "%{http_code}" "$BETA_OAUTH_URL" || true)
 
               if [ "$tables_code" != "200" ]; then
                 echo "ERRO: /api/v1/tables retornou HTTP $tables_code no beta (E150)"
+                return 1
+              fi
+
+              if [ "$systems_tree_code" != "200" ]; then
+                echo "ERRO: /api/v1/systems?view=tree retornou HTTP $systems_tree_code no beta (E150)"
                 return 1
               fi
 

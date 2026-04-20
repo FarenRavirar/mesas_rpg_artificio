@@ -23,12 +23,20 @@ ONLINE_SAFE_MIGRATIONS=(
   "migration_101_add_banner_crop_data.sql"
   "migration_102_add_name_pt.sql"
   "migration_103_scenario_suggestions.sql"
+  "migration_104_unify_node_type_check.sql"
   "migration_105_communication_platforms.sql"
+  "migration_105_system_suggestions_align.sql"
+  "migration_106_notifications_action_metadata.sql"
   "migration_106_vtt_logo_filenames.sql"
   "migration_107_gm_public_profile_v2.sql"
+  "migration_107_scenarios_aliases_fields.sql"
   "migration_108_activity_log.sql"
   "migration_108_gm_profile_metrics.sql"
+  "migration_108_systems_logo_website.sql"
   "migration_109_links_og_metadata_cache.sql"
+  "migration_111_gm_preferred_vtt_platforms.sql"
+  "migration_112_gm_contact_info.sql"
+  "migration_113_benchmark_snapshots.sql"
 )
 
 # Migrations classificadas como risco/execucao manual.
@@ -38,11 +46,49 @@ MANUAL_RISK_MIGRATIONS=(
   "migration_104_drop_tables_frequency_columns.sql"
 )
 
+# Falha-fechada para evitar migrations novas sem classificacao.
+# Mantemos corte em >=104 para nao interferir no legado inicial do projeto.
+ENFORCE_CLASSIFICATION_FROM="${ENFORCE_CLASSIFICATION_FROM:-104}"
+
 is_true() {
   case "${1,,}" in
     1|true|yes|y) return 0 ;;
     *) return 1 ;;
   esac
+}
+
+validate_migration_classification() {
+  local unclassified_migrations=()
+  local migration_path migration_name migration_number
+  declare -A classified_migrations=()
+
+  for migration in "${ONLINE_SAFE_MIGRATIONS[@]}" "${MANUAL_RISK_MIGRATIONS[@]}"; do
+    classified_migrations["$migration"]=1
+  done
+
+  while IFS= read -r migration_path; do
+    migration_name="$(basename "$migration_path")"
+
+    if [[ ! "$migration_name" =~ ^migration_([0-9]+)_.*\.sql$ ]]; then
+      continue
+    fi
+
+    migration_number="${BASH_REMATCH[1]}"
+    if [ "$migration_number" -lt "$ENFORCE_CLASSIFICATION_FROM" ]; then
+      continue
+    fi
+
+    if [ -z "${classified_migrations[$migration_name]+x}" ]; then
+      unclassified_migrations+=("$migration_name")
+    fi
+  done < <(find "$MIGRATIONS_DIR" -maxdepth 1 -type f -name 'migration_*.sql' | sort)
+
+  if [ "${#unclassified_migrations[@]}" -gt 0 ]; then
+    echo "ERRO: Existem migrations sem classificacao (online-safe/manual-risk)."
+    echo "Inclua cada migration em ONLINE_SAFE_MIGRATIONS ou MANUAL_RISK_MIGRATIONS."
+    printf ' - %s\n' "${unclassified_migrations[@]}"
+    exit 1
+  fi
 }
 
 sql_escape_literal() {
@@ -59,6 +105,8 @@ if [ ! -d "$MIGRATIONS_DIR" ]; then
   echo "ERRO: Diretorio de migrations nao encontrado: $MIGRATIONS_DIR"
   exit 1
 fi
+
+validate_migration_classification
 
 if [[ "$COMPOSE_FILE" == *"prod"* ]]; then
   IS_PROD=true
@@ -190,10 +238,131 @@ BEGIN
 
   IF NOT EXISTS (
     SELECT 1
+    FROM information_schema.columns
+    WHERE table_name = 'system_suggestions'
+      AND column_name = 'rejection_reason'
+  ) THEN
+    RAISE EXCEPTION 'Schema invalido: coluna system_suggestions.rejection_reason ausente';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
     FROM information_schema.tables
     WHERE table_name = 'scenario_suggestions'
   ) THEN
     RAISE EXCEPTION 'Schema invalido: tabela scenario_suggestions ausente';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_name = 'scenario_suggestions'
+      AND column_name = 'subgenres'
+  ) THEN
+    RAISE EXCEPTION 'Schema invalido: coluna scenario_suggestions.subgenres ausente';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM information_schema.tables
+    WHERE table_name = 'scenarios'
+  ) THEN
+    RAISE EXCEPTION 'Schema invalido: tabela scenarios ausente';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_name = 'scenarios'
+      AND column_name = 'description'
+  ) THEN
+    RAISE EXCEPTION 'Schema invalido: coluna scenarios.description ausente';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM information_schema.tables
+    WHERE table_name = 'scenario_aliases'
+  ) THEN
+    RAISE EXCEPTION 'Schema invalido: tabela scenario_aliases ausente';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM information_schema.tables
+    WHERE table_name = 'systems'
+  ) THEN
+    RAISE EXCEPTION 'Schema invalido: tabela systems ausente';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_name = 'systems'
+      AND column_name = 'logo_filename'
+  ) THEN
+    RAISE EXCEPTION 'Schema invalido: coluna systems.logo_filename ausente';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_name = 'systems'
+      AND column_name = 'website_url'
+  ) THEN
+    RAISE EXCEPTION 'Schema invalido: coluna systems.website_url ausente';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_name = 'notifications'
+      AND column_name = 'action_url'
+  ) THEN
+    RAISE EXCEPTION 'Schema invalido: coluna notifications.action_url ausente';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_name = 'notifications'
+      AND column_name = 'metadata'
+  ) THEN
+    RAISE EXCEPTION 'Schema invalido: coluna notifications.metadata ausente';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM information_schema.tables
+    WHERE table_name = 'gm_profiles'
+  ) THEN
+    RAISE EXCEPTION 'Schema invalido: tabela gm_profiles ausente';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_name = 'gm_profiles'
+      AND column_name = 'preferred_vtt_platforms'
+  ) THEN
+    RAISE EXCEPTION 'Schema invalido: coluna gm_profiles.preferred_vtt_platforms ausente';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_name = 'gm_profiles'
+      AND column_name = 'contact_methods'
+  ) THEN
+    RAISE EXCEPTION 'Schema invalido: coluna gm_profiles.contact_methods ausente';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM information_schema.tables
+    WHERE table_name = 'benchmark_snapshots'
+  ) THEN
+    RAISE EXCEPTION 'Schema invalido: tabela benchmark_snapshots ausente';
   END IF;
 END $$;
 SQL
