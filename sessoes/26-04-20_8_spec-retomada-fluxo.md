@@ -68,10 +68,10 @@
 - [x] Criado o `docs/sdd/README.md` (regras e chamadas CLI SDD).
 - [x] Criado o `docs/sdd/MAPEAMENTO_SDD.md` (ponte com documentos canônicas).
 - [x] Criado o `docs/sdd/BRANCH_POLICY.md` (regras de workflow em PRs).
-- [/] Aguardando "aprovado" para finalizar Fase C com o commit sugerido.
+- [x] Fase C finalizada e concluída com commit persistido: `chore(sdd): personaliza constituição e docs SDD para brownfield`.
 
 ## Status Final da Sessão
-Todos os artefatos base da metodologia SDD foram registrados neste repositório Brownfield conforme os limites da governança AGENTS.md.
+Todos os artefatos base da metodologia SDD foram registrados neste repositório Brownfield conforme os limites da governança AGENTS.md. Sessão encerrada na etapa de Setup. FASE D pronta em sessões posteriores.
 
 ## Arquivos que serão modificados
 - `sessoes/26-04-20_8_spec-retomada-fluxo.md`
