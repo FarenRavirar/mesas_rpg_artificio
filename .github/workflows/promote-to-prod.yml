@@ -41,8 +41,14 @@ jobs:
         run: npx tsc --noEmit
         working-directory: frontend
 
+  enforce-dir:
+    uses: ./.github/workflows/_enforce-migration-dir.yml
+
+  lint:
+    uses: ./.github/workflows/_lint-shell.yml
+
   governance_gate:
-    needs: typecheck
+    needs: [typecheck, enforce-dir, lint]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

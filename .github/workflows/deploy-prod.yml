@@ -8,11 +8,19 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  enforce-dir:
+    uses: ./.github/workflows/_enforce-migration-dir.yml
+
+  lint:
+    uses: ./.github/workflows/_lint-shell.yml
+
   deploy-production:
+    needs: [enforce-dir, lint]
     runs-on: ubuntu-latest
     environment:
       name: production
       url: https://mesas.artificiorpg.com
+
 
     steps:
       - name: Checkout code

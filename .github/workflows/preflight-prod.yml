@@ -1,0 +1,88 @@
+name: Preflight Prod Gate
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'database/**'
+      - 'scripts/deploy/**'
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH Directory
+        run: mkdir -p ~/.ssh && chmod 700 ~/.ssh
+
+      - name: Setup SSH Config
+        run: |
+          cat <<EOF > ~/.ssh/config
+          Host faren
+            HostName ${{ secrets.SERVER_HOST }}
+            User ${{ secrets.SERVER_USER }}
+            IdentityFile ~/.ssh/id_rsa
+            StrictHostKeyChecking no
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Configure SSH Key
+        run: |
+          echo "${{ secrets.SSH_PRIVATE_KEY_PROD }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+      - name: Copy config to C:\\projetos\\config mapping
+        # Since preflight_prod.sh assumes C:\projetos\config when run by the agent locally,
+        # we adjust the shell script dynamically here in the runner to use ~/.ssh/config
+        run: sed -i 's|C:\\\\projetos\\\\config|~/.ssh/config|g' scripts/deploy/preflight_prod.sh || true
+
+      - name: Run Preflight Check
+        id: run_preflight
+        env:
+          DB_CONTAINER_PROD: mesas-db
+          DB_CONTAINER_BETA: mesas-beta-db
+          DB_USER: admin
+          DB_NAME: mesas_rpg
+        run: |
+          bash scripts/deploy/preflight_prod.sh
+
+      - name: Read Report
+        id: read_report
+        if: always()
+        run: |
+          if [ -f /tmp/preflight_report.md ]; then
+            {
+              echo 'REPORT<<EOF'
+              cat /tmp/preflight_report.md
+              echo EOF
+            } >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo 'REPORT<<EOF'
+              echo "Script preflight_prod.sh falhou antes de gerar relatorio ou relatorio nao foi encontrado."
+              echo "# :stop_sign: BLOCKED"
+              echo EOF
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Find Comment
+        if: always()
+        uses: peter-evans/find-comment@v3
+        id: fc
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: Preflight Report
+
+      - name: Create or update comment
+        if: always()
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.fc.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ${{ steps.read_report.outputs.REPORT }}
+          edit-mode: replace

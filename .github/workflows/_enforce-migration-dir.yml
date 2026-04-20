@@ -1,0 +1,39 @@
+name: Enforce Migration Dir
+
+on:
+  workflow_call:
+
+jobs:
+  enforce-dir:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify Migration Directory Canonicity
+        run: |
+          set -euo pipefail
+          
+          if [ ! -f .github/migration-dir-allowlist ]; then
+            echo "::error::Arquivo .github/migration-dir-allowlist nao encontrado"
+            exit 1
+          fi
+
+          ALLOWLIST=$(grep -v '^#' .github/migration-dir-allowlist | grep -v '^$' || true)
+          FIND_EXCLUDES=""
+          
+          while IFS= read -r path; do
+            if [ -n "$path" ]; then
+              FIND_EXCLUDES="$FIND_EXCLUDES -not -path \"${path}*\""
+            fi
+          done <<< "$ALLOWLIST"
+
+          VIOLATIONS=$(eval find . -name \"migration_*.sql\" $FIND_EXCLUDES -not -path \"./.git/*\" -not -path \"./node_modules/*\" 2>/dev/null || true)
+
+          if [ -n "$VIOLATIONS" ]; then
+            echo "::error::Arquivos migration_*.sql encontrados fora do diretorio canonico restrito:"
+            echo "$VIOLATIONS"
+            exit 1
+          fi
+
+          echo "Todos os arquivos migration_*.sql estao em paths permitidos."
