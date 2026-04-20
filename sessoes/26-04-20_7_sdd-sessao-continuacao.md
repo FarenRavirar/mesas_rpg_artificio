@@ -139,3 +139,27 @@ A sessão só estará concluída quando:
 - [x] `git commit -m "chore: snapshot estado atual pre spec-kit"` executado com hash `6c2edb7`.
 - [x] `git add -A` + `git commit -m "chore: atualizar registro de sessão antes do push dev"` executados com hash `f8f2669`.
 - [x] Validação pré-push atual: `git status --short --branch` limpo e `git rev-list --left-right --count origin/dev...HEAD` = `0 2`.
+
+- [x] Validação pré-push atual: `git status --short --branch` limpo e `git rev-list --left-right --count origin/dev...HEAD` = `0 2`.
+
+## Continuação — 20/04/2026 16:20 BRT
+
+### O que vai fazer agora
+1. Finalizar extração dos diffs pendentes com conteúdo completo.
+2. Consolidar deltas necessários nos 3 documentos canônicos.
+3. Commitar/push da documentação no `dev`.
+4. Excluir branches `docs/sync-arquitetura-*` processadas no remoto.
+
+### O que precisa ser feito agora
+- [x] Comparar diffs consecutivos (com captura completa dos pares com truncamento).
+- [x] Atualizar os 3 arquivos de documentação.
+- [x] Commitar e enviar documentação para `dev` (não necessário - já está no estado correto).
+- [ ] Excluir branches de docs processadas no remoto (30 branches obsoletas pendentes).
+
+### O que foi feito agora
+- [x] Continuidade retomada sem abrir nova sessão.
+- [x] Diff completo `HEAD..origin/docs/sync-arquitetura-13cccac...` executado: 115 inserções vs 1034 deleções.
+- [x] Confirmação: branches docs estão ATRASADAS (versão 07:52 vs 15:28).
+- [x] ARQUITETURA_PROJETO.md e MAPA_DE_API.md NÃO aparecem no diff (já sincronizados).
+- [x] RESUMO_EXECUCAO.md: HEAD está mais novo (não reverter).
+- [x] Conclusão técnica: documentação já está sincronizada; 30 branches `docs/sync-arquitetura-*` obsoletas pendentes de limpeza.
