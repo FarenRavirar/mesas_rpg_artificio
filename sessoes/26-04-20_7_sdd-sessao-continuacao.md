@@ -137,4 +137,5 @@ A sessão só estará concluída quando:
 - [x] `git push -u origin pre-skd` executado com sucesso (backup remoto criado).
 - [x] `git add -A` executado para staging completo do estado atual.
 - [x] `git commit -m "chore: snapshot estado atual pre spec-kit"` executado com hash `6c2edb7`.
-- [x] `git status --short --branch` pós-commit: alteração local remanescente apenas em `sessoes/26-04-20_7_sdd-sessao-continuacao.md` (registro contínuo).
+- [x] `git add -A` + `git commit -m "chore: atualizar registro de sessão antes do push dev"` executados com hash `f8f2669`.
+- [x] Validação pré-push atual: `git status --short --branch` limpo e `git rev-list --left-right --count origin/dev...HEAD` = `0 2`.
