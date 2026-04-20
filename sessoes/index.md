@@ -123,14 +123,14 @@
 | 4 | `encerradas\26-04-20_4_atividade-fased-frontend.md` |
 | 5 | `encerradas\26-04-20_5_atividade-fasee-documentacao.md` |
 | 6 | `encerradas\26-04-20_6_atividade-predeploy-dev.md` |
-| 7 | `26-04-20_7_sdd-sessao-continuacao.md` |
-| 8 | `26-04-20_8_spec-retomada-fluxo.md` |
+| 7 | `encerradas\26-04-20_7_sdd-sessao-continuacao.md` |
+| 8 | `encerradas\26-04-20_8_spec-retomada-fluxo.md` |
 
 ---
 
 ## Sessão Mais Recente
 
-`26-04-20_8_spec-retomada-fluxo.md`
+`Nenhuma (Aguardando próxima)`
 
 ---
 
