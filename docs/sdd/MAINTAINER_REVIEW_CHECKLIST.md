@@ -33,3 +33,32 @@ Se o agente escreve qualquer destas frases, parar e investigar:
 
 - [ ] Registrar em `ERRORS_SOLUTIONS.md` as falhas processuais observadas
 - [ ] Atualizar constitution.md se novos padrões emergiram
+
+## Gatilhos de alerta específicos (mapeados do registry F01-F14)
+
+Quando o agente disser ou fizer estas coisas, PARAR e investigar:
+
+### Alertas verbais
+- "tratamos depois" → F05
+- "mock performético" → F03
+- "agente anterior" ou "último agente" → F07
+- "inferência" aplicada a produto → F04
+- "[cortado para brevidade]" → F06
+- "ajuste cosmético" em arquivo fora do escopo → F12, F13
+- "forçando" / "interceptou" sem evidência → ver F01 (pode ser real, 
+  mas exigir prova)
+
+### Alertas de ação
+- commit com mais de 2 arquivos em trabalho SDD sem justificativa → F01, F12
+- PARTIAL em qualquer task → F02
+- DONE em Fase 3 sem evidência de bats/script rodando → F03
+- Clarification adicionada sem pergunta prévia → F04
+- Teste com assert_failure sem assertion de conteúdo → F05
+- git checkout/reset em arquivo versionado sem reporte → F13
+- Declaração BLOCKED por binário antes de verificar remoto → F10
+
+### Alertas de output
+- git status mostrando modificações não mencionadas na narrativa → F08
+- Encoding Unicode text with CRLF/LF line terminators → F11
+- Divergência entre schema SQL e consumers em shell/TS → F09
+- Lista de arquivos com números duplicados (migrations, specs, etc.) → F14
