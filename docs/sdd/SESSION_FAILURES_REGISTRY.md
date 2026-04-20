@@ -122,6 +122,21 @@ erro real a uma regra da constituição que o previne.
 - **Regra preventiva:** para features futuras de migration/schema, 
   incluir check de duplicatas numéricas no workflow de validação.
 
+### F15 — Arquivo de sessão não atualizado em tempo real
+- **Sintoma:** sessão SDD-001 com dezenas de commits, auditorias e 
+  correções processuais, sem nenhuma atualização no arquivo 
+  correspondente em sessoes/ até que mantenedor interveio.
+- **Causa raiz:** agente focou em execução imediata e esqueceu o gate 
+  de continuidade documental exigido por AGENTS.md §6-8.
+- **Impacto:** se PC do mantenedor sofresse crash/reboot, narrativa 
+  processual perdida. Sobreviveriam apenas commits (que contam O QUE, 
+  não O PORQUÊ nem O COMO CHEGAMOS AQUI).
+- **Regra preventiva:** AGENTS.md §7 "Atualizar a sessão ANTES de 
+  qualquer alteração técnica" combinado com §8 "Atualizar a sessão 
+  após cada etapa executada (progresso contínuo)".
+- **Mitigação adicional:** gatilho no MAINTAINER_REVIEW_CHECKLIST.md 
+  adicionado em atualização paralela.
+
 ---
 
 ## Como usar este registry
