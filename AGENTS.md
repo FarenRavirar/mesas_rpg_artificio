@@ -22,6 +22,25 @@ Execute nesta ordem, sem pular etapas:
 8. Atualizar a sessão após cada etapa executada (progresso contínuo)
 9. Só iniciar trabalho após concluir os passos acima
 
+## Leitura obrigatória de governance SDD
+
+Antes de qualquer alteração técnica no repositório, ler os arquivos abaixo 
+conforme gatilho aplicável:
+
+- `.specify/memory/constitution.md` — regras invioláveis SDD e infra. 
+  Cabeçalhos sempre; arquivo completo se trabalho envolver SDD, testes, 
+  deploy, migrations, ou mudança > 10 linhas.
+- `docs/sdd/SESSION_FAILURES_REGISTRY.md` — 14 falhas processuais 
+  calibradas. Cabeçalhos sempre; consulta por código (F01-F14) quando 
+  mantenedor referenciar.
+- `docs/sdd/MAINTAINER_REVIEW_CHECKLIST.md` — gatilhos de bloqueio 
+  imediato. Leitura completa obrigatória em qualquer trabalho SDD.
+- `docs/sdd/analyze-governance-gate.md` — gate de /speckit.analyze. 
+  Leitura completa obrigatória ANTES de rodar /speckit.analyze.
+
+Se o trabalho for trivial (< 10 linhas, sem teste, sem deploy), leitura 
+de cabeçalhos é suficiente. Qualquer dúvida, leitura completa.
+
 ---
 
 ## GESTÃO DE CONTEXTO — REGRA ÚNICA
@@ -57,6 +76,10 @@ grep -n "padrão" arquivo.md
 
 | Situação | Arquivo | Como acessar |
 |---|---|---|
+| Regras Invioláveis do Projeto | `.specify/memory/constitution.md` | Cabeçalhos sempre; Completo se: SDD, testes, deploy ou mudança > 10 linhas |
+| Memória de Falhas Operacionais | `docs/sdd/SESSION_FAILURES_REGISTRY.md` | Cabeçalhos sempre; Completo se: SDD, testes, deploy ou mudança > 10 linhas |
+| Gatilhos de bloqueio / Review | `docs/sdd/MAINTAINER_REVIEW_CHECKLIST.md` | Cabeçalhos sempre; Completo se: SDD, testes, deploy ou mudança > 10 linhas |
+| Auditoria / /speckit.analyze | `docs/sdd/analyze-governance-gate.md` | Arquivo completo antes de qualquer run de auditoria |
 | Banco, modelo de dados, rotas de API | `ARQUITETURA_PROJETO.md` §4 e §12 | grep pelo §, só a seção |
 | Upload, imagens, Cloudinary | `ARQUITETURA_PROJETO.md` §16 | grep pelo §, só a seção |
 | Roles, permissões, autenticação | `ARQUITETURA_PROJETO.md` §5 e §6 | grep pelo §, só a seção |
