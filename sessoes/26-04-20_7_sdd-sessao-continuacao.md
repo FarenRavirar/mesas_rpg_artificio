@@ -123,8 +123,8 @@ A sessão só estará concluída quando:
 ### O que precisa ser feito agora
 - [x] Confirmar estado atual de branch/working tree antes de publicar.
 - [x] Criar e publicar `pre-skd` com base em `origin/dev`.
-- [/] Commitar estado atual local.
-- [ ] Enviar commit atual para `origin/dev`.
+- [x] Commitar estado atual local.
+- [/] Enviar commit atual para `origin/dev`.
 
 ### O que foi feito agora
 - [x] Usuário confirmou que `files.zip` foi removido.
@@ -136,3 +136,5 @@ A sessão só estará concluída quando:
 - [x] `git branch -f pre-skd origin/dev` executado: branch local `pre-skd` criada/apontada para `origin/dev`.
 - [x] `git push -u origin pre-skd` executado com sucesso (backup remoto criado).
 - [x] `git add -A` executado para staging completo do estado atual.
+- [x] `git commit -m "chore: snapshot estado atual pre spec-kit"` executado com hash `6c2edb7`.
+- [x] `git status --short --branch` pós-commit: alteração local remanescente apenas em `sessoes/26-04-20_7_sdd-sessao-continuacao.md` (registro contínuo).
