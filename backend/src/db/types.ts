@@ -1,4 +1,4 @@
-import { Generated, Insertable, Selectable, Updateable } from 'kysely';
+import { ColumnType, Generated, Insertable, Selectable, Updateable } from 'kysely';
 
 export type UserRole = 'visitor' | 'player' | 'gm' | 'admin';
 export type SystemNodeType = 'system' | 'edition' | 'variant' | 'subsystem';
@@ -411,6 +411,20 @@ export type Notification = Selectable<NotificationsTable>;
 export type NewNotification = Insertable<NotificationsTable>;
 export type NotificationUpdate = Updateable<NotificationsTable>;
 
+export interface ActivityLogTable {
+  id: Generated<string>;
+  actor_id: string | null;
+  actor_role: string | null;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  entity_label: string | null;
+  target_user_id: string | null;
+  summary: string;
+  metadata: ColumnType<Record<string, unknown>, string, string>;
+  created_at: Generated<Date>;
+}
+
 export interface UserLinksTable {
   id: Generated<string>;
   user_id: string;
@@ -509,6 +523,7 @@ export interface Database {
   system_suggestions: SystemSuggestionsTable;
   scenario_suggestions: ScenarioSuggestionsTable;
   notifications: NotificationsTable;
+  activity_log: ActivityLogTable;
   tags: TagsTable;
   platforms: PlatformsTable;
   scenarios: ScenariosTable;

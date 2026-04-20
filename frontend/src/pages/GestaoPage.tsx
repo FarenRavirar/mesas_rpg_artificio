@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { SystemsAdminView } from './SystemsAdminView';
 import { ScenariosAdminView } from './ScenariosAdminView';
 import { PlatformsPage } from '../modules/admin/platforms/PlatformsPage';
+import { ActivityPanel } from '../modules/admin/activity/components/ActivityPanel';
 import { ScenarioEditModal } from '../components/ScenarioEditModal';
 import { Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -30,7 +31,7 @@ export const GestaoPage = () => {
   const [suggestions, setSuggestions] = useState<SystemSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
-  const [activeTab, setActiveTab] = useState<'systems' | 'crud'>('crud');
+  const [activeTab, setActiveTab] = useState<'systems' | 'crud' | 'activity'>('crud');
   const [crudSubTab, setCrudSubTab] = useState<'systems' | 'platforms' | 'scenarios' | 'tables'>('systems');
   const [scenarioEditModal, setScenarioEditModal] = useState<any>(null);
   const [allTables, setAllTables] = useState<any[]>([]);
@@ -283,6 +284,16 @@ export const GestaoPage = () => {
           >
             Sugestões de Sistemas
           </button>
+          <button
+            onClick={() => setActiveTab('activity')}
+            className={`px-6 py-3 font-semibold transition-all ${
+              activeTab === 'activity'
+                ? 'text-white border-b-2 border-blue-500'
+                : 'text-white/60 hover:text-white/80'
+            }`}
+          >
+            Atividades
+          </button>
         </div>
 
         {/* Conteúdo das abas */}
@@ -410,6 +421,10 @@ export const GestaoPage = () => {
               </div>
             )}
           </div>
+        )}
+
+        {activeTab === 'activity' && (
+          <ActivityPanel />
         )}
 
         {activeTab === 'systems' && (

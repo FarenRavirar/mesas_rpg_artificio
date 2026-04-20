@@ -209,7 +209,9 @@ Nunca registrar no lugar errado.
 
 ### Changelog
 
-Toda mudança visível ao usuário final exige entrada em `database/changelogs.json` antes do deploy.
+Toda mudança visível que impacte **mestres e/ou usuários finais** exige entrada em `database/changelogs.json` antes do deploy.
+
+Mudanças **exclusivas de área administrativa interna** (painel/fluxos apenas de admin) **não exigem** registro em changelog.
 
 **CUIDADO BLOQUEANTE:** Melhorias publicadas na mesma data DEVEM, OBRIGATORIAMENTE, ser unificadas em um único objeto (ex: `YYYY-MM-DD-atualizacoes-do-dia`). É proibido criar ou manter múltiplas entradas JSON dispersas sobre a mesma data de calendário. Aglomere todas as novidades em bullets sob a mesma propriedade "body".
 

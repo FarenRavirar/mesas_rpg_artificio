@@ -1,8 +1,45 @@
 import { Router, Request, Response } from 'express';
+import { Transaction } from 'kysely';
 import { authMiddleware, requireRole } from '../middleware/auth';
 import { db } from '../db';
+import { Database } from '../db/types';
+import { logActivity } from '../services/activityLogger';
 
 const router = Router();
+
+async function resolveActorName(userId: string, trx?: Transaction<Database>): Promise<string> {
+  const executor = trx ?? db;
+
+  try {
+    const profile = await executor
+      .selectFrom('profiles')
+      .select('display_name')
+      .where('user_id', '=', userId)
+      .executeTakeFirst();
+
+    if (profile?.display_name && profile.display_name.trim().length > 0) {
+      return profile.display_name.trim();
+    }
+
+    const adminUser = await executor
+      .selectFrom('users')
+      .select(['username', 'email'])
+      .where('id', '=', userId)
+      .executeTakeFirst();
+
+    if (adminUser?.username && adminUser.username.trim().length > 0) {
+      return adminUser.username.trim();
+    }
+
+    if (adminUser?.email) {
+      return adminUser.email.split('@')[0];
+    }
+  } catch (error) {
+    console.error('[scenarioSuggestionsAdmin][resolveActorName]', error);
+  }
+
+  return 'Admin';
+}
 
 router.use(authMiddleware, requireRole('admin'));
 
@@ -48,6 +85,8 @@ router.patch('/scenario-suggestions/:id/approve', async (req: Request, res: Resp
       if (!suggestion) {
         throw new Error('NOT_FOUND_OR_REVIEWED');
       }
+
+      const adminName = await resolveActorName(adminId, trx);
 
       // 2. Gerar slug e verificar colisão
       const slugify = (str: string) => str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -122,6 +161,22 @@ router.patch('/scenario-suggestions/:id/approve', async (req: Request, res: Resp
         })
         .execute();
 
+      await logActivity({
+        actorId: adminId,
+        actorRole: 'admin',
+        action: 'scenario_suggestion.approved',
+        entityType: 'scenario_suggestion',
+        entityId: id,
+        entityLabel: suggestion.name,
+        targetUserId: suggestion.user_id,
+        summary: `${adminName} aprovou "${suggestion.name}" e adicionou ao catálogo.`,
+        metadata: {
+          suggestion_id: id,
+          scenario_id: newScenario.id,
+          slug: newScenario.slug,
+        },
+      }, trx);
+
       return {
         suggestion_id: id,
         scenario_id: newScenario.id,
@@ -173,6 +228,8 @@ router.patch('/scenario-suggestions/:id/reject', async (req: Request, res: Respo
         throw new Error('NOT_FOUND_OR_REVIEWED');
       }
 
+      const adminName = await resolveActorName(adminId, trx);
+
       // 2. UPDATE status para rejected
       await trx
         .updateTable('scenario_suggestions')
@@ -201,6 +258,21 @@ router.patch('/scenario-suggestions/:id/reject', async (req: Request, res: Respo
           }),
         })
         .execute();
+
+      await logActivity({
+        actorId: adminId,
+        actorRole: 'admin',
+        action: 'scenario_suggestion.rejected',
+        entityType: 'scenario_suggestion',
+        entityId: id,
+        entityLabel: suggestion.name,
+        targetUserId: suggestion.user_id,
+        summary: `${adminName} rejeitou a sugestão "${suggestion.name}".`,
+        metadata: {
+          suggestion_id: id,
+          reason: reason.trim(),
+        },
+      }, trx);
     });
 
     return res.json({ success: true });

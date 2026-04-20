@@ -1,6 +1,6 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 19/04/2026 03:22 BRT
+**Última atualização:** 20/04/2026 07:52 BRT
 
 ---
 
@@ -41,60 +41,42 @@
 
 ## Próxima Ação
 
-**Sessão 26-04-19_1 — Validação Manual, Correção de Bugs e Ajustes (Etapa 1)**
+**Executar deploy em dev (beta) e validar fluxo funcional da atividade admin no ambiente de interface**
 
-1. Executar validação runtime dos fluxos críticos de sistemas/cenários no `/gestao` (Gate 4)
-2. Executar teste E2E manual do fluxo `PATCH /api/v1/admin/system-suggestions/:id/approve`
-3. Registrar bugs com severidade e corrigir CRÍTICO/ALTO na mesma rodada
-4. Revalidar `tsc`/`build` e atualizar sessão + resumo + índice com evidências
-
+1. Publicar alterações para `dev` (beta).
+2. Executar Gate C funcional em beta com eventos reais (`user.registered`, `table.*`, `system_suggestion.*`, `scenario_suggestion.*`).
+3. Rodar testes manuais T1–T13 da FASE D em `/gestao` (aba Atividades/filtros/paginação) após deploy.
 
 ---
-
 
 ## Última Sessão
 
-**Data:** 19/04/2026 03:12 BRT  
-**Tipo:** Auditoria de Arquitetura de Sistemas — fechamento técnico + correção de build + deploy beta  
-**Arquivo:** `sessoes/26-04-18_1_auditoria-sistemas-etapa-1.md` (extensão finalizada)  
+**Data:** 20/04/2026 07:52 BRT  
+**Tipo:** Execução — Atividade Admin (pré-deploy dev)  
+**Arquivo:** `sessoes/26-04-20_6_atividade-predeploy-dev.md`  
 **O que foi feito:**
 
-### 1. Backend — estabilidade e mitigação de risco ✅
-- Cache em memória com TTL + invalidação em mutações na árvore de sistemas (`GET /api/v1/systems?view=tree`)
-- Contadores agregados mantidos no payload (`children_count`, `tables_count`, `aliases_count`)
-- Paginação cursor em `GET /systems` validada no código (com regra explícita para `view=tree`)
+### 1. Governança atualizada ✅
+- `AGENTS.md` atualizado: changelog agora obrigatório apenas para mudanças que impactam mestres/usuários finais
+- Mudanças exclusivas de área administrativa interna foram formalmente isentas de changelog
 
-### 2. Frontend — correção de contratos e build ✅
-- Fluxo de deleção com alerta prévio contextual no inspector
-- `deleteSystem` com `skipConfirm` para confirmação centralizada na UI
-- Componente `CommandPalette` restaurado no caminho esperado por `SystemsAdminView`
-- Contratos alinhados:
-  - `CatalogToolbar` com `totalCount?: number`
-  - `EntityInspector` com `onDirtyChange?: (dirty: boolean) => void`
+### 2. Revalidação técnica pré-deploy concluída ✅
+- Backend: `npx tsc --noEmit` (exit code 0)
+- Frontend: `npm run build` (exit code 0)
 
-### 3. Governança de deploy — bloqueadores técnicos fechados ✅
-- Changelog consolidado em entrada única do dia: `database/changelogs.json`
-- Saneamento da árvore concluído: removidas alterações fora do escopo da Etapa 1
-- Deploy beta automático concluído com sucesso (run `24622532572`)
+### 3. Estado funcional do Gate C em beta aferido ⚠️
+- Consulta SQL read-only executada em `activity_log` para `user.registered`, `table.*`, `system_suggestion.*`, `scenario_suggestion.*`
+- Resultado atual: `(0 rows)`
+- Conclusão: sem evidência funcional de tráfego real até o momento
 
-### 4. Validação técnica pós-correção ✅
-- `backend`: `npx tsc --noEmit` sem erros
-- `frontend`: `npx tsc --noEmit` sem erros
-- `frontend`: `npm run build` sem erros
+### 4. Diretriz operacional registrada ✅
+- Testes T1–T13 e validação funcional ponta a ponta definidos para execução após deploy em dev (beta), conforme comando explícito do usuário
+- `sessoes/adm_atv.md` atualizado com a diretriz e evidências técnicas pré-deploy
 
-**Status:** Implementação e deploy concluídos em `dev`.  
-**Pendentes:** validação runtime manual (Gate 4), teste E2E manual do fluxo `approve`, correção de bugs/regressões identificados manualmente.
+**Status:** Pré-requisitos técnicos/documentais executados; validação funcional em ambiente dev permanece pendente de geração de eventos reais após deploy.
 
----
 
-## Próxima Ação
 
-**Sessão 26-04-19_1 — Validação Manual, Correção de Bugs e Ajustes (Etapa 1)**
-
-1. Executar validação runtime dos fluxos críticos de sistemas/cenários no `/gestao` (Gate 4)
-2. Executar teste E2E manual do fluxo `PATCH /api/v1/admin/system-suggestions/:id/approve`
-3. Registrar bugs com severidade e corrigir CRÍTICO/ALTO na mesma rodada
-4. Revalidar `tsc`/`build` e atualizar sessão + resumo + índice com evidências
 
 ---
 

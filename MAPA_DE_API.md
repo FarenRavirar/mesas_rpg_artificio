@@ -174,6 +174,11 @@
 | **PUT** | `/admin/tables/:id` | ✅ Em Uso | GestaoPage.tsx, PainelMestrePage.tsx |
 | **DELETE** | `/admin/tables/:id` | ✅ Em Uso | GestaoPage.tsx |
 
+### ACTIVITYLOG (`routes/activityLog.ts`)
+| Metodo | Endpoint | Status | Chamado por (Frontend) |
+|---|---|---|---|
+| **GET** | `/admin/activity` | ✅ Em Uso | ActivityPanel.tsx via useActivityLog.ts |
+
 ### LINKS (`routes/links.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
 |---|---|---|---|

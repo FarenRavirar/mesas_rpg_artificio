@@ -3,6 +3,7 @@ import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
 import { db } from '../db';
 import { authMiddleware } from '../middleware/auth';
+import { logActivity } from '../services/activityLogger';
 
 const router = Router();
 
@@ -168,15 +169,31 @@ router.get('/google/callback', async (req: Request, res: Response) => {
 
         user = newUser;
 
+        const displayName = userInfo.name || userInfo.given_name || 'Jogador Aventureiro';
+
         await trx
           .insertInto('profiles')
           .values({
             user_id: user.id,
-            display_name: userInfo.name || userInfo.given_name || 'Jogador Aventureiro',
+            display_name: displayName,
             bio: null,
             avatar_url: userInfo.picture || null,
           })
           .execute();
+
+        await logActivity({
+          actorId: null,
+          action: 'user.registered',
+          entityType: 'user',
+          entityId: user.id,
+          entityLabel: displayName,
+          targetUserId: user.id,
+          summary: `${displayName} registrou-se na comunidade.`,
+          metadata: {
+            provider: 'google',
+            email: newUser.email,
+          },
+        }, trx);
       });
     } else if (tokens.refresh_token) {
       user = await db

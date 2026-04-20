@@ -1,8 +1,45 @@
 import { Router, Request, Response } from 'express';
+import { Transaction } from 'kysely';
 import { authMiddleware, requireRole } from '../middleware/auth';
 import { db } from '../db';
+import { Database } from '../db/types';
+import { logActivity } from '../services/activityLogger';
 
 const router = Router();
+
+async function resolveActorName(userId: string, trx?: Transaction<Database>): Promise<string> {
+  const executor = trx ?? db;
+
+  try {
+    const profile = await executor
+      .selectFrom('profiles')
+      .select('display_name')
+      .where('user_id', '=', userId)
+      .executeTakeFirst();
+
+    if (profile?.display_name && profile.display_name.trim().length > 0) {
+      return profile.display_name.trim();
+    }
+
+    const adminUser = await executor
+      .selectFrom('users')
+      .select(['username', 'email'])
+      .where('id', '=', userId)
+      .executeTakeFirst();
+
+    if (adminUser?.username && adminUser.username.trim().length > 0) {
+      return adminUser.username.trim();
+    }
+
+    if (adminUser?.email) {
+      return adminUser.email.split('@')[0];
+    }
+  } catch (error) {
+    console.error('[systemSuggestionsAdmin][resolveActorName]', error);
+  }
+
+  return 'Admin';
+}
 
 router.use(authMiddleware, requireRole('admin'));
 
@@ -48,6 +85,8 @@ router.patch('/system-suggestions/:id/approve', async (req: Request, res: Respon
       if (!suggestion) {
         throw new Error('NOT_FOUND_OR_REVIEWED');
       }
+
+      const adminName = await resolveActorName(adminId, trx);
 
       // 2. Verificar se parent_id existe (se fornecido)
       if (suggestion.parent_id) {
@@ -152,6 +191,22 @@ router.patch('/system-suggestions/:id/approve', async (req: Request, res: Respon
         })
         .execute();
 
+      await logActivity({
+        actorId: adminId,
+        actorRole: 'admin',
+        action: 'system_suggestion.approved',
+        entityType: 'system_suggestion',
+        entityId: id,
+        entityLabel: suggestion.name,
+        targetUserId: suggestion.user_id,
+        summary: `${adminName} aprovou "${suggestion.name}" e adicionou ao catálogo.`,
+        metadata: {
+          suggestion_id: id,
+          system_id: newSystem.id,
+          path_slug: newSystem.path_slug,
+        },
+      }, trx);
+
       return {
         suggestion_id: id,
         system_id: newSystem.id,
@@ -206,6 +261,8 @@ router.patch('/system-suggestions/:id/reject', async (req: Request, res: Respons
         throw new Error('NOT_FOUND_OR_REVIEWED');
       }
 
+      const adminName = await resolveActorName(adminId, trx);
+
       // 2. UPDATE status para rejected
       await trx
         .updateTable('system_suggestions')
@@ -234,6 +291,21 @@ router.patch('/system-suggestions/:id/reject', async (req: Request, res: Respons
           }),
         })
         .execute();
+
+      await logActivity({
+        actorId: adminId,
+        actorRole: 'admin',
+        action: 'system_suggestion.rejected',
+        entityType: 'system_suggestion',
+        entityId: id,
+        entityLabel: suggestion.name,
+        targetUserId: suggestion.user_id,
+        summary: `${adminName} rejeitou a sugestão "${suggestion.name}".`,
+        metadata: {
+          suggestion_id: id,
+          reason: reason.trim(),
+        },
+      }, trx);
     });
 
     return res.json({ success: true });

@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const db_1 = require("../db");
+const kysely_1 = require("kysely");
 const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
 const normalizeText = (value) => value.trim().toLowerCase();
@@ -43,14 +44,57 @@ const filterTreeBySearch = (nodes, search) => {
         return {
             ...node,
             children: filteredChildren,
-            has_children: filteredChildren.length > 0,
+            has_children: (node.children_count ?? 0) > 0,
         };
     };
     return nodes
         .map(visit)
         .filter((node) => Boolean(node));
 };
+const SYSTEMS_TREE_CACHE_TTL_MS = 60 * 1000;
+let systemsTreeCache = null;
+const invalidateSystemsTreeCache = () => {
+    systemsTreeCache = null;
+};
+const loadSystemsTreeFromDb = async () => {
+    const [systems, aliases] = await Promise.all([
+        db_1.db
+            .selectFrom('systems as s')
+            .leftJoin('systems as children', 'children.parent_id', 's.id')
+            .leftJoin('tables', 'tables.system_id', 's.id')
+            .leftJoin('system_aliases as al', 'al.system_id', 's.id')
+            .select([
+            's.id', 's.name', 's.name_pt', 's.slug',
+            's.parent_id', 's.node_type', 's.depth', 's.path_slug',
+            's.logo_filename', 's.website_url',
+            (0, kysely_1.sql) `COUNT(DISTINCT children.id)`.as('children_count'),
+            (0, kysely_1.sql) `COUNT(DISTINCT tables.id)`.as('tables_count'),
+            (0, kysely_1.sql) `COUNT(DISTINCT al.id)`.as('aliases_count'),
+        ])
+            .groupBy(['s.id'])
+            .orderBy('s.depth', 'asc')
+            .orderBy('s.name', 'asc')
+            .execute(),
+        db_1.db
+            .selectFrom('system_aliases')
+            .select(['system_id', 'alias'])
+            .execute(),
+    ]);
+    const aliasesBySystem = new Map();
+    for (const row of aliases) {
+        const current = aliasesBySystem.get(row.system_id) ?? [];
+        aliasesBySystem.set(row.system_id, [...current, row.alias]);
+    }
+    const normalizedNodes = systems.map((system) => ({
+        ...system,
+        aliases: aliasesBySystem.get(system.id) ?? [],
+        has_children: (system.children_count ?? 0) > 0,
+        children: [],
+    }));
+    return buildTree(normalizedNodes);
+};
 // GET /api/v1/systems — Catálogo público de sistemas (flat + tree + aliases)
+// Suporta paginação cursor-based: ?limit=50&cursor=abc123
 router.get('/', async (req, res) => {
     const view = typeof req.query.view === 'string' ? req.query.view.toLowerCase() : 'flat';
     const search = typeof req.query.search === 'string'
@@ -58,42 +102,88 @@ router.get('/', async (req, res) => {
         : typeof req.query.q === 'string'
             ? req.query.q
             : '';
+    // Paginação cursor-based
+    const limit = req.query.limit ? parseInt(req.query.limit, 10) : undefined;
+    const cursor = typeof req.query.cursor === 'string' ? req.query.cursor : undefined;
     try {
+        // REGRA: view=tree NUNCA pagina (precisa da árvore completa)
+        if (view === 'tree' && (limit || cursor)) {
+            console.warn('[GET /systems] view=tree ignora paginação (limit/cursor)');
+        }
+        const shouldPaginate = view !== 'tree' && limit !== undefined && limit > 0;
+        if (view === 'tree') {
+            const now = Date.now();
+            const normalizedSearch = search.trim();
+            if (!systemsTreeCache || systemsTreeCache.expiresAt <= now) {
+                const freshTree = await loadSystemsTreeFromDb();
+                systemsTreeCache = {
+                    data: freshTree,
+                    expiresAt: now + SYSTEMS_TREE_CACHE_TTL_MS,
+                };
+            }
+            const baseTree = systemsTreeCache.data;
+            const filteredTree = normalizedSearch.length > 0
+                ? filterTreeBySearch(baseTree, normalizedSearch)
+                : baseTree;
+            return res.json({
+                data: filteredTree,
+                pagination: {
+                    next_cursor: null,
+                    has_more: false,
+                },
+            });
+        }
+        // Query base de systems com contadores agregados
+        let systemsQuery = db_1.db
+            .selectFrom('systems as s')
+            .leftJoin('systems as children', 'children.parent_id', 's.id')
+            .leftJoin('tables', 'tables.system_id', 's.id')
+            .leftJoin('system_aliases as al', 'al.system_id', 's.id')
+            .select([
+            's.id', 's.name', 's.name_pt', 's.slug',
+            's.parent_id', 's.node_type', 's.depth', 's.path_slug',
+            's.logo_filename', 's.website_url',
+            (0, kysely_1.sql) `COUNT(DISTINCT children.id)`.as('children_count'),
+            (0, kysely_1.sql) `COUNT(DISTINCT tables.id)`.as('tables_count'),
+            (0, kysely_1.sql) `COUNT(DISTINCT al.id)`.as('aliases_count'),
+        ])
+            .groupBy(['s.id'])
+            .orderBy('s.depth', 'asc')
+            .orderBy('s.name', 'asc');
+        // Aplicar cursor (continuar de onde parou)
+        if (shouldPaginate && cursor) {
+            systemsQuery = systemsQuery.where('s.id', '>', cursor);
+        }
+        // Aplicar limit (+1 para detectar has_more)
+        if (shouldPaginate) {
+            systemsQuery = systemsQuery.limit(limit + 1);
+        }
         const [systems, aliases] = await Promise.all([
-            db_1.db
-                .selectFrom('systems')
-                .select(['id', 'name', 'name_pt', 'slug', 'parent_id', 'node_type', 'depth', 'path_slug'])
-                .orderBy('depth', 'asc')
-                .orderBy('name', 'asc')
-                .execute(),
+            systemsQuery.execute(),
             db_1.db
                 .selectFrom('system_aliases')
                 .select(['system_id', 'alias'])
                 .execute(),
         ]);
+        // Detectar se há mais páginas
+        let hasMore = false;
+        let nextCursor = null;
+        if (shouldPaginate && systems.length > limit) {
+            hasMore = true;
+            systems.pop(); // Remove o item extra
+            nextCursor = systems[systems.length - 1]?.id || null;
+        }
         const aliasesBySystem = new Map();
         for (const row of aliases) {
             const current = aliasesBySystem.get(row.system_id) ?? [];
             aliasesBySystem.set(row.system_id, [...current, row.alias]);
         }
-        const parentIds = new Set();
-        for (const system of systems) {
-            if (system.parent_id)
-                parentIds.add(system.parent_id);
-        }
         const normalizedNodes = systems.map((system) => ({
             ...system,
             aliases: aliasesBySystem.get(system.id) ?? [],
-            has_children: parentIds.has(system.id),
+            has_children: (system.children_count ?? 0) > 0,
             children: [],
         }));
-        if (view === 'tree') {
-            const fullTree = buildTree(normalizedNodes);
-            const filteredTree = search.trim().length > 0
-                ? filterTreeBySearch(fullTree, search)
-                : fullTree;
-            return res.json({ data: filteredTree });
-        }
         const normalizedSearch = normalizeText(search);
         const filteredFlat = normalizedSearch
             ? normalizedNodes.filter((node) => {
@@ -103,7 +193,14 @@ router.get('/', async (req, res) => {
                     || node.aliases.some((alias) => normalizeText(alias).includes(normalizedSearch));
             })
             : normalizedNodes;
-        return res.json({ data: filteredFlat });
+        // Envelope de resposta com paginação
+        return res.json({
+            data: filteredFlat,
+            pagination: {
+                next_cursor: shouldPaginate ? nextCursor : null,
+                has_more: shouldPaginate ? hasMore : false,
+            },
+        });
     }
     catch (error) {
         console.error('[GET /systems]', error);
@@ -124,17 +221,26 @@ const slugify = (value) => {
         .replace(/\s+/g, '-')
         .replace(/-+/g, '-');
 };
+const VALID_PARENT = {
+    system: null,
+    edition: ['system'],
+    subsystem: ['system'],
+    variant: ['edition', 'subsystem'],
+};
 // POST /api/v1/admin/systems — Criar novo sistema
 router.post('/admin', auth_1.authMiddleware, (0, auth_1.requireRole)('admin'), async (req, res) => {
-    const { name, name_pt, node_type, parent_id, aliases } = req.body;
+    const { name, name_pt, node_type, parent_id, aliases, logo_filename, website_url } = req.body;
     if (!name || !node_type) {
         return res.status(400).json({ error: 'Nome e tipo são obrigatórios.' });
     }
-    if (!['system', 'edition', 'variant'].includes(node_type)) {
-        return res.status(400).json({ error: 'Tipo inválido. Use: system, edition ou variant.' });
+    if (!['system', 'edition', 'variant', 'subsystem'].includes(node_type)) {
+        return res.status(400).json({ error: 'Tipo inválido. Use: system, edition, variant ou subsystem.' });
     }
-    if ((node_type === 'edition' || node_type === 'variant') && !parent_id) {
-        return res.status(400).json({ error: 'Edições e variantes precisam de um sistema pai.' });
+    if (node_type !== 'system' && !parent_id) {
+        return res.status(400).json({ error: `${node_type} precisa de um sistema pai.` });
+    }
+    if (node_type === 'system' && parent_id) {
+        return res.status(400).json({ error: 'Sistema base não pode ter pai.' });
     }
     try {
         const slug = slugify(name);
@@ -153,11 +259,17 @@ router.post('/admin', auth_1.authMiddleware, (0, auth_1.requireRole)('admin'), a
         if (parent_id) {
             const parent = await db_1.db
                 .selectFrom('systems')
-                .select(['depth', 'path_slug'])
+                .select(['depth', 'path_slug', 'node_type'])
                 .where('id', '=', parent_id)
                 .executeTakeFirst();
             if (!parent) {
                 return res.status(404).json({ error: 'Sistema pai não encontrado.' });
+            }
+            const allowedParentTypes = VALID_PARENT[node_type];
+            if (allowedParentTypes && !allowedParentTypes.includes(parent.node_type)) {
+                return res.status(400).json({
+                    error: `${node_type} só pode ser filho de: ${allowedParentTypes.join(' ou ')}.`,
+                });
             }
             depth = parent.depth + 1;
             path_slug = `${parent.path_slug}/${slug}`;
@@ -173,8 +285,10 @@ router.post('/admin', auth_1.authMiddleware, (0, auth_1.requireRole)('admin'), a
             parent_id: parent_id || null,
             depth,
             path_slug,
+            logo_filename: node_type === 'system' ? (logo_filename || null) : null,
+            website_url: node_type === 'system' ? (website_url || null) : null,
         })
-            .returning(['id', 'name', 'name_pt', 'slug', 'node_type', 'parent_id', 'depth', 'path_slug'])
+            .returning(['id', 'name', 'name_pt', 'slug', 'node_type', 'parent_id', 'depth', 'path_slug', 'logo_filename', 'website_url'])
             .executeTakeFirst();
         // Inserir aliases se fornecidos
         if (aliases && Array.isArray(aliases) && aliases.length > 0) {
@@ -193,9 +307,11 @@ router.post('/admin', auth_1.authMiddleware, (0, auth_1.requireRole)('admin'), a
                 }
             }
         }
+        invalidateSystemsTreeCache();
         return res.status(201).json({ data: newSystem });
     }
     catch (error) {
+        invalidateSystemsTreeCache();
         console.error('[POST /admin/systems]', error);
         return res.status(500).json({ error: 'Erro ao criar sistema.' });
     }
@@ -203,9 +319,18 @@ router.post('/admin', auth_1.authMiddleware, (0, auth_1.requireRole)('admin'), a
 // PUT /api/v1/admin/systems/:id — Editar sistema
 router.put('/admin/:id', auth_1.authMiddleware, (0, auth_1.requireRole)('admin'), async (req, res) => {
     const { id } = req.params;
-    const { name, name_pt, node_type, parent_id } = req.body;
+    const { name, name_pt, node_type, parent_id, logo_filename, website_url } = req.body;
     if (!name || !node_type) {
         return res.status(400).json({ error: 'Nome e tipo são obrigatórios.' });
+    }
+    if (!['system', 'edition', 'variant', 'subsystem'].includes(node_type)) {
+        return res.status(400).json({ error: 'Tipo inválido. Use: system, edition, variant ou subsystem.' });
+    }
+    if (node_type !== 'system' && !parent_id) {
+        return res.status(400).json({ error: `${node_type} precisa de um sistema pai.` });
+    }
+    if (node_type === 'system' && parent_id) {
+        return res.status(400).json({ error: 'Sistema base não pode ter pai.' });
     }
     try {
         // Verificar se sistema existe
@@ -234,11 +359,17 @@ router.put('/admin/:id', auth_1.authMiddleware, (0, auth_1.requireRole)('admin')
         if (parent_id) {
             const parent = await db_1.db
                 .selectFrom('systems')
-                .select(['depth', 'path_slug'])
+                .select(['depth', 'path_slug', 'node_type'])
                 .where('id', '=', parent_id)
                 .executeTakeFirst();
             if (!parent) {
                 return res.status(404).json({ error: 'Sistema pai não encontrado.' });
+            }
+            const allowedParentTypes = VALID_PARENT[node_type];
+            if (allowedParentTypes && !allowedParentTypes.includes(parent.node_type)) {
+                return res.status(400).json({
+                    error: `${node_type} só pode ser filho de: ${allowedParentTypes.join(' ou ')}.`,
+                });
             }
             depth = parent.depth + 1;
             path_slug = `${parent.path_slug}/${slug}`;
@@ -254,9 +385,11 @@ router.put('/admin/:id', auth_1.authMiddleware, (0, auth_1.requireRole)('admin')
             parent_id: parent_id || null,
             depth,
             path_slug,
+            logo_filename: node_type === 'system' ? (logo_filename || null) : null,
+            website_url: node_type === 'system' ? (website_url || null) : null,
         })
             .where('id', '=', id)
-            .returning(['id', 'name', 'name_pt', 'slug', 'node_type', 'parent_id', 'depth', 'path_slug'])
+            .returning(['id', 'name', 'name_pt', 'slug', 'node_type', 'parent_id', 'depth', 'path_slug', 'logo_filename', 'website_url'])
             .executeTakeFirst();
         // Atualizar aliases se fornecidos
         const { aliases } = req.body;
@@ -283,9 +416,11 @@ router.put('/admin/:id', auth_1.authMiddleware, (0, auth_1.requireRole)('admin')
             }
         }
         // TODO: Recalcular hierarquia de filhos se parent_id mudou
+        invalidateSystemsTreeCache();
         return res.json({ data: updated });
     }
     catch (error) {
+        invalidateSystemsTreeCache();
         console.error('[PUT /admin/systems/:id]', error);
         return res.status(500).json({ error: 'Erro ao atualizar sistema.' });
     }
@@ -309,20 +444,32 @@ router.delete('/admin/:id', auth_1.authMiddleware, (0, auth_1.requireRole)('admi
             .select(db_1.db.fn.count('id').as('count'))
             .where('system_id', '=', id)
             .executeTakeFirst();
-        if (tablesCount && Number(tablesCount.count) > 0) {
-            return res.status(409).json({
-                error: `Não é possível deletar este sistema. Existem ${tablesCount.count} mesa(s) vinculada(s).`,
-            });
-        }
         // Verificar se há sistemas filhos
         const childrenCount = await db_1.db
             .selectFrom('systems')
             .select(db_1.db.fn.count('id').as('count'))
             .where('parent_id', '=', id)
             .executeTakeFirst();
-        if (childrenCount && Number(childrenCount.count) > 0) {
+        const tablesBlocked = Number(tablesCount?.count ?? 0);
+        const childrenBlocked = Number(childrenCount?.count ?? 0);
+        const blockedBy = [];
+        if (tablesBlocked > 0) {
+            blockedBy.push({ type: 'tables', count: tablesBlocked });
+        }
+        if (childrenBlocked > 0) {
+            blockedBy.push({ type: 'children', count: childrenBlocked });
+        }
+        if (blockedBy.length > 0) {
+            const details = blockedBy
+                .map((item) => {
+                if (item.type === 'tables')
+                    return `${item.count} mesa(s) vinculada(s)`;
+                return `${item.count} sistema(s) filho(s)`;
+            })
+                .join(' e ');
             return res.status(409).json({
-                error: `Não é possível deletar este sistema. Existem ${childrenCount.count} sistema(s) filho(s).`,
+                error: `Não é possível deletar este sistema. Bloqueado por ${details}.`,
+                blocked_by: blockedBy,
             });
         }
         // Deletar aliases primeiro
@@ -335,9 +482,11 @@ router.delete('/admin/:id', auth_1.authMiddleware, (0, auth_1.requireRole)('admi
             .deleteFrom('systems')
             .where('id', '=', id)
             .execute();
+        invalidateSystemsTreeCache();
         return res.json({ data: { message: 'Sistema deletado com sucesso.' } });
     }
     catch (error) {
+        invalidateSystemsTreeCache();
         console.error('[DELETE /admin/systems/:id]', error);
         return res.status(500).json({ error: 'Erro ao deletar sistema.' });
     }

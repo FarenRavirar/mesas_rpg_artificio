@@ -165,7 +165,7 @@ export const CatalogoPage = () => {
   useEffect(() => {
     const loadSystemsTree = async () => {
       try {
-        const res = await fetch('/api/v1/systems/tree');
+        const res = await fetch('/api/v1/systems?view=tree');
         if (!res.ok) throw new Error('Erro ao carregar sistemas');
         const json = await res.json();
         setSystemsTree(json.data ?? []);

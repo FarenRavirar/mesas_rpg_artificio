@@ -96,6 +96,8 @@ router.get('/:slug', rateLimit_1.publicRateLimiter, auth_1.optionalAuth, async (
             'gm.covil_verified',
             'gm.experience_years',
             'gm.average_price',
+            'gm.preferred_vtt_platforms',
+            'gm.contact_methods',
         ])
             // Nunca retornar deletehash — REGRA PÉTREA
             .where('gm.slug', '=', slug)
@@ -118,6 +120,7 @@ router.get('/:slug', rateLimit_1.publicRateLimiter, auth_1.optionalAuth, async (
         const tables = await db_1.db
             .selectFrom('tables as t')
             .leftJoin('systems as s', 's.id', 't.system_id')
+            .leftJoin('vtt_platforms as vtt', 'vtt.id', 't.vtt_platform_id')
             .select([
             't.id',
             't.slug',
@@ -146,6 +149,21 @@ router.get('/:slug', rateLimit_1.publicRateLimiter, auth_1.optionalAuth, async (
             't.features',
             's.name as system_name',
             's.slug as system_slug',
+            's.logo_filename as system_logo_filename',
+            's.website_url as system_website_url',
+            (0, kysely_1.sql) `
+          CASE WHEN vtt.id IS NOT NULL THEN
+            json_build_object(
+              'id', vtt.id,
+              'name', vtt.name,
+              'slug', vtt.slug,
+              'logo_filename', vtt.logo_filename,
+              'website_url', vtt.website_url
+            )
+          ELSE NULL
+          END
+        `.as('vtt_platform'),
+            't.game_platform_custom',
         ])
             .where('t.gm_id', '=', gm.id)
             .where('t.status', '=', 'active')
@@ -223,17 +241,27 @@ router.get('/:slug', rateLimit_1.publicRateLimiter, auth_1.optionalAuth, async (
                 .where('id', 'in', gm.closed_group_systems)
                 .execute();
         }
+        // Buscar VTT platforms preferidas do mestre
+        let preferredVttPlatforms = [];
+        if (Array.isArray(gm.preferred_vtt_platforms) && gm.preferred_vtt_platforms.length > 0) {
+            preferredVttPlatforms = await db_1.db
+                .selectFrom('vtt_platforms')
+                .select(['id', 'name', 'slug', 'logo_filename', 'website_url'])
+                .where('id', 'in', gm.preferred_vtt_platforms)
+                .execute();
+        }
         const closed_group = {
             enabled: !!gm.closed_group_enabled,
             systems: closedGroupSystems,
             description: gm.closed_group_description,
             min_price_cents: gm.closed_group_min_price_cents,
         };
-        const { user_id, closed_group_enabled, closed_group_systems, closed_group_description, closed_group_min_price_cents, ...gmPublic } = gm;
+        const { user_id, closed_group_enabled, closed_group_systems, closed_group_description, closed_group_min_price_cents, preferred_vtt_platforms, ...gmPublic } = gm;
         return res.json({
             data: {
                 ...gmPublic,
                 closed_group,
+                preferred_vtt_platforms: preferredVttPlatforms,
                 tables: tablesWithContacts,
                 links: enrichedLinks,
                 viewer_context,
@@ -345,6 +373,96 @@ router.get('/:slug/insights', rateLimit_1.authRateLimiter, auth_1.authMiddleware
     catch (error) {
         console.error('[GET /gm/:slug/insights]', error);
         return res.status(500).json({ error: 'Erro ao buscar insights.' });
+    }
+});
+// POST /:slug/contact - Formulário de contato
+router.post('/:slug/contact', rateLimit_1.publicRateLimiter, async (req, res) => {
+    try {
+        const { slug } = req.params;
+        const { name, email, message } = req.body;
+        // Validações
+        if (!name || !email || !message) {
+            return res.status(400).json({ error: 'Nome, email e mensagem são obrigatórios.' });
+        }
+        if (name.length > 100) {
+            return res.status(400).json({ error: 'Nome muito longo (máximo 100 caracteres).' });
+        }
+        if (message.length > 1000) {
+            return res.status(400).json({ error: 'Mensagem muito longa (máximo 1000 caracteres).' });
+        }
+        // Validar formato de email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ error: 'Email inválido.' });
+        }
+        // Buscar email do mestre
+        const profile = await db_1.db
+            .selectFrom('gm_profiles as gp')
+            .innerJoin('users as u', 'gp.user_id', 'u.id')
+            // @ts-ignore - Kysely tem problema de inferência com aliases de tabelas diferentes
+            .select(['u.email', 'gp.display_name'])
+            .where('gp.slug', '=', slug)
+            .executeTakeFirst();
+        if (!profile || !profile.email) {
+            return res.status(404).json({ error: 'Mestre não encontrado.' });
+        }
+        // TODO: Implementar envio de email
+        // Por enquanto, apenas registrar no console
+        console.log('[CONTACT FORM]', {
+            to: profile.email,
+            from: email,
+            name,
+            message,
+            masterName: profile.display_name,
+        });
+        // Retornar sucesso
+        return res.json({
+            success: true,
+            message: 'Mensagem enviada com sucesso! O mestre receberá seu contato em breve.',
+        });
+    }
+    catch (error) {
+        console.error('[POST /gm/:slug/contact]', error);
+        return res.status(500).json({ error: 'Erro ao enviar mensagem.' });
+    }
+});
+// POST /api/v1/gm/:slug/contact-click — Registrar clique em método de contato
+router.post('/:slug/contact-click', rateLimit_1.publicRateLimiter, async (req, res) => {
+    const { slug } = req.params;
+    const { channel } = req.body;
+    // Validar slug
+    if (!slug || slug.length > 200 || !/^[a-z0-9-]+$/i.test(slug)) {
+        return res.status(400).json({ error: 'Slug inválido.' });
+    }
+    // Validar channel
+    const validChannels = ['whatsapp', 'email', 'discord', 'form'];
+    if (!channel || !validChannels.includes(channel)) {
+        return res.status(400).json({ error: 'Canal inválido.' });
+    }
+    try {
+        // Buscar perfil GM pelo slug
+        const profile = await db_1.db
+            .selectFrom('gm_profiles as gm')
+            .select(['gm.id'])
+            .where('gm.slug', '=', slug)
+            .executeTakeFirst();
+        if (!profile) {
+            return res.status(404).json({ error: 'Mestre não encontrado.' });
+        }
+        // Registrar clique (por enquanto apenas log, futuramente pode salvar em tabela)
+        console.log('[GM CONTACT CLICK]', {
+            gm_profile_id: profile.id,
+            slug,
+            channel,
+            timestamp: new Date().toISOString(),
+        });
+        // TODO: Salvar em tabela gm_contact_metrics para analytics
+        // await db.insertInto('gm_contact_clicks').values({ gm_profile_id: profile.id, channel }).execute();
+        res.json({ success: true });
+    }
+    catch (error) {
+        console.error('[POST /gm/:slug/contact-click]', error);
+        res.status(500).json({ error: 'Erro ao registrar clique.' });
     }
 });
 exports.default = router;

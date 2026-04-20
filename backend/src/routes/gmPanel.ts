@@ -13,6 +13,7 @@ import {
 import { TableService } from '../services/tableService';
 import { TableRepository } from '../repositories/tableRepository';
 import { BenchmarkService } from '../services/benchmarkService';
+import { logActivity } from '../services/activityLogger';
 
 const router = Router();
 
@@ -82,6 +83,38 @@ async function shouldCountMetric(
     .executeTakeFirst();
 
   return !recentEvent;
+}
+
+async function resolveActorName(userId: string): Promise<string> {
+  try {
+    const profile = await db
+      .selectFrom('profiles')
+      .select('display_name')
+      .where('user_id', '=', userId)
+      .executeTakeFirst();
+
+    if (profile?.display_name && profile.display_name.trim().length > 0) {
+      return profile.display_name.trim();
+    }
+
+    const user = await db
+      .selectFrom('users')
+      .select(['username', 'email'])
+      .where('id', '=', userId)
+      .executeTakeFirst();
+
+    if (user?.username && user.username.trim().length > 0) {
+      return user.username.trim();
+    }
+
+    if (user?.email) {
+      return user.email.split('@')[0];
+    }
+  } catch (error) {
+    console.error('[gmPanel][resolveActorName]', error);
+  }
+
+  return 'Usuário';
 }
 
 // ============================================================================
@@ -538,6 +571,24 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
       data.schedules
     );
 
+    const gmName = await resolveActorName(userId);
+
+    void logActivity({
+      actorId: userId,
+      actorRole: userRole,
+      action: 'table.created',
+      entityType: 'table',
+      entityId: newTable.id,
+      entityLabel: newTable.title,
+      targetUserId: userId,
+      summary: `${gmName} criou a mesa "${newTable.title}".`,
+      metadata: {
+        table_slug: newTable.slug,
+        system_id: tableData.system_id ?? null,
+        scenario_id: tableData.scenario_id ?? null,
+      },
+    });
+
     return res.status(201).json({ data: newTable });
   } catch (error: any) {
     console.error('[POST /gm/tables]', error);
@@ -561,6 +612,7 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
 // PUT /api/v1/gm/tables/:id — Edita mesa própria
 router.put('/tables/:id', authMiddleware, async (req: Request, res: Response) => {
   const userId = (req as any).user.userId;
+  const userRole = (req as any).user?.role;
   const { id } = req.params;
 
   const validation = updateTableSchema.safeParse(req.body);
@@ -695,6 +747,22 @@ router.put('/tables/:id', authMiddleware, async (req: Request, res: Response) =>
     if (!updated) {
       return res.status(404).json({ error: 'Mesa não encontrada.' });
     }
+
+    const gmName = await resolveActorName(userId);
+
+    void logActivity({
+      actorId: userId,
+      actorRole: userRole,
+      action: 'table.updated',
+      entityType: 'table',
+      entityId: updated.id,
+      entityLabel: updated.title,
+      targetUserId: userId,
+      summary: `${gmName} editou a mesa "${updated.title}".`,
+      metadata: {
+        table_slug: updated.slug,
+      },
+    });
 
     return res.json({ data: updated });
   } catch (error: any) {
@@ -876,7 +944,7 @@ router.patch('/tables/:id/status', authMiddleware, async (req: Request, res: Res
   try {
     const table = await db
       .selectFrom('tables')
-      .select(['id', 'gm_id'])
+      .select(['id', 'gm_id', 'status', 'title'])
       .where('id', '=', id)
       .executeTakeFirst();
 
@@ -891,6 +959,26 @@ router.patch('/tables/:id/status', authMiddleware, async (req: Request, res: Res
         .where('id', '=', id)
         .returning(['id', 'slug', 'title', 'status'])
         .executeTakeFirst();
+
+      if (result) {
+        const actorName = await resolveActorName(userId);
+
+        void logActivity({
+          actorId: userId,
+          actorRole: userRole,
+          action: 'table.status_changed',
+          entityType: 'table',
+          entityId: result.id,
+          entityLabel: result.title,
+          targetUserId: null,
+          summary: `${actorName} alterou status da mesa "${result.title}" de ${table.status} para ${result.status}.`,
+          metadata: {
+            table_slug: result.slug,
+            from: table.status,
+            to: result.status,
+          },
+        });
+      }
 
       return res.json({ data: result });
     }
@@ -912,6 +1000,26 @@ router.patch('/tables/:id/status', authMiddleware, async (req: Request, res: Res
       .returning(['id', 'slug', 'title', 'status'])
       .executeTakeFirst();
 
+    if (result) {
+      const actorName = await resolveActorName(userId);
+
+      void logActivity({
+        actorId: userId,
+        actorRole: userRole,
+        action: 'table.status_changed',
+        entityType: 'table',
+        entityId: result.id,
+        entityLabel: result.title,
+        targetUserId: userId,
+        summary: `${actorName} alterou status da mesa "${result.title}" de ${table.status} para ${result.status}.`,
+        metadata: {
+          table_slug: result.slug,
+          from: table.status,
+          to: result.status,
+        },
+      });
+    }
+
     return res.json({ data: result });
   } catch (error: any) {
     console.error('[PATCH /gm/tables/:id/status]', error);
@@ -922,6 +1030,7 @@ router.patch('/tables/:id/status', authMiddleware, async (req: Request, res: Res
 // DELETE /api/v1/gm/tables/:id — Deleta mesa própria
 router.delete('/tables/:id', authMiddleware, async (req: Request, res: Response) => {
   const userId = (req as any).user.userId;
+  const userRole = (req as any).user?.role;
   const { id } = req.params;
 
   try {
@@ -937,7 +1046,7 @@ router.delete('/tables/:id', authMiddleware, async (req: Request, res: Response)
 
     const existingTable = await db
       .selectFrom('tables')
-      .select(['id', 'title', 'gm_id'])
+      .select(['id', 'title', 'slug', 'gm_id'])
       .where('id', '=', id)
       .where('gm_id', '=', gmProfile.id)
       .executeTakeFirst();
@@ -947,6 +1056,23 @@ router.delete('/tables/:id', authMiddleware, async (req: Request, res: Response)
     }
 
     await TableRepository.deleteTableWithRelations(id);
+
+    const gmName = await resolveActorName(userId);
+
+    void logActivity({
+      actorId: userId,
+      actorRole: userRole,
+      action: 'table.deleted',
+      entityType: 'table',
+      entityId: null,
+      entityLabel: existingTable.title,
+      targetUserId: userId,
+      summary: `${gmName} excluiu a mesa "${existingTable.title}".`,
+      metadata: {
+        table_slug: existingTable.slug,
+        previous_id: existingTable.id,
+      },
+    });
 
     return res.json({ data: { message: `Mesa "${existingTable.title}" deletada.` } });
   } catch (error: any) {
