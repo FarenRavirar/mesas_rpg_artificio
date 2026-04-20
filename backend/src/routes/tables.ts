@@ -90,6 +90,8 @@ router.get('/', async (req: Request, res: Response) => {
         't.synopsis_narrative',
         's.name as system_name',
         's.slug as system_slug',
+        's.logo_filename as system_logo_filename',
+        's.website_url as system_website_url',
         'gm.slug as gm_slug',
         sql<string | null>`COALESCE(gm.avatar_url, p.avatar_url)`.as('gm_avatar_url'),
         'gm.badges as gm_badges',
@@ -351,6 +353,8 @@ router.get('/:slug', async (req: Request, res: Response) => {
         sql<string | null>`COALESCE(cp.name, t.communication_platform)`.as('communication_platform'),
         's.name as system_name',
         's.slug as system_slug',
+        's.logo_filename as system_logo_filename',
+        's.website_url as system_website_url',
         // CORREÇÃO DT-02: Retornar nome do cenário
         'sc.name as scenario_name',
         // CORREÇÃO A01: Retornar objeto vtt_platform completo
@@ -408,7 +412,23 @@ router.get('/:slug', async (req: Request, res: Response) => {
       .orderBy('sort_order', 'asc')
       .execute();
 
-    res.json({ data: { ...table, contacts, schedules } });
+    // Buscar VTT platforms preferidas do mestre
+    const gmVttPlatforms = table.gm_user_id ? await db
+      .selectFrom('gm_profiles as gm')
+      .innerJoin('vtt_platforms as vtt', (join) =>
+        join.on(sql.raw('vtt.id = ANY(gm.preferred_vtt_platforms)'))
+      )
+      .select([
+        'vtt.id',
+        'vtt.name',
+        'vtt.slug',
+        'vtt.logo_filename',
+        'vtt.website_url',
+      ])
+      .where('gm.user_id', '=', table.gm_user_id)
+      .execute() : [];
+
+    res.json({ data: { ...table, contacts, schedules, gm_vtt_platforms: gmVttPlatforms } });
   } catch (error: any) {
     // Log detalhado de erro de banco de dados
     logDatabaseError(req, error, {

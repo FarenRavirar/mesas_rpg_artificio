@@ -53,6 +53,8 @@ export interface TableCard {
   contacts: TableContact[];
   system_name: string | null;
   system_slug: string | null;
+  system_logo_filename?: string | null;
+  system_website_url?: string | null;
   gm_slug: string | null;
   gm_avatar_url: string | null;
   gm_display_name: string | null;
@@ -132,6 +134,14 @@ export interface TableDetail extends TableCard {
   // REQ-28 Fase 7: Campos editoriais separados
   synopsis_narrative?: string | null;
   benefits_text?: string | null;
+  // Plataformas VTT preferidas do mestre
+  gm_vtt_platforms?: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    logo_filename: string | null;
+    website_url: string | null;
+  }>;
 }
 
 export interface TablesResponse {

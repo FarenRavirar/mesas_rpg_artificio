@@ -16,6 +16,7 @@ const scenarios_1 = __importDefault(require("./routes/scenarios"));
 const systemSuggestions_1 = __importDefault(require("./routes/systemSuggestions"));
 const scenarioSuggestions_1 = __importDefault(require("./routes/scenarioSuggestions"));
 const systemSuggestionsAdmin_1 = __importDefault(require("./routes/systemSuggestionsAdmin"));
+const scenarioSuggestionsAdmin_1 = __importDefault(require("./routes/scenarioSuggestionsAdmin"));
 const notifications_1 = __importDefault(require("./routes/notifications"));
 const me_1 = __importDefault(require("./routes/me"));
 const profile_1 = __importDefault(require("./routes/profile"));
@@ -28,6 +29,7 @@ const vttPlatforms_1 = __importDefault(require("./routes/vttPlatforms"));
 const communicationPlatforms_1 = __importDefault(require("./routes/communicationPlatforms"));
 const changelog_1 = __importDefault(require("./routes/changelog"));
 const adminTables_1 = __importDefault(require("./routes/adminTables"));
+const activityLog_1 = __importDefault(require("./routes/activityLog"));
 const upload_1 = __importDefault(require("./routes/upload"));
 const og_1 = __importDefault(require("./routes/og"));
 require("express-async-errors");
@@ -101,6 +103,8 @@ app.use('/api/v1/scenario-suggestions', scenarioSuggestions_1.default);
 app.use('/api/v1/notifications', notifications_1.default);
 app.use('/api/v1/admin', adminTables_1.default);
 app.use('/api/v1/admin', systemSuggestionsAdmin_1.default);
+app.use('/api/v1/admin', scenarioSuggestionsAdmin_1.default);
+app.use('/api/v1/admin', activityLog_1.default);
 app.use('/api/v1/gm', gmPanel_1.default);
 app.use('/api/v1/gm', gm_1.default);
 app.use('/api/v1/settings', settings_1.default);
@@ -112,7 +116,21 @@ app.use('/api/v1', upload_1.default);
 app.use('/og', og_1.default);
 app.use((err, req, res, next) => {
     console.error('[Global Error]', err);
-    res.status(500).json({ error: 'Erro interno no servidor.' });
+    if (res.headersSent) {
+        return next(err);
+    }
+    if (err?.type === 'entity.parse.failed') {
+        return res.status(400).json({ error: 'JSON inválido no corpo da requisição.' });
+    }
+    const status = typeof err?.status === 'number'
+        ? err.status
+        : typeof err?.statusCode === 'number'
+            ? err.statusCode
+            : 500;
+    if (status >= 500) {
+        return res.status(500).json({ error: 'Erro interno no servidor.' });
+    }
+    return res.status(status).json({ error: err?.message || 'Requisição inválida.' });
 });
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);

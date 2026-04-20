@@ -11,6 +11,8 @@ const crypto_1 = __importDefault(require("crypto"));
 const tableValidators_1 = require("../validators/tableValidators");
 const tableService_1 = require("../services/tableService");
 const tableRepository_1 = require("../repositories/tableRepository");
+const benchmarkService_1 = require("../services/benchmarkService");
+const activityLogger_1 = require("../services/activityLogger");
 const router = (0, express_1.Router)();
 // ============================================================================
 // CONSTANTES
@@ -21,9 +23,24 @@ const METRIC_THROTTLE_WINDOWS = {
     contact: 30 * 60 * 1000,
     favorite: 24 * 60 * 60 * 1000,
 };
-// ============================================================================
-// UTILITÁRIOS DE MÉTRICAS
-// ============================================================================
+function toQuartile(value, quartiles) {
+    if (value <= quartiles.p25)
+        return 'q1';
+    if (value <= quartiles.p50)
+        return 'q2';
+    if (value <= quartiles.p75)
+        return 'q3';
+    return 'q4';
+}
+function quartileLabel(quartile) {
+    if (quartile === 'q1')
+        return 'Abaixo da maioria';
+    if (quartile === 'q2')
+        return 'Na média da plataforma';
+    if (quartile === 'q3')
+        return 'Acima da maioria';
+    return 'Entre as mais vistas';
+}
 function getClientIp(req) {
     const forwarded = req.headers['x-forwarded-for'];
     if (forwarded && typeof forwarded === 'string') {
@@ -53,6 +70,33 @@ async function shouldCountMetric(tableId, action, fingerprint) {
         .where('created_at', '>', cutoff)
         .executeTakeFirst();
     return !recentEvent;
+}
+async function resolveActorName(userId) {
+    try {
+        const profile = await db_1.db
+            .selectFrom('profiles')
+            .select('display_name')
+            .where('user_id', '=', userId)
+            .executeTakeFirst();
+        if (profile?.display_name && profile.display_name.trim().length > 0) {
+            return profile.display_name.trim();
+        }
+        const user = await db_1.db
+            .selectFrom('users')
+            .select(['username', 'email'])
+            .where('id', '=', userId)
+            .executeTakeFirst();
+        if (user?.username && user.username.trim().length > 0) {
+            return user.username.trim();
+        }
+        if (user?.email) {
+            return user.email.split('@')[0];
+        }
+    }
+    catch (error) {
+        console.error('[gmPanel][resolveActorName]', error);
+    }
+    return 'Usuário';
 }
 // ============================================================================
 // ROTAS DE GM PROFILE
@@ -153,7 +197,7 @@ router.post('/profile', auth_1.authMiddleware, async (req, res) => {
 // PUT /api/v1/gm/profile — Edita perfil do mestre logado
 router.put('/profile', auth_1.authMiddleware, async (req, res) => {
     const userId = req.user.userId;
-    const { nickname, bio_long, languages, specialties, badges, avatar_url, banner_url, tagline, promo_badge_text, selling_points, closed_group_enabled, closed_group_systems, closed_group_description, closed_group_min_price_cents, } = req.body;
+    const { nickname, bio_long, languages, specialties, badges, avatar_url, banner_url, tagline, promo_badge_text, selling_points, closed_group_enabled, closed_group_systems, closed_group_description, closed_group_min_price_cents, preferred_vtt_platforms, contact_methods, } = req.body;
     if (nickname !== undefined) {
         if (typeof nickname !== 'string' || nickname.trim().length < 2 || nickname.trim().length > 40) {
             return res.status(400).json({ error: 'Nickname inválido. Use entre 2 e 40 caracteres.' });
@@ -195,6 +239,60 @@ router.put('/profile', auth_1.authMiddleware, async (req, res) => {
         : closed_group_min_price_cents === null
             ? null
             : undefined;
+    const safePreferredVttPlatforms = Array.isArray(preferred_vtt_platforms)
+        ? preferred_vtt_platforms.filter((value) => typeof value === 'string' && /^[0-9a-fA-F-]{36}$/.test(value))
+        : undefined;
+    // DEBUG: Log para verificar o tipo de contact_methods
+    console.log('[PUT /gm/profile] contact_methods type:', typeof contact_methods);
+    console.log('[PUT /gm/profile] contact_methods value:', contact_methods);
+    // Validação de contact_methods (array de contatos)
+    // HOTFIX: Se vier como string, fazer parse
+    let parsedContactMethods = contact_methods;
+    if (typeof contact_methods === 'string') {
+        try {
+            parsedContactMethods = JSON.parse(contact_methods);
+            console.log('[PUT /gm/profile] Parsed contact_methods from string');
+        }
+        catch (e) {
+            console.error('[PUT /gm/profile] Failed to parse contact_methods:', e);
+            parsedContactMethods = undefined;
+        }
+    }
+    const safeContactMethods = Array.isArray(parsedContactMethods)
+        ? parsedContactMethods
+            .filter((contact) => contact && typeof contact === 'object')
+            .map((contact) => {
+            const channel = contact.channel;
+            const value = typeof contact.value === 'string' ? contact.value.trim() : '';
+            // Validar canal
+            if (!['whatsapp', 'email', 'discord', 'form'].includes(channel)) {
+                return null;
+            }
+            // Validar WhatsApp (formato internacional)
+            if (channel === 'whatsapp') {
+                const whatsappRegex = /^\+\d{1,3}\d{6,14}$/;
+                if (!whatsappRegex.test(value)) {
+                    return null; // WhatsApp inválido
+                }
+            }
+            // Validar Email
+            if (channel === 'email') {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(value)) {
+                    return null; // Email inválido
+                }
+            }
+            return {
+                channel,
+                value: value.slice(0, 500),
+                label: typeof contact.label === 'string' ? contact.label.trim().slice(0, 100) : null,
+                discord_server_url: typeof contact.discord_server_url === 'string'
+                    ? contact.discord_server_url.trim().slice(0, 500)
+                    : null,
+            };
+        })
+            .filter((contact) => contact !== null)
+        : undefined;
     try {
         const gmProfile = await db_1.db
             .selectFrom('gm_profiles')
@@ -221,6 +319,8 @@ router.put('/profile', auth_1.authMiddleware, async (req, res) => {
             closed_group_systems: safeClosedGroupSystems,
             closed_group_description: safeClosedGroupDescription,
             closed_group_min_price_cents: safeClosedGroupMinPriceCents,
+            preferred_vtt_platforms: safePreferredVttPlatforms,
+            contact_methods: safeContactMethods ? JSON.stringify(safeContactMethods) : undefined,
         })
             .where('id', '=', gmProfile.id)
             .returning([
@@ -351,6 +451,22 @@ router.post('/tables', auth_1.authMiddleware, async (req, res) => {
         const tableData = tableService_1.TableService.prepareTableData(data, gmProfile.id, vttPlatformUuid, communicationPlatformResolved.id, communicationPlatformResolved.legacy, slug, userRole);
         // Persistência usando Repository
         const newTable = await tableRepository_1.TableRepository.createTableWithRelations(tableData, data.contacts, data.schedules);
+        const gmName = await resolveActorName(userId);
+        void (0, activityLogger_1.logActivity)({
+            actorId: userId,
+            actorRole: userRole,
+            action: 'table.created',
+            entityType: 'table',
+            entityId: newTable.id,
+            entityLabel: newTable.title,
+            targetUserId: userId,
+            summary: `${gmName} criou a mesa "${newTable.title}".`,
+            metadata: {
+                table_slug: newTable.slug,
+                system_id: tableData.system_id ?? null,
+                scenario_id: tableData.scenario_id ?? null,
+            },
+        });
         return res.status(201).json({ data: newTable });
     }
     catch (error) {
@@ -370,6 +486,7 @@ router.post('/tables', auth_1.authMiddleware, async (req, res) => {
 // PUT /api/v1/gm/tables/:id — Edita mesa própria
 router.put('/tables/:id', auth_1.authMiddleware, async (req, res) => {
     const userId = req.user.userId;
+    const userRole = req.user?.role;
     const { id } = req.params;
     const validation = tableValidators_1.updateTableSchema.safeParse(req.body);
     if (!validation.success) {
@@ -481,6 +598,20 @@ router.put('/tables/:id', auth_1.authMiddleware, async (req, res) => {
         if (!updated) {
             return res.status(404).json({ error: 'Mesa não encontrada.' });
         }
+        const gmName = await resolveActorName(userId);
+        void (0, activityLogger_1.logActivity)({
+            actorId: userId,
+            actorRole: userRole,
+            action: 'table.updated',
+            entityType: 'table',
+            entityId: updated.id,
+            entityLabel: updated.title,
+            targetUserId: userId,
+            summary: `${gmName} editou a mesa "${updated.title}".`,
+            metadata: {
+                table_slug: updated.slug,
+            },
+        });
         return res.json({ data: updated });
     }
     catch (error) {
@@ -647,7 +778,7 @@ router.patch('/tables/:id/status', auth_1.authMiddleware, async (req, res) => {
     try {
         const table = await db_1.db
             .selectFrom('tables')
-            .select(['id', 'gm_id'])
+            .select(['id', 'gm_id', 'status', 'title'])
             .where('id', '=', id)
             .executeTakeFirst();
         if (!table) {
@@ -660,6 +791,24 @@ router.patch('/tables/:id/status', auth_1.authMiddleware, async (req, res) => {
                 .where('id', '=', id)
                 .returning(['id', 'slug', 'title', 'status'])
                 .executeTakeFirst();
+            if (result) {
+                const actorName = await resolveActorName(userId);
+                void (0, activityLogger_1.logActivity)({
+                    actorId: userId,
+                    actorRole: userRole,
+                    action: 'table.status_changed',
+                    entityType: 'table',
+                    entityId: result.id,
+                    entityLabel: result.title,
+                    targetUserId: null,
+                    summary: `${actorName} alterou status da mesa "${result.title}" de ${table.status} para ${result.status}.`,
+                    metadata: {
+                        table_slug: result.slug,
+                        from: table.status,
+                        to: result.status,
+                    },
+                });
+            }
             return res.json({ data: result });
         }
         const gmProfile = await db_1.db
@@ -676,6 +825,24 @@ router.patch('/tables/:id/status', auth_1.authMiddleware, async (req, res) => {
             .where('id', '=', id)
             .returning(['id', 'slug', 'title', 'status'])
             .executeTakeFirst();
+        if (result) {
+            const actorName = await resolveActorName(userId);
+            void (0, activityLogger_1.logActivity)({
+                actorId: userId,
+                actorRole: userRole,
+                action: 'table.status_changed',
+                entityType: 'table',
+                entityId: result.id,
+                entityLabel: result.title,
+                targetUserId: userId,
+                summary: `${actorName} alterou status da mesa "${result.title}" de ${table.status} para ${result.status}.`,
+                metadata: {
+                    table_slug: result.slug,
+                    from: table.status,
+                    to: result.status,
+                },
+            });
+        }
         return res.json({ data: result });
     }
     catch (error) {
@@ -686,6 +853,7 @@ router.patch('/tables/:id/status', auth_1.authMiddleware, async (req, res) => {
 // DELETE /api/v1/gm/tables/:id — Deleta mesa própria
 router.delete('/tables/:id', auth_1.authMiddleware, async (req, res) => {
     const userId = req.user.userId;
+    const userRole = req.user?.role;
     const { id } = req.params;
     try {
         const gmProfile = await db_1.db
@@ -698,7 +866,7 @@ router.delete('/tables/:id', auth_1.authMiddleware, async (req, res) => {
         }
         const existingTable = await db_1.db
             .selectFrom('tables')
-            .select(['id', 'title', 'gm_id'])
+            .select(['id', 'title', 'slug', 'gm_id'])
             .where('id', '=', id)
             .where('gm_id', '=', gmProfile.id)
             .executeTakeFirst();
@@ -706,6 +874,21 @@ router.delete('/tables/:id', auth_1.authMiddleware, async (req, res) => {
             return res.status(404).json({ error: 'Mesa não encontrada.' });
         }
         await tableRepository_1.TableRepository.deleteTableWithRelations(id);
+        const gmName = await resolveActorName(userId);
+        void (0, activityLogger_1.logActivity)({
+            actorId: userId,
+            actorRole: userRole,
+            action: 'table.deleted',
+            entityType: 'table',
+            entityId: null,
+            entityLabel: existingTable.title,
+            targetUserId: userId,
+            summary: `${gmName} excluiu a mesa "${existingTable.title}".`,
+            metadata: {
+                table_slug: existingTable.slug,
+                previous_id: existingTable.id,
+            },
+        });
         return res.json({ data: { message: `Mesa "${existingTable.title}" deletada.` } });
     }
     catch (error) {
@@ -842,6 +1025,250 @@ router.post('/tables/:id/favorite', async (req, res) => {
     catch (error) {
         console.error('[POST /tables/:id/favorite]', error);
         res.sendStatus(500);
+    }
+});
+// GET /api/v1/gm/insights — Dashboard de insights agregados
+router.get('/insights', auth_1.authMiddleware, async (req, res) => {
+    const userId = req.user.userId;
+    try {
+        // Verificar se usuário tem perfil GM
+        const gmProfile = await db_1.db
+            .selectFrom('gm_profiles')
+            .select('id')
+            .where('user_id', '=', userId)
+            .executeTakeFirst();
+        if (!gmProfile) {
+            return res.status(404).json({ error: 'Perfil de mestre não encontrado.' });
+        }
+        // Buscar todas as mesas do GM com métricas
+        const tables = await db_1.db
+            .selectFrom('tables as t')
+            .leftJoin('table_metrics as tm', 'tm.table_id', 't.id')
+            .leftJoin('systems as s', 's.id', 't.system_id')
+            .select([
+            't.id',
+            't.slug',
+            't.title',
+            't.status',
+            's.name as system_name',
+            (0, kysely_1.sql) `COALESCE(tm.views_count, 0)`.as('views'),
+            (0, kysely_1.sql) `COALESCE(tm.clicks_count, 0)`.as('clicks'),
+            (0, kysely_1.sql) `COALESCE(tm.contacts_count, 0)`.as('contacts'),
+            (0, kysely_1.sql) `COALESCE(tm.favorites_count, 0)`.as('favorites'),
+        ])
+            .where('t.gm_id', '=', gmProfile.id)
+            .where('t.status', 'in', ['active', 'full'])
+            .execute();
+        // Buscar breakdown de cliques por variant
+        const clickBreakdowns = await db_1.db
+            .selectFrom('table_click_events as tce')
+            .innerJoin('tables as t', 't.id', 'tce.table_id')
+            .select([
+            'tce.table_id',
+            'tce.variant',
+            (0, kysely_1.sql) `COUNT(*)`.as('count'),
+        ])
+            .where('t.gm_id', '=', gmProfile.id)
+            .groupBy(['tce.table_id', 'tce.variant'])
+            .execute();
+        // Tendência temporal (últimos 7 dias) para fallback transparente
+        const recentViewsCutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        const recentViews = await db_1.db
+            .selectFrom('table_metric_events as tme')
+            .innerJoin('tables as t', 't.id', 'tme.table_id')
+            .select([
+            'tme.table_id',
+            (0, kysely_1.sql) `COUNT(*)`.as('count'),
+        ])
+            .where('t.gm_id', '=', gmProfile.id)
+            .where('tme.action', '=', 'view')
+            .where('tme.created_at', '>', recentViewsCutoff)
+            .groupBy('tme.table_id')
+            .execute();
+        const recentViewsMap = new Map();
+        for (const row of recentViews) {
+            recentViewsMap.set(row.table_id, Number(row.count));
+        }
+        // Benchmarks dinâmicos de plataforma (global)
+        const benchmarks = await benchmarkService_1.BenchmarkService.getPlatformBenchmarks('global');
+        // Mapear breakdown por mesa
+        const breakdownMap = new Map();
+        for (const row of clickBreakdowns) {
+            if (!breakdownMap.has(row.table_id)) {
+                breakdownMap.set(row.table_id, {});
+            }
+            breakdownMap.get(row.table_id)[row.variant || 'unknown'] = Number(row.count);
+        }
+        // Calcular métricas e enriquecer dados
+        let totalViews = 0;
+        let totalClicks = 0;
+        let totalContacts = 0;
+        let totalFavorites = 0;
+        const enrichedTables = tables.map((table) => {
+            const views = Number(table.views);
+            const clicks = Number(table.clicks);
+            const contacts = Number(table.contacts);
+            const favorites = Number(table.favorites);
+            totalViews += views;
+            totalClicks += clicks;
+            totalContacts += contacts;
+            totalFavorites += favorites;
+            const ctr = views > 0 ? (clicks / views) * 100 : 0;
+            const breakdown = breakdownMap.get(table.id) || {};
+            const viewsLast7d = recentViewsMap.get(table.id) || 0;
+            const benchmarkPosition = benchmarks.available && benchmarks.metrics
+                ? {
+                    views_quartile: toQuartile(views, benchmarks.metrics.views),
+                    clicks_quartile: toQuartile(clicks, benchmarks.metrics.clicks),
+                    contacts_quartile: toQuartile(contacts, benchmarks.metrics.contacts),
+                    ctr_quartile: toQuartile(ctr, benchmarks.metrics.ctr),
+                }
+                : null;
+            return {
+                id: table.id,
+                slug: table.slug,
+                title: table.title,
+                status: table.status,
+                system_name: table.system_name,
+                views,
+                clicks,
+                contacts,
+                favorites,
+                ctr: Math.round(ctr * 10) / 10,
+                click_breakdown: {
+                    refactored_v4: breakdown.refactored_v4 || 0,
+                    cta_entrar: breakdown.cta_entrar || 0,
+                    link_vtt: breakdown.link_vtt || 0,
+                },
+                benchmark_position: benchmarkPosition
+                    ? {
+                        ...benchmarkPosition,
+                        views_label: quartileLabel(benchmarkPosition.views_quartile),
+                    }
+                    : null,
+                trend: {
+                    views_last_7d: viewsLast7d,
+                },
+            };
+        });
+        // Calcular taxas agregadas
+        const overallCtr = totalViews > 0 ? (totalClicks / totalViews) * 100 : 0;
+        const contactRate = totalClicks > 0 ? (totalContacts / totalClicks) * 100 : 0;
+        // Recomendações de funil com benchmark relativo
+        const recommendations = [];
+        for (const table of enrichedTables) {
+            if (benchmarks.available && table.benchmark_position) {
+                const topViews = table.benchmark_position.views_quartile === 'q3' || table.benchmark_position.views_quartile === 'q4';
+                const topClicks = table.benchmark_position.clicks_quartile === 'q3' || table.benchmark_position.clicks_quartile === 'q4';
+                const lowClicks = table.benchmark_position.clicks_quartile === 'q1';
+                const lowContacts = table.benchmark_position.contacts_quartile === 'q1';
+                const lowViews = table.benchmark_position.views_quartile === 'q1';
+                const topCtr = table.benchmark_position.ctr_quartile === 'q4';
+                if (topViews && lowClicks) {
+                    recommendations.push({
+                        severity: 'high',
+                        table_slug: table.slug,
+                        table_title: table.title,
+                        message: 'Sua mesa recebe visualizações, mas poucos cliques em relação à plataforma. Revise capa e título para melhorar o primeiro impacto.',
+                    });
+                }
+                else if (topClicks && lowContacts) {
+                    recommendations.push({
+                        severity: 'high',
+                        table_slug: table.slug,
+                        table_title: table.title,
+                        message: 'Sua mesa gera interesse, mas converte pouco em contato. Ajuste CTA, preço e instruções de contato.',
+                    });
+                }
+                else if (lowViews) {
+                    recommendations.push({
+                        severity: 'medium',
+                        table_slug: table.slug,
+                        table_title: table.title,
+                        message: 'Sua mesa está abaixo da maioria em visualizações. Reforce divulgação em comunidades de RPG e revise tags/sistema.',
+                    });
+                }
+                else if (topCtr && table.contacts > 0) {
+                    recommendations.push({
+                        severity: 'low',
+                        table_slug: table.slug,
+                        table_title: table.title,
+                        message: 'Sua mesa está com boa taxa de clique em relação à plataforma. Continue com a mesma linha de apresentação.',
+                    });
+                }
+            }
+            else {
+                if (table.trend.views_last_7d > 0) {
+                    recommendations.push({
+                        severity: 'low',
+                        table_slug: table.slug,
+                        table_title: table.title,
+                        message: `Sua mesa ganhou ${table.trend.views_last_7d} visualização(ões) nos últimos 7 dias. Os benchmarks comparativos aparecem conforme a base cresce.`,
+                    });
+                }
+                else {
+                    recommendations.push({
+                        severity: 'low',
+                        table_slug: table.slug,
+                        table_title: table.title,
+                        message: 'Sua mesa ainda não teve visualizações recentes. Compartilhe o link em comunidades de RPG para ganhar tração inicial.',
+                    });
+                }
+            }
+        }
+        // Evita estado estranho sem mensagem quando há mesas ativas
+        if (recommendations.length === 0 && enrichedTables.length > 0) {
+            recommendations.push({
+                severity: 'low',
+                table_slug: enrichedTables[0].slug,
+                table_title: enrichedTables[0].title,
+                message: 'Seus indicadores estão estáveis em relação à plataforma. Continue monitorando e fazendo ajustes graduais.',
+            });
+        }
+        const normalizedBenchmarks = benchmarks.metrics
+            ? {
+                views: {
+                    p25: Math.round(benchmarks.metrics.views.p25 * 10) / 10,
+                    p50: Math.round(benchmarks.metrics.views.p50 * 10) / 10,
+                    p75: Math.round(benchmarks.metrics.views.p75 * 10) / 10,
+                },
+                clicks: {
+                    p25: Math.round(benchmarks.metrics.clicks.p25 * 10) / 10,
+                    p50: Math.round(benchmarks.metrics.clicks.p50 * 10) / 10,
+                    p75: Math.round(benchmarks.metrics.clicks.p75 * 10) / 10,
+                },
+                contacts: {
+                    p25: Math.round(benchmarks.metrics.contacts.p25 * 10) / 10,
+                    p50: Math.round(benchmarks.metrics.contacts.p50 * 10) / 10,
+                    p75: Math.round(benchmarks.metrics.contacts.p75 * 10) / 10,
+                },
+                ctr: {
+                    p25: Math.round(benchmarks.metrics.ctr.p25 * 10) / 10,
+                    p50: Math.round(benchmarks.metrics.ctr.p50 * 10) / 10,
+                    p75: Math.round(benchmarks.metrics.ctr.p75 * 10) / 10,
+                },
+            }
+            : null;
+        res.json({
+            overview: {
+                total_views: totalViews,
+                total_clicks: totalClicks,
+                total_contacts: totalContacts,
+                total_favorites: totalFavorites,
+                ctr: Math.round(overallCtr * 10) / 10,
+                contact_rate: Math.round(contactRate * 10) / 10,
+            },
+            benchmarks: {
+                ...benchmarks,
+                metrics: normalizedBenchmarks,
+            },
+            tables: enrichedTables,
+            recommendations,
+        });
+    }
+    catch (error) {
+        console.error('[GET /gm/insights]', error);
+        res.status(500).json({ error: 'Erro ao buscar insights.' });
     }
 });
 exports.default = router;

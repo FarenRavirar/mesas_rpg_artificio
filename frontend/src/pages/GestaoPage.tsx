@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { SystemsPage } from '../modules/admin/systems/SystemsPage';
+import { SystemsAdminView } from './SystemsAdminView';
+import { ScenariosAdminView } from './ScenariosAdminView';
 import { PlatformsPage } from '../modules/admin/platforms/PlatformsPage';
+import { ActivityPanel } from '../modules/admin/activity/components/ActivityPanel';
 import { ScenarioEditModal } from '../components/ScenarioEditModal';
-import { Edit, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -29,10 +31,9 @@ export const GestaoPage = () => {
   const [suggestions, setSuggestions] = useState<SystemSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
-  const [activeTab, setActiveTab] = useState<'systems' | 'crud'>('crud');
+  const [activeTab, setActiveTab] = useState<'systems' | 'crud' | 'activity'>('crud');
   const [crudSubTab, setCrudSubTab] = useState<'systems' | 'platforms' | 'scenarios' | 'tables'>('systems');
   const [scenarioEditModal, setScenarioEditModal] = useState<any>(null);
-  const [allScenarios, setAllScenarios] = useState<any[]>([]);
   const [allTables, setAllTables] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -48,9 +49,7 @@ export const GestaoPage = () => {
     if (activeTab === 'systems') {
       fetchSuggestions();
     } else if (activeTab === 'crud') {
-      if (crudSubTab === 'scenarios') {
-        fetchAllScenarios();
-      } else if (crudSubTab === 'tables') {
+      if (crudSubTab === 'tables') {
         fetchAllTables();
       }
     }
@@ -79,23 +78,6 @@ export const GestaoPage = () => {
     }
   };
 
-  const fetchAllScenarios = async () => {
-    if (!isAuthenticated) return;
-    setLoading(true);
-    try {
-      const response = await fetch(`${API_BASE}/api/v1/scenarios`, {
-        credentials: 'include',
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setAllScenarios(data.data || []);
-      }
-    } catch (error) {
-      console.error('[GestaoPage] Erro ao buscar cenários:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchAllTables = async () => {
     if (!isAuthenticated) return;
@@ -128,7 +110,17 @@ export const GestaoPage = () => {
       });
 
       if (response.ok) {
-        toast.success('Sistema aprovado com sucesso!');
+        const result = await response.json();
+        
+        // Novo contrato: { success: true, data: { suggestion_id, system_id, path_slug } }
+        // Antigo contrato: { success: true }
+        if (result.data && result.data.system_id) {
+          toast.success(`Sistema aprovado! ID: ${result.data.system_id}`);
+        } else {
+          // Fallback retrocompatível
+          toast.success('Sistema aprovado com sucesso!');
+        }
+        
         fetchSuggestions();
       } else {
         const data = await response.json();
@@ -168,29 +160,6 @@ export const GestaoPage = () => {
       toast.error('Erro ao rejeitar sistema');
     } finally {
       setRejectingSuggestionId(null);
-    }
-  };
-
-  const handleDeleteScenario = async (id: string, name: string) => {
-    if (!isAuthenticated) return;
-    if (!confirm(`Deletar cenário "${name}"? Esta ação não pode ser desfeita.`)) return;
-
-    try {
-      const response = await fetch(`${API_BASE}/api/v1/scenarios/admin/${id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-
-      if (response.ok) {
-        toast.success('Cenário deletado!');
-        fetchAllScenarios();
-      } else {
-        const data = await response.json();
-        toast.error(data.error || 'Erro ao deletar cenário');
-      }
-    } catch (error) {
-      console.error('[GestaoPage] Erro ao deletar cenário:', error);
-      toast.error('Erro ao deletar cenário');
     }
   };
 
@@ -283,10 +252,6 @@ export const GestaoPage = () => {
     return null;
   }
 
-  const filteredScenarios = allScenarios.filter(s =>
-    s.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   const filteredTables = allTables.filter(t =>
     t.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -318,6 +283,16 @@ export const GestaoPage = () => {
             }`}
           >
             Sugestões de Sistemas
+          </button>
+          <button
+            onClick={() => setActiveTab('activity')}
+            className={`px-6 py-3 font-semibold transition-all ${
+              activeTab === 'activity'
+                ? 'text-white border-b-2 border-blue-500'
+                : 'text-white/60 hover:text-white/80'
+            }`}
+          >
+            Atividades
           </button>
         </div>
 
@@ -367,57 +342,13 @@ export const GestaoPage = () => {
               </button>
             </div>
 
-            {crudSubTab === 'systems' && <SystemsPage />}
+            {crudSubTab === 'systems' && (
+              <SystemsAdminView />
+            )}
             {crudSubTab === 'platforms' && <PlatformsPage />}
 
             {crudSubTab === 'scenarios' && (
-              <div>
-                <div className="mb-4 flex gap-3">
-                  <input
-                    type="text"
-                    placeholder="Buscar cenários..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="flex-1 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40"
-                  />
-                  <button
-                    onClick={() => setScenarioEditModal({})}
-                    className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors"
-                  >
-                    + Criar Cenário
-                  </button>
-                </div>
-                {loading ? (
-                  <div className="text-white/60 text-center py-8">Carregando...</div>
-                ) : (
-                  <div className="space-y-3">
-                    {filteredScenarios.map((scenario) => (
-                      <div key={scenario.id} className="bg-white/5 border border-white/10 rounded-lg p-4 flex justify-between items-center">
-                        <div>
-                          <h3 className="text-white font-semibold">{scenario.name}</h3>
-                          {scenario.description && (
-                            <p className="text-white/60 text-sm mt-1">{scenario.description}</p>
-                          )}
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => setScenarioEditModal(scenario)}
-                            className="p-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-                          >
-                            <Edit className="w-4 h-4 text-white" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteScenario(scenario.id, scenario.name)}
-                            className="p-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4 text-white" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <ScenariosAdminView />
             )}
 
             {crudSubTab === 'tables' && (
@@ -490,6 +421,10 @@ export const GestaoPage = () => {
               </div>
             )}
           </div>
+        )}
+
+        {activeTab === 'activity' && (
+          <ActivityPanel />
         )}
 
         {activeTab === 'systems' && (
@@ -586,7 +521,6 @@ export const GestaoPage = () => {
           onClose={() => setScenarioEditModal(null)}
           onSuccess={() => {
             setScenarioEditModal(null);
-            fetchAllScenarios();
           }}
         />
       )}

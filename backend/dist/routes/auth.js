@@ -8,6 +8,7 @@ const google_auth_library_1 = require("google-auth-library");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const db_1 = require("../db");
 const auth_1 = require("../middleware/auth");
+const activityLogger_1 = require("../services/activityLogger");
 const router = (0, express_1.Router)();
 const requiredEnv = [
     'GOOGLE_CLIENT_ID',
@@ -123,15 +124,29 @@ router.get('/google/callback', async (req, res) => {
                     .returningAll()
                     .executeTakeFirstOrThrow();
                 user = newUser;
+                const displayName = userInfo.name || userInfo.given_name || 'Jogador Aventureiro';
                 await trx
                     .insertInto('profiles')
                     .values({
                     user_id: user.id,
-                    display_name: userInfo.name || userInfo.given_name || 'Jogador Aventureiro',
+                    display_name: displayName,
                     bio: null,
                     avatar_url: userInfo.picture || null,
                 })
                     .execute();
+                await (0, activityLogger_1.logActivity)({
+                    actorId: null,
+                    action: 'user.registered',
+                    entityType: 'user',
+                    entityId: user.id,
+                    entityLabel: displayName,
+                    targetUserId: user.id,
+                    summary: `${displayName} registrou-se na comunidade.`,
+                    metadata: {
+                        provider: 'google',
+                        email: newUser.email,
+                    },
+                }, trx);
             });
         }
         else if (tokens.refresh_token) {

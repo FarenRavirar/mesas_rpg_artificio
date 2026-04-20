@@ -5,7 +5,9 @@ import { TableCardComponent, TableCardSkeleton } from '../components/TableCard';
 import { FilterDrawer } from '../components/FilterDrawer';
 import { ActiveFiltersChips } from '../components/ActiveFiltersChips';
 import { ResultsHeader } from '../components/ResultsHeader';
+import { SystemTreeSelector } from '../components/SystemTreeSelector';
 import type { CatalogSeal } from '../types/tables';
+import type { SystemTreeNode } from '../types/systems';
 import { applySeo } from '../utils/seo';
 import { useCatalogTables } from '../hooks/useCatalogTables';
 import { useCatalogFilters } from '../hooks/useCatalogFilters';
@@ -14,21 +16,36 @@ import type { StyleOption } from '../services/catalogService';
 // Constantes de validação (compartilhadas com parser)
 const VALID_STYLES: StyleOption[] = ['Narrativo', 'Combate intenso', 'Investigação', 'Roleplay pesado', 'Sandbox', 'Horror'];
 
-interface SystemOption {
-  id: string;
-  name: string;
-  slug: string;
-}
-
 export const CatalogoPage = () => {
   const [searchParams] = useSearchParams();
 
   // STATE - URL-driven filters (hook genérico)
   const [filters, setFilters] = useCatalogFilters();
 
-  // STATE - Apenas sistemas (carregados separadamente) e drawer mobile
-  const [systems, setSystems] = useState<SystemOption[]>([]);
+  // STATE - Árvore de sistemas e busca
+  const [systemsTree, setSystemsTree] = useState<SystemTreeNode[]>([]);
+  const [systemSearch, setSystemSearch] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  // Flatten tree para mapear ID -> slug
+  const systemsMap = useMemo(() => {
+    const map = new Map<string, string>();
+    const flatten = (nodes: SystemTreeNode[]) => {
+      for (const node of nodes) {
+        map.set(node.id, node.slug);
+        if (node.children) flatten(node.children);
+      }
+    };
+    flatten(systemsTree);
+    return map;
+  }, [systemsTree]);
+
+  // Converter slug do filtro para ID (para SystemTreeSelector)
+  const selectedSystemIds = useMemo(() => {
+    if (!filters.system) return [];
+    const entry = Array.from(systemsMap.entries()).find(([_, slug]) => slug === filters.system);
+    return entry ? [entry[0]] : [];
+  }, [filters.system, systemsMap]);
 
   // ============================================================================
   // DATA - React Query
@@ -93,6 +110,14 @@ export const CatalogoPage = () => {
     }));
   };
 
+  const handleSystemToggle = (systemId: string) => {
+    const slug = systemsMap.get(systemId);
+    setFilters(prev => ({
+      ...prev,
+      system: slug || '',
+    }));
+  };
+
   // ============================================================================
   // COMPUTED
   // ============================================================================
@@ -110,8 +135,19 @@ export const CatalogoPage = () => {
   }, [filters]);
 
   const selectedSystemName = useMemo(() => {
-    return systems.find((s) => s.slug === filters.system)?.name;
-  }, [systems, filters.system]);
+    if (!filters.system) return undefined;
+    const findName = (nodes: SystemTreeNode[]): string | undefined => {
+      for (const node of nodes) {
+        if (node.slug === filters.system) return node.name;
+        if (node.children) {
+          const found = findName(node.children);
+          if (found) return found;
+        }
+      }
+      return undefined;
+    };
+    return findName(systemsTree);
+  }, [systemsTree, filters.system]);
 
   // ============================================================================
   // EFFECTS
@@ -125,20 +161,20 @@ export const CatalogoPage = () => {
     );
   }, []);
 
-  // Load systems
+  // Load systems tree
   useEffect(() => {
-    const loadSystems = async () => {
+    const loadSystemsTree = async () => {
       try {
-        const res = await fetch('/api/v1/systems');
+        const res = await fetch('/api/v1/systems?view=tree');
         if (!res.ok) throw new Error('Erro ao carregar sistemas');
         const json = await res.json();
-        setSystems(json.data ?? []);
+        setSystemsTree(json.data ?? []);
       } catch (err) {
-        console.error('[CatalogoPage] systems', err);
+        console.error('[CatalogoPage] systems tree', err);
       }
     };
 
-    loadSystems();
+    loadSystemsTree();
   }, []);
 
   // Scroll to top quando filtros mudam (não na paginação)
@@ -192,20 +228,21 @@ export const CatalogoPage = () => {
             </div>
           </div>
 
-          {/* ZONA 2: Dropdowns */}
+          {/* ZONA 2: Seletor de Sistema */}
+          <div className="mb-3">
+            <SystemTreeSelector
+              tree={systemsTree}
+              selectedIds={selectedSystemIds}
+              onToggle={handleSystemToggle}
+              search={systemSearch}
+              onSearchChange={setSystemSearch}
+              idPrefix="catalog-desktop"
+              singleSelect={true}
+            />
+          </div>
+
+          {/* ZONA 3: Outros Filtros */}
           <div className="flex items-center gap-2 mb-3 flex-wrap">
-            <select
-              value={filters.system}
-              onChange={(e) => setFilters(prev => ({ ...prev, system: e.target.value }))}
-              className="rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
-            >
-              <option value="">Todos os sistemas</option>
-              {systems.map((item) => (
-                <option key={item.id} value={item.slug}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
 
             <select
               value={filters.modality}
@@ -331,18 +368,15 @@ export const CatalogoPage = () => {
 
         {/* Filtros */}
         <div className="space-y-3">
-          <select
-            value={filters.system}
-            onChange={(e) => setFilters(prev => ({ ...prev, system: e.target.value }))}
-            className="w-full rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
-          >
-            <option value="">Todos os sistemas</option>
-            {systems.map((item) => (
-              <option key={item.id} value={item.slug}>
-                {item.name}
-              </option>
-            ))}
-          </select>
+          <SystemTreeSelector
+            tree={systemsTree}
+            selectedIds={selectedSystemIds}
+            onToggle={handleSystemToggle}
+            search={systemSearch}
+            onSearchChange={setSystemSearch}
+            idPrefix="catalog-mobile"
+            singleSelect={true}
+          />
 
           <select
             value={filters.modality}

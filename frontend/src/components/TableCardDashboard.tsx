@@ -1,4 +1,5 @@
 import { getSlotsVisualState } from '../utils/slots';
+import { SystemBadge } from './SystemBadge';
 import bannerPlaceholder from '../assets/banner_placeholder.webp';
 
 interface TableMetrics {
@@ -18,6 +19,8 @@ interface MyTableEnhanced {
   slots_filled: number;
   slots_open?: number; // REQ-02: Vagas abertas para recrutamento
   system_name: string | null;
+  system_logo_filename?: string | null;
+  system_website_url?: string | null;
   image_url?: string | null;
   metrics?: TableMetrics;
   vtt_platform?: {
@@ -88,19 +91,39 @@ export function TableCardDashboard({
         />
 
         {(table.modality === 'online' || table.modality === 'hibrida') && table.vtt_platform?.logo_filename && (
-          <span
-            className="absolute bottom-2 right-2 h-8 min-w-8 px-1.5 rounded-md bg-black/55 border border-white/20 backdrop-blur-sm inline-flex items-center justify-center"
-            title={table.vtt_platform.name}
-          >
-            <img
-              src={`/vtt-logos/${table.vtt_platform.logo_filename}`}
-              alt={table.vtt_platform.name}
-              className="h-[18px] w-auto object-contain"
-              onError={(event) => {
-                event.currentTarget.parentElement?.classList.add('hidden');
-              }}
-            />
-          </span>
+          table.vtt_platform.website_url ? (
+            <a
+              href={table.vtt_platform.website_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="absolute bottom-2 right-2 h-8 min-w-8 px-1.5 rounded-md bg-black/55 border border-white/20 backdrop-blur-sm inline-flex items-center justify-center hover:bg-black/70 hover:border-white/40 transition-colors"
+              title={`${table.vtt_platform.name} - Abrir site oficial`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={`/vtt-logos/${table.vtt_platform.logo_filename}`}
+                alt={table.vtt_platform.name}
+                className="h-[18px] w-auto object-contain"
+                onError={(event) => {
+                  event.currentTarget.parentElement?.classList.add('hidden');
+                }}
+              />
+            </a>
+          ) : (
+            <span
+              className="absolute bottom-2 right-2 h-8 min-w-8 px-1.5 rounded-md bg-black/55 border border-white/20 backdrop-blur-sm inline-flex items-center justify-center"
+              title={table.vtt_platform.name}
+            >
+              <img
+                src={`/vtt-logos/${table.vtt_platform.logo_filename}`}
+                alt={table.vtt_platform.name}
+                className="h-[18px] w-auto object-contain"
+                onError={(event) => {
+                  event.currentTarget.parentElement?.classList.add('hidden');
+                }}
+              />
+            </span>
+          )
         )}
       </a>
 
@@ -114,9 +137,19 @@ export function TableCardDashboard({
         >
           {table.title}
         </a>
-        <p className="text-xs text-white/50 mt-1">
-          {table.system_name ?? 'Sistema livre'} · {table.modality}
-        </p>
+        <div className="flex items-center gap-2 text-xs text-white/50 mt-1">
+          {table.system_name && (
+            <SystemBadge
+              name={table.system_name}
+              logoFilename={table.system_logo_filename}
+              websiteUrl={table.system_website_url}
+              className="!max-w-none !text-[10px]"
+            />
+          )}
+          {!table.system_name && <span>Sistema livre</span>}
+          <span>·</span>
+          <span>{table.modality}</span>
+        </div>
       </div>
 
       {/* STATUS HUMANO */}

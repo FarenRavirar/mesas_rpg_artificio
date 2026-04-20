@@ -86,6 +86,8 @@ export interface TableViewModel {
 
   // Decisão rápida (Hero)
   system: string;
+  systemLogoFilename?: string | null;
+  systemWebsiteUrl?: string | null;
   experience: string;
   modality: string;
 
@@ -109,6 +111,13 @@ export interface TableViewModel {
   masterSlug?: string;
   masterAvatar?: string;
   masterBio?: string;
+  masterVttPlatforms?: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    logo_filename: string | null;
+    website_url: string | null;
+  }>;
 
   // Horários
   schedules: TableSchedule[];

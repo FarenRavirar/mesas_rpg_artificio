@@ -3,7 +3,35 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const auth_1 = require("../middleware/auth");
 const db_1 = require("../db");
+const activityLogger_1 = require("../services/activityLogger");
 const router = (0, express_1.Router)();
+async function resolveActorName(userId) {
+    try {
+        const profile = await db_1.db
+            .selectFrom('profiles')
+            .select('display_name')
+            .where('user_id', '=', userId)
+            .executeTakeFirst();
+        if (profile?.display_name && profile.display_name.trim().length > 0) {
+            return profile.display_name.trim();
+        }
+        const user = await db_1.db
+            .selectFrom('users')
+            .select(['username', 'email'])
+            .where('id', '=', userId)
+            .executeTakeFirst();
+        if (user?.username && user.username.trim().length > 0) {
+            return user.username.trim();
+        }
+        if (user?.email) {
+            return user.email.split('@')[0];
+        }
+    }
+    catch (error) {
+        console.error('[systemSuggestions][resolveActorName]', error);
+    }
+    return 'Usuário';
+}
 router.use(auth_1.authMiddleware);
 // POST /api/v1/system-suggestions - Criar sugestão
 router.post('/', async (req, res) => {
@@ -42,6 +70,25 @@ router.post('/', async (req, res) => {
         })
             .returningAll()
             .executeTakeFirst();
+        if (newSuggestion) {
+            const userName = await resolveActorName(userId);
+            void (0, activityLogger_1.logActivity)({
+                actorId: userId,
+                actorRole: req.user?.role,
+                action: 'system_suggestion.created',
+                entityType: 'system_suggestion',
+                entityId: newSuggestion.id,
+                entityLabel: newSuggestion.name,
+                targetUserId: userId,
+                summary: `${userName} sugeriu o sistema "${newSuggestion.name}".`,
+                metadata: {
+                    suggestion_id: newSuggestion.id,
+                    node_type: newSuggestion.node_type,
+                    parent_id: newSuggestion.parent_id,
+                    name_pt: newSuggestion.name_pt,
+                },
+            });
+        }
         return res.status(201).json({ data: newSuggestion });
     }
     catch (error) {

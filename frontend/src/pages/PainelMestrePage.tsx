@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent, InputHTMLAttributes } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PlusCircle, ChevronRight, MapPin, Sparkles, PencilLine } from 'lucide-react';
@@ -9,6 +9,9 @@ import { TableCardDashboard } from '../components/TableCardDashboard';
 import { LinksManager } from '../components/LinksManager';
 import { EditGmProfileForm } from './Painel/EditGmProfileForm';
 import { HelpCenter } from '../components/HelpCenter';
+import { VttPlatformsEditor } from '../components/mestre/VttPlatformsEditor';
+import { ContactMethodsEditor } from '../components/mestre/ContactMethodsEditor';
+import { GmInsightsDashboard } from '../components/mestre/GmInsightsDashboard';
 // Componente refatorado
 import { CreateTableForm } from '../features/create-table/components/CreateTableForm';
 
@@ -37,6 +40,13 @@ interface GmProfile {
   specialties: string[];
   tables_count: number;
   avg_rating: number | null;
+  preferred_vtt_platforms?: string[];
+  contact_methods?: Array<{
+    channel: 'whatsapp' | 'email' | 'discord' | 'form';
+    value: string;
+    label?: string;
+    discord_server_url?: string;
+  }>;
 }
 
 interface MyTable {
@@ -197,16 +207,6 @@ function CreateGmProfileForm({ onSuccess }: { onSuccess: () => void }) {
         {loading ? 'Criando perfil...' : 'Criar Perfil de Mestre'}
       </button>
     </form>
-  );
-}
-
-// Componente: Card de KPI
-function StatCard({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-      <p className="text-sm text-white/50 mb-2">{label}</p>
-      <p className="text-3xl font-bold text-white">{value}</p>
-    </div>
   );
 }
 
@@ -382,22 +382,6 @@ export const PainelMestrePage = () => {
   };
 
   // KPIs antigos removidos - agora usando métricas de engajamento
-
-  // KPIs de métricas
-  const totalViews = useMemo(
-    () => myTables.reduce((acc, table) => acc + (table.metrics?.views ?? 0), 0),
-    [myTables]
-  );
-
-  const totalContacts = useMemo(
-    () => myTables.reduce((acc, table) => acc + (table.metrics?.contacts ?? 0), 0),
-    [myTables]
-  );
-
-  const conversionRate = useMemo(
-    () => totalViews > 0 ? ((totalContacts / totalViews) * 100).toFixed(1) : '0.0',
-    [totalViews, totalContacts]
-  );
 
 
   const handleToggleTableStatus = async (tableId: string, currentStatus: string, title: string) => {
@@ -596,13 +580,60 @@ export const PainelMestrePage = () => {
               </div>
             </div>
 
-            {/* DASHBOARD DE MÉTRICAS */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <StatCard label="👁️ Visualizações" value={totalViews} />
-              <StatCard label="💬 Contatos" value={totalContacts} />
-              <StatCard label="📈 Conversão" value={`${conversionRate}%`} />
-            </div>
+            {/* DASHBOARD DE INSIGHTS COMPLETO */}
+            {gmProfile && (
+              <section className="space-y-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-white">📊 Insights das suas Mesas</h2>
+                  <p className="text-sm text-white/50 mt-1">
+                    Acompanhe o desempenho e receba recomendações para otimizar suas mesas
+                  </p>
+                </div>
+                <GmInsightsDashboard />
+              </section>
+            )}
 
+            {/* Contact Methods Editor - PRIORIDADE: Contato é o principal */}
+            {gmProfile && (
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <ContactMethodsEditor
+                  contacts={gmProfile.contact_methods || []}
+                  onSave={async (contacts) => {
+                    const res = await fetch(`${API_BASE}/api/v1/gm/profile`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      credentials: 'include',
+                      body: JSON.stringify({ contact_methods: contacts }),
+                    });
+                    if (!res.ok) throw new Error('Erro ao salvar contatos');
+                    toast.success('Contatos atualizados!');
+                    refreshData();
+                  }}
+                />
+              </section>
+            )}
+
+            {/* VTT Platforms Editor */}
+            {gmProfile && (
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <VttPlatformsEditor
+                  selectedPlatforms={gmProfile.preferred_vtt_platforms || []}
+                  onSave={async (platformIds) => {
+                    const res = await fetch(`${API_BASE}/api/v1/gm/profile`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      credentials: 'include',
+                      body: JSON.stringify({ preferred_vtt_platforms: platformIds }),
+                    });
+                    if (!res.ok) throw new Error('Erro ao salvar plataformas');
+                    toast.success('Plataformas atualizadas!');
+                    refreshData();
+                  }}
+                />
+              </section>
+            )}
+
+            {/* Links - Após contatos */}
             {gmProfile && (
               <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
                 <LinksManager />

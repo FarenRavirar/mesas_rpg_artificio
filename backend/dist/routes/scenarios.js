@@ -17,31 +17,63 @@ const slugify = (value) => {
         .replace(/-+/g, '-');
 };
 // GET /api/v1/scenarios — Listar todos os cenários
+// Suporta paginação cursor-based: ?limit=50&cursor=abc123
 router.get('/', async (req, res) => {
     const search = typeof req.query.search === 'string'
         ? req.query.search
         : typeof req.query.q === 'string'
             ? req.query.q
             : '';
+    // Paginação cursor-based
+    const limit = req.query.limit ? parseInt(req.query.limit, 10) : undefined;
+    const cursor = typeof req.query.cursor === 'string' ? req.query.cursor : undefined;
     try {
+        const shouldPaginate = limit !== undefined && limit > 0;
         let query = db_1.db
             .selectFrom('scenarios')
             .select(['id', 'name', 'name_pt', 'slug', 'subgenres'])
             .orderBy('name', 'asc');
+        // Aplicar cursor (continuar de onde parou)
+        if (shouldPaginate && cursor) {
+            query = query.where('id', '>', cursor);
+        }
+        // Aplicar limit (+1 para detectar has_more)
+        if (shouldPaginate) {
+            query = query.limit(limit + 1);
+        }
+        const scenarios = await query.execute();
+        // Detectar se há mais páginas
+        let hasMore = false;
+        let nextCursor = null;
+        if (shouldPaginate && scenarios.length > limit) {
+            hasMore = true;
+            scenarios.pop(); // Remove o item extra
+            nextCursor = scenarios[scenarios.length - 1]?.id || null;
+        }
         // Busca full-text se houver query
         if (search.trim().length > 0) {
             const normalizedSearch = normalizeText(search);
-            const scenarios = await query.execute();
             // Filtrar no backend (busca em name, slug e subgenres)
             const filtered = scenarios.filter((scenario) => {
                 return normalizeText(scenario.name).includes(normalizedSearch)
                     || normalizeText(scenario.slug).includes(normalizedSearch)
                     || scenario.subgenres.some((subgenre) => normalizeText(subgenre).includes(normalizedSearch));
             });
-            return res.json({ data: filtered });
+            return res.json({
+                data: filtered,
+                pagination: {
+                    next_cursor: shouldPaginate ? nextCursor : null,
+                    has_more: shouldPaginate ? hasMore : false,
+                },
+            });
         }
-        const scenarios = await query.execute();
-        return res.json({ data: scenarios });
+        return res.json({
+            data: scenarios,
+            pagination: {
+                next_cursor: shouldPaginate ? nextCursor : null,
+                has_more: shouldPaginate ? hasMore : false,
+            },
+        });
     }
     catch (error) {
         console.error('[GET /scenarios]', error);

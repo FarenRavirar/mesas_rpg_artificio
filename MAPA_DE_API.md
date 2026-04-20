@@ -2,10 +2,17 @@
 
 > **OBRIGATÓRIO:** Toda nova rota adicionada ou removida da API **deve** ser refletida neste documento. Agentes de IA estão proibidos de concluir tarefas de backend sem atualizar este arquivo.
 
+### SERVER CORE (`server.ts`)
+| Metodo | Endpoint | Status | Chamado por (Frontend) |
+|---|---|---|---|
+| **GET** | `/health` | ❌ Pendente/Front | - |
+
 ### ADMINPROFILE (`routes/adminProfile.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
 |---|---|---|---|
+| **PATCH** | `/users/:id/covil` | ❌ Pendente/Front | - |
 | **GET** | `/users` | ❌ Pendente/Front | - |
+| **GET** | `/users/:id` | ❌ Pendente/Front | - |
 
 ### ADMINSETTINGSUGGESTIONS (`routes/adminSettingSuggestions.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
@@ -30,9 +37,9 @@
 ### DISCORD (`routes/discord.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
 |---|---|---|---|
-| **GET** | `/discord/connect` | ❌ Pendente/Front | - |
-| **GET** | `/discord/callback` | ❌ Pendente/Front | - |
-| **DELETE** | `/discord/disconnect` | ❌ Pendente/Front | - |
+| **GET** | `/discord/connect` | ✅ Em Uso | ProfileEditPage.tsx (via `/auth/discord/connect`) |
+| **GET** | `/discord/callback` | ✅ Em Uso | Fluxo OAuth do Discord (redirecionamento externo) |
+| **DELETE** | `/discord/disconnect` | ✅ Em Uso | ProfileEditPage.tsx (via `/auth/discord/disconnect`) |
 | **POST** | `/discord/verify-covil` | ❌ Pendente/Front | - |
 
 ### GM (`routes/gm.ts`)
@@ -45,7 +52,7 @@
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
 |---|---|---|---|
 | **POST** | `/profile` | ✅ Em Uso | PainelMestrePage.tsx (CreateGmProfileForm) |
-| **PUT** | `/profile` | ❌ Pendente/Front | - (sem consumidor ativo no frontend) |
+| **PUT** | `/profile` | ✅ Em Uso | VttPlatformsEditor.tsx, ContactMethodsEditor.tsx (via PainelMestrePage.tsx) — **Aceita:** `nickname`, `bio_long`, `languages`, `specialties`, `badges`, `avatar_url`, `banner_url`, `tagline`, `promo_badge_text`, `selling_points`, `closed_group_enabled`, `closed_group_systems`, `closed_group_description`, `closed_group_min_price_cents`, `preferred_vtt_platforms` (UUID[]), `contact_methods` (Array<{channel, value, label?, discord_server_url?}>) — **Validação:** WhatsApp formato internacional (+55XXXXXXXXXXX sem espaços/parênteses/hífens), Email formato válido |
 | **GET** | `/me` | ✅ Em Uso | PainelMestrePage.tsx |
 | **GET** | `/tables/:id` | ✅ Em Uso | PainelMestrePage.tsx — retorno inclui campos canônicos/legados da tabela (`banner_url`, `cover_url`), `vtt_platform_id`, `game_platform_custom`, `communication_platform_id` e `communication_platform` resolvida (`COALESCE(cp.name, t.communication_platform)`); não inclui alias `image_url` |
 | **POST** | `/tables` | ✅ Em Uso | useCreateTableForm.ts, PainelMestrePage.tsx — submit corrigido em 15/04 para `${API_BASE}/api/v1/gm/tables` |
@@ -53,16 +60,124 @@
 | **GET** | `/tables` | ✅ Em Uso | PainelMestrePage.tsx, TableCardDashboard.tsx — retorna `image_url` (alias de `banner_url`) e objeto `vtt_platform` (`id`, `name`, `slug`, `logo_filename`, `website_url`) para cards do painel; inclui `communication_platform` resolvida |
 | **PATCH** | `/tables/:id/status` | ✅ Em Uso | PainelMestrePage.tsx (handleToggleTableStatus) - **Aceita apenas:** 'active', 'full', 'cancelled', 'ended' |
 | **DELETE** | `/tables/:id` | ✅ Em Uso | uiHelpers.ts, PainelMestrePage.tsx |
-| **POST** | `/tables/:slug/view` | ❌ Pendente/Front | - |
-| **POST** | `/tables/:id/click` | ❌ Pendente/Front | - |
-| **POST** | `/tables/:id/contact` | ❌ Pendente/Front | - |
-| **POST** | `/tables/:id/favorite` | ❌ Pendente/Front | - |
+| **GET** | `/insights` | ✅ Em Uso | GmInsightsDashboard.tsx (via useGmInsights hook) — Dashboard de insights agregados |
 
+**Detalhes de `GET /insights`:**
+- **Middleware:** `authMiddleware` (apenas dono do perfil GM)
+- **Resposta:**
+  ```json
+  {
+    "overview": {
+      "total_views": number,
+      "total_clicks": number,
+      "total_contacts": number,
+      "total_favorites": number,
+      "ctr": number,
+      "contact_rate": number
+    },
+    "tables": [
+      {
+        "id": string,
+        "slug": string,
+        "title": string,
+        "status": string,
+        "system_name": string | null,
+        "views": number,
+        "clicks": number,
+        "contacts": number,
+        "favorites": number,
+        "ctr": number,
+        "click_breakdown": {
+          "refactored_v4": number,
+          "cta_entrar": number,
+          "link_vtt": number
+        }
+      }
+    ],
+    "recommendations": [
+      {
+        "severity": "high" | "medium" | "low",
+        "table_slug": string,
+        "table_title": string,
+        "message": string
+      }
+    ]
+  }
+  ```
+- **Comportamento:**
+  - Busca todas as mesas ativas/full do GM
+  - Agrega métricas (views, clicks, contacts, favorites)
+  - Calcula CTR (click-through rate) e taxa de contato
+  - Busca breakdown de cliques por variant (refactored_v4, cta_entrar, link_vtt)
+  - Gera recomendações baseadas em performance
+- **Resposta erro:** `{ error: string }` (404 se perfil não encontrado)
+
+### GM - Perfil Público (`routes/gm.ts`)
+| Metodo | Endpoint | Status | Chamado por (Frontend) |
+|---|---|---|---|
+| **GET** | `/:slug` | ✅ Em Uso | useMestre.ts, MestrePage.tsx |
+| **POST** | `/:slug/view` | ✅ Em Uso | MestrePage.tsx |
+| **GET** | `/:slug/insights` | ✅ Em Uso | useMestreInsights.ts, MestrePage.tsx |
+| **POST** | `/:slug/contact` | ✅ Em Uso | MestreContactForm.tsx |
+| **POST** | `/:slug/contact-click` | ✅ Em Uso | useTracking.ts |
+
+**Campos retornados por `GET /:slug`:**
+- Perfil: `id`, `slug`, `display_name`, `bio_long`, `tagline`, `avatar_url`, `banner_url`, `languages`, `specialties`, `badges`, `selling_points`, `promo_badge_text`
+- Prova social: `discord_connected`, `discord_username`, `covil_verified`, `experience_years`, `average_price`, `tables_count`, `avg_rating`, `reviews_count`
+- Grupo fechado: `closed_group` (objeto com `enabled`, `systems`, `description`, `min_price_cents`)
+- **VTT Platforms preferidas:** `preferred_vtt_platforms` (Array<{id, name, slug, logo_filename, website_url}>) — Plataformas que o mestre usa/prefere
+- **Contatos:** `contact_methods` (Array<{channel, value, label?, discord_server_url?}>) — Múltiplos contatos do mestre (WhatsApp, Email, Discord, Formulário)
+- Links: `links` (Array com metadata Open Graph enriquecida)
+- Mesas: `tables` (Array com `system_name`, `system_slug`, `system_logo_filename`, `system_website_url`, `vtt_platform` completo, `contacts`)
+- Contexto: `viewer_context` ({is_owner, is_admin})
+
+**Detalhes de `POST /:slug/contact`:**
+- **Middleware:** `publicRateLimiter` (proteção contra spam)
+- **Body obrigatório:** `{ name: string, email: string, message: string }`
+- **Validações:**
+  - `name`: obrigatório, máximo 100 caracteres
+  - `email`: obrigatório, formato válido (regex: `/^[^\s@]+@[^\s@]+\.[^\s@]+$/`)
+  - `message`: obrigatório, máximo 1000 caracteres
+- **Comportamento:**
+  - Busca email do mestre via slug
+  - Retorna 404 se mestre não encontrado
+  - Retorna 400 se validação falhar
+  - **Status atual:** Apenas registra no console (TODO: implementar envio real de email)
+- **Resposta sucesso:** `{ success: true, message: string }`
+- **Resposta erro:** `{ error: string }`
+
+**Detalhes de `POST /:slug/contact-click`:**
+- **Middleware:** `publicRateLimiter`
+- **Body obrigatório:** `{ channel: string }`
+- **Validações:**
+  - `channel`: deve ser um de: 'whatsapp', 'email', 'discord', 'form'
+  - `slug`: formato válido (alfanumérico com hífens)
+- **Comportamento:**
+  - Busca perfil GM pelo slug
+  - Registra clique no console (TODO: salvar em tabela gm_contact_clicks para analytics)
+  - Retorna 404 se mestre não encontrado
+- **Resposta sucesso:** `{ success: true }`
+- **Resposta erro:** `{ error: string }`
+
+### TABLES - Tracking (`routes/tables.ts`)
+| Metodo | Endpoint | Status | Chamado por (Frontend) |
+|---|---|---|---|
+| **POST** | `/:slug/click` | ✅ Em Uso | TableCard.tsx, TableActionPanel.tsx, useTracking.ts, uiHelpers.ts |
+| **POST** | `/:slug/view` | ✅ Em Uso | MesaPage.tsx |
+| **POST** | `/:slug/contact` | ❌ Não existe no Back | - |
+| **POST** | `/:slug/favorite` | ❌ Não existe no Back | - |
+| **POST** | `/tables/:slug/click` | ❌ Não existe no Back (path legado incorreto) | - |
+| **POST** | `/tables/:slug/view` | ❌ Não existe no Back (path legado incorreto) | - |
 ### ADMIN (`routes/adminTables.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
 |---|---|---|---|
 | **PUT** | `/admin/tables/:id` | ✅ Em Uso | GestaoPage.tsx, PainelMestrePage.tsx |
 | **DELETE** | `/admin/tables/:id` | ✅ Em Uso | GestaoPage.tsx |
+
+### ACTIVITYLOG (`routes/activityLog.ts`)
+| Metodo | Endpoint | Status | Chamado por (Frontend) |
+|---|---|---|---|
+| **GET** | `/admin/activity` | ✅ Em Uso | ActivityPanel.tsx via useActivityLog.ts |
 
 ### LINKS (`routes/links.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
@@ -105,7 +220,8 @@
 ### PROFILE (`routes/profile.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
 |---|---|---|---|
-| **GET** | `/me` | ✅ Em Uso | useProfile.ts, useProfileQuery.ts, PlayerPage.tsx |
+| **GET** | `/:username` | ❌ Não existe no Back | PlayerPage.tsx usa `/api/v1/profile/${username}` |
+| **GET** | `/me` | ✅ Em Uso | useProfile.ts, useProfileQuery.ts |
 | **PATCH** | `/me` | ✅ Em Uso | useProfile.ts, useProfileQuery.ts, PlayerPage.tsx |
 | **PATCH** | `/me/profile` | ✅ Em Uso | useProfile.ts, useProfileQuery.ts, PlayerPage.tsx |
 | **PATCH** | `/me/player` | ✅ Em Uso | useProfile.ts, useProfileQuery.ts, PlayerPage.tsx |
@@ -138,10 +254,30 @@
 ### SYSTEMS (`routes/systems.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
 |---|---|---|---|
-| **GET** | `/` | ✅ Em Uso | SystemEditModal.tsx, UserSystemsSelector.tsx, CreateTableForm.tsx, SystemsPage.tsx, SystemsTree.tsx, useSystems.ts, CatalogoPage.tsx |
-| **POST** | `/admin` | ✅ Em Uso | SystemEditModal.tsx, UserSystemsSelector.tsx, CreateTableForm.tsx, SystemsPage.tsx, SystemsTree.tsx, useSystems.ts, CatalogoPage.tsx |
-| **PUT** | `/admin/:id` | ✅ Em Uso | SystemEditModal.tsx, UserSystemsSelector.tsx, CreateTableForm.tsx, SystemsPage.tsx, SystemsTree.tsx, useSystems.ts, CatalogoPage.tsx |
+| **GET** | `/` | ✅ Em Uso | SystemEditModal.tsx, UserSystemsSelector.tsx, CreateTableForm.tsx, SystemsPage.tsx, SystemsTree.tsx, useSystems.ts, CatalogoPage.tsx — Query params: `view` (tree/flat), `search`, `limit`, `cursor`; retorna contadores agregados: `children_count`, `tables_count`, `aliases_count` (adicionados em 18/04/2026 para UX BigTech) |
+| **POST** | `/admin` | ✅ Em Uso | SystemEditModal.tsx, UserSystemsSelector.tsx, CreateTableForm.tsx, SystemsPage.tsx, SystemsTree.tsx, useSystems.ts, CatalogoPage.tsx — Aceita `logo_filename` e `website_url` (apenas para `node_type='system'`) **[NOVO 18/04/2026]** |
+| **PUT** | `/admin/:id` | ✅ Em Uso | SystemEditModal.tsx, UserSystemsSelector.tsx, CreateTableForm.tsx, SystemsPage.tsx, SystemsTree.tsx, useSystems.ts, CatalogoPage.tsx — Aceita `logo_filename` e `website_url` (apenas para `node_type='system'`) **[NOVO 18/04/2026]** |
 | **DELETE** | `/admin/:id` | ✅ Em Uso | SystemEditModal.tsx, UserSystemsSelector.tsx, CreateTableForm.tsx, SystemsPage.tsx, SystemsTree.tsx, useSystems.ts, CatalogoPage.tsx |
+
+**Divergência Front x Back (confirmada):**
+- Frontend (`CatalogoPage.tsx`) ainda chama `GET /api/v1/systems/tree`.
+- Backend **não** expõe `/api/v1/systems/tree`; a forma suportada é `GET /api/v1/systems?view=tree`.
+
+**Campos retornados por `GET /`:**
+- `id`, `name`, `name_pt`, `slug`, `parent_id`, `node_type`, `depth`, `path_slug`
+- `logo_filename` — String | null (nome do arquivo em `/sys-logos/`, ex: `dnd.svg`) **[NOVO 18/04/2026]**
+- `website_url` — String | null (URL oficial do sistema) **[NOVO 18/04/2026]**
+- `aliases` — Array de strings (aliases do sistema)
+- `has_children` — Boolean (se tem filhos)
+- `children_count` — Number (quantidade de sistemas filhos) **[NOVO 18/04/2026]**
+- `tables_count` — Number (quantidade de mesas usando o sistema) **[NOVO 18/04/2026]**
+- `aliases_count` — Number (quantidade de aliases cadastrados) **[NOVO 18/04/2026]**
+- `children` — Array recursivo (só em `view=tree`)
+
+**Campos aceitos por `POST /admin` e `PUT /admin/:id`:**
+- **Obrigatórios:** `name` (string), `node_type` (string: 'system' | 'edition' | 'variant' | 'subsystem')
+- **Opcionais:** `name_pt` (string | null), `parent_id` (uuid | null), `aliases` (string[])
+- **Opcionais (apenas `node_type='system'`):** `logo_filename` (string | null), `website_url` (string | null)
 
 ### SYSTEMSUGGESTIONS (`routes/systemSuggestions.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
@@ -158,9 +294,20 @@
 ### SYSTEMSUGGESTIONSADMIN (`routes/systemSuggestionsAdmin.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
 |---|---|---|---|
-| **GET** | `/system-suggestions` | ❌ Pendente/Front | - |
-| **PATCH** | `/system-suggestions/:id/approve` | ❌ Pendente/Front | - |
-| **PATCH** | `/system-suggestions/:id/reject` | ❌ Pendente/Front | - |
+| **GET** | `/system-suggestions` | ✅ Em Uso | GestaoPage.tsx — Query params: `status` (pending/approved/rejected/all); retorna sugestões com `node_type`, `rejection_reason`, `user_notified` |
+| **PATCH** | `/system-suggestions/:id/approve` | ✅ Em Uso | GestaoPage.tsx — Materializa sugestão em `systems` + `system_aliases`, cria notificação com `action_url` e `metadata`; retorna `{ success: true, data: { suggestion_id, system_id, path_slug } }` |
+| **PATCH** | `/system-suggestions/:id/reject` | ✅ Em Uso | GestaoPage.tsx — Atualiza status para 'rejected' + `rejection_reason`, cria notificação; retorna `{ success: true }` |
+
+**Campos de notificação (migration_106 - Abril/2026):**
+- `action_url` — URL de ação (ex: `/catalogo?system=[path_slug]`)
+- `metadata` — JSONB com `suggestion_id`, `suggestion_kind`, `system_id`, `path_slug`, `reason` (em rejeição)
+
+### SCENARIOSUGGESTIONSADMIN (`routes/scenarioSuggestionsAdmin.ts`)
+| Metodo | Endpoint | Status | Chamado por (Frontend) |
+|---|---|---|---|
+| **GET** | `/scenario-suggestions` | ❌ Pendente/Front | - |
+| **PATCH** | `/scenario-suggestions/:id/approve` | ❌ Pendente/Front | - |
+| **PATCH** | `/scenario-suggestions/:id/reject` | ❌ Pendente/Front | - |
 
 ### TABLES (`routes/tables.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
@@ -177,6 +324,38 @@
 | **POST** | `/:tableId/schedules` | ❌ Pendente/Front | - |
 | **PUT** | `/:tableId/schedules/:id` | ❌ Pendente/Front | - |
 | **DELETE** | `/:tableId/schedules/:id` | ❌ Pendente/Front | - |
+
+### TABLES - Rotas Públicas (`routes/tables.ts`)
+| Metodo | Endpoint | Status | Chamado por (Frontend) |
+|---|---|---|---|
+| **GET** | `/` | ✅ Em Uso | CatalogoPage.tsx, useTables.ts, useFetchTables.ts, catalogService.ts — Catálogo público de mesas ativas. Query params: `system`, `modality`, `type`, `audience`, `price_type`, `experience_level`, `state`, `city`, `featured`, `search`, `seal`, `sort`, `page`, `limit`, `styles` |
+| **GET** | `/:slug` | ✅ Em Uso | MesaPage.tsx, useMesa.ts, TableCard.tsx — Detalhes de mesa individual |
+| **POST** | `/:slug/view` | ✅ Em Uso | MesaPage.tsx — Registra visualização para métricas |
+| **POST** | `/:slug/click` | ✅ Em Uso | TableCard.tsx, useTracking.ts, uiHelpers.ts — Registra clique para CTR tracking |
+| **POST** | `/:id/contact` | ❌ Não existe no Back | - |
+| **POST** | `/:id/favorite` | ❌ Não existe no Back | - |
+
+**Campos retornados por `GET /` (catálogo):**
+- Identificação: `id`, `slug`, `title`, `description`
+- Sistema: `system_name`, `system_slug`, `system_logo_filename` **[NOVO 18/04/2026]**, `system_website_url` **[NOVO 18/04/2026]**
+- Mestre: `gm_slug`, `gm_avatar_url`, `gm_display_name`, `gm_badges`
+- Vagas: `slots_total`, `slots_filled`, `slots_open`
+- Preço: `price_type`, `price_value`
+- Modalidade: `modality`, `vtt_platform` (objeto com `id`, `name`, `slug`, `logo_filename`, `website_url`), `game_platform_custom`
+- Metadados: `status`, `type`, `audience`, `experience_level`, `language`, `featured`, `is_ddal`, `is_covil`
+- Cenário: `setting_name`, `setting_styles`, `synopsis_narrative`
+- Imagem: `cover_url`, `cover_crop_data`
+- Contatos: `contacts[]` (array de objetos com `channel`, `value`, `label`, `discord_server_url`, `sort_order`)
+
+**Campos retornados por `GET /:slug` (detalhes):**
+- Todos os campos do catálogo +
+- Detalhes: `price_frequency`, `starts_at`, `city`, `state`, `content_warnings`, `safety_tools`
+- Cenário: `scenario_name`
+- Horários: `schedules[]` (array de objetos TableSchedule)
+- Comunicação: `communication_platform`
+- Campos avançados: `master_display_name`, `campaign_length`, `level_range`, `billing_text`, `session_zero_free`, `synopsis`, `style_text`, `listing_excerpt`, `technical_requirements`, `requires_pc`, `requires_camera`, `requires_microphone`
+- Campos editoriais: `synopsis_narrative`, `benefits_text`, `table_gm_bio`
+- DDAL: `ddal_code`, `ddal_name`, `ddal_tier`, `ddal_season`, `ddal_duration`, `ddal_format`, `ddal_org_code`, `ddal_setting`, `ddal_rules_notes`
 
 ### COMMUNICATIONPLATFORMS (`routes/communicationPlatforms.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
@@ -200,7 +379,7 @@
 ### UPLOAD (`routes/upload.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
 |---|---|---|---|
-| **POST** | `/` | ✅ Em Uso | ImageUploader.tsx — upload de imagem via backend com Cloudinary signed (substitui upload direto unsigned) |
+| **POST** | `/upload` | ✅ Em Uso | ImageUploader.tsx, AvatarUploader.tsx, ProfileEditPage.tsx — upload de imagem via backend com Cloudinary signed (substitui upload direto unsigned) |
 
 ### OG (`routes/og.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |

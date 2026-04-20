@@ -207,6 +207,8 @@ export function mapTableToView(table: TableDetail): TableViewModel {
 
     // Decisão rápida
     system: table.system_name ?? 'Sistema livre',
+    systemLogoFilename: table.system_logo_filename ?? undefined,
+    systemWebsiteUrl: table.system_website_url ?? undefined,
     experience: table.experience_level,
     modality: table.modality,
 
@@ -232,6 +234,7 @@ export function mapTableToView(table: TableDetail): TableViewModel {
     // CORREÇÃO A-MED-01 / C-MED-02: Fallback entre bio específica da mesa e bio global do perfil
     // Prioridade: table_gm_bio (bio específica desta mesa) > gm_bio_long (bio global do perfil)
     masterBio: table.table_gm_bio ?? table.gm_bio_long ?? undefined,
+    masterVttPlatforms: table.gm_vtt_platforms ?? undefined,
 
     // Horários
     schedules: table.schedules ?? [],

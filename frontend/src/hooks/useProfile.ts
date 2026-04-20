@@ -55,6 +55,13 @@ export interface GmProfile {
     frequency?: string;
     group_size?: string;
   } | null;
+  preferred_vtt_platforms?: string[];
+  contact_methods?: Array<{
+    channel: 'whatsapp' | 'email' | 'discord' | 'form';
+    value: string;
+    label?: string;
+    discord_server_url?: string;
+  }>;
 }
 
 export interface UserSystem {

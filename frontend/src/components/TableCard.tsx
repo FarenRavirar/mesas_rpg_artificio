@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom';
 import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Dice1, Globe, MapPin } from 'lucide-react';
+import { Globe, MapPin } from 'lucide-react';
 import type { TableCard } from '../types/tables';
 import { getSlotsVisualState } from '../utils/slots';
 import { SlotsIndicator } from './SlotsIndicator';
+import { SystemBadge } from './SystemBadge';
 import bannerPlaceholder from '../assets/banner_placeholder.webp';
 
 const modalityLabels: Record<string, string> = {
@@ -126,19 +127,39 @@ export function TableCardComponent({ table }: { table: TableCard }) {
         )}
 
         {(table.modality === 'online' || table.modality === 'hibrida') && table.vtt_platform?.logo_filename && (
-          <span
-            className="absolute bottom-3 right-3 h-9 min-w-9 px-2 rounded-lg bg-black/55 border border-white/20 backdrop-blur-sm inline-flex items-center justify-center"
-            title={table.vtt_platform.name}
-          >
-            <img
-              src={`/vtt-logos/${table.vtt_platform.logo_filename}`}
-              alt={table.vtt_platform.name}
-              className="h-5 w-auto object-contain"
-              onError={(event) => {
-                event.currentTarget.parentElement?.classList.add('hidden');
-              }}
-            />
-          </span>
+          table.vtt_platform.website_url ? (
+            <a
+              href={table.vtt_platform.website_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="absolute bottom-3 right-3 h-9 min-w-9 px-2 rounded-lg bg-black/55 border border-white/20 backdrop-blur-sm inline-flex items-center justify-center hover:bg-black/70 hover:border-white/40 transition-colors"
+              title={`${table.vtt_platform.name} - Abrir site oficial`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={`/vtt-logos/${table.vtt_platform.logo_filename}`}
+                alt={table.vtt_platform.name}
+                className="h-5 w-auto object-contain"
+                onError={(event) => {
+                  event.currentTarget.parentElement?.classList.add('hidden');
+                }}
+              />
+            </a>
+          ) : (
+            <span
+              className="absolute bottom-3 right-3 h-9 min-w-9 px-2 rounded-lg bg-black/55 border border-white/20 backdrop-blur-sm inline-flex items-center justify-center"
+              title={table.vtt_platform.name}
+            >
+              <img
+                src={`/vtt-logos/${table.vtt_platform.logo_filename}`}
+                alt={table.vtt_platform.name}
+                className="h-5 w-auto object-contain"
+                onError={(event) => {
+                  event.currentTarget.parentElement?.classList.add('hidden');
+                }}
+              />
+            </span>
+          )
         )}
       </div>
 
@@ -146,13 +167,11 @@ export function TableCardComponent({ table }: { table: TableCard }) {
       <div className="flex-1 p-4 flex flex-col">
         <div className="flex items-center gap-2 mb-3 min-h-[34px]">
           {table.system_name && (
-            <span
-              className="flex min-w-0 max-w-[72%] items-center gap-1 px-2 py-1 bg-[#13213f] rounded-md text-xs font-semibold text-[var(--color-artificio-orange)] border border-white/10"
-              title={table.system_name}
-            >
-              <Dice1 className="w-3 h-3 shrink-0" />
-              <span className="truncate whitespace-nowrap">{table.system_name}</span>
-            </span>
+            <SystemBadge
+              name={table.system_name}
+              logoFilename={table.system_logo_filename}
+              websiteUrl={table.system_website_url}
+            />
           )}
           <span className="shrink-0 whitespace-nowrap flex items-center gap-1 px-2 py-1 bg-[#13213f] rounded-md text-xs font-semibold text-white/80 border border-white/10">
             {table.modality === 'online' ? <Globe className="w-3 h-3" /> : <MapPin className="w-3 h-3" />}
@@ -179,9 +198,19 @@ export function TableCardComponent({ table }: { table: TableCard }) {
                   👤
                 </div>
               )}
-              <span className="text-sm text-white/70 font-medium truncate">
-                {table.gm_display_name}
-              </span>
+              {table.gm_slug ? (
+                <Link
+                  to={`/mestre/${table.gm_slug}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-sm text-white/70 hover:text-white font-medium truncate transition-colors hover:underline"
+                >
+                  {table.gm_display_name}
+                </Link>
+              ) : (
+                <span className="text-sm text-white/70 font-medium truncate">
+                  {table.gm_display_name}
+                </span>
+              )}
             </div>
           )}
 

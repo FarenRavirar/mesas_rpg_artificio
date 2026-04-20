@@ -1,6 +1,6 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 17/04/2026 17:20 BRT
+**Última atualização:** 20/04/2026 07:52 BRT
 
 ---
 
@@ -34,21 +34,51 @@
 - **V4 em execução (Passo 8 concluído):** arquivo órfão `frontend/src/components/mestre/MestreWhySection.tsx` removido e busca de referências residuais retornando zero; frontend typecheck sem erros.
 - **V4 em execução (Passos 9–10 concluídos tecnicamente):** rota OG (`backend/src/routes/og.ts`) registrada em `backend/src/server.ts`, `frontend/nginx.conf` com proxy condicional para crawler, `docker-compose.beta.yml` e `docker-compose.prod.yml` com volume compartilhado `frontend_dist_*` + `INDEX_HTML_PATH`/`PUBLIC_SITE_URL`, `frontend/index.html` com fallback SEO/OG/Twitter e novo `EditGmProfileForm` integrado ao `PainelMestrePage`; typecheck backend/frontend sem erros.
 - **✅ Sessão 10 concluída (17/04/2026 17:20):** Resolvidas todas as 3 pendências da Reformulação V4: PENDÊNCIA 1 (CTA dinâmico + Central de Ajuda com 8 seções), PENDÊNCIA 2 (TableCard altura fluida - `min-h-[420px]` removido), PENDÊNCIA 3 (Rota OG extensível `/:type/:slug` com switch case). Documentação técnica 100% sincronizada (`MAPA_DE_API.md`, `ARQUITETURA_PROJETO.md` §17, `Reformulacao_mestre_v4.md` com status 21/21 patches). Changelog atualizado. **Reformulação V4 100% completa.**
+- **✅ Sessão 18_1 concluída (18/04/2026):** Fase 0 (Refatoração UX Admin - Padrão BigTech) completa como pré-requisito para auditoria de sistemas. **Bloco 1:** contadores agregados (`children_count`, `tables_count`, `aliases_count`) adicionados em `GET /api/v1/systems` via 3 left joins; tipos backend/frontend atualizados; `MAPA_DE_API.md` documentado. **Bloco 2:** componente `AdminWorkspaceLayout` criado (layout 3 colunas: workspace + inspector lateral). **Bloco 3:** 4 componentes criados (`CatalogTree`, `CatalogTreeNode`, `NodeTypeBadge`, `EntityCounters`) com árvore interativa, keyboard navigation, filtros e contadores visíveis. **Bloco 4:** 4 componentes criados (`EntityInspector`, `AliasesEditor`, `Breadcrumb`, `Field`) com edição inline, breadcrumb de contexto, slug preview, validação de tipos e dirty state tracking. **Bloco 5:** `CatalogToolbar` criado, hook `useSystems` expandido (fetchTree, createSystem, updateSystem, selectedId), helpers (findInTree, countVisibleInTree). **Bloco 6:** `ScenariosList` criado para cenários (lista vertical sem hierarquia). **Fase 0 100% completa (6/6 blocos).** **Fase 0.1 100% completa:** Passo 1 — criado `SystemsAdminView.tsx`, substituído `<SystemsPage />` por nova estrutura UX BigTech. Passo 2 — criado `ScenariosAdminView.tsx`, substituída renderização inline de cenários. Passo 3 — validação de regressão (Plataformas, Mesas, Sugestões verificadas). **UX BigTech ativada no GestaoPage (3/3 passos).**
 
 
 ---
 
 ## Próxima Ação
 
-1. Deploy para beta das alterações da sessão 10 (Central de Ajuda, TableCard fluido, validações finais).
-2. Validação operacional do OG dinâmico em ambiente real (Facebook Debugger, WhatsApp e Discord).
-3. Teste funcional manual da Central de Ajuda no painel do mestre.
+**Executar deploy em dev (beta) e validar fluxo funcional da atividade admin no ambiente de interface**
 
+1. Publicar alterações para `dev` (beta).
+2. Executar Gate C funcional em beta com eventos reais (`user.registered`, `table.*`, `system_suggestion.*`, `scenario_suggestion.*`).
+3. Rodar testes manuais T1–T13 da FASE D em `/gestao` (aba Atividades/filtros/paginação) após deploy.
 
 ---
 
-
 ## Última Sessão
+
+**Data:** 20/04/2026 07:52 BRT  
+**Tipo:** Execução — Atividade Admin (pré-deploy dev)  
+**Arquivo:** `sessoes/26-04-20_6_atividade-predeploy-dev.md`  
+**O que foi feito:**
+
+### 1. Governança atualizada ✅
+- `AGENTS.md` atualizado: changelog agora obrigatório apenas para mudanças que impactam mestres/usuários finais
+- Mudanças exclusivas de área administrativa interna foram formalmente isentas de changelog
+
+### 2. Revalidação técnica pré-deploy concluída ✅
+- Backend: `npx tsc --noEmit` (exit code 0)
+- Frontend: `npm run build` (exit code 0)
+
+### 3. Estado funcional do Gate C em beta aferido ⚠️
+- Consulta SQL read-only executada em `activity_log` para `user.registered`, `table.*`, `system_suggestion.*`, `scenario_suggestion.*`
+- Resultado atual: `(0 rows)`
+- Conclusão: sem evidência funcional de tráfego real até o momento
+
+### 4. Diretriz operacional registrada ✅
+- Testes T1–T13 e validação funcional ponta a ponta definidos para execução após deploy em dev (beta), conforme comando explícito do usuário
+- `sessoes/adm_atv.md` atualizado com a diretriz e evidências técnicas pré-deploy
+
+**Status:** Pré-requisitos técnicos/documentais executados; validação funcional em ambiente dev permanece pendente de geração de eventos reais após deploy.
+
+
+
+
+---
 
 **Data:** 17/04/2026 17:20 BRT  
 **Tipo:** Resolução de Pendências — Reformulação V4 Finalizada  

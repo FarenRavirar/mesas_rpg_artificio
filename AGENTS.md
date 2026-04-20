@@ -60,6 +60,7 @@ grep -n "padrão" arquivo.md
 | Operação em produção ou beta | `OPERACAO_PRODUCAO.md` | seção relevante |
 | Falha de ambiente, encoding, template | `PRE-FLIGHT_CHECKLIST.md` | arquivo completo |
 | Erro com solução validada | `ERRORS_SOLUTIONS.md` | grep por `E###` |
+| Migrations (criar, aplicar, erros) | `migrations_guide.md` | seção relevante |
 | Backlog de requisitos (produto) | `BACKLOG_OPERACIONAL.md` | Ver Índice ou grep pelo REQ |
 | Fila de execução técnica | `FILA_IMPLEMENTACAO.md` | Ver BACKLOG para detalhes |
 | Índice rápido e checklists | `GUIA_RAPIDO_OPERACIONAL.md` | arquivo completo |
@@ -208,7 +209,9 @@ Nunca registrar no lugar errado.
 
 ### Changelog
 
-Toda mudança visível ao usuário final exige entrada em `database/changelogs.json` antes do deploy.
+Toda mudança visível que impacte **mestres e/ou usuários finais** exige entrada em `database/changelogs.json` antes do deploy.
+
+Mudanças **exclusivas de área administrativa interna** (painel/fluxos apenas de admin) **não exigem** registro em changelog.
 
 **CUIDADO BLOQUEANTE:** Melhorias publicadas na mesma data DEVEM, OBRIGATORIAMENTE, ser unificadas em um único objeto (ex: `YYYY-MM-DD-atualizacoes-do-dia`). É proibido criar ou manter múltiplas entradas JSON dispersas sobre a mesma data de calendário. Aglomere todas as novidades em bullets sob a mesma propriedade "body".
 
@@ -287,6 +290,12 @@ AA-MM-DD_N_<escopo>.md
 - `RESUMO_EXECUCAO.md` atualizado com campo "Última Sessão"
 - `index.md` atualizado com nova sessão
 - Verificar se sessão referenciada no RESUMO_EXECUCAO.md existe (validação)
+
+**Arquivamento de sessões encerradas:**
+- Sessões concluídas permanecem em `/sessoes/` até confirmação explícita do usuário
+- **Somente após o usuário confirmar** que a sessão está encerrada, mover o arquivo para `/sessoes/encerradas/`
+- Atualizar `index.md` com o novo caminho: `encerradas/AA-MM-DD_N_<escopo>.md`
+- Nunca mover sessões automaticamente sem autorização explícita do usuário
 
 ---
 

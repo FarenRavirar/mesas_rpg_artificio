@@ -46,6 +46,19 @@ export interface MestrePublicData {
   experience_years?: number | null;
   average_price?: number | null;
   links?: UserLink[];
+  preferred_vtt_platforms?: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    logo_filename: string | null;
+    website_url: string | null;
+  }>;
+  contact_methods?: Array<{
+    channel: 'whatsapp' | 'email' | 'discord' | 'form';
+    value: string;
+    label?: string;
+    discord_server_url?: string;
+  }>;
   tables: Array<Omit<TableCard, 'gm_slug' | 'gm_avatar_url' | 'gm_display_name'>>;
 }
 

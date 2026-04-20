@@ -1,4 +1,4 @@
-import { Generated, Insertable, Selectable, Updateable } from 'kysely';
+import { ColumnType, Generated, Insertable, Selectable, Updateable } from 'kysely';
 
 export type UserRole = 'visitor' | 'player' | 'gm' | 'admin';
 export type SystemNodeType = 'system' | 'edition' | 'variant' | 'subsystem';
@@ -132,6 +132,8 @@ export interface GmProfilesTable {
   closed_group_systems: Generated<string[]>; // UUID[]
   closed_group_description: string | null;
   closed_group_min_price_cents: number | null;
+  preferred_vtt_platforms: Generated<string[]>; // UUID[] - VTT platforms que o mestre usa/prefere
+  contact_methods: unknown; // JSONB - Array<{ channel: string, value: string, label?: string, discord_server_url?: string }>
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -150,6 +152,8 @@ export interface SystemsTable {
   node_type: Generated<SystemNodeType>;
   depth: Generated<number>;
   path_slug: string | null;
+  logo_filename: string | null;
+  website_url: string | null;
   created_at: Generated<Date>;
 }
 
@@ -181,6 +185,7 @@ export interface ScenariosTable {
   name: string;
   name_pt: string | null;
   slug: string;
+  description: string | null; // Migration 107
   subgenres: Generated<string[]>;
   created_at: Generated<Date>;
 }
@@ -188,6 +193,21 @@ export interface ScenariosTable {
 export type Scenario = Selectable<ScenariosTable>;
 export type NewScenario = Insertable<ScenariosTable>;
 export type ScenarioUpdate = Updateable<ScenariosTable>;
+
+// Scenario Aliases (Migration 107)
+export interface ScenarioAliasesTable {
+  id: Generated<string>;
+  scenario_id: string;
+  alias: string;
+  alias_slug: string;
+  is_official: Generated<boolean>;
+  created_at: Generated<Date>;
+}
+
+export type ScenarioAlias = Selectable<ScenarioAliasesTable>;
+export type NewScenarioAlias = Insertable<ScenarioAliasesTable>;
+export type ScenarioAliasUpdate = Updateable<ScenarioAliasesTable>;
+
 
 export type TableStatus = 'draft' | 'active' | 'full' | 'cancelled' | 'ended' | 'pending_review';
 export type TableType = 'campanha' | 'one-shot' | 'oneshot-serie' | 'aberta';
@@ -357,6 +377,8 @@ export interface ScenarioSuggestionsTable {
   name: string;
   name_pt: string | null;
   description: string | null;
+  aliases: string[] | null;
+  subgenres: Generated<string[]>; // Migration 107
   status: Generated<SuggestionStatus>;
   reviewed_by: string | null;
   reviewed_at: Date | null;
@@ -379,6 +401,8 @@ export interface NotificationsTable {
   title: string;
   message: string;
   link: string | null;
+  action_url: string | null; // Migration 106
+  metadata: Generated<unknown>; // Migration 106 - JSONB
   read: Generated<boolean>;
   created_at: Generated<Date>;
 }
@@ -386,6 +410,20 @@ export interface NotificationsTable {
 export type Notification = Selectable<NotificationsTable>;
 export type NewNotification = Insertable<NotificationsTable>;
 export type NotificationUpdate = Updateable<NotificationsTable>;
+
+export interface ActivityLogTable {
+  id: Generated<string>;
+  actor_id: string | null;
+  actor_role: string | null;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  entity_label: string | null;
+  target_user_id: string | null;
+  summary: string;
+  metadata: ColumnType<Record<string, unknown>, string, string>;
+  created_at: Generated<Date>;
+}
 
 export interface UserLinksTable {
   id: Generated<string>;
@@ -426,6 +464,17 @@ export interface VttPlatformsTable {
 export type VttPlatform = Selectable<VttPlatformsTable>;
 export type NewVttPlatform = Insertable<VttPlatformsTable>;
 export type VttPlatformUpdate = Updateable<VttPlatformsTable>;
+
+// GM Preferred VTT Platforms (Migration 109) - Tabela de junção
+export interface GmPreferredVttPlatformsTable {
+  id: Generated<string>;
+  gm_profile_id: string;
+  vtt_platform_id: string;
+  created_at: Generated<Date>;
+}
+
+export type GmPreferredVttPlatform = Selectable<GmPreferredVttPlatformsTable>;
+export type NewGmPreferredVttPlatform = Insertable<GmPreferredVttPlatformsTable>;
 
 // Communication Platforms (Migration 105)
 export interface CommunicationPlatformsTable {
@@ -474,9 +523,11 @@ export interface Database {
   system_suggestions: SystemSuggestionsTable;
   scenario_suggestions: ScenarioSuggestionsTable;
   notifications: NotificationsTable;
+  activity_log: ActivityLogTable;
   tags: TagsTable;
   platforms: PlatformsTable;
   scenarios: ScenariosTable;
+  scenario_aliases: ScenarioAliasesTable; // Migration 107
   tables: TablesTable;
   table_contacts: TableContactsTable;
   table_schedules: TableSchedulesTable;
@@ -488,14 +539,18 @@ export interface Database {
   gm_profile_view_events: GmProfileViewEventsTable;
   table_metric_events: TableMetricEventsTable;
   table_click_events: TableClickEventsTable; // Migration 007: A/B testing
-  
+
+  // Benchmarks dinâmicos (Migration 113)
+  benchmark_snapshots: BenchmarkSnapshotsTable;
+
   // VTT Platforms (Migration 006)
   vtt_platforms: VttPlatformsTable;
   vtt_platform_suggestions: VttPlatformSuggestionsTable;
+  gm_preferred_vtt_platforms: GmPreferredVttPlatformsTable; // Migration 109
 
   // Communication Platforms (Migration 105)
   communication_platforms: CommunicationPlatformsTable;
-  
+
   // Migration 17: Sistema de Changelog/Atualizações
   update_log: UpdateLogTable;
 }
@@ -515,6 +570,22 @@ export interface TableMetricsTable {
 export type TableMetrics = Selectable<TableMetricsTable>;
 export type NewTableMetrics = Insertable<TableMetricsTable>;
 export type TableMetricsUpdate = Updateable<TableMetricsTable>;
+
+// Migration 113: Snapshots de benchmark dinâmico
+export interface BenchmarkSnapshotsTable {
+  id: Generated<number>;
+  calculated_at: Generated<Date>;
+  segment: Generated<string>;
+  metric: string;
+  p25: string | number;
+  p50: string | number;
+  p75: string | number;
+  sample_size: number;
+}
+
+export type BenchmarkSnapshot = Selectable<BenchmarkSnapshotsTable>;
+export type NewBenchmarkSnapshot = Insertable<BenchmarkSnapshotsTable>;
+export type BenchmarkSnapshotUpdate = Updateable<BenchmarkSnapshotsTable>;
 
 // Migration 108: Métricas de visualização do perfil público do mestre
 export interface GmProfileMetricsTable {

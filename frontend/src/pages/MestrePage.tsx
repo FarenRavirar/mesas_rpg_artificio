@@ -12,6 +12,9 @@ import { MestreRecommendationsSection } from '../components/mestre/MestreRecomme
 import { MestreSellingPoints } from '../components/mestre/MestreSellingPoints';
 import { MestreSkeleton } from '../components/mestre/MestreSkeleton';
 import { MestreTablesSection } from '../components/mestre/MestreTablesSection';
+import { MestreVttPlatforms } from '../components/mestre/MestreVttPlatforms';
+import { MestreContactMethods } from '../components/mestre/MestreContactMethods';
+import { MestreContactForm } from '../components/mestre/MestreContactForm';
 import { applySeo } from '../utils/seo';
 import { useMestre } from '../hooks/useMestre';
 import { useMestreInsights } from '../hooks/useMestreInsights';
@@ -102,6 +105,29 @@ export const MestrePage = () => {
 
       <MestreSellingPoints sellingPoints={profile.selling_points ?? []} />
 
+      {/* PRIORIDADE: Contato é o principal - ANTES de Mesas Disponíveis */}
+      
+      {/* Contact Methods */}
+      {profile.contact_methods && profile.contact_methods.length > 0 && (
+        <section className="container" style={{ marginTop: '3rem' }}>
+          <MestreContactMethods contacts={profile.contact_methods} gmSlug={slug || ''} />
+        </section>
+      )}
+
+      {/* VTT Platforms */}
+      {profile.preferred_vtt_platforms && profile.preferred_vtt_platforms.length > 0 && (
+        <section className="container" style={{ marginTop: '3rem' }}>
+          <MestreVttPlatforms platforms={profile.preferred_vtt_platforms} />
+        </section>
+      )}
+
+      {/* Contact Form */}
+      {profile.contact_methods && profile.contact_methods.some(c => c.channel === 'form') && slug && (
+        <section className="container" style={{ marginTop: '3rem' }}>
+          <MestreContactForm mestreSlug={slug} />
+        </section>
+      )}
+
       <MestreTablesSection mappedTables={mappedTables} />
 
       <MestreClosedGroupSection closedGroup={profile.closed_group} />
@@ -114,6 +140,7 @@ export const MestrePage = () => {
         <MestreRecommendationsSection recommendations={recommendations} />
       )}
 
+      {/* Links - Após contatos */}
       {links.length > 0 && (
         <section id="contato" className="links-section">
           <div className="container">

@@ -11,6 +11,7 @@ import scenariosRoutes from './routes/scenarios';
 import systemSuggestionsRoutes from './routes/systemSuggestions';
 import scenarioSuggestionsRoutes from './routes/scenarioSuggestions';
 import systemSuggestionsAdminRoutes from './routes/systemSuggestionsAdmin';
+import scenarioSuggestionsAdminRoutes from './routes/scenarioSuggestionsAdmin';
 import notificationsRoutes from './routes/notifications';
 import meRoutes from './routes/me';
 import profileRoutes from './routes/profile';
@@ -23,6 +24,7 @@ import vttPlatformsRoutes from './routes/vttPlatforms';
 import communicationPlatformsRoutes from './routes/communicationPlatforms';
 import changelogRoutes from './routes/changelog';
 import adminTablesRoutes from './routes/adminTables';
+import activityLogRoutes from './routes/activityLog';
 import uploadRoutes from './routes/upload';
 import ogRoutes from './routes/og';
 import 'express-async-errors';
@@ -108,6 +110,8 @@ app.use('/api/v1/scenario-suggestions', scenarioSuggestionsRoutes);
 app.use('/api/v1/notifications', notificationsRoutes);
 app.use('/api/v1/admin', adminTablesRoutes);
 app.use('/api/v1/admin', systemSuggestionsAdminRoutes);
+app.use('/api/v1/admin', scenarioSuggestionsAdminRoutes);
+app.use('/api/v1/admin', activityLogRoutes);
 app.use('/api/v1/gm', gmPanelRoutes);
 app.use('/api/v1/gm', gmRoutes);
 app.use('/api/v1/settings', settingsRoutes);
@@ -120,7 +124,26 @@ app.use('/og', ogRoutes);
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('[Global Error]', err);
-  res.status(500).json({ error: 'Erro interno no servidor.' });
+
+  if (res.headersSent) {
+    return next(err);
+  }
+
+  if (err?.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'JSON inválido no corpo da requisição.' });
+  }
+
+  const status = typeof err?.status === 'number'
+    ? err.status
+    : typeof err?.statusCode === 'number'
+      ? err.statusCode
+      : 500;
+
+  if (status >= 500) {
+    return res.status(500).json({ error: 'Erro interno no servidor.' });
+  }
+
+  return res.status(status).json({ error: err?.message || 'Requisição inválida.' });
 });
 
 app.listen(port, () => {
