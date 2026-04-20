@@ -169,17 +169,16 @@ Refatoração elimina os três: enforcer de diretório no CI (fecha #1), documen
 
 ## 7. Clarifications
 
-*(a ser preenchido por `/speckit.clarify`)*
+**Resoluções:**
 
-Temas obrigatórios:
-
-- Comportamento do `preflight-prod` se o SSH falhar (bloqueia o PR ou só posta comentário de aviso?).
-- Quem autoriza `ALLOW_MANUAL_MIGRATIONS=true` em produção (todo mantenedor ou só owner?).
-- Timeout do `pg_advisory_lock`: 30s ou 60s com warning em 30s.
-- Política para migrations antigas sem cabeçalho: migration única de backfill ou edição manual de cada?
-- Formato exato do comentário do `preflight-prod` (template).
-- Paths iniciais do `.github/migration-dir-allowlist` (propostos: `./database/`, `./testes/deploy/fixtures/`, `./specs/**/fixtures/`).
-- Ação quando `reconcile_migrations.sh --mark-applied` é invocado para `version` que já está em `schema_migrations` (idempotente silencioso ou erro?).
+1. **Falha de SSH no preflight-prod:** Bloqueante rígido (falha o job).
+2. **Autorização `ALLOW_MANUAL_MIGRATIONS`:** Qualquer mantenedor com acesso ao manual trigger.
+3. **Timeout `pg_advisory_lock`:** 60s com warning no console aos 30s.
+4. **Migrations antigas sem cabeçalho:** Adicionar cabeçalho editando diretamente os arquivos retroativamente.
+5. **Formato comentário preflight:** Compacto e focado na ação (Orientado ao gate, com check status e diff curto).
+6. **Allowlist inicial:** Mantida a original (`./database/`, `./testes/deploy/fixtures/`, `./specs/**/fixtures/`).
+7. **Idempotência no reconcile_migrations.sh:** Idempotente com sucesso (exit 0) mas com log distinguindo `SKIP` vs `NEW`. Deve rejeitar mark-applied se não houver `.sql` correspondente.
+8. **Prevenção de Perdas:** Todos os bancos de dados (beta e prod) devem passar por backup documentado no filesystem antes que a fase 2 ou as refatorações impactem o ambiente vivo.
 
 ---
 

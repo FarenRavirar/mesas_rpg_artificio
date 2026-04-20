@@ -184,7 +184,7 @@ fi
 
 **Proteções:**
 - Em produção sem `--force`: recusa.
-- Se `version` já existe em `schema_migrations`: idempotente silencioso (resposta da Clarify).
+- Se `version` já existe em `schema_migrations`: idempotente com log explícito `SKIP — already present`; exit code 0.
 - Registra `applied_by = "reconcile:$(whoami)@$(hostname)"`.
 
 ---

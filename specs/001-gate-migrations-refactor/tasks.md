@@ -56,6 +56,11 @@
 - **Arquivos:** `.github/migration-dir-allowlist` (criar).
 - **Done:** arquivo contém minimamente `./database/`, `./testes/deploy/fixtures/`, `./specs/**/fixtures/`.
 
+### T008: Executar e registrar backups (Beta e Prod)
+- **Ação:** Realizar dump completo do banco de dados na VM para beta e prod. Registrar os caminhos absolutos dos arquivos de backup no arquivo `RESUMO_EXECUCAO.md` para garantir rollback seguro se a refatoração falhar.
+- **Arquivos:** via SSH (bash commands) e atualização em `RESUMO_EXECUCAO.md`.
+- **Done:** Backups criados com sucesso com tamanho > 0 bytes e caminhos registrados.
+
 **Checkpoint Fase 1:**
 ```
 git add database/README.md scripts/deploy/apply_required_migrations.sh.bak .github/migration-dir-allowlist specs/001-gate-migrations-refactor/
@@ -177,11 +182,11 @@ Rodar suíte local, confirmar RED.
 ### T027: `reconcile_migrations.sh`
 - **Ação:** subcomandos:
   - `--list <compose> <db-service>`: mostra estado atual (disco + banco + diff);
-  - `--mark-applied <version> <compose> <db-service>`: insere em `schema_migrations` sem rodar SQL; idempotente silencioso se já existe; registra `applied_by = "reconcile:$(whoami)@$(hostname)"`.
+  - `--mark-applied <version> <compose> <db-service>`: insere em `schema_migrations` sem rodar SQL. Idempotente com log `SKIP` explícito se já existe (exit 0); log `NEW` quando insere; rejeita se `version` não tem arquivo `.sql` correspondente em `./database/`; registra `applied_by = "reconcile:$(whoami)@$(hostname)"`.
   Proteção: em ambiente-prod sem `--force`, recusa.
 - **Arquivos:** `scripts/deploy/reconcile_migrations.sh`.
 - **Depende de:** T020.
-- **Done:** teste manual com postgres descartável mostra registros inseridos sem aplicar SQL.
+- **Done:** teste manual com postgres descartável mostra registros inseridos sem aplicar SQL; reject the version gracefully if .sql is missing.
 
 ### T028: `preflight_prod.sh`
 - **Ação:** roda no runner. Via SSH:
