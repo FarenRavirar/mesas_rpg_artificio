@@ -32,7 +32,8 @@
 ## 5. Convenções
 - Idioma SDD: pt-BR
 - PR policy: PR por feature spec completa
-- Testes: estritos localmente/unidade quando independentes, ou integrados em dev quando exigirem banco de dados/VM/acessos externos
+- Testes globais: estritos localmente/unidade quando independentes, ou integrados em dev quando exigirem banco de dados/VM/acessos externos
+- Testes Shell (Red/Green): Obrigatoriamente rodados em Git Bash (no Windows) ou WSL. CI sempre usa ubuntu-latest. O agente DEVE aferir a disponibilidade do binário testador no ambiente local antes de declarar avanço nas Fases 2 ou 3. Um teste não rodado é sempre BLOCKED, nunca PARTIAL.
 
 ## 6. Guardrails técnicos (auto-aplicados, não perguntar)
 - APIs HTTP: status codes 400, 401, 403, 404, 409, 422, 429, 500 sempre.
