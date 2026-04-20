@@ -56,9 +56,20 @@ Quando o agente disser ou fizer estas coisas, PARAR e investigar:
 - Teste com assert_failure sem assertion de conteúdo → F05
 - git checkout/reset em arquivo versionado sem reporte → F13
 - Declaração BLOCKED por binário antes de verificar remoto → F10
+- Nenhum commit em sessoes/ após 3+ commits de feature → F15 (sessão 
+  não está sendo atualizada em tempo real)
 
 ### Alertas de output
 - git status mostrando modificações não mencionadas na narrativa → F08
 - Encoding Unicode text with CRLF/LF line terminators → F11
 - Divergência entre schema SQL e consumers em shell/TS → F09
 - Lista de arquivos com números duplicados (migrations, specs, etc.) → F14
+
+## Regra de ouro pós-F15
+
+A cada 3 commits de feature (ou a cada mudança de fase), verificar:
+   git log --since="2 hours ago" --name-only | grep -c "^sessoes/"
+
+Se retornar 0 após 3+ commits de feature, disparar alerta F15 
+imediatamente. O arquivo de sessão é o único ponto de recuperação 
+narrativa se o ambiente local falhar.
