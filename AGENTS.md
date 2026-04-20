@@ -377,3 +377,8 @@ Este protocolo é obrigatório para TODA execução de ferramenta, sem exceção
 - NUNCA usar `ls` → usar `list_dir`
 - NUNCA usar `cat` para visualizar → usar `view_file`
 - NUNCA usar `sed` para editar → usar ferramentas de edição
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+<!-- SPECKIT END -->
