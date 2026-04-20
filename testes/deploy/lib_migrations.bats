@@ -64,8 +64,49 @@ setup() {
   assert_success
 }
 
-@test "list_pending_by_set_diff returns diff when disk has more than db" {
-  # We will mock the psql query in the next phase, for now it will just fail.
-  run list_pending_by_set_diff "mock-compose" "mock-db"
+@test "list_pending_by_set_diff returns pending when disk has more than db" {
+  # Mock: psql retorna apenas 2 migrations registradas
+  function mock_psql_registered() {
+    echo "migration_01_base_schema.sql"
+    echo "migration_02_system_taxonomy_and_ddal.sql"
+  }
+  export -f mock_psql_registered
+  
+  # Mock: disco tem 3 arquivos (01, 02, 03)
+  mkdir -p "$BATS_TEST_TMPDIR/database"
+  touch "$BATS_TEST_TMPDIR/database/migration_01_base_schema.sql"
+  touch "$BATS_TEST_TMPDIR/database/migration_02_system_taxonomy_and_ddal.sql"
+  touch "$BATS_TEST_TMPDIR/database/migration_03_gm_profile_nickname.sql"
+  
+  # Stub a função que consulta o banco — retorne a lista mockada
+  export MIGRATIONS_DIR="$BATS_TEST_TMPDIR/database"
+  
+  run list_pending_by_set_diff "mock-compose" "mock-db" mock_psql_registered
+  
+  assert_success
+  assert_output --partial "migration_03_gm_profile_nickname.sql"
+  refute_output --partial "migration_01_base_schema.sql"
+  refute_output --partial "migration_02_system_taxonomy_and_ddal.sql"
+}
+
+@test "list_pending_by_set_diff fails with I2 when db has more than disk (reverse drift)" {
+  # Mock: psql retorna 3 migrations registradas
+  function mock_psql_registered() {
+    echo "migration_01_base_schema.sql"
+    echo "migration_02_system_taxonomy_and_ddal.sql"
+    echo "migration_99_ghost.sql"
+  }
+  export -f mock_psql_registered
+  
+  # Mock: disco tem apenas 2 arquivos
+  mkdir -p "$BATS_TEST_TMPDIR/database"
+  touch "$BATS_TEST_TMPDIR/database/migration_01_base_schema.sql"
+  touch "$BATS_TEST_TMPDIR/database/migration_02_system_taxonomy_and_ddal.sql"
+  export MIGRATIONS_DIR="$BATS_TEST_TMPDIR/database"
+  
+  run list_pending_by_set_diff "mock-compose" "mock-db" mock_psql_registered
+  
   assert_failure
+  assert_output --partial "DRIFT"
+  assert_output --partial "migration_99_ghost.sql"
 }

@@ -60,24 +60,31 @@ validate_sql_against_class() {
   return 0
 }
 
+_default_query_schema_migrations() {
+  local compose=$1
+  local dbservice=$2
+  docker compose -f "$compose" exec -T "$dbservice" psql -U admin -d mesas_rpg \
+    -tAc "SELECT migration_name FROM schema_migrations ORDER BY migration_name" 2>/dev/null || echo ""
+}
+
 list_pending_by_set_diff() {
-  local compose="$1"
-  local dbservice="$2"
-
-  # local is only disk
-  local in_disk
-  in_disk=$(find ./database -maxdepth 1 -name "migration_*.sql" -exec basename {} \; | sort)
-
+  local compose=$1
+  local dbservice=$2
+  local query_fn=${3:-_default_query_schema_migrations}
+  
   local in_db
-  in_db=$(docker compose -f "$compose" exec -T "$dbservice" psql -U admin -d mesas_rpg -tAc "SELECT migration_name FROM schema_migrations ORDER BY migration_name" 2>/dev/null || echo "")
+  in_db=$($query_fn "$compose" "$dbservice")
+
+  local on_disk
+  on_disk=$(find "${MIGRATIONS_DIR:-./database}" -maxdepth 1 -name "migration_*.sql" -type f -exec basename {} \; | sort)
 
   local fail_i2=0
   local to_apply=()
 
-  # Check what's in db but not in disk
+  # Check drift Reverso (Banco tem migrations que não constam no HD)
   for db_mig in $in_db; do
-    if ! echo "$in_disk" | grep -Fxq "$db_mig"; then
-      echo "::error::Drift I2 detectado. $db_mig existe no banco mas nao no disco (branch local defasada)."
+    if ! echo "$on_disk" | grep -Fxq "$db_mig"; then
+      echo "DRIFT ERROR: Banco possui migration não encontrada no disco: $db_mig" >&2
       fail_i2=1
     fi
   done
@@ -86,12 +93,14 @@ list_pending_by_set_diff() {
     return 1
   fi
 
-  for file in $in_disk; do
+  # Calcula e retorna unicamente o que o disco tem que o banco nao (Fwd)
+  for file in $on_disk; do
     if ! echo "$in_db" | grep -Fxq "$file"; then
       to_apply+=("$file")
     fi
   done
 
+  # Return normal apenas se obteve lista (trim failsafe)
   if [ ${#to_apply[@]} -gt 0 ]; then
     printf "%s\n" "${to_apply[@]}"
   fi
