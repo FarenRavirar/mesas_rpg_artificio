@@ -35,39 +35,31 @@
 - **V4 em execução (Passos 9–10 concluídos tecnicamente):** rota OG (`backend/src/routes/og.ts`) registrada em `backend/src/server.ts`, `frontend/nginx.conf` com proxy condicional para crawler, `docker-compose.beta.yml` e `docker-compose.prod.yml` com volume compartilhado `frontend_dist_*` + `INDEX_HTML_PATH`/`PUBLIC_SITE_URL`, `frontend/index.html` com fallback SEO/OG/Twitter e novo `EditGmProfileForm` integrado ao `PainelMestrePage`; typecheck backend/frontend sem erros.
 - **✅ Sessão 10 concluída (17/04/2026 17:20):** Resolvidas todas as 3 pendências da Reformulação V4: PENDÊNCIA 1 (CTA dinâmico + Central de Ajuda com 8 seções), PENDÊNCIA 2 (TableCard altura fluida - `min-h-[420px]` removido), PENDÊNCIA 3 (Rota OG extensível `/:type/:slug` com switch case). Documentação técnica 100% sincronizada (`MAPA_DE_API.md`, `ARQUITETURA_PROJETO.md` §17, `Reformulacao_mestre_v4.md` com status 21/21 patches). Changelog atualizado. **Reformulação V4 100% completa.**
 - **✅ Sessão 18_1 concluída (18/04/2026):** Fase 0 (Refatoração UX Admin - Padrão BigTech) completa como pré-requisito para auditoria de sistemas. **Bloco 1:** contadores agregados (`children_count`, `tables_count`, `aliases_count`) adicionados em `GET /api/v1/systems` via 3 left joins; tipos backend/frontend atualizados; `MAPA_DE_API.md` documentado. **Bloco 2:** componente `AdminWorkspaceLayout` criado (layout 3 colunas: workspace + inspector lateral). **Bloco 3:** 4 componentes criados (`CatalogTree`, `CatalogTreeNode`, `NodeTypeBadge`, `EntityCounters`) com árvore interativa, keyboard navigation, filtros e contadores visíveis. **Bloco 4:** 4 componentes criados (`EntityInspector`, `AliasesEditor`, `Breadcrumb`, `Field`) com edição inline, breadcrumb de contexto, slug preview, validação de tipos e dirty state tracking. **Bloco 5:** `CatalogToolbar` criado, hook `useSystems` expandido (fetchTree, createSystem, updateSystem, selectedId), helpers (findInTree, countVisibleInTree). **Bloco 6:** `ScenariosList` criado para cenários (lista vertical sem hierarquia). **Fase 0 100% completa (6/6 blocos).** **Fase 0.1 100% completa:** Passo 1 — criado `SystemsAdminView.tsx`, substituído `<SystemsPage />` por nova estrutura UX BigTech. Passo 2 — criado `ScenariosAdminView.tsx`, substituída renderização inline de cenários. Passo 3 — validação de regressão (Plataformas, Mesas, Sugestões verificadas). **UX BigTech ativada no GestaoPage (3/3 passos).**
-- **Sessão SDD 001 - Refatoração do Gate de Migrations Em Andamento (20/04/2026):** Realizados os backups de banco de dados na VM (`faren`). Caminhos absolutos: `/tmp/backup_beta_pre_deploy.sql` e `/tmp/backup_prod_pre_deploy.sql`.
-
+- **✅ Sessão SDD 001 - Refatoração do Gate de Migrations Concluída (20/04/2026):** Implementados testes `lib_migrations.bats`, reconstruído parser de `online-safe` e restrições, inserido loop transacional em `apply_required_migrations.sh`, e scripts de reconcile para desvios em produção. Injeção em lote de cabeçalhos nas velhas migrations (`chore(001)`). PR #121 de liberação submetido para merge em `dev`. (Backups realizados na VM `faren` previamente).
 
 ---
 
 ## Próxima Ação
 
-A seção da FASE D (Piloto de Spec) poderá ser executada de forma independente nas próximas requisições. 
-O próximo andamento natural recomendável é instanciar uma Spec via comando `/speckit.specify` ou definir uma feature de escopo inicial partindo da backlog para testar a FASE D do `sdd`.
+Aguardar o Merge do PR #121 (`001-gate-migrations-refactor` -> `dev`) pelo Lead Engineer. Em seguida confirmar comportamento do release notes pelo CI na promoção para Prod.
 
 ---
 
 ## Última Sessão
 
-**Data:** 20/04/2026 17:55 BRT  
-**Tipo:** Inicialização Oficial do Spec Kit (Metodologia SDD)  
-**Arquivo:** `sessoes/26-04-20_8_spec-retomada-fluxo.md`  
+**Data:** 20/04/2026 19:00 BRT  
+**Tipo:** Implementação Gate de Migrations SDD-001  
+**Arquivo:** Escopo Direto SDD
 **O que foi feito:**
 
-### 1. FASE A Concluída — Constituição Formalizada ✅
-- Realizada Entrevista Oficial do Spec Kit (15/15 perguntas da seção 4 de `spec_claude.md`).
-- Aprovadas todas as políticas Brownfield de `branch-names`, testes e documentações.
+### Fases Concluídas
+- **Fase 1:** Setup e Invetário de 45 migrations gerados, e ADRs de design submetidos.
+- **Fase 2:** Infraestrutura Red mockada (bats, fixtures de exceção criadas).
+- **Fase 3:** Lib e scripts BASH refeitos, idempotência e checagem anti-dump construídas (`reconcile`, `preflight`).
+- **Fase 4:** Actions do GitHub reconstruídos, dependência em cadeia `enforce-dir -> lint -> deploy -> smoke` isolada.
+- **Fase 5:** Cabeçalhos injetados dinamicamente em 45 velhos SQLs e mudados passivamente para `database/`
 
-### 2. FASE B Concluída — Instalação do SDK Oficial do CLI ✅
-- `specify-cli` na tag `v0.7.3` instalado.
-- Ambientes de script powershell `ps` e agente hosteado local `agy` setados com `.agents/skills`.
-
-### 3. FASE C Concluída — Customização Brownfield ✅
-- `docs/sdd/README.md`, `MAPEAMENTO_SDD.md` e `BRANCH_POLICY.md` gerados via respostas da Fase A.
-- `constitution.md` de infraestrutura sobreposto via Entrevista.
-- Stage formatado e commitado: `chore(sdd): personaliza constituição e docs SDD para brownfield`.
-
-**Status:** Tooling e Framework SDD inteiramente parametrizado e operacional para as novas Features de agora em diante.
+**Status:** ✅ PR Aberto (#121) e pronto para validação visual pelo responsável.
 
 
 
