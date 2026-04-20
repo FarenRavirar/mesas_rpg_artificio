@@ -125,12 +125,13 @@
 | 6 | `encerradas\26-04-20_6_atividade-predeploy-dev.md` |
 | 7 | `encerradas\26-04-20_7_sdd-sessao-continuacao.md` |
 | 8 | `encerradas\26-04-20_8_spec-retomada-fluxo.md` |
+| 9 | `26-04-20_9_gate-migrations-refactor.md` |
 
 ---
 
 ## Sessão Mais Recente
 
-`Nenhuma (Aguardando próxima)`
+`26-04-20_9_gate-migrations-refactor.md`
 
 ---
 
@@ -146,4 +147,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-04-20_9_*`
+**Próxima sessão:** `26-04-20_10_*`
