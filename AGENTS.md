@@ -22,6 +22,15 @@ Execute nesta ordem, sem pular etapas:
 8. Atualizar a sessão após cada etapa executada (progresso contínuo)
 9. Só iniciar trabalho após concluir os passos acima
 
+> **ENFORCEMENT CRÍTICO (F15):** os itens 6, 7 e 8 acima não são 
+> aspiracionais. Sessão não atualizada em tempo real é falha 
+> processual registrada no `docs/sdd/SESSION_FAILURES_REGISTRY.md`. 
+> A cada 3 commits dentro da branch SDD atual (qualquer tipo — feat, 
+> fix, docs, chore) sem commit correspondente em `sessoes/`, o agente 
+> está OBRIGADO a parar e atualizar o arquivo de sessão. Se o 
+> mantenedor perguntar "cadê a sessão?", a resposta esperada é "já 
+> atualizei há <N> minutos", não "vou criar agora".
+
 ## Leitura obrigatória de governance SDD
 
 Antes de qualquer alteração técnica no repositório, ler os arquivos abaixo 

@@ -149,7 +149,16 @@ Untracked files:
 
 no changes added to commit (use "git add" and/or "git commit -a")
 
+## Trabalhos adicionais documentados
+
+- Edição de enforcement na seção "INÍCIO OBRIGATÓRIO DE SESSÃO" no `AGENTS.md` a respeito do F15, aprovada pelo ADR-006.
+
 ## Commits desta sessão
+
+6541f46 docs(001): ADR-006 propõe reforço de enforcement de sessão no AGENTS.md
+b8de85a docs(sdd): add F15 trigger — session file freshness check
+ef00c78 docs(sdd): add F15 — session file not updated in real time
+f75ad04 docs(session): consolida estado retroativo da sessão SDD-001 até checkpoint atual
 
 7c70441 docs: integrate SDD governance routing in AGENTS.md per ADR-005
 c01474d docs(001): ADR-005 propõe roteamento de SDD governance no AGENTS.md
