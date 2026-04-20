@@ -2,9 +2,11 @@ import { Router, Request, Response } from 'express';
 import { sql } from 'kysely';
 import { db } from '../db';
 import { authMiddleware, requireRole } from '../middleware/auth';
+import { authRateLimiter } from '../middleware/rateLimit';
 
 const router = Router();
 
+router.use(authRateLimiter);
 router.use(authMiddleware, requireRole('admin'));
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
