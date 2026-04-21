@@ -137,6 +137,25 @@ erro real a uma regra da constituição que o previne.
 - **Mitigação adicional:** gatilho no MAINTAINER_REVIEW_CHECKLIST.md 
   adicionado em atualização paralela.
 
+### F16 — Sessão continua além do ponto de saturação de contexto
+- **Sintoma:** agente começa a re-ler arquivos já lidos na mesma sessão, confunde decisões tomadas, repete diagnósticos, ou autoavalia internalização de governance em nota baixa (≤5/10) apesar de ter lido todos os documentos. Bug técnico que deveria ser trivial exige 3+ tentativas. Mantenedor percebe lentidão ou respostas genéricas onde antes eram cirúrgicas.
+- **Causa raiz:** nenhuma ferramenta (Specify, IDE ou agente) dispara alerta proativo de contexto saturado. A decisão de handoff é humana e costuma chegar tarde, após degradação já instalada.
+- **Regra preventiva:** agente DEVE parar trabalho técnico e sugerir handoff quando qualquer um destes gatilhos for detectado:
+  1. Sessão ultrapassou 5 commits na mesma branch sem handoff intermediário.
+  2. Agente precisou reabrir arquivo já lido na mesma sessão para reconfirmar conteúdo (sinal de contexto saturado).
+  3. Agente autoavalia internalização de governance em nota ≤ 5/10 quando questionado.
+  4. Bug técnico bloqueante exige diagnóstico novo que demanda reler 3+ arquivos fora do working set atual.
+  5. Mantenedor sinaliza "tá lento", "tá confuso", "você esqueceu disso" 2+ vezes na sessão.
+  6. Sessão de trabalho contínuo ultrapassou 2h de relógio.
+
+  Ação obrigatória ao detectar gatilho:
+  - Parar execução técnica.
+  - Reportar literal: "Gatilho F16 detectado por [motivo específico]. Recomendo encerrar sessão com handoff antes de prosseguir."
+  - Oferecer gerar `docs/sdd/handoff-sdd-{feature}-{YYYY-MM-DD}.md` seguindo estrutura do handoff-sdd-001-2026-04-20.md.
+  - Aguardar decisão do mantenedor. Não prosseguir com trabalho técnico até decisão explícita.
+
+  O handoff NÃO é fracasso — é preservação de qualidade. Sessão longa com contexto saturado produz mais débito técnico do que sessão curta com handoff limpo.
+
 ---
 
 ## Como usar este registry
@@ -149,7 +168,7 @@ Ao iniciar uma nova feature SDD:
 3. Mantenedor pode referenciar "lembre-se de F05" e agente deve 
    reconhecer sem consultar.
 4. Novas falhas devem ser adicionadas ao final do registry, nomeadas 
-   sequencialmente (F15, F16...).
+   sequencialmente (F17, F18...).
 
 O objetivo do registry é eliminar a necessidade de o mantenedor 
 re-explicar o mesmo tipo de erro em features futuras.
