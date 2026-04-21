@@ -1,203 +1,158 @@
 # Guia de Migrations
 
-**Última atualização:** 18/04/2026
+**Última atualização:** 21/04/2026
+
+---
+
+## Referências Rápidas
+
+| Ação | Comando |
+|---|---|
+| Buscar enum no backend | `grep -rn "node_type.*:" backend/src/` |
+| Buscar enum no frontend | `grep -rn "node_type.*:" frontend/src/` |
+| Testar TypeScript backend | `cd backend && npx tsc --noEmit` |
+| Testar TypeScript frontend | `cd frontend && npx tsc --noEmit` |
 
 ---
 
 ## Regras de Ouro
 
-1. **Idempotência:** Toda migration roda 2x sem erro
-2. **IF NOT EXISTS:** Sempre usar em ALTER/CREATE/DROP
-3. **Tipos sincronizados:** Backend + Frontend sempre alinhados
-4. **Testar em beta:** Nunca aplicar direto em produção
+1. **Idempotência:** Toda migration roda 2x sem erro.
+2. **IF NOT EXISTS:** Sempre usar em ALTER/CREATE/DROP.
+3. **Tipos sincronizados:** Backend + Frontend sempre alinhados.
+4. **Deploy Automatizado:** O fluxo padrão é via GitHub Actions (CI). Não aplicar direto em produção como primeira tentativa.
+
+---
+
+## Headers Obrigatórios
+
+Toda migration em `./database/` DEVE ter o seguinte cabeçalho nas primeiras linhas:
+
+```sql
+-- @class: online-safe | manual-risk
+-- @requires-backup: true | false
+-- @author: <identificador>
+-- @created: YYYY-MM-DD
+-- @description: <descrição em uma linha>
+```
+
+- **online-safe**: Migrations que não quebram o código atual em runtime (e.g., ADD COLUMN sem restrição estrita, CREATE TABLE).
+- **manual-risk**: Migrations destrutivas (DROP TABLE, ALTER COLUMN TYPE, DELETE). Serão bloqueadas pelo CI a menos que haja flag manual ou fluxo de emergência.
 
 ---
 
 ## Template de Migration
 
 ```sql
--- Migration XXX: [Título]
--- Problema: [O que está errado]
--- Solução: [O que será feito]
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: desenvolvedor
+-- @created: 2026-04-21
+-- @description: adiciona coluna foo
 
 -- 1. Mudanças
-ALTER TABLE table_name ADD COLUMN IF NOT EXISTS column_name TYPE DEFAULT 'value';
-CREATE TABLE IF NOT EXISTS new_table (...);
-CREATE INDEX IF NOT EXISTS idx_name ON table(column);
+ALTER TABLE table_name ADD COLUMN IF NOT EXISTS foo TYPE DEFAULT 'value';
+CREATE INDEX IF NOT EXISTS idx_name ON table_name(foo);
 
 -- 2. Validação
 DO $$
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns
-    WHERE table_name = 'table_name' AND column_name = 'column_name'
+    WHERE table_name = 'table_name' AND column_name = 'foo'
   ) THEN
-    RAISE EXCEPTION 'Migration XXX failed: column not created';
+    RAISE EXCEPTION 'Migration failed: column not created';
   END IF;
-  RAISE NOTICE 'Migration XXX completed successfully';
 END $$;
 ```
+
+---
+
+## Fluxo Padrão (Automatizado via CI)
+
+Não aplique migrations manualmente! O script `apply_required_migrations.sh` é orquestrado no GitHub Actions:
+
+1. **Crie arquivo**: Adicione `migration_XXX_descricao.sql` em `./database/` (diretório canônico).
+2. **Commit e Push**: Envie as alterações na sua branch e abra PR para `dev`.
+3. **Validação (Preflight & Enforcer)**: 
+   - O CI bloqueará arquivos criados fora do diretório oficial.
+   - O CI simula o schema drift contra as branchs de destino e posta um relatório no PR principal.
+4. **Merge**: Ao dar merge em `dev` (Beta) e em `main` (Produção), os workflows aplicarão a migration via shell automaticamente antes de re-subir a aplicação.
+
+---
+
+## Procedimento de Emergência (Intervenção Manual)
+
+Se o deploy automatizado for bloqueado por uma migration `manual-risk` ou falhas de drift (relatório "BLOCKED" do preflight), intervenha da seguinte forma:
+
+1. Acesse o servidor (Beta ou Prod) via SSH.
+2. Siga o procedimento de emergência no **Apêndice A** de `OPERACAO_PRODUCAO.md`.
+3. Aplique os desvios de migração ou reparos no banco de dados manualmente.
+4. **Reconciliação obrigatória**: Execute a confirmação para que o gate registre o arquivo e libere os próximos deploys:
+   ```bash
+   bash scripts/deploy/reconcile_migrations.sh --mark-applied migration_XXX_descricao.sql docker-compose.prod.yml mesas-db
+   ```
+   Atenção: A falta desta reconciliação causará bloqueio por drift reverso (I2) no próximo deploy automatizado.
 
 ---
 
 ## Checklist Pré-Deploy
 
 ### 1. SQL (Migration)
-- [ ] Nome: `migration_XXX_descricao.sql`
-- [ ] Todos os comandos usam `IF NOT EXISTS`
-- [ ] Bloco de validação no final
-- [ ] Sem `TRUNCATE`, `DROP`, `DELETE` sem proteção
-- [ ] Defaults sensatos: `DEFAULT '{}'::jsonb`, `DEFAULT '{}'`
+- [ ] Nome: `migration_XXX_descricao.sql` contido APENAS em `./database/`
+- [ ] Possui o header obrigatório completo com tags corretas
+- [ ] Todos os comandos usam `IF NOT EXISTS` (ou equivalente)
+- [ ] Bloco de validação encapsulado no final (opcional mas recomendado)
+- [ ] Defaults sensatos para não quebrar inserts antigos (`DEFAULT '{}'::jsonb`, etc.)
 
-### 2. Backend (TypeScript)
-- [ ] Atualizar `backend/src/db/types.ts`
-- [ ] Adicionar novos campos/tabelas
-- [ ] Se alterou ENUM: buscar TODAS as ocorrências
-  ```bash
-  grep -rn "node_type.*:" backend/src/
-  ```
-- [ ] Rodar TypeScript:
-  ```bash
-  cd backend && npx tsc --noEmit
-  ```
-
-### 3. Frontend (TypeScript)
-- [ ] Se alterou ENUM: buscar definições inline
-  ```bash
-  grep -rn "node_type.*:.*'system'" frontend/src/
-  ```
-- [ ] Atualizar TODOS os arquivos:
-  - `frontend/src/modules/admin/systems/types.ts`
-  - `frontend/src/components/SystemEditModal.tsx`
-  - `frontend/src/types/systems.ts`
-  - Qualquer `useState<'system' | 'edition'>`
-- [ ] Adicionar opção em `<select>` se aplicável
-- [ ] Rodar TypeScript:
-  ```bash
-  cd frontend && npx tsc --noEmit
-  ```
-
-### 4. Aplicar em Beta
-```bash
-# Copiar
-scp -F C:\projetos\config database/migration_XXX.sql faren:/tmp/
-ssh -F C:\projetos\config faren "docker cp /tmp/migration_XXX.sql mesas-beta-db:/tmp/"
-
-# Aplicar
-ssh -F C:\projetos\config faren "docker exec mesas-beta-db psql -U admin -d mesas_rpg -f /tmp/migration_XXX.sql"
-
-# Testar idempotência (rodar 2x)
-ssh -F C:\projetos\config faren "docker exec mesas-beta-db psql -U admin -d mesas_rpg -f /tmp/migration_XXX.sql"
-```
-
-### 5. Commit e Push
-```bash
-git add database/migration_XXX.sql backend/src/db/types.ts frontend/src/...
-git commit -m "feat(migration): [descrição]"
-git push origin dev
-```
-
-### 6. Validar Deploy
-- [ ] GitHub Actions passou
-- [ ] Containers rodando: `docker ps --filter name=mesas-beta`
-- [ ] API respondendo: `curl https://mesasbeta.artificiorpg.com/api/v1/health`
-- [ ] Testar funcionalidade afetada
+### 2. Backend & Frontend (TypeScript)
+- [ ] Atualizar arquivos de tipo
+- [ ] Se alterou ENUM: usar `grep` para encontrar todas as instâncias em back e front
+- [ ] Rodar `npx tsc --noEmit` nas pastas `backend/` e `frontend/`
 
 ---
 
 ## Erros Comuns
 
+### Erro: Drift I2 / "BLOCKED" no Preflight
+**Causa:** O banco de dados possui uma migration registrada em `schema_migrations` que não existe no diretório oficial `./database/` na branch atual (drift reverso), ou você inseriu um arquivo destrutivo (`manual-risk`).
+**Solução:** Se for `manual-risk`, acione o deploy via `workflow_dispatch` com a flag `ALLOW_MANUAL_MIGRATIONS=true` (requer backup). Se for drift de emergência, execute a reconciliação (ver seção Procedimento de Emergência).
+
 ### Erro: "Interface 'TreeNode' incorrectly extends interface 'System'"
-
-**Causa:** Alterou enum mas esqueceu frontend.
-
-**Solução:**
-```bash
-# Buscar TODAS as ocorrências
-grep -rn "node_type.*:" frontend/src/
-
-# Atualizar TODOS os arquivos
-# Rodar tsc no frontend
-cd frontend && npx tsc --noEmit
-
-# Se ainda falhar: commit vazio para forçar rebuild
-git commit --allow-empty -m "chore: force rebuild"
-git push origin dev
-```
-
----
+**Causa:** Tipos do backend mudaram após a migration (ex: alterou enum adicionando `'subsystem'`), mas interfaces do frontend (`types/systems.ts` ou componentes) continuam esperando o formato antigo.
+**Solução:** Atualize as interfaces no frontend usando `grep` para encontrar todas as ocorrências.
 
 ### Erro: "Types of property 'X' are incompatible"
-
-**Causa:** Campo obrigatório em um tipo, opcional em outro.
-
-**Solução:**
-1. Tornar campo opcional em TODOS os tipos
-2. Adicionar verificações de segurança:
-   ```typescript
-   node.children?.some()  // Optional chaining
-   node.aliases ?? []     // Nullish coalescing
-   if (node.children) {}  // Verificação explícita
-   ```
-
----
+**Causa:** Campo obrigatório em um tipo (ex: `depth`, `aliases`), mas opcional em outro. Isso gera dezenas de erros e bloqueia o deploy.
+**Solução:** Torne os campos opcionais e use optional chaining (`?.`) ou nullish coalescing (`??`) no código. Garanta que `npx tsc --noEmit` rode limpo.
 
 ### Erro: Migration falha na 2ª execução
-
-**Causa:** Falta `IF NOT EXISTS`.
-
-**Solução:** Criar migration de correção com `IF NOT EXISTS`.
+**Causa:** Faltou a cláusula `IF NOT EXISTS` (ou análogas como `DROP ... IF EXISTS`).
+**Solução:** Não reescreva a migration original que já falhou/rodou pela metade. Crie uma nova migration com a correção ou um desvio seguro.
 
 ---
 
 ## Comandos Úteis
 
-### Verificar Estado do Banco
+**Listar pendências e índice transacional (Beta):**
 ```bash
-# Ver constraints
-ssh -F C:\projetos\config faren "docker exec mesas-beta-db psql -U admin -d mesas_rpg -c \"SELECT conname FROM pg_constraint WHERE conrelid = 'systems'::regclass;\""
-
-# Ver colunas
-ssh -F C:\projetos\config faren "docker exec mesas-beta-db psql -U admin -d mesas_rpg -c '\d systems'"
-```
-
-### Forçar Rebuild
-```bash
-git commit --allow-empty -m "chore: force rebuild to clear cache"
-git push origin dev
+ssh -F C:\projetos\config faren "cd /opt/mesas-beta && bash scripts/deploy/reconcile_migrations.sh --list docker-compose.beta.yml mesas-beta-db"
 ```
 
 ---
 
 ## Lições Aprendidas
 
-### L01: Sincronização de Tipos (18/04/2026)
-- **Problema:** Migration adicionou `'subsystem'` ao enum, mas 3 arquivos frontend não foram atualizados
-- **Arquivos esquecidos:** `SystemEditModal.tsx`, `types/systems.ts`, `SystemTreeSelector.tsx`
-- **Solução:** Sempre usar grep para encontrar TODAS as ocorrências
-- **Prevenção:** Checklist item 3 é obrigatório
+### L01: Sincronização de Tipos (Pré-Feature 001)
+- **Problema:** Migration adicionou `'subsystem'` ao enum, mas arquivos frontend (`SystemEditModal.tsx`, `types/systems.ts`, `SystemTreeSelector.tsx`) não foram atualizados.
+- **Solução:** Sempre usar `grep` para encontrar TODAS as ocorrências antes do deploy.
 
-### L02: Campos Opcionais (18/04/2026)
-- **Problema:** `depth`, `aliases`, `has_children`, `children` eram obrigatórios em um tipo, opcionais em outro
-- **Impacto:** 17 erros de TypeScript, deploy bloqueado
-- **Solução:** Tornar TODOS opcionais e adicionar verificações de segurança
-- **Prevenção:** Sempre usar optional chaining (`?.`) e nullish coalescing (`??`)
+### L02: Campos Opcionais (Pré-Feature 001)
+- **Problema:** `depth`, `aliases`, `has_children`, `children` eram obrigatórios em um tipo, opcionais em outro. Isso causou 17 erros de TypeScript e deploy bloqueado.
+- **Prevenção:** Sempre usar optional chaining (`?.`) e nullish coalescing (`??`).
 
----
-
-## Referências Rápidas
-
-| Situação | Comando |
-|---|---|
-| Último número de migration | `ls database/migration_*.sql \| sort -V \| tail -n 1` |
-| Buscar enum no backend | `grep -rn "node_type.*:" backend/src/` |
-| Buscar enum no frontend | `grep -rn "node_type.*:" frontend/src/` |
-| Testar TypeScript backend | `cd backend && npx tsc --noEmit` |
-| Testar TypeScript frontend | `cd frontend && npx tsc --noEmit` |
-| Aplicar migration em beta | Ver Checklist item 4 |
-| Forçar rebuild | `git commit --allow-empty -m "chore: force rebuild"` |
-
----
-
-**Última atualização:** 18/04/2026  
-**Próxima revisão:** Após próxima migration complexa
+### Feature 001: Gate de Migrations (21/04/2026)
+- **I2 (Drift Reverso):** Hotfixes manuais aplicados via SSH bypassam `schema_migrations`, causando dessincronização entre banco e disco. **Contramedida:** passo 11 do `OPERACAO_PRODUCAO.md` torna `reconcile_migrations.sh --mark-applied` obrigatório após qualquer intervenção manual. **Ignorar =** próximo deploy bloqueado por drift.
+- **I3 (Validação de Header):** Desenvolvedores criavam migrations ad-hoc sem documentar tipo e autor, dificultando auditoria. **Contramedida:** validação estrita de header e template obrigatório acoplada à esteira de CI. **Ignorar =** push e deploy quebram imediatamente no preflight.
+- **I5 (Classificação Divergente):** Intervenções perigosas eram realizadas por descuido em operações de rotina sob a tag `online-safe`. **Contramedida:** pipeline intercepta operações destrutivas via regex bloqueando aprovações automáticas. **Ignorar =** bloqueio formal do deploy via CI exigindo classificação explícita `manual-risk`.
+- **Manual-Risk:** Riscos destrutivos passavam despercebidos sem backup prévio e explícito no ambiente. **Contramedida:** deploy classificado como manual fica bloqueado em Produção até que intervenção exija `ALLOW_MANUAL_MIGRATIONS=true` acompanhado de backup validado. **Ignorar =** bloqueio completo antes da alteração do schema de produção.
