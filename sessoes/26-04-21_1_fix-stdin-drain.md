@@ -14,7 +14,7 @@
 5. [x] Rodar `integration_apply.sh`.
 6. [x] Se GREEN, commit atômico e push.
 7. [ ] T042: Atualização do `migrations_guide.md` (Referências Rápidas, Erros Reais TS, Lições Feature 001).
-8. [ ] T043: `OPERACAO_PRODUCAO.md` - Passo obrigatório para reconciliação manual.
+8. [x] T043: `OPERACAO_PRODUCAO.md` - Passo obrigatório para reconciliação manual.
 9. [ ] Atualizar `RESUMO_EXECUCAO.md`
 10. [ ] Atualizar `sessoes/index.md`
 
