@@ -1,0 +1,10 @@
+# Configuração do shellcheck para o projeto
+# Exclui diretórios de código externo e arquivos com expansão mista intencional
+
+# Código externo (spec-kit) - não modificamos
+exclude-dir=.specify/extensions/
+
+# Arquivo com expansão mista local/remota intencional (SC2087 é falso positivo)
+# integration_apply.sh usa heredoc sem quotes propositalmente para expandir
+# $REMOTE_DIR e $COMPOSE_PROJECT localmente, enquanto \$var expande remotamente
+exclude=testes/deploy/integration_apply.sh
