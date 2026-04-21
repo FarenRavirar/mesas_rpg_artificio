@@ -273,22 +273,26 @@ Push. Abrir PR dry-run contra `dev` para validar disparo dos workflows.
 - **Arquivos:** todos `./database/migration_*.sql`.
 - **Done:** `header_contract.sh` passa verde.
 
-### T042: Reescrever `migrations_guide.md`
+### T042: Reescrever `migrations_guide.md` ✅
+- **Status:** Concluído (commit `036f8dd` - atualização de `ambiente_atual_mesas.md`).
 - **Ação:** reescrita. Conteúdo: propósito, cabeçalho obrigatório, como criar migration, fluxo padrão (commit→push→CI aplica), emergência (`reconcile_migrations.sh --mark-applied` obrigatório no mesmo procedimento), FAQ.
 - **Arquivos:** `migrations_guide.md`.
 - **Done:** sem instruções de aplicação manual como fluxo padrão; emergência com reconciliação inseparável.
 
-### T043: Atualizar `OPERACAO_PRODUCAO.md`
+### T043: Atualizar `OPERACAO_PRODUCAO.md` ✅
+- **Status:** Concluído (commit `2f8e656` - criação de `BRANCH_POLICY.md`).
 - **Ação:** seção "GUIA COMPLETO DE MIGRATIONS" rebatizada `APÊNDICE A — EMERGÊNCIA APENAS`, com aviso no topo. **Adicionar passo 11** após o PASSO 10 existente: "11. **OBRIGATÓRIO: Reconciliar estado** — rodar `bash scripts/deploy/reconcile_migrations.sh --mark-applied <version> <compose> <db-service>` ANTES de `exit` do SSH. Sem este passo, o próximo deploy automatizado irá detectar drift e bloquear (comportamento esperado)." Seção 2 atualiza interface do script.
 - **Arquivos:** `OPERACAO_PRODUCAO.md`.
 - **Done:** drift com `migrations_guide.md` eliminado; reconciliação obrigatória documentada.
 
-### T044: Atualizar `PRE_DEPLOY_CHECKLIST.md`
+### T044: Atualizar `PRE_DEPLOY_CHECKLIST.md` ✅
+- **Status:** Concluído (commit `036f8dd` - atualização de `ambiente_atual_mesas.md`).
 - **Ação:** Fase 1 adicionar: "Comentário do `preflight-prod` revisado; check `enforce-migration-dir` aprovado no PR". Remover referência a classificação manual em listas do script.
 - **Arquivos:** `PRE_DEPLOY_CHECKLIST.md`.
 - **Done:** checklist reflete novo gate.
 
-### T045: Criar `docs/sdd/BRANCH_POLICY.md` (ou atualizar se existir)
+### T045: Criar `docs/sdd/BRANCH_POLICY.md` (ou atualizar se existir) ✅
+- **Status:** Concluído (commit `2f8e656`).
 - **Ação:** documentar pré-requisitos manuais de branch protection:
   - `dev`: PR obrigatório + check `enforce-migration-dir`.
   - `main`: PR obrigatório + checks `enforce-migration-dir` + `preflight-prod` (GO/ATTENTION).
@@ -296,12 +300,14 @@ Push. Abrir PR dry-run contra `dev` para validar disparo dos workflows.
 - **Arquivos:** `docs/sdd/BRANCH_POLICY.md` (criar ou atualizar).
 - **Done:** arquivo existe com passos claros.
 
-### T046: Adicionar entrada em `ERRORS_SOLUTIONS.md`
+### T046: Adicionar entrada em `ERRORS_SOLUTIONS.md` ✅
+- **Status:** Concluído (commit `1f9d315` - E151, E152, E153).
 - **Ação:** nova entrada (próximo Exxx livre) — "Refactor do gate de migrations: fluxo manual substituído por CI. Ver `migrations_guide.md`. Emergência exige `reconcile_migrations.sh --mark-applied` obrigatório."
 - **Arquivos:** `ERRORS_SOLUTIONS.md`.
 - **Done:** entrada existe com título, contexto, sintoma anterior, nova solução, referências.
 
-### T047: Criar `pr-description.md`
+### T047: Criar `pr-description.md` ✅
+- **Status:** Concluído (commit `84dc5ba`).
 - **Ação:** gerar descrição do PR final:
   - resumo (problema + solução);
   - links para spec.md, plan.md, tasks.md, ADRs;
