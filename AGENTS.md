@@ -245,6 +245,21 @@ git rev-list --left-right --count origin/main...origin/dev
 
 Nunca registrar no lugar errado.
 
+### Artefatos Obrigatórios por Feature SDD
+
+Toda feature SDD deve ter os seguintes artefatos em `specs/NNN-*/` antes de abrir PR:
+
+- `spec.md` — especificação da feature
+- `plan.md` — plano de implementação
+- `tasks.md` — checklist de execução
+- `pr-description.md` — sumário executivo para o corpo do PR
+
+O `pr-description.md` deve ser criado como última tarefa de documentação (geralmente T047 ou equivalente) e deve conter:
+- Sumário executivo da feature
+- Mudanças por fase/componente
+- Testing evidence (links para logs, commits de testes GREEN)
+- Checklist pós-merge (se aplicável)
+
 ### Changelog
 
 Toda mudança visível que impacte **mestres e/ou usuários finais** exige entrada em `database/changelogs.json` antes do deploy.
