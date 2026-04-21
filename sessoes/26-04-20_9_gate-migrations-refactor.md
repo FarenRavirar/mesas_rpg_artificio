@@ -197,5 +197,4 @@ c8fbd96 chore(docs): registrar progresso de sessoes e inicializar retomada do sp
 
 ## Próxima ação imediata
 
-Executar Passo 0 do prompt de arquitetura Parte 2 Débito 3: grep de 
-MIGRATIONS_DIR nos 3 scripts para decidir se precisa commit intermediário.
+Executar Commit 3 do prompt de arquitetura Parte 2 Débito 3: substituir integration_apply.sh e rodar 6 testes de integração.
