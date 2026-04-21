@@ -69,6 +69,7 @@ validate_sql_against_class() {
 _default_query_schema_migrations() {
   local compose=$1
   local dbservice=$2
+  # shellcheck disable=SC2046  # _compose_project_flag retorna "-p projeto" ou vazio; quotar quebra expansão condicional
   docker compose $(_compose_project_flag) -f "$compose" exec -T "$dbservice" psql -U admin -d mesas_rpg \
     -tAc "SELECT migration_name FROM schema_migrations ORDER BY migration_name" < /dev/null 2>/dev/null || echo ""
 }
@@ -125,6 +126,7 @@ acquire_lock() {
   
   while [ $retry -lt $max_retries ]; do
     local locked
+    # shellcheck disable=SC2046  # _compose_project_flag retorna "-p projeto" ou vazio; quotar quebra expansão condicional
     locked=$(docker compose $(_compose_project_flag) -f "$compose" exec -T -e PGOPTIONS="$pg_opts" "$dbservice" psql -U admin -d mesas_rpg -tAc "SELECT pg_try_advisory_lock(918273645);" < /dev/null 2>/dev/null || echo "f")
     
     if [ "$locked" = "t" ]; then
@@ -150,6 +152,7 @@ release_lock() {
   local pg_opts="$3"
   
   echo "[migrations] Liberando pg_advisory_lock..."
+  # shellcheck disable=SC2046  # _compose_project_flag retorna "-p projeto" ou vazio; quotar quebra expansão condicional
   docker compose $(_compose_project_flag) -f "$compose" exec -T -e PGOPTIONS="$pg_opts" "$dbservice" psql -U admin -d mesas_rpg -tAc "SELECT pg_advisory_unlock(918273645);" < /dev/null > /dev/null 2>&1 || true
   return 0
 }
