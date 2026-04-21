@@ -129,9 +129,17 @@
 
 ---
 
+## 21/04/2026 (1 sessão)
+
+| # | Arquivo |
+|---|---|
+| 1 | `26-04-21_1_fix-stdin-drain.md` |
+
+---
+
 ## Sessão Mais Recente
 
-`26-04-20_9_gate-migrations-refactor.md`
+`26-04-21_1_fix-stdin-drain.md`
 
 ---
 
@@ -147,4 +155,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-04-20_10_*`
+**Próxima sessão:** `26-04-21_2_*`
