@@ -10,7 +10,7 @@ UNSTAGED=$(git diff --name-only)
 if [ -n "$UNSTAGED" ]; then
   echo "❌ COMMIT BLOQUEADO por regra SDD:"
   echo "Há arquivos modificados fora do stage:"
-  echo "$UNSTAGED" | sed 's/^/  - /'
+  while IFS= read -r line; do echo "  - $line"; done <<< "$UNSTAGED"
   echo ""
   echo "Trabalho SDD exige commits atômicos. Staging deve ser EXPLÍCITO."
   echo "Decida: ou 'git add <específico>' ou 'git stash' os não-relacionados."
