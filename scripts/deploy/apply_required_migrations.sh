@@ -34,7 +34,7 @@ else
 fi
 
 # 1. Source lib_migrations
-# shellcheck disable=SC1091  # Static path, shellcheck cannot follow at parse time
+# shellcheck disable=SC1091  # Caminho estático, shellcheck não consegue seguir em tempo de parse
 source scripts/deploy/lib_migrations.sh
 
 PG_OPTS="-c lock_timeout=${LOCK_TIMEOUT_MS}ms -c statement_timeout=${STATEMENT_TIMEOUT_MS}ms"

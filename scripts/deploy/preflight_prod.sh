@@ -38,7 +38,7 @@ done
 
 for db_mig in $DB_PROD; do
   if ! echo "$DISK_HEAD" | grep -Fxq "$db_mig"; then
-     # shellcheck disable=SC2129  # Multiple redirects intentional for readability
+     # shellcheck disable=SC2129  # Múltiplos redirects intencionais para legibilidade
      echo "- **DRIFT FATAL (I2):** $db_mig existe no banco de Producao mas ausente na branch." >> "$REPORT_FILE"
      echo "" >> "$REPORT_FILE"
      echo "# :stop_sign: BLOCKED" >> "$REPORT_FILE"
