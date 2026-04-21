@@ -156,6 +156,9 @@ no changes added to commit (use "git add" and/or "git commit -a")
 
 ## Commits desta sessão
 
+f755076 fix(001): honor MIGRATIONS_DIR env var in apply and reconcile scripts
+5ea93fc docs(sessoes): log git push output to session file
+41894a7 docs: enforce F15 session update rule in AGENTS.md per ADR-006
 6541f46 docs(001): ADR-006 propõe reforço de enforcement de sessão no AGENTS.md
 b8de85a docs(sdd): add F15 trigger — session file freshness check
 ef00c78 docs(sdd): add F15 — session file not updated in real time

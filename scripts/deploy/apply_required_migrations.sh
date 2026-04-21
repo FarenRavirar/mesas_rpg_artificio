@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+MIGRATIONS_DIR="${MIGRATIONS_DIR:-./database}"
+
 if [ "$#" -ne 2 ]; then
   echo "Uso: bash scripts/deploy/apply_required_migrations.sh <compose_file> <db_service>"
   exit 1
@@ -68,7 +70,7 @@ declare -a MANUAL_PENDING=()
 # 5. Parse, Validate and Plan
 for f_base in "${PENDING[@]}"; do
   if [ -z "$f_base" ]; then continue; fi
-  f_path="./database/$f_base"
+  f_path="$MIGRATIONS_DIR/$f_base"
 
   # parse header
   if ! header_vars=$(parse_header "$f_path"); then
@@ -104,7 +106,7 @@ fi
 # Execute migrations safely
 for f_base in "${PENDING[@]}"; do
   if [ -z "$f_base" ]; then continue; fi
-  f_path="./database/$f_base"
+  f_path="$MIGRATIONS_DIR/$f_base"
   
   # Ensure we extract class for log
   header_vars=$(parse_header "$f_path")

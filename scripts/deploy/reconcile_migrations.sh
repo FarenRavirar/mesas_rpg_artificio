@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+MIGRATIONS_DIR="${MIGRATIONS_DIR:-./database}"
+
 if [ "$#" -lt 3 ]; then
   echo "Uso:"
   echo "bash scripts/deploy/reconcile_migrations.sh --list <compose> <db-service>"
@@ -16,7 +18,7 @@ if [ "$COMMAND" = "--list" ]; then
   
   echo "=== RECONCILE LIST ==="
   echo "Disco:"
-  find ./database -maxdepth 1 -name "migration_*.sql" -exec basename {} \; | sort
+  find "$MIGRATIONS_DIR" -maxdepth 1 -name "migration_*.sql" -exec basename {} \; | sort
   echo "Banco:"
   docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -U admin -d mesas_rpg -tAc "SELECT migration_name FROM schema_migrations ORDER BY migration_name" 2>/dev/null || echo ""
   exit 0
@@ -34,9 +36,9 @@ if [ "$COMMAND" = "--mark-applied" ]; then
   fi
 
   # Validate if file exists in base directory
-  FILEPATH="./database/$VERSION"
+  FILEPATH="$MIGRATIONS_DIR/$VERSION"
   if [ ! -f "$FILEPATH" ]; then
-    echo "[reconcile] $VERSION: ERRO - arquivo .sql correspondente ausente em ./database/"
+    echo "[reconcile] $VERSION: ERRO - arquivo .sql correspondente ausente em $MIGRATIONS_DIR/"
     exit 1
   fi
 
