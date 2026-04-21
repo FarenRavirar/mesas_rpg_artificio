@@ -36,3 +36,9 @@ Testes de integração finalizados em GREEN, com commits atômicos de governance
 
 ## Próximos Passos
 Aguardar o mantenedor analisar o output literal do teste e autorizar prosseguir.
+
+---
+
+## Encerramento de Sessão
+
+**T042-T047 concluídos.** Feature 001 documentada. T048 (remoção de `apply_required_migrations.sh.bak`) fica pendente para **pós-merge** conforme registrado no pr-description.md. Sessão encerrada.
