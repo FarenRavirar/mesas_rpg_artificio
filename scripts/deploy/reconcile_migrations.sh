@@ -20,7 +20,7 @@ if [ "$COMMAND" = "--list" ]; then
   echo "Disco:"
   find "$MIGRATIONS_DIR" -maxdepth 1 -name "migration_*.sql" -exec basename {} \; | sort
   echo "Banco:"
-  docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -U admin -d mesas_rpg -tAc "SELECT migration_name FROM schema_migrations ORDER BY migration_name" 2>/dev/null || echo ""
+  docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -U admin -d mesas_rpg -tAc "SELECT migration_name FROM schema_migrations ORDER BY migration_name" < /dev/null 2>/dev/null || echo ""
   exit 0
 fi
 
@@ -43,7 +43,7 @@ if [ "$COMMAND" = "--mark-applied" ]; then
   fi
 
   # Check if already applied
-  EXISTS=$(docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -U admin -d mesas_rpg -tAc "SELECT 1 FROM schema_migrations WHERE migration_name='${VERSION}' LIMIT 1" 2>/dev/null || echo "")
+  EXISTS=$(docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -U admin -d mesas_rpg -tAc "SELECT 1 FROM schema_migrations WHERE migration_name='${VERSION}' LIMIT 1" < /dev/null 2>/dev/null || echo "")
 
   if [ "$EXISTS" = "1" ]; then
     echo "[reconcile] $VERSION: SKIP - already present in schema_migrations"
@@ -54,7 +54,7 @@ if [ "$COMMAND" = "--mark-applied" ]; then
 
   docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" \
     psql -v ON_ERROR_STOP=1 -U admin -d mesas_rpg \
-    -c "INSERT INTO schema_migrations (migration_name, applied_by) VALUES ('${VERSION}', '${APPLIED_BY}');" > /dev/null
+    -c "INSERT INTO schema_migrations (migration_name, applied_by) VALUES ('${VERSION}', '${APPLIED_BY}');" < /dev/null > /dev/null
 
   echo "[reconcile] $VERSION: NEW - registered in schema_migrations"
   exit 0

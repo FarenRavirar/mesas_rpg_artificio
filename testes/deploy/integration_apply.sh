@@ -86,7 +86,7 @@ bash scripts/deploy/apply_required_migrations.sh "\$COMPOSE_FILE" "\$DB_SERVICE"
 
 REGISTERED=\$(docker compose -p "\$COMPOSE_PROJECT" -f "\$COMPOSE_FILE" exec -T "\$DB_SERVICE" \\
   psql -U admin -d mesas_rpg -tAc \\
-  "SELECT count(*) FROM schema_migrations WHERE migration_name='migration_901_test_online_safe.sql';" | tr -d '[:space:]')
+  "SELECT count(*) FROM schema_migrations WHERE migration_name='migration_901_test_online_safe.sql';" < /dev/null | tr -d '[:space:]')
 
 if [ "\$REGISTERED" != "1" ]; then
   echo "FAIL [TEST 1]: migration_901 não registrada (count=\$REGISTERED)"
@@ -103,7 +103,7 @@ COMPOSE_PROJECT="\$COMPOSE_PROJECT" \\
 bash scripts/deploy/apply_required_migrations.sh "\$COMPOSE_FILE" "\$DB_SERVICE"
 
 COUNT=\$(docker compose -p "\$COMPOSE_PROJECT" -f "\$COMPOSE_FILE" exec -T "\$DB_SERVICE" \\
-  psql -U admin -d mesas_rpg -tAc "SELECT count(*) FROM schema_migrations;" | tr -d '[:space:]')
+  psql -U admin -d mesas_rpg -tAc "SELECT count(*) FROM schema_migrations;" < /dev/null | tr -d '[:space:]')
 
 # esperado: 2 (bootstrap do schema_migrations via migration_114 + migration_901)
 if [ "\$COUNT" != "2" ]; then
@@ -146,7 +146,7 @@ bash scripts/deploy/apply_required_migrations.sh "\$COMPOSE_FILE" "\$DB_SERVICE"
 
 APPLIED_902=\$(docker compose -p "\$COMPOSE_PROJECT" -f "\$COMPOSE_FILE" exec -T "\$DB_SERVICE" \\
   psql -U admin -d mesas_rpg -tAc \\
-  "SELECT count(*) FROM schema_migrations WHERE migration_name='migration_902_test_manual_risk.sql';" | tr -d '[:space:]')
+  "SELECT count(*) FROM schema_migrations WHERE migration_name='migration_902_test_manual_risk.sql';" < /dev/null | tr -d '[:space:]')
 
 if [ "\$APPLIED_902" != "1" ]; then
   echo "FAIL [TEST 4]: 902 não aplicada após liberação"
@@ -160,7 +160,7 @@ echo "[TEST 5] Drift I2 — banco tem migration que disco não tem"
 
 docker compose -p "\$COMPOSE_PROJECT" -f "\$COMPOSE_FILE" exec -T "\$DB_SERVICE" \\
   psql -U admin -d mesas_rpg -c \\
-  "INSERT INTO schema_migrations (migration_name, applied_by) VALUES ('migration_999_ghost.sql', 'test');"
+  "INSERT INTO schema_migrations (migration_name, applied_by) VALUES ('migration_999_ghost.sql', 'test');" < /dev/null
 
 set +e
 MIGRATIONS_DIR="\$MIG_DIR" \\
@@ -182,7 +182,7 @@ echo "[TEST 6] Cabeçalho ausente bloqueia em validate"
 # Limpar drift do teste 5 para isolar causa do teste 6
 docker compose -p "\$COMPOSE_PROJECT" -f "\$COMPOSE_FILE" exec -T "\$DB_SERVICE" \\
   psql -U admin -d mesas_rpg -c \\
-  "DELETE FROM schema_migrations WHERE migration_name='migration_999_ghost.sql';"
+  "DELETE FROM schema_migrations WHERE migration_name='migration_999_ghost.sql';" < /dev/null
 
 cp testes/deploy/fixtures/migration_903_test_missing_header.sql "\$MIG_DIR/"
 set +e

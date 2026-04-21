@@ -59,7 +59,10 @@ trap 'release_lock "$COMPOSE_FILE" "$DB_SERVICE" "$PG_OPTS"' EXIT
 
 # 4. List pending
 PENDING=()
-mapfile -t PENDING < <(list_pending_by_set_diff "$COMPOSE_FILE" "$DB_SERVICE" || exit 1)
+if ! PENDING_OUTPUT=$(list_pending_by_set_diff "$COMPOSE_FILE" "$DB_SERVICE"); then
+  exit 1
+fi
+mapfile -t PENDING <<< "$PENDING_OUTPUT"
 
 if [ ${#PENDING[@]} -eq 0 ] || [ -z "${PENDING[0]}" ]; then
   echo "[migrations] schema em conformidade para runtime."
