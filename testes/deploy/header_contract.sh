@@ -15,6 +15,7 @@ if [ ! -f "scripts/deploy/lib_migrations.sh" ]; then
     exit 1
 fi
 
+# shellcheck disable=SC1091  # Caminho estático, shellcheck não consegue seguir em tempo de parse
 source scripts/deploy/lib_migrations.sh
 
 # Find all migration SQL files
