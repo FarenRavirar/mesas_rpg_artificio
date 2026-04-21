@@ -15,8 +15,10 @@
 6. [x] Se GREEN, commit atômico e push.
 7. [ ] T042: Atualização do `migrations_guide.md` (Referências Rápidas, Erros Reais TS, Lições Feature 001).
 8. [x] T043: `OPERACAO_PRODUCAO.md` - Passo obrigatório para reconciliação manual.
-9. [ ] Atualizar `RESUMO_EXECUCAO.md`
-10. [ ] Atualizar `sessoes/index.md`
+9. [x] T044: `PRE_DEPLOY_CHECKLIST.md` - Novos gates, preflight output, flags de manual-risk.
+10. [ ] T044.5: Auditoria de `ambiente_atual_mesas.md`.
+11. [ ] Atualizar `RESUMO_EXECUCAO.md`
+12. [ ] Atualizar `sessoes/index.md`
 
 ## Arquivos Modificados
 - `docs/sdd/SESSION_FAILURES_REGISTRY.md`
