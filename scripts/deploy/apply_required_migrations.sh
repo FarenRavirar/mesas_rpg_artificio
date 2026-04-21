@@ -34,6 +34,7 @@ else
 fi
 
 # 1. Source lib_migrations
+# shellcheck disable=SC1091  # Static path, shellcheck cannot follow at parse time
 source scripts/deploy/lib_migrations.sh
 
 PG_OPTS="-c lock_timeout=${LOCK_TIMEOUT_MS}ms -c statement_timeout=${STATEMENT_TIMEOUT_MS}ms"
@@ -74,7 +75,6 @@ if [ "${#PENDING[@]}" -gt "$MAX_AUTO_PENDING" ]; then
   exit 1
 fi
 
-declare -a ONLINE_PENDING=()
 declare -a MANUAL_PENDING=()
 
 # 5. Parse, Validate and Plan
