@@ -22,6 +22,34 @@ Execute nesta ordem, sem pular etapas:
 8. Atualizar a sessão após cada etapa executada (progresso contínuo)
 9. Só iniciar trabalho após concluir os passos acima
 
+> **ENFORCEMENT CRÍTICO (F15):** os itens 6, 7 e 8 acima não são 
+> aspiracionais. Sessão não atualizada em tempo real é falha 
+> processual registrada no `docs/sdd/SESSION_FAILURES_REGISTRY.md`. 
+> A cada 3 commits dentro da branch SDD atual (qualquer tipo — feat, 
+> fix, docs, chore) sem commit correspondente em `sessoes/`, o agente 
+> está OBRIGADO a parar e atualizar o arquivo de sessão. Se o 
+> mantenedor perguntar "cadê a sessão?", a resposta esperada é "já 
+> atualizei há <N> minutos", não "vou criar agora".
+
+## Leitura obrigatória de governance SDD
+
+Antes de qualquer alteração técnica no repositório, ler os arquivos abaixo 
+conforme gatilho aplicável:
+
+- `.specify/memory/constitution.md` — regras invioláveis SDD e infra. 
+  Cabeçalhos sempre; arquivo completo se trabalho envolver SDD, testes, 
+  deploy, migrations, ou mudança > 10 linhas.
+- `docs/sdd/SESSION_FAILURES_REGISTRY.md` — 14 falhas processuais 
+  calibradas. Cabeçalhos sempre; consulta por código (F01-F14) quando 
+  mantenedor referenciar.
+- `docs/sdd/MAINTAINER_REVIEW_CHECKLIST.md` — gatilhos de bloqueio 
+  imediato. Leitura completa obrigatória em qualquer trabalho SDD.
+- `docs/sdd/analyze-governance-gate.md` — gate de /speckit.analyze. 
+  Leitura completa obrigatória ANTES de rodar /speckit.analyze.
+
+Se o trabalho for trivial (< 10 linhas, sem teste, sem deploy), leitura 
+de cabeçalhos é suficiente. Qualquer dúvida, leitura completa.
+
 ---
 
 ## GESTÃO DE CONTEXTO — REGRA ÚNICA
@@ -57,6 +85,10 @@ grep -n "padrão" arquivo.md
 
 | Situação | Arquivo | Como acessar |
 |---|---|---|
+| Regras Invioláveis do Projeto | `.specify/memory/constitution.md` | Cabeçalhos sempre; Completo se: SDD, testes, deploy ou mudança > 10 linhas |
+| Memória de Falhas Operacionais | `docs/sdd/SESSION_FAILURES_REGISTRY.md` | Cabeçalhos sempre; Completo se: SDD, testes, deploy ou mudança > 10 linhas |
+| Gatilhos de bloqueio / Review | `docs/sdd/MAINTAINER_REVIEW_CHECKLIST.md` | Cabeçalhos sempre; Completo se: SDD, testes, deploy ou mudança > 10 linhas |
+| Auditoria / /speckit.analyze | `docs/sdd/analyze-governance-gate.md` | Arquivo completo antes de qualquer run de auditoria |
 | Banco, modelo de dados, rotas de API | `ARQUITETURA_PROJETO.md` §4 e §12 | grep pelo §, só a seção |
 | Upload, imagens, Cloudinary | `ARQUITETURA_PROJETO.md` §16 | grep pelo §, só a seção |
 | Roles, permissões, autenticação | `ARQUITETURA_PROJETO.md` §5 e §6 | grep pelo §, só a seção |
@@ -212,6 +244,21 @@ git rev-list --left-right --count origin/main...origin/dev
 | Erro com solução validada | `ERRORS_SOLUTIONS.md` |
 
 Nunca registrar no lugar errado.
+
+### Artefatos Obrigatórios por Feature SDD
+
+Toda feature SDD deve ter os seguintes artefatos em `specs/NNN-*/` antes de abrir PR:
+
+- `spec.md` — especificação da feature
+- `plan.md` — plano de implementação
+- `tasks.md` — checklist de execução
+- `pr-description.md` — sumário executivo para o corpo do PR
+
+O `pr-description.md` deve ser criado como última tarefa de documentação (geralmente T047 ou equivalente) e deve conter:
+- Sumário executivo da feature
+- Mudanças por fase/componente
+- Testing evidence (links para logs, commits de testes GREEN)
+- Checklist pós-merge (se aplicável)
 
 ### Changelog
 
@@ -377,3 +424,8 @@ Este protocolo é obrigatório para TODA execução de ferramenta, sem exceção
 - NUNCA usar `ls` → usar `list_dir`
 - NUNCA usar `cat` para visualizar → usar `view_file`
 - NUNCA usar `sed` para editar → usar ferramentas de edição
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+<!-- SPECKIT END -->

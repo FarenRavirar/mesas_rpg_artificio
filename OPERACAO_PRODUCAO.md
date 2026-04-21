@@ -187,7 +187,24 @@ Server is running on port 3000
 
 ---
 
-### PASSO 11: Validar Healthcheck
+### PASSO 11: Reconciliar Gate de Migrations (OBRIGATÓRIO)
+
+> [!CAUTION]
+> A falha neste passo causará erro de Drift Reverso (I2) e bloqueará completamente o próximo deploy automatizado do CI.
+
+Para que o pipeline saiba que esta migration foi aplicada via hotfix manual, você deve registrar o nome dela no disco do gate de migrations.
+
+```bash
+# Ambiente beta (padrão para hotfix):
+bash scripts/deploy/reconcile_migrations.sh --mark-applied migration_XX_nome.sql docker-compose.beta.yml mesas-beta-db
+
+# Ambiente prod (apenas se hotfix foi aplicado direto em produção):
+# bash scripts/deploy/reconcile_migrations.sh --mark-applied migration_XX_nome.sql docker-compose.prod.yml mesas-db
+```
+
+---
+
+### PASSO 12: Validar Healthcheck
 
 ```bash
 # Sair do SSH
@@ -206,7 +223,7 @@ curl.exe https://mesasbeta.artificiorpg.com/api/v1/health
 
 ---
 
-### PASSO 12: Documentar Migration Aplicada
+### PASSO 13: Documentar Migration Aplicada
 
 Atualizar `ambiente_atual_mesas.md` ou documentação equivalente:
 

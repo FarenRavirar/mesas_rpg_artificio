@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- Migration 108: Adiciona logo_filename e website_url para sistemas
 -- Objetivo: Permitir que sistemas raiz tenham logo e link oficial
 -- Padrão: VttPlatformsTable (logo_filename, website_url)

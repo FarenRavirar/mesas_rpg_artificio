@@ -1,0 +1,3 @@
+./database/
+./testes/deploy/fixtures/
+./specs/**/fixtures/

@@ -1,6 +1,6 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 20/04/2026 15:28 BRT
+**Última atualização:** 20/04/2026 16:54 BRT
 
 ---
 
@@ -35,40 +35,32 @@
 - **V4 em execução (Passos 9–10 concluídos tecnicamente):** rota OG (`backend/src/routes/og.ts`) registrada em `backend/src/server.ts`, `frontend/nginx.conf` com proxy condicional para crawler, `docker-compose.beta.yml` e `docker-compose.prod.yml` com volume compartilhado `frontend_dist_*` + `INDEX_HTML_PATH`/`PUBLIC_SITE_URL`, `frontend/index.html` com fallback SEO/OG/Twitter e novo `EditGmProfileForm` integrado ao `PainelMestrePage`; typecheck backend/frontend sem erros.
 - **✅ Sessão 10 concluída (17/04/2026 17:20):** Resolvidas todas as 3 pendências da Reformulação V4: PENDÊNCIA 1 (CTA dinâmico + Central de Ajuda com 8 seções), PENDÊNCIA 2 (TableCard altura fluida - `min-h-[420px]` removido), PENDÊNCIA 3 (Rota OG extensível `/:type/:slug` com switch case). Documentação técnica 100% sincronizada (`MAPA_DE_API.md`, `ARQUITETURA_PROJETO.md` §17, `Reformulacao_mestre_v4.md` com status 21/21 patches). Changelog atualizado. **Reformulação V4 100% completa.**
 - **✅ Sessão 18_1 concluída (18/04/2026):** Fase 0 (Refatoração UX Admin - Padrão BigTech) completa como pré-requisito para auditoria de sistemas. **Bloco 1:** contadores agregados (`children_count`, `tables_count`, `aliases_count`) adicionados em `GET /api/v1/systems` via 3 left joins; tipos backend/frontend atualizados; `MAPA_DE_API.md` documentado. **Bloco 2:** componente `AdminWorkspaceLayout` criado (layout 3 colunas: workspace + inspector lateral). **Bloco 3:** 4 componentes criados (`CatalogTree`, `CatalogTreeNode`, `NodeTypeBadge`, `EntityCounters`) com árvore interativa, keyboard navigation, filtros e contadores visíveis. **Bloco 4:** 4 componentes criados (`EntityInspector`, `AliasesEditor`, `Breadcrumb`, `Field`) com edição inline, breadcrumb de contexto, slug preview, validação de tipos e dirty state tracking. **Bloco 5:** `CatalogToolbar` criado, hook `useSystems` expandido (fetchTree, createSystem, updateSystem, selectedId), helpers (findInTree, countVisibleInTree). **Bloco 6:** `ScenariosList` criado para cenários (lista vertical sem hierarquia). **Fase 0 100% completa (6/6 blocos).** **Fase 0.1 100% completa:** Passo 1 — criado `SystemsAdminView.tsx`, substituído `<SystemsPage />` por nova estrutura UX BigTech. Passo 2 — criado `ScenariosAdminView.tsx`, substituída renderização inline de cenários. Passo 3 — validação de regressão (Plataformas, Mesas, Sugestões verificadas). **UX BigTech ativada no GestaoPage (3/3 passos).**
-
+- **✅ Sessão SDD 001 - Refatoração do Gate de Migrations Concluída (20/04/2026):** Implementados testes `lib_migrations.bats`, reconstruído parser de `online-safe` e restrições, inserido loop transacional em `apply_required_migrations.sh`, e scripts de reconcile para desvios em produção. Injeção em lote de cabeçalhos nas velhas migrations (`chore(001)`). PR #121 de liberação submetido para merge em `dev`. (Backups realizados na VM `faren` previamente).
 
 ---
 
 ## Próxima Ação
 
-**Retomar o fluxo SDD no ponto interrompido (aguardando comando "continue") com sessão ativa obrigatória já aberta**
-
-1. Confirmar retomada do fluxo do `spec_claude.md` a partir da leitura preparatória já concluída.
-2. Executar PRERREQUISITOS da Seção 2 em modo read-only (`git --version`, `python3 --version`, `uv --version`, `git status`).
-3. Iniciar FASE A (15 perguntas, uma por vez) e aguardar `aprovado` ao final.
+Aguardar o Merge do PR #121 (`001-gate-migrations-refactor` -> `dev`) pelo Lead Engineer. Em seguida confirmar comportamento do release notes pelo CI na promoção para Prod.
 
 ---
 
 ## Última Sessão
 
-**Data:** 20/04/2026 15:28 BRT  
-**Tipo:** Governança SDD — sessão contínua + alinhamento de protocolo  
-**Arquivo:** `sessoes/26-04-20_7_sdd-sessao-continuacao.md`  
+**Data:** 20/04/2026 19:00 BRT  
+**Tipo:** Implementação Gate de Migrations SDD-001  
+**Arquivo:** Escopo Direto SDD
 **O que foi feito:**
 
-### 1. Sessão ativa criada e indexada ✅
-- Criado `sessoes/26-04-20_7_sdd-sessao-continuacao.md` com estrutura obrigatória.
-- `sessoes/index.md` atualizado (20/04 passa para 7 sessões, sessão mais recente aponta para `_7_`).
+### Fases Concluídas
+- **Fase 1:** Setup e Invetário de 45 migrations gerados, e ADRs de design submetidos.
+- **Fase 2:** Infraestrutura Red mockada (bats, fixtures de exceção criadas).
+- **Fase 3:** Lib e scripts BASH refeitos, idempotência e checagem anti-dump construídas (`reconcile`, `preflight`).
+- **Fase 4:** Actions do GitHub reconstruídos, dependência em cadeia `enforce-dir -> lint -> deploy -> smoke` isolada.
+- **Fase 5:** Cabeçalhos injetados dinamicamente em 45 velhos SQLs e mudados passivamente para `database/`
 
-### 2. Regra de sessão contínua alinhada no fluxo SDD ✅
-- `spec_claude.md` atualizado no modo de operação: `SESSÃO ATIVA → ENTREVISTAR → CONFIRMAR → INSTALAR → IMPLEMENTAR`.
-- Prompt de ativação (seção 9) recebeu passo `0. PROTOCOLO DE SESSÃO` com obrigação de abrir/retomar e atualizar sessão antes/depois de cada etapa.
+**Status:** ✅ PR Aberto (#121) e pronto para validação visual pelo responsável.
 
-### 3. Situação atual ⚠️
-- Sessão `26-04-20_7` permanece ativa para continuidade do fluxo SDD.
-- Próximo gate operacional: usuário enviar `continue` para retomar PRERREQUISITOS + FASE A.
-
-**Status:** Governança de sessão reforçada e rastreabilidade reestabelecida; execução SDD aguardando retomada explícita.
 
 
 

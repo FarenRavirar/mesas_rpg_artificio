@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- Migration 107: gm_public_profile_v2
 -- Objetivo: preparar o schema para o redesign da página pública do mestre
 -- Segurança: idempotente (ADD COLUMN IF NOT EXISTS / CREATE INDEX IF NOT EXISTS)

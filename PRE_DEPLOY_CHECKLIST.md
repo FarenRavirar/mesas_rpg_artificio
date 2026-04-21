@@ -18,7 +18,8 @@ Antes sequer de cogitar enviar código novo para produção, o agente DEVE garan
 - [ ] **Mergulho pré-deploy:** Ler `AGENTS.md`, `RESUMO_EXECUCAO.md` e consultar este checklist.
 - [ ] **Paridade Testada no Beta:** O código que vai para produção já foi submetido via push/merge para a branch `dev` e os containers do `mesas-beta` iniciaram com sucesso?
 - [ ] **Migrations Foram Executadas no Beta:** Se houve nova Migration `.sql`, ela subiu pro banco Beta sem quebrar os dados preexistentes?
-- [ ] **Classificação das migrations atualizada:** Toda migration nova foi classificada em `scripts/deploy/apply_required_migrations.sh` como `ONLINE_SAFE_MIGRATIONS` ou `MANUAL_RISK_MIGRATIONS` antes do deploy?
+- [ ] **Relatório do Preflight (`preflight_prod`):** O PR de promoção apresenta o comentário automático do preflight? O status do drift detectado é `GO` (seguro) ou exige `ATTENTION` (bloqueios pendentes/risco)?
+- [ ] **Classificação Automática pelo Header:** Toda migration nova contém o cabeçalho obrigatório (`-- @class: online-safe` ou `manual-risk`) para que o Gate a valide corretamente?
 - [ ] **Teste de Ponta-a-Ponta no Beta:** Interfaces impactadas foram checadas manualmente (seja pelo usuário ou log do agente via `curl`/terminal)? Todo deploy pressupõe a aprovação unânime do comportamento em `mesasbeta.artificiorpg.com`.
 
 ## 🛑 FASE 2: PREVENÇÃO DE DESASTRE DE SCHEMA
@@ -28,19 +29,18 @@ O maior risco para a aplicação reside na incompatibilidade entre o backend (c�
 > [!CAUTION]
 > **A Regra Primária de Falhas de Deploy:** Se você atualizar o backend em Produção e a aplicação cair porque o banco responde com `column does not exist` ou `relation does not exist`, **NUNCA TENTE CONSERTAR A PRODUÇÃO COM `ALTER TABLE` A VULSO.** Você DEVE reverter (Rollback) o código para a versão imediatamente anterior que funcionava com o banco, investigar a Migration em ambiente Beta e só então submeter a automação corrigida.
 
-- [ ] **Auditoria de Migrations Destrutivas:** O banco da Produção receberá migrations nesta subida? Verifique se os arquivos incluem:
-  - `TRUNCATE`
-  - `DELETE FROM`
-  - `DROP TABLE` ou `DROP COLUMN`
-  - Se positivo, **PARE**. Faça um dump preventivo da tabela afetada usando `pg_dump` antes de liberar a execução do SQL na produção.
+- [ ] **Auditoria de Migrations Destrutivas:** O preflight acusou a presença de migrations classificadas como `manual-risk`? (ex: arquivos que contêm `TRUNCATE`, `DELETE FROM`, `DROP TABLE` ou `DROP COLUMN`).
+  - Se positivo, **O DEPLOY SERÁ BLOQUEADO AUTOMATICAMENTE** pelo gate.
+  - Para seguir, você precisará acionar o deploy passando a variável `ALLOW_MANUAL_MIGRATIONS=true` explicitamente.
+  - A esteira de Produção **exigirá** a confirmação de backup para aceitar a flag manual.
 
 ## 🛑 FASE 3: BACKUP DA PRODUÇÃO (MANDATÓRIO)
 
 Você está mudando a infraestrutura que os clientes pagam e/ou usam diariamente.
 
-- [ ] Execute e **confirme via filesize** o backup diário ou imediato do banco de dados completo na VM. Nenhuma Migration pode tocar Produção antes de certificar que o script abaixo produziu um artefato válido nos últimos minutos.
+- [ ] Execute e **confirme via filesize** o backup diário ou imediato do banco de dados completo na VM. **Nenhuma migration `manual-risk` passará no gate sem a variável `PROD_BACKUP_FILE` apontar para o dump abaixo validado.**
 ```bash
-ssh -i "C:/projetos/Secrets/ssh-key-2026-03-07privada.key" ubuntu@137.131.250.231 \
+ssh -F C:\projetos\config faren \
   "docker exec mesas-db pg_dump -U admin -d mesas_rpg > /tmp/backup_$(date +%Y%m%d_%H%M%S)_pre_deploy.sql"
 ```
 - [ ] Se houver modificação nos diretórios estáticos montados localmente, realize o backup de arquivos visados.
@@ -89,8 +89,10 @@ A Produção (`mesas.artificiorpg.com`) reflete os arquivos em `/opt/mesas/` ser
    - [ ] Testou se a API retornou um Code `200` com `{ status: 'ok' }` e `db: 'connected'`?
 6. **Verificação obrigatória do gate de migration (apply_required_migrations.sh):**
    - [ ] Run do workflow contém log `[migrations] schema em conformidade para runtime.`
-   - [ ] Se houver endpoint/consulta nova dependente de colunas adicionais, o bloco de schema mínimo no `apply_required_migrations.sh` foi atualizado para validar essas colunas
-   - [ ] Se houve migration classificada como `MANUAL_RISK_MIGRATIONS` em produção: backup confirmado + evidência de execução controlada
+   - [ ] Se houve migration classificada como `manual-risk` em produção:
+     - [ ] Deploy acionado com `ALLOW_MANUAL_MIGRATIONS=true`
+     - [ ] Variável `REQUIRE_PROD_BACKUP_FOR_MANUAL=true` e caminho de backup confirmado no servidor
+     - [ ] Log atesta evidência da aplicação da migration restrita
 7. **Verificação obrigatória de isolamento Beta (E144):**
    - [ ] `curl -s -o /dev/null -w "%{http_code}" https://mesasbeta.artificiorpg.com` retorna `200`
    - [ ] `curl -s https://mesasbeta.artificiorpg.com/api/v1/health` retorna `{"status":"ok","environment":"beta","db":"connected"...}`

@@ -43,9 +43,21 @@ backend:
 env:
   - .env.example
 
+governance:
+  - .specify/memory/constitution.md  # Seções 9 (SDD rules) e 10 (infra rules) adicionadas na Feature 001
+  - docs/sdd/SESSION_FAILURES_REGISTRY.md  # F01-F16 mapeados para contramedidas
+  - docs/sdd/MAINTAINER_REVIEW_CHECKLIST.md  # Gatilhos de parada imediata
+
 workflows:
   - .github/workflows/deploy-beta.yml
   - .github/workflows/deploy-production.yml
+  - .github/workflows/preflight-prod.yml
+
+migrations:
+  - scripts/deploy/apply_required_migrations.sh
+  - scripts/deploy/reconcile_migrations.sh
+  - scripts/deploy/lib_migrations.sh
+  - scripts/deploy/preflight_prod.sh
 ```
 
 ## compose_layout
@@ -243,6 +255,10 @@ post_steps:
   - docker compose logs --tail=30 mesas-beta-frontend
   - docker compose logs --tail=30 mesas-beta-api
   - docker image prune -f
+
+migration_gate_flags:
+  MIGRATIONS_DIR: ./database  # Diretório canônico de migrations (padrão, pode ser override por env)
+  ALLOW_MANUAL_MIGRATIONS: unset by default  # Override explícito via workflow_dispatch para autorizar manual-risk
 ```
 
 deployment_beta_inference:
@@ -276,6 +292,13 @@ post_steps:
   - docker compose logs --tail=30 mesas-app
   - docker compose logs --tail=30 mesas-api
   - docker image prune -f
+
+migration_gate_flags:
+  MIGRATIONS_DIR: ./database  # Diretório canônico de migrations (padrão, pode ser override por env)
+  ALLOW_MANUAL_MIGRATIONS: unset by default  # Override explícito via workflow_dispatch para autorizar manual-risk
+  REQUIRE_PROD_BACKUP_FOR_MANUAL: true  # Exige backup validado para aceitar manual-risk
+  PROD_BACKUP_FILE: <path do dump gerado no passo de backup, ex: /tmp/backup_20260421_1430_pre_deploy.sql>  # Exigido quando ALLOW_MANUAL_MIGRATIONS=true
+
 deployed: false
 ```
 
@@ -475,6 +498,11 @@ prod_domain: mesas.artificiorpg.com -> http://mesas-app:80
 - workflow_missing_automatic_rollback: true  # FALTA
 - deploy_lock_file_not_cleaned_after_deploy: true  # BUG - /tmp/mesas-beta-deploy.lock persiste
 - beta_disk_usage_healthy_16_percent: true
+# Feature 001: Migration Governance Pipeline (21/04/2026):
+- migration_gate_enforcer_active: true  # apply_required_migrations.sh bloqueia deploy com drift ou manual-risk não autorizado
+- preflight_prod_drift_detection_active: true  # preflight-prod.yml detecta drift I2/I3/I5 e posta relatório no PR
+- reconcile_migrations_sh_established: true  # Ferramenta de reconciliação manual para hotfixes (--mark-applied)
+- schema_migrations_table_canonical: true  # Tabela de controle é fonte de verdade para estado do schema
 ```
 
 ## database_tables_beta
@@ -493,6 +521,11 @@ core_tables:
 collaborative_features:
   - system_suggestions  # migration_06 (2026-04-04)
   - notifications       # migration_07 (2026-04-04)
+
+infrastructure_tables:
+  - schema_migrations  # Controle transacional de migrations (Feature 001)
+                       # Colunas: migration_name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT now()
+                       # Fonte de verdade para drift detection e gate de deploy
 
 pending_migrations:
   - migration_10: "is_covil BOOLEAN DEFAULT FALSE, imported_expires_at TIMESTAMPTZ"
@@ -796,4 +829,14 @@ remove_imgur_from_beta_env:
 
 ```powershell
 ssh -F C:\projetos\config faren "sed -i '/IMGUR_CLIENT_ID/d' /opt/mesas-beta/.env"
+```
+
+check_migration_drift:
+
+```powershell
+# Listar migrations pendentes e índice transacional (Beta)
+ssh -F C:\projetos\config faren "cd /opt/mesas-beta && bash scripts/deploy/reconcile_migrations.sh --list docker-compose.beta.yml mesas-beta-db"
+
+# Listar migrations pendentes e índice transacional (Produção)
+ssh -F C:\projetos\config faren "cd /opt/mesas && bash scripts/deploy/reconcile_migrations.sh --list docker-compose.prod.yml mesas-db"
 ```

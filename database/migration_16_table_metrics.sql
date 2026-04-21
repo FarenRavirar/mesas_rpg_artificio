@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- Migration 16: Tabela de métricas de engajamento de mesas
 -- Rastreia visualizações, cliques, contatos e favoritos
 

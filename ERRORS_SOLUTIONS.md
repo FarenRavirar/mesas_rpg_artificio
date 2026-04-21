@@ -675,3 +675,128 @@ docker restart mesas-app
 4. Checklist operacional deve conter gate explícito dessas validações (PRE_DEPLOY_CHECKLIST.md e OPERACAO_PRODUCAO.md).
 
 **Data:** 16/04/2026
+
+---
+
+## E151 - DRIFT ERROR: banco possui migration não encontrada no disco (drift I2)
+
+**Sintoma:**
+Deploy falha com mensagem `DRIFT ERROR: Banco possui migration não encontrada no disco: migration_XX_nome.sql`. O gate de migrations detecta que a tabela `schema_migrations` possui entrada que não existe no diretório `database/`.
+
+**Causa raiz confirmada (21/04/2026):**
+Migration foi aplicada manualmente via SSH no banco de produção/beta para corrigir incidente urgente, mas o arquivo `.sql` não foi commitado no repositório. O gate detecta drift I2 (hotfix manual sem reconciliação) e bloqueia deploy para evitar inconsistência entre código e schema.
+
+**Diagnóstico:**
+```bash
+# Listar migrations pendentes e índice transacional (Beta)
+ssh -F C:\projetos\config faren "cd /opt/mesas-beta && bash scripts/deploy/reconcile_migrations.sh --list docker-compose.beta.yml mesas-beta-db"
+
+# Listar migrations pendentes e índice transacional (Produção)
+ssh -F C:\projetos\config faren "cd /opt/mesas && bash scripts/deploy/reconcile_migrations.sh --list docker-compose.prod.yml mesas-db"
+```
+
+Saída esperada mostra `[DB_ONLY]` para a migration que existe no banco mas não no disco.
+
+**Solução validada:**
+1. Reconciliar manualmente sem executar novamente:
+```bash
+ssh -F C:\projetos\config faren "cd /opt/mesas-beta && bash scripts/deploy/reconcile_migrations.sh --mark-applied migration_XX_nome.sql docker-compose.beta.yml mesas-beta-db"
+```
+2. Commitar o arquivo `.sql` no repositório se ainda não foi versionado
+3. Validar que drift foi resolvido executando `--list` novamente
+
+**Prevenção obrigatória:**
+1. Sempre executar `reconcile_migrations.sh --mark-applied` após qualquer intervenção manual via SSH (ver `OPERACAO_PRODUCAO.md` §11)
+2. Sempre commitar o arquivo `.sql` do hotfix no repositório após aplicação manual
+3. Nunca aplicar migration via SSH sem reconciliação posterior
+
+**Data:** 21/04/2026
+
+---
+
+## E152 - Deploy bloqueado por migration manual-risk pendente sem autorização
+
+**Sintoma:**
+Deploy falha com mensagem `MANUAL-RISK ERROR: Existem migrations manual-risk pendentes. Deploy bloqueado sem ALLOW_MANUAL_MIGRATIONS=true.` e exit code 3. Workflow termina antes de aplicar qualquer migration.
+
+**Causa raiz confirmada (21/04/2026):**
+Migration destrutiva (`DROP TABLE`, `DELETE FROM`, `ALTER COLUMN TYPE`, `TRUNCATE`) foi commitada com header `-- @class: manual-risk`. O gate bloqueia por padrão e exige autorização explícita via `workflow_dispatch` com flag `ALLOW_MANUAL_MIGRATIONS=true`. Em produção, também exige `PROD_BACKUP_FILE` (path do dump validado) e `REQUIRE_PROD_BACKUP_FOR_MANUAL=true`.
+
+**Diagnóstico:**
+```bash
+# Verificar classificação das migrations pendentes
+grep -n "@class:" database/migration_*.sql
+
+# Confirmar que migration é realmente destrutiva
+cat database/migration_XX_nome.sql | grep -E "DROP|DELETE|TRUNCATE|ALTER.*TYPE"
+```
+
+**Solução validada:**
+
+**Opção A — Autorizar via workflow_dispatch:**
+```bash
+# Acessar GitHub Actions → workflow "Deploy Production" (ou "Deploy Beta")
+# Clicar em "Run workflow" e preencher inputs:
+# - ALLOW_MANUAL_MIGRATIONS: true
+# - PROD_BACKUP_FILE: /tmp/backup_20260421_1430_pre_deploy.sql
+# - REQUIRE_PROD_BACKUP_FOR_MANUAL: true (apenas produção)
+```
+
+**Opção B — Reclassificar se marcação incorreta:**
+Se a migration foi incorretamente classificada como `manual-risk`, editar header do arquivo `.sql`:
+```sql
+-- @class: online-safe
+```
+Commitar, push e redisparar deploy.
+
+**Prevenção obrigatória:**
+1. Sempre gerar backup validado ANTES de autorizar `ALLOW_MANUAL_MIGRATIONS=true` (ver `PRE_DEPLOY_CHECKLIST.md` fase 3)
+2. Validar classificação de risco no PR review — se marca destrutiva está coerente com conteúdo SQL
+3. Consultar `migrations_guide.md` seção "Classificação de Risco" para regras de classificação
+
+**Data:** 21/04/2026
+
+---
+
+## E153 - Drift I5: migrations dessincronizadas entre dev e main
+
+**Sintoma:**
+Deploy detecta divergência entre estado esperado pela branch e estado real do banco. Mensagem de drift aponta migration presente em um ambiente e ausente no outro, ou `DRIFT ERROR` cruzado ao promover branch.
+
+**Causa raiz confirmada (21/04/2026):**
+Migration aplicada em beta mas não promovida para main, ou vice-versa. Causas comuns: merge parcial entre branches; feature mergeada em `dev` sem promoção subsequente para `main`; hotfix aplicado em `main` sem backport para `dev`.
+
+**Diagnóstico:**
+```bash
+# Verificar migrations presentes em dev e ausentes em main
+git log origin/main..origin/dev --oneline -- database/
+
+# Verificar migrations presentes em main e ausentes em dev (caso oposto)
+git log origin/dev..origin/main --oneline -- database/
+
+# Listar divergência de commits
+git rev-list --left-right --count origin/main...origin/dev
+```
+
+**Solução validada:**
+
+**Caso 1 — dev possui migrations que main não tem (cenário comum):**
+```bash
+# Promover via PR padrão
+gh pr create --base main --head dev --title "chore: sync migrations dev → main" --body "Sincronização de migrations pendentes"
+```
+
+**Caso 2 — main possui migrations que dev não tem (hotfix direto em prod):**
+```bash
+# Backport via cherry-pick
+git checkout dev
+git cherry-pick <commit-hash-da-migration>
+git push origin dev
+```
+
+**Prevenção obrigatória:**
+1. Sempre promover migrations via PR de `dev` para `main` — nunca aplicar diretamente em produção sem passar por beta
+2. Workflow `preflight-prod.yml` detecta drift I5 antes do merge em `main` e posta relatório no PR
+3. Evitar hotfix direto em `main` quando possível — preferir aplicar em beta primeiro e promover
+
+**Data:** 21/04/2026

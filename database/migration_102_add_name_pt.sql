@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- =============================================================================
 -- Migration 102: Adicionar campo name_pt para sistemas e cenários
 -- Objetivo: Suportar nomes em português para sistemas e cenários

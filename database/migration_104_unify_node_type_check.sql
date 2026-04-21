@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- Migration 104: Unifica CHECK em systems.node_type (conflito M02 vs M11)
 -- Problema: M02 aceita 'subsystem', M11 recusa
 -- Solução: DROP ambas constraints conflitantes, ADD única constraint com todos os valores

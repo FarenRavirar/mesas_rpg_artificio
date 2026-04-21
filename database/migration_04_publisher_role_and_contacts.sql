@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- =============================================================================
 -- migration_04_publisher_role_and_contacts.sql
 -- REQ-11: papel do publicador (mestre x anunciante)
