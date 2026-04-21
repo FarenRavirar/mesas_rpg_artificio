@@ -19,7 +19,7 @@
 10. [x] T044.5: Auditoria de `ambiente_atual_mesas.md`.
 11. [x] T045: Criar `docs/sdd/BRANCH_POLICY.md`.
 12. [x] T046: Adicionar entrada de drift em `ERRORS_SOLUTIONS.md`.
-13. [ ] T047: Criar `specs/001-gate-migrations-refactor/pr-description.md`.
+13. [x] T047: Criar `specs/001-gate-migrations-refactor/pr-description.md`.
 14. [ ] T048: Remover `apply_required_migrations.sh.bak` (Pós-merge/deploy).
 15. [ ] Atualizar `RESUMO_EXECUCAO.md`
 16. [ ] Atualizar `sessoes/index.md`
