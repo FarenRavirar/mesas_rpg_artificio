@@ -3,6 +3,13 @@ set -euo pipefail
 
 MIGRATIONS_DIR="${MIGRATIONS_DIR:-./database}"
 
+# Optional compose project name (for isolated integration tests).
+# Em produção (CI), vazio = inferido do diretório. Em teste, setado explicitamente.
+COMPOSE_PROJECT_FLAG=""
+if [ -n "${COMPOSE_PROJECT:-}" ]; then
+  COMPOSE_PROJECT_FLAG="-p $COMPOSE_PROJECT"
+fi
+
 if [ "$#" -ne 2 ]; then
   echo "Uso: bash scripts/deploy/apply_required_migrations.sh <compose_file> <db_service>"
   exit 1
@@ -33,7 +40,7 @@ PG_OPTS="-c lock_timeout=${LOCK_TIMEOUT_MS}ms -c statement_timeout=${STATEMENT_T
 
 # 2. Bootstrap schema_migrations
 echo "[migrations] garantindo tabela schema_migrations..."
-docker compose -f "$COMPOSE_FILE" exec -T -e PGOPTIONS="$PG_OPTS" "$DB_SERVICE" \
+docker compose $COMPOSE_PROJECT_FLAG -f "$COMPOSE_FILE" exec -T -e PGOPTIONS="$PG_OPTS" "$DB_SERVICE" \
   psql -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$DB_NAME" <<'SQL'
 CREATE TABLE IF NOT EXISTS schema_migrations (
   migration_name TEXT PRIMARY KEY,
@@ -115,7 +122,7 @@ for f_base in "${PENDING[@]}"; do
   echo "[migrations] aplicando $CLASS: $f_base..."
 
   # Run inside a single transaction if not relying on its own
-  docker compose -f "$COMPOSE_FILE" exec -T -e PGOPTIONS="$PG_OPTS" "$DB_SERVICE" \
+  docker compose $COMPOSE_PROJECT_FLAG -f "$COMPOSE_FILE" exec -T -e PGOPTIONS="$PG_OPTS" "$DB_SERVICE" \
     psql -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$DB_NAME" <<SQL
 BEGIN;
 $(cat "$f_path")

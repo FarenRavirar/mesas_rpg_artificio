@@ -195,6 +195,17 @@ afb38a4 docs(sessoes): arquiva sessao 26-04-20_8_spec-retomada-fluxo após setup
 c8fbd96 chore(docs): registrar progresso de sessoes e inicializar retomada do spec-kit
 990e08b chore: remover duplicacao bloco 16:07 e 2o 16:20
 
+## Status Atual e Falha no Teste de Integração (Commit 3)
+
+O Commit 3 (testes de integração em `integration_apply.sh`) foi instanciado e as modificações da Correção A (flag `-p $COMPOSE_PROJECT`) foram aplicadas nos scripts `apply_required_migrations.sh`, `lib_migrations.sh` e `integration_apply.sh`. Os testes unitários via bats continuaram GREEN (12/12). 
+
+No entanto, ao rodar a integração remota na VM, o `integration_apply.sh` abortou de forma silenciosa imediatamente após a aplicação da primeira migration (TEST 1), pulando para o `[cleanup]` e reportando `Exit code: 0`.
+
+**Diagnóstico Técnico:**
+Como o script foi passado para a VM via `ssh bash << REMOTE_SCRIPT` (via `stdin`), os comandos `docker compose exec -T ... psql` (no `lib_migrations.sh`) "engoliram" o que restava do `stdin`. Isso drenou o resto do script; o bash remoto achou que o script tinha acabado e encerrou com `0`, ativando o trap de cleanup antes de prosseguir com a assertion do TEST 1.
+
+As correções do `docker compose exec` e injeção do flag `-p` estão no working directory, aguardando commmit atômico. A sessão foi pausada aqui, uma nova conversa será iniciada para aplicar o fix do `< /dev/null` nas invocações do `psql` para proteger o stdin do heredoc.
+
 ## Próxima ação imediata
 
-Executar Commit 3 do prompt de arquitetura Parte 2 Débito 3: substituir integration_apply.sh e rodar 6 testes de integração.
+Sessão encerrada em bug de `stdin` no `integration_apply`; contexto transferido para nova sessão via super resumo (handoff).
