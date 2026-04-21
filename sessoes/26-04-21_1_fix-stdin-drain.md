@@ -13,8 +13,10 @@
 4. [x] Corrigir perda de exit code no set-diff (substituindo process substitution por captura de variável).
 5. [x] Rodar `integration_apply.sh`.
 6. [x] Se GREEN, commit atômico e push.
-7. [ ] Atualizar `RESUMO_EXECUCAO.md`
-8. [ ] Atualizar `sessoes/index.md`
+7. [ ] T042: Atualização do `migrations_guide.md` (Referências Rápidas, Erros Reais TS, Lições Feature 001).
+8. [ ] T043: `OPERACAO_PRODUCAO.md` - Passo obrigatório para reconciliação manual.
+9. [ ] Atualizar `RESUMO_EXECUCAO.md`
+10. [ ] Atualizar `sessoes/index.md`
 
 ## Arquivos Modificados
 - `docs/sdd/SESSION_FAILURES_REGISTRY.md`
