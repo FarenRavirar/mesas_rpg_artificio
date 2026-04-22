@@ -42,3 +42,12 @@ docker-compose.beta - backup 2.yml
 CLOUDINARY_INTEGRATION_GUIDE.md
 docs/Reformulacao_mestre.md
 docs/Reformulacao_mestre_v-final.md
+/.agent/skills
+/.agents/skills
+/.specify/extensions
+/.specify/templates
+/specs
+/.specify/templates
+prompt_claude.md
+/.specify
+/testes

@@ -49,6 +49,44 @@ Sempre que for iniciar uma nova feature siga cronologicamente este roteiro pedin
    - *O que faz:* Regera e molda a Constituição Base (as regras que toda as Specs vão seguir no futuro).
    - *Quando usar:* Raramente. Só quando o norte principal do projeto mudar (como migrar de PostgreSQL pra MongoDB, ou Node.js para Go).
 
+- **/speckit.fixit.run <descrição do bug>**
+   - *O que faz:* Corrige bugs com consciência da spec. Mapeia o bug para user story/requirement, localiza arquivos afetados, propõe plano de correção e aplica mudança mínima após aprovação.
+   - *Quando usar:* Após `/speckit.implement`, quando testes manuais revelarem bugs. Comando reativo, não faz parte do fluxo principal.
+   - *Exemplo:* `/speckit.fixit.run o formulário aceita email vazio`
+
+### Comandos Brownfield (Adoção Incremental de SDD)
+
+Estes comandos ajudam a integrar o projeto existente ao workflow SDD:
+
+- **/speckit.brownfield.scan**
+   - *O que faz:* Analisa o projeto existente para descobrir tech stack, arquitetura, convenções de código e estrutura de módulos. Gera um perfil completo do projeto.
+   - *Quando usar:* Primeira vez configurando SDD em projeto existente, ou quando precisar atualizar o perfil após mudanças significativas na arquitetura.
+   - *Saída:* `.specify/brownfield-project-profile.md`
+
+- **/speckit.brownfield.bootstrap**
+   - *O que faz:* Gera configuração customizada do Spec Kit baseada no perfil do projeto. Atualiza templates (spec, plan, tasks) para refletir a estrutura real do projeto (paths, comandos, frameworks).
+   - *Quando usar:* Após o scan, para customizar templates genéricos com a arquitetura real do projeto.
+   - *Saída:* Templates atualizados em `.specify/templates/`, relatório em `.specify/brownfield-bootstrap-report.md`
+
+- **/speckit.brownfield.validate**
+   - *O que faz:* Verifica se a configuração gerada pelo bootstrap corresponde à estrutura real do projeto. Detecta drift (mudanças não documentadas) e valida paths, frameworks e convenções.
+   - *Quando usar:* Após o bootstrap, ou periodicamente para detectar divergências entre documentação e código.
+   - *Saída:* `.specify/brownfield-validation-report.md`
+
+- **/speckit.brownfield.migrate**
+   - *O que faz:* Traz features existentes para o workflow SDD. Faz engenharia reversa de specs a partir do código, reconstrói plan.md e gera tasks.md com todas as tarefas marcadas como completas. Identifica gaps (testes faltando, documentação ausente).
+   - *Quando usar:* Para formalizar features já implementadas que não possuem specs, ou para criar documentação retroativa de funcionalidades críticas.
+   - *Saída:* `specs/NNN-feature-name/{spec.md,plan.md,tasks.md}` com status `migrated`
+
+**Fluxo Brownfield Completo:**
+1. `/speckit.brownfield.scan` → gera perfil do projeto
+2. `/speckit.brownfield.bootstrap` → customiza templates
+3. `/speckit.brownfield.validate` → verifica alinhamento
+4. `/speckit.brownfield.migrate` → formaliza features existentes
+5. Novas features seguem fluxo normal (specify → plan → tasks → implement)
+
+
+
 ## Fonte de verdade
 Conflito → AGENTS.md e MDs canônicos vencem sempre.
 Detalhes em docs/sdd/MAPEAMENTO_SDD.md.

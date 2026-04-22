@@ -15,8 +15,11 @@
 
 | # | ID | GUT | Item |Ação | FILA ref |
 |---|---|---|---|---|---|
-| 1 | DEB-08 | 100 | Frequência detalhada schedules | Adicionar campos + UI | ↔ 086 |
-| 2 | REQ-29 | 100 | Auditoria API + implementação | Atualizar MAPA | ↔ DEB-06 |
+| 1 | OPS-06 | 125 | Remover apply_required_migrations.sh.bak | Cleanup pós-Feature 001 | — |
+| 2 | OPS-07 | 125 | Ativar branch protection main/dev | GitHub UI | — |
+| 3 | OPS-08 | 100 | Corrigir job smoke deploy-beta.yml | Erro sintaxe bash (não bloqueante) | — |
+| 4 | DEB-08 | 100 | Frequência detalhada schedules | Adicionar campos + UI | ↔ 086 |
+| 5 | REQ-29 | 100 | Auditoria API + implementação | Atualizar MAPA | ↔ DEB-06 |
 
 ### Média Prioridade (GUT 50-99)
 
@@ -45,6 +48,9 @@
 
 | ID | GUT | Descrição |Ação | FILA ref | Status |
 |---|---|---|---|---|---|
+| OPS-06 | 125 | **Remover apply_required_migrations.sh.bak:** Arquivo backup da Feature 001 deve ser removido após validação completa em prod. | Executar `rm scripts/deploy/apply_required_migrations.sh.bak` | — | ⏳ Pendente |
+| OPS-07 | 125 | **Ativar branch protection em main e dev:** Configurar via GitHub UI para prevenir pushes diretos e exigir PRs. Parte da governança SDD. | Configurar via GitHub Settings → Branches | — | ⏳ Pendente |
+| OPS-08 | 100 | **Corrigir job smoke em deploy-beta.yml:** Erro de sintaxe bash (`syntax error near unexpected token 'fi'`) na linha 43 do script SSH. Não bloqueante mas deve ser corrigido. | Revisar script de smoke test | — | ⏳ Pendente |
 | REQ-29 | 100 | **Auditoria API + implementação:** Mapear endpoints via `MAPA_DE_API.md`, atualizar status, implementar UI para os 5 mais críticos. Endereça DEB-06. | Primeiro auditoria, segundo implementar | ↔ DEB-06 | Pendente |
 
 ### Média Prioridade (GUT 50-99)
