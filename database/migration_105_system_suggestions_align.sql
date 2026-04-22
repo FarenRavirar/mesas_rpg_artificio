@@ -1,5 +1,5 @@
--- @class: online-safe
--- @requires-backup: false
+-- @class: manual-risk
+-- @requires-backup: true
 -- @author: legacy
 -- @created: 2026-04-20
 -- @description: retro-migration header
