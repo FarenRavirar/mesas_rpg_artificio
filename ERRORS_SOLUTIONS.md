@@ -800,3 +800,135 @@ git push origin dev
 3. Evitar hotfix direto em `main` quando possível — preferir aplicar em beta primeiro e promover
 
 **Data:** 21/04/2026
+
+---
+
+## E154 - Reconciliação inicial: "Muitas migrations pendentes (N > 5)" no primeiro deploy após feature 001
+
+**Sintoma:**
+Deploy beta/prod falha com mensagem `::error::Muitas migrations pendentes (28 > 5).` no job `migrate`. Todos os outros jobs (validate, lint, enforce-dir) passam. O erro ocorre na primeira aplicação da feature 001 em ambiente com banco pré-existente.
+
+**Causa raiz confirmada (22/04/2026):**
+Schema histórico foi aplicado antes da tabela `schema_migrations` existir. Quando a feature 001 é instalada pela primeira vez, o script `apply_required_migrations.sh` detecta todas as migrations históricas como "pendentes" porque não há registro delas na tabela de controle. O limite de segurança de 5 migrations pendentes bloqueia o deploy para evitar aplicação massiva acidental.
+
+**Diagnóstico:**
+```bash
+# Listar drift (Beta)
+ssh -F C:/projetos/config faren "cd /opt/mesas-beta && bash scripts/deploy/reconcile_migrations.sh --list docker-compose.beta.yml mesas-beta-db"
+
+# Listar drift (Produção)
+ssh -F C:/projetos/config faren "cd /opt/mesas && bash scripts/deploy/reconcile_migrations.sh --list docker-compose.prod.yml mesas-db"
+```
+
+Saída esperada mostra grande quantidade de `[DISK_ONLY]` (migrations no disco sem registro no banco) e 0 `[DB_ONLY]`.
+
+**Solução validada (22/04/2026):**
+
+**Passo 1 — Aplicar migration_114 manualmente (bootstrap da coluna `applied_by`):**
+```bash
+ssh -F C:/projetos/config faren "cat /opt/mesas-beta/database/migration_114_add_applied_by.sql | docker exec -i mesas-beta-db psql -U admin -d mesas_rpg"
+```
+
+**Passo 2 — Reconciliar migrations históricas em lote:**
+```bash
+# Criar lista de migrations [DISK_ONLY] (excluindo migration_114 que já foi aplicada)
+# Executar loop de reconciliação via PowerShell ou script bash
+```
+
+**Passo 3 — Validar reconciliação:**
+```bash
+bash scripts/deploy/reconcile_migrations.sh --list docker-compose.beta.yml mesas-beta-db
+```
+Esperado: 0 `[DISK_ONLY]`, 0 `[DB_ONLY]`.
+
+**Passo 4 — Disparar deploy normalmente.**
+
+**Prevenção obrigatória:**
+1. Próximos ambientes (prod) devem ser reconciliados **antes** de tentar deploy, não depois
+2. Documentar checklist de reconciliação inicial em `BRANCH_POLICY.md` e `pr-description.md`
+3. Adicionar seção "Reconciliação Inicial" no `PRE_DEPLOY_CHECKLIST.md` para ambientes novos
+
+**Recorrente:** Sim (vai acontecer em prod na primeira instalação da feature 001)
+
+**Data:** 22/04/2026
+
+---
+
+## E155 - Job smoke em deploy-beta.yml falha com "syntax error near unexpected token 'fi'"
+
+**Sintoma:**
+Deploy beta completa jobs `validate`, `lint`, `enforce-dir`, `migrate` e `deploy-app` com sucesso, mas falha no job `smoke` com erro `bash: -c: line 43: syntax error near unexpected token 'fi'`. Exit code 2. Aplicação está funcional (rotas respondendo 200), mas workflow marca deploy como falho.
+
+**Causa raiz provisória (22/04/2026):**
+Erro de sintaxe bash em heredoc/script SSH do job `smoke` no workflow `deploy-beta.yml`. Bloco `if ... fi` mal formado na linha 43 do script remoto. Não afeta funcionalidade da aplicação — todas as rotas críticas respondendo corretamente após deploy.
+
+**Diagnóstico:**
+```bash
+gh run view <RUN_ID> --log-failed | grep -A 5 smoke
+```
+
+Saída mostra:
+```
+smoke	Smoke Tests	err: bash: -c: line 43: syntax error near unexpected token 'fi'
+smoke	Smoke Tests	2026/04/22 03:35:10 Process exited with status 2
+```
+
+**Solução pendente:**
+1. Investigar workflow `deploy-beta.yml` job `smoke`
+2. Identificar bloco `if ... fi` mal formado (provavelmente problema de escape em heredoc ou sintaxe bash)
+3. Corrigir sintaxe
+4. Testar com commit vazio: `git commit --allow-empty -m "test: validar correcao smoke test"`
+
+**Prevenção obrigatória:**
+Não é recorrente (primeira ocorrência após feature 001 entrar ativa). Correção pendente sem urgência — não bloqueia operação. Job `smoke` é validação adicional; rotas críticas já são validadas em `deploy-app`.
+
+**Recorrente:** Não
+
+**Data:** 22/04/2026
+
+---
+
+## E156 - reconcile_migrations.sh --mark-applied falha com "column 'applied_by' does not exist"
+
+**Sintoma:**
+Comando `reconcile_migrations.sh --mark-applied migration_XX.sql` falha com erro PostgreSQL: `ERROR: column "applied_by" of relation "schema_migrations" does not exist`. Ocorre ao tentar reconciliar migrations em banco que ainda não tem a migration_114 aplicada.
+
+**Causa raiz confirmada (22/04/2026):**
+Migration_114 adiciona a coluna `applied_by` que o próprio script de reconciliação usa no `INSERT INTO schema_migrations`. Bootstrap requer aplicar migration_114 manualmente antes da reconciliação em lote. Sem essa coluna, o script falha ao tentar inserir registro com `applied_by`.
+
+**Diagnóstico:**
+```bash
+# Verificar se coluna applied_by existe
+docker exec mesas-beta-db psql -U admin -d mesas_rpg -c '\d schema_migrations'
+```
+
+Se output mostrar apenas `migration_name` e `applied_at` (sem `applied_by`), o problema está confirmado.
+
+**Solução validada (22/04/2026):**
+
+**Passo 1 — Aplicar migration_114 via pipe:**
+```bash
+cat /opt/mesas-beta/database/migration_114_add_applied_by.sql | docker exec -i mesas-beta-db psql -U admin -d mesas_rpg
+```
+
+Esperado: `ALTER TABLE`, `DO`, `NOTICE: schema_migrations.applied_by: ok`
+
+**Passo 2 — Executar loop de reconciliação normalmente:**
+```bash
+bash scripts/deploy/reconcile_migrations.sh --mark-applied migration_01_base_schema.sql docker-compose.beta.yml mesas-beta-db
+# ... repetir para outras migrations
+```
+
+**Passo 3 — Marcar migration_114 também:**
+```bash
+bash scripts/deploy/reconcile_migrations.sh --mark-applied migration_114_add_applied_by.sql docker-compose.beta.yml mesas-beta-db
+```
+
+**Prevenção obrigatória:**
+1. Em reconciliação inicial de **prod**, aplicar migration_114 primeiro antes do loop
+2. Documentar isso no checklist pós-merge do `BRANCH_POLICY.md`
+3. Adicionar nota no `pr-description.md` sobre ordem de bootstrap
+
+**Recorrente:** Sim (vai acontecer de novo em prod na primeira reconciliação)
+
+**Data:** 22/04/2026
