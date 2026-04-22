@@ -142,6 +142,21 @@ Após o merge da Feature 001 (`001-gate-migrations-refactor`) em `main`, o mante
 3. Marcar checkboxes conforme lista acima
 4. Salvar alterações
 
+### Reconciliação Inicial Obrigatória
+
+**Ao subir a feature 001 em ambiente que já possui schema aplicado historicamente (beta concluído em 22/04/2026, prod pendente):**
+
+1. **Aplicar manualmente `migration_114_add_applied_by.sql`** via `cat | docker exec -i` (bootstrap da coluna usada pelo próprio script de reconciliação). Ver E156 em `ERRORS_SOLUTIONS.md`.
+
+2. **Executar loop de `reconcile_migrations.sh --mark-applied`** para todas as migrations `[DISK_ONLY]` restantes.
+
+3. **Validar com `--list`** que `[DISK_ONLY]` e `[DB_ONLY]` estão em 0.
+
+4. **Só então disparar o deploy normal.**
+
+**Motivo:** Schema histórico foi aplicado antes da tabela `schema_migrations` existir. Primeira aplicação da feature 001 detecta todas as migrations históricas como "pendentes" e bloqueia deploy com erro "Muitas migrations pendentes (N > 5)". Ver E154 em `ERRORS_SOLUTIONS.md`.
+
+
 ---
 
 ## Referências Cruzadas
