@@ -108,6 +108,10 @@ export function ActivityFilters({ filters, filtersMeta, onChange, onClear }: Act
     handleActionsChange(Array.from(merged));
   };
 
+  const handleSelectAllActions = () => {
+    handleActionsChange([]);
+  };
+
   const handleActorChange = (value: string) => {
     onChange({ ...filters, actor_id: value || null });
   };
@@ -181,6 +185,20 @@ export function ActivityFilters({ filters, filtersMeta, onChange, onClear }: Act
           </select>
 
           <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              key="activity-group-all"
+              id="activity-group-all"
+              type="button"
+              onClick={handleSelectAllActions}
+              className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                filters.actions.length === 0
+                  ? 'border-[var(--color-artificio-orange)] bg-[var(--color-artificio-orange)]/20 text-[var(--color-artificio-orange)]'
+                  : 'border-white/15 bg-white/5 text-white/60 hover:border-white/30 hover:text-white'
+              }`}
+            >
+              Todos
+            </button>
+
             {grouped.map((group) => {
               const hasAny = group.actions.length > 0;
               const active = hasAny && group.actions.some((action) => selectedActionsSet.has(action));

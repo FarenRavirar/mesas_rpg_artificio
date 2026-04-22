@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- Migration 100: Adicionar campo slots_open para sistema de vagas
 -- Data: 2026-04-07
 -- Descrição: Separar "vagas totais" de "vagas abertas para recrutamento"

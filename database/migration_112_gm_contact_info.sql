@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- Migration 110: Adiciona campo de contatos do mestre no perfil público
 -- Data: 2026-04-18
 -- Autor: Sistema

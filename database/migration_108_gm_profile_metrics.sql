@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- Migration 108: gm_profile_metrics
 -- Objetivo: instrumentar visualizações do perfil público do mestre com dedupe por sessão
 -- Segurança: idempotente (CREATE TABLE/INDEX IF NOT EXISTS)

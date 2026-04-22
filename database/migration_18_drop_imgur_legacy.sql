@@ -1,3 +1,9 @@
+-- @class: manual-risk
+-- @requires-backup: true
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- =============================================================================
 -- migration_17_drop_imgur_legacy.sql
 -- Remoção estrutural definitiva de legado de imagens (Imgur/deletehash)

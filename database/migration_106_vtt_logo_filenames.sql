@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- Migration 106: Vincular logos locais aos registros de VTT
 -- Objetivo: preencher logo_filename com os arquivos existentes em frontend/public/vtt-logos
 -- Segurança: idempotente (reexecução mantém o mesmo estado)

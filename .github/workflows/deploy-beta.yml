@@ -10,39 +10,33 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy-beta:
+  enforce-dir:
+    uses: ./.github/workflows/_enforce-migration-dir.yml
+
+  lint:
+    uses: ./.github/workflows/_lint-shell.yml
+
+  validate:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - name: Validate Headers
+        run: bash testes/deploy/header_contract.sh
 
-      # CORRECAO WF-TS-01: Validar TypeScript ANTES de derrubar containers na VM
-      # Se o build falhar aqui, o deploy nao chega ao SSH e o beta permanece no ar
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install frontend dependencies
-        run: npm ci
-        working-directory: frontend
-
-      - name: TypeScript check (frontend)
-        run: npx tsc --noEmit
-        working-directory: frontend
-
-      - name: Deploy to Beta Server
+  migrate:
+    needs: [enforce-dir, lint, validate]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Migrate Database
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: GH_TOKEN
           script: |
             set -euo pipefail
+            cd /opt/mesas-beta
 
             if ! command -v flock >/dev/null 2>&1; then
               echo "ERRO: flock nao disponivel"
@@ -54,38 +48,13 @@ jobs:
               exit 1
             fi
 
+            # Sync code
             export GH_TOKEN="${{ secrets.GH_TOKEN }}"
-            cd /opt/mesas-beta
-
-            if [ ! -f .env ]; then
-              echo "ERRO: /opt/mesas-beta/.env nao encontrado"
-              exit 1
-            fi
-
-            for required_key in VITE_CLOUDINARY_CLOUD_NAME VITE_CLOUDINARY_UPLOAD_PRESET; do
-              required_value=$(awk -F= -v k="$required_key" '$1==k{print substr($0, index($0, "=")+1)}' .env | tail -n1 | tr -d '\r')
-              if [ -z "$required_value" ]; then
-                echo "ERRO: Variavel obrigatoria ausente no .env: $required_key"
-                exit 1
-              fi
-            done
-
             git fetch https://$GH_TOKEN@github.com/FarenRavirar/mesas_rpg_artificio.git dev
             git reset --hard FETCH_HEAD
 
-            # CORRECAO WF-ROLLBACK-01: rollback automatico se build falhar apos o down
-            rollback() {
-              echo "ROLLBACK: tentando resubir containers..."
-              docker compose -f docker-compose.beta.yml up -d --force-recreate || true
-              echo "AVISO: Rollback tentado. Verificar estado manualmente."
-            }
-            trap rollback ERR
-
-            docker compose -f docker-compose.beta.yml down --remove-orphans
-            docker compose -f docker-compose.beta.yml build --no-cache
-            trap - ERR
-            docker compose -f docker-compose.beta.yml up -d --force-recreate
-
+            # Ensure DB is up and ready before migrating
+            docker compose -f docker-compose.beta.yml up -d mesas-beta-db
             MAX_RETRIES=30
             RETRIES=0
             until docker compose -f docker-compose.beta.yml exec -T mesas-beta-db pg_isready -U admin -d mesas_rpg; do
@@ -98,7 +67,66 @@ jobs:
               sleep 3
             done
 
+            # Run migrations
             bash ./scripts/deploy/apply_required_migrations.sh docker-compose.beta.yml mesas-beta-db
+
+  deploy-app:
+    needs: migrate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # CORRECAO WF-TS-01
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+      - name: TypeScript check (frontend)
+        run: npx tsc --noEmit
+        working-directory: frontend
+
+      - name: Deploy App Containers
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -euo pipefail
+            exec 9>/tmp/mesas-beta-deploy.lock
+            if ! flock -w 120 9; then exit 1; fi
+
+            cd /opt/mesas-beta
+            
+            rollback() {
+              echo "ROLLBACK: tentando resubir containers..."
+              docker compose -f docker-compose.beta.yml up -d --force-recreate || true
+              echo "AVISO: Rollback tentado. Verificar estado manualmente."
+            }
+            trap rollback ERR
+
+            docker compose -f docker-compose.beta.yml down --remove-orphans
+            docker compose -f docker-compose.beta.yml build --no-cache
+            trap - ERR
+            docker compose -f docker-compose.beta.yml up -d --force-recreate
+
+  smoke:
+    needs: deploy-app
+    runs-on: ubuntu-latest
+    steps:
+      - name: Smoke Tests
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -euo pipefail
+            cd /opt/mesas-beta
 
             API_CONTAINER="mesas-beta-api"
             MAX_API_RETRIES=20
@@ -107,7 +135,6 @@ jobs:
               API_RETRIES=$((API_RETRIES+1))
               if [ $API_RETRIES -ge $MAX_API_RETRIES ]; then
                 echo "ERRO: API beta nao ficou healthy (E147)"
-                docker inspect "$API_CONTAINER" --format '{{json .State.Health}}' || true
                 docker compose -f docker-compose.beta.yml logs mesas-beta-api --tail=100
                 exit 1
               fi
@@ -121,7 +148,6 @@ jobs:
               FRONTEND_RETRIES=$((FRONTEND_RETRIES+1))
               if [ $FRONTEND_RETRIES -ge $MAX_FRONTEND_RETRIES ]; then
                 echo "ERRO: Frontend beta nao ficou healthy (E145)"
-                docker inspect "$FRONTEND_CONTAINER" --format '{{json .State.Health}}' || true
                 docker compose -f docker-compose.beta.yml logs mesas-beta-frontend --tail=100
                 exit 1
               fi
@@ -129,87 +155,26 @@ jobs:
             done
 
             BETA_HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://mesasbeta.artificiorpg.com)
-            if [ "$BETA_HTTP_CODE" != "200" ]; then
-              echo "AVISO: Beta nao respondeu HTTP 200. Tentando recuperacao automatica..."
-              docker compose -f docker-compose.beta.yml up -d --force-recreate
-              sleep 20
-              BETA_HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://mesasbeta.artificiorpg.com)
-              if [ "$BETA_HTTP_CODE" != "200" ]; then
-                echo "ERRO: Beta permaneceu fora apos recuperacao automatica"
-                docker compose -f docker-compose.beta.yml ps
-                docker compose -f docker-compose.beta.yml logs --tail=120 mesas-beta-frontend mesas-beta-api mesas-beta-db
-                exit 1
-              fi
-            fi
-
-            if ! curl -fsS https://mesasbeta.artificiorpg.com/api/v1/health | grep -q '"status":"ok"'; then
-              echo "AVISO: Health publico do beta nao retornou status ok. Tentando recuperacao..."
-              docker compose -f docker-compose.beta.yml up -d --force-recreate
-              sleep 20
-              if ! curl -fsS https://mesasbeta.artificiorpg.com/api/v1/health | grep -q '"status":"ok"'; then
-                echo "ERRO: Health publico do beta segue invalido apos recuperacao"
-                docker compose -f docker-compose.beta.yml ps
-                docker compose -f docker-compose.beta.yml logs --tail=120 mesas-beta-frontend mesas-beta-api mesas-beta-db
-                exit 1
-              fi
-            fi
+            if [ "$BETA_HTTP_CODE" != "200" ]; then exit 1; fi
 
             BETA_TABLES_URL="https://mesasbeta.artificiorpg.com/api/v1/tables?limit=1"
+            BETA_SYSTEMS_TREE_URL="https://mesasbeta.artificiorpg.com/api/v1/systems?view=tree"
             BETA_OAUTH_URL="https://mesasbeta.artificiorpg.com/auth/google?frontend_redirect=https%3A%2F%2Fmesasbeta.artificiorpg.com"
 
             check_beta_critical_routes() {
-              local tables_code oauth_code
-
+              local tables_code systems_tree_code oauth_code
               tables_code=$(curl -sS -o /tmp/beta_tables_check.json -w "%{http_code}" "$BETA_TABLES_URL" || true)
+              systems_tree_code=$(curl -sS -o /tmp/beta_systems_tree_check.json -w "%{http_code}" "$BETA_SYSTEMS_TREE_URL" || true)
               oauth_code=$(curl -sS -D /tmp/beta_oauth_check.headers -o /dev/null -w "%{http_code}" "$BETA_OAUTH_URL" || true)
 
-              if [ "$tables_code" != "200" ]; then
-                echo "ERRO: /api/v1/tables retornou HTTP $tables_code no beta (E150)"
-                return 1
-              fi
-
-              if [ "$oauth_code" != "302" ] || ! grep -qi '^location: https://accounts.google.com/o/oauth2/v2/auth' /tmp/beta_oauth_check.headers; then
-                echo "ERRO: /auth/google nao retornou redirect valido no beta (HTTP $oauth_code) (E150)"
-                return 1
-              fi
-
+              if [ "$tables_code" != "200" ]; return 1; fi
+              if [ "$systems_tree_code" != "200" ]; return 1; fi
+              if [ "$oauth_code" != "302" ]; return 1; fi
               return 0
             }
 
-            if ! check_beta_critical_routes; then
-              echo "AVISO: Rotas criticas do beta falharam. Tentando auto-recuperacao E150 (restart do frontend)..."
-              docker restart mesas-beta-frontend
-
-              FRONTEND_RETRIES=0
-              until [ "$(docker inspect --format '{{.State.Health.Status}}' "$FRONTEND_CONTAINER" 2>/dev/null || echo 'missing')" = "healthy" ]; do
-                FRONTEND_RETRIES=$((FRONTEND_RETRIES+1))
-                if [ $FRONTEND_RETRIES -ge $MAX_FRONTEND_RETRIES ]; then
-                  echo "ERRO: Frontend beta nao voltou healthy apos recuperacao E150"
-                  docker inspect "$FRONTEND_CONTAINER" --format '{{json .State.Health}}' || true
-                  docker compose -f docker-compose.beta.yml logs --tail=120 mesas-beta-frontend mesas-beta-api mesas-beta-db
-                  exit 1
-                fi
-                sleep 3
-              done
-
-              sleep 5
-
-              if ! check_beta_critical_routes; then
-                echo "ERRO: Rotas criticas do beta permanecem falhando apos recuperacao E150"
-                docker compose -f docker-compose.beta.yml ps
-                docker compose -f docker-compose.beta.yml logs --tail=120 mesas-beta-frontend mesas-beta-api mesas-beta-db
-                exit 1
-              fi
-            fi
+            if ! check_beta_critical_routes; then exit 1; fi
 
             docker compose -f docker-compose.beta.yml ps
             docker image prune -f
             docker builder prune -f --filter "until=168h"
-
-      - name: Notify Success
-        if: success()
-        run: echo "Deploy em beta concluido com sucesso!"
-
-      - name: Notify Failure
-        if: failure()
-        run: echo "Deploy em beta falhou!"

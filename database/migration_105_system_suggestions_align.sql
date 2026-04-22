@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- Migration 105: Alinha system_suggestions ao contrato real do código
 -- Problema: coluna suggestion_type vs node_type, falta rejection_reason
 -- Solução: RENAME coluna se necessário, DROP constraint antiga, ADD nova constraint

@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+MIGRATIONS_DIR="${MIGRATIONS_DIR:-./database}"
+
+# Optional compose project name (for isolated integration tests).
+# Em produção (CI), vazio = inferido do diretório. Em teste, setado explicitamente.
+COMPOSE_PROJECT_FLAG=""
+if [ -n "${COMPOSE_PROJECT:-}" ]; then
+  COMPOSE_PROJECT_FLAG="-p $COMPOSE_PROJECT"
+fi
+
 if [ "$#" -ne 2 ]; then
   echo "Uso: bash scripts/deploy/apply_required_migrations.sh <compose_file> <db_service>"
   exit 1
@@ -10,55 +19,13 @@ COMPOSE_FILE="$1"
 DB_SERVICE="$2"
 DB_NAME="mesas_rpg"
 DB_USER="admin"
-MIGRATIONS_DIR="./database"
 
-LOCK_TIMEOUT="${LOCK_TIMEOUT:-5s}"
-STATEMENT_TIMEOUT="${STATEMENT_TIMEOUT:-120s}"
+LOCK_TIMEOUT_MS="${LOCK_TIMEOUT_MS:-30000}"
+STATEMENT_TIMEOUT_MS="${STATEMENT_TIMEOUT_MS:-600000}"
 MAX_AUTO_PENDING="${MAX_AUTO_PENDING:-5}"
 ALLOW_MANUAL_MIGRATIONS="${ALLOW_MANUAL_MIGRATIONS:-false}"
 REQUIRE_PROD_BACKUP_FOR_MANUAL="${REQUIRE_PROD_BACKUP_FOR_MANUAL:-true}"
 PROD_BACKUP_FILE="${PROD_BACKUP_FILE:-}"
-
-ONLINE_SAFE_MIGRATIONS=(
-  "migration_101_add_banner_crop_data.sql"
-  "migration_102_add_name_pt.sql"
-  "migration_103_scenario_suggestions.sql"
-  "migration_105_communication_platforms.sql"
-  "migration_106_vtt_logo_filenames.sql"
-  "migration_107_gm_public_profile_v2.sql"
-  "migration_108_activity_log.sql"
-  "migration_108_gm_profile_metrics.sql"
-  "migration_109_links_og_metadata_cache.sql"
-)
-
-# Migrations classificadas como risco/execucao manual.
-# Exemplo de uso futuro:
-# MANUAL_RISK_MIGRATIONS=("migration_104_backfill_heavy.sql")
-MANUAL_RISK_MIGRATIONS=(
-  "migration_104_drop_tables_frequency_columns.sql"
-)
-
-is_true() {
-  case "${1,,}" in
-    1|true|yes|y) return 0 ;;
-    *) return 1 ;;
-  esac
-}
-
-sql_escape_literal() {
-  local raw="$1"
-  printf "%s" "$raw" | sed "s/'/''/g"
-}
-
-if [ ! -f "$COMPOSE_FILE" ]; then
-  echo "ERRO: Compose file nao encontrado: $COMPOSE_FILE"
-  exit 1
-fi
-
-if [ ! -d "$MIGRATIONS_DIR" ]; then
-  echo "ERRO: Diretorio de migrations nao encontrado: $MIGRATIONS_DIR"
-  exit 1
-fi
 
 if [[ "$COMPOSE_FILE" == *"prod"* ]]; then
   IS_PROD=true
@@ -66,136 +33,108 @@ else
   IS_PROD=false
 fi
 
-PG_OPTS="-c lock_timeout=${LOCK_TIMEOUT} -c statement_timeout=${STATEMENT_TIMEOUT}"
+# 1. Source lib_migrations
+# shellcheck disable=SC1091  # Caminho estático, shellcheck não consegue seguir em tempo de parse
+source scripts/deploy/lib_migrations.sh
 
+PG_OPTS="-c lock_timeout=${LOCK_TIMEOUT_MS}ms -c statement_timeout=${STATEMENT_TIMEOUT_MS}ms"
+
+# 2. Bootstrap schema_migrations
 echo "[migrations] garantindo tabela schema_migrations..."
-docker compose -f "$COMPOSE_FILE" exec -T -e PGOPTIONS="$PG_OPTS" "$DB_SERVICE" \
+# shellcheck disable=SC2086  # COMPOSE_PROJECT_FLAG precisa expandir para nada quando vazio; quotar transforma em string "" literal e quebra o docker compose
+docker compose $COMPOSE_PROJECT_FLAG -f "$COMPOSE_FILE" exec -T -e PGOPTIONS="$PG_OPTS" "$DB_SERVICE" \
   psql -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$DB_NAME" <<'SQL'
 CREATE TABLE IF NOT EXISTS schema_migrations (
   migration_name TEXT PRIMARY KEY,
-  applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  applied_by TEXT
 );
 SQL
 
-is_applied() {
-  local migration_name="$1"
-  local escaped_name
-  escaped_name="$(sql_escape_literal "$migration_name")"
+# 3. Acquire Lock
+if ! acquire_lock "$COMPOSE_FILE" "$DB_SERVICE" "$PG_OPTS"; then
+  exit 4
+fi
 
-  docker compose -f "$COMPOSE_FILE" exec -T -e PGOPTIONS="$PG_OPTS" "$DB_SERVICE" \
-    psql -U "$DB_USER" -d "$DB_NAME" -tAc "SELECT 1 FROM schema_migrations WHERE migration_name='${escaped_name}' LIMIT 1;"
-}
+# Ensure release lock on exit
+trap 'release_lock "$COMPOSE_FILE" "$DB_SERVICE" "$PG_OPTS"' EXIT
 
-PENDING_ONLINE=()
-for migration in "${ONLINE_SAFE_MIGRATIONS[@]}"; do
-  migration_path="$MIGRATIONS_DIR/$migration"
-  if [ ! -f "$migration_path" ]; then
-    echo "ERRO: Migration online-safe nao encontrada: $migration_path"
-    exit 1
-  fi
+# 4. List pending
+PENDING=()
+if ! PENDING_OUTPUT=$(list_pending_by_set_diff "$COMPOSE_FILE" "$DB_SERVICE"); then
+  exit 1
+fi
+mapfile -t PENDING <<< "$PENDING_OUTPUT"
 
-  applied=$(is_applied "$migration")
-  if [ "$applied" != "1" ]; then
-    PENDING_ONLINE+=("$migration")
-  fi
-done
+if [ ${#PENDING[@]} -eq 0 ] || [ -z "${PENDING[0]}" ]; then
+  echo "[migrations] schema em conformidade para runtime."
+  exit 0
+fi
 
-PENDING_MANUAL=()
-for migration in "${MANUAL_RISK_MIGRATIONS[@]}"; do
-  migration_path="$MIGRATIONS_DIR/$migration"
-  if [ ! -f "$migration_path" ]; then
-    echo "ERRO: Migration manual/risk nao encontrada: $migration_path"
-    exit 1
-  fi
-
-  applied=$(is_applied "$migration")
-  if [ "$applied" != "1" ]; then
-    PENDING_MANUAL+=("$migration")
-  fi
-done
-
-if [ "${#PENDING_ONLINE[@]}" -gt "$MAX_AUTO_PENDING" ]; then
-  echo "ERRO: Muitas migrations online-safe pendentes (${#PENDING_ONLINE[@]} > $MAX_AUTO_PENDING)."
-  echo "ABORTANDO deploy automatico para execucao controlada."
-  printf ' - %s\n' "${PENDING_ONLINE[@]}"
+if [ "${#PENDING[@]}" -gt "$MAX_AUTO_PENDING" ]; then
+  echo "::error::Muitas migrations pendentes (${#PENDING[@]} > $MAX_AUTO_PENDING)."
   exit 1
 fi
 
-if [ "${#PENDING_MANUAL[@]}" -gt 0 ]; then
-  if ! is_true "$ALLOW_MANUAL_MIGRATIONS"; then
-    echo "ERRO: Existem migrations classificadas como MANUAL/RISK pendentes."
-    echo "Deploy automatico bloqueado. Execute fluxo manual com janela e backup."
-    printf ' - %s\n' "${PENDING_MANUAL[@]}"
+declare -a MANUAL_PENDING=()
+
+# 5. Parse, Validate and Plan
+for f_base in "${PENDING[@]}"; do
+  if [ -z "$f_base" ]; then continue; fi
+  f_path="$MIGRATIONS_DIR/$f_base"
+
+  # parse header
+  if ! header_vars=$(parse_header "$f_path"); then
+    exit 1
+  fi
+  eval "$header_vars"
+
+  # validate destrutivas
+  if ! validate_sql_against_class "$f_path" "$CLASS"; then
     exit 1
   fi
 
-  if [ "$IS_PROD" = true ] && is_true "$REQUIRE_PROD_BACKUP_FOR_MANUAL"; then
+  if [ "$CLASS" = "manual-risk" ]; then
+    MANUAL_PENDING+=("$f_base")
+  fi
+done
+
+# If there are manual risk migrations, verify permissions
+if [ ${#MANUAL_PENDING[@]} -gt 0 ]; then
+  if [ "$ALLOW_MANUAL_MIGRATIONS" != "true" ]; then
+    echo "::error::Existem migrations manual-risk pendentes. Deploy bloqueado sem ALLOW_MANUAL_MIGRATIONS=true."
+    exit 3
+  fi
+
+  if [ "$IS_PROD" = true ] && [ "$REQUIRE_PROD_BACKUP_FOR_MANUAL" = "true" ]; then
     if [ -z "$PROD_BACKUP_FILE" ] || [ ! -s "$PROD_BACKUP_FILE" ]; then
-      echo "ERRO: Backup obrigatorio de producao ausente para migration manual/risk."
-      echo "Defina PROD_BACKUP_FILE com caminho valido para dump recente antes de prosseguir."
-      exit 1
+      echo "::error::Backup ausente. Defina PROD_BACKUP_FILE para rodar manual-risk em prod."
+      exit 3
     fi
   fi
 fi
 
-for migration in "${PENDING_ONLINE[@]}"; do
-  migration_path="$MIGRATIONS_DIR/$migration"
+# Execute migrations safely
+for f_base in "${PENDING[@]}"; do
+  if [ -z "$f_base" ]; then continue; fi
+  f_path="$MIGRATIONS_DIR/$f_base"
+  
+  # Ensure we extract class for log
+  header_vars=$(parse_header "$f_path")
+  eval "$header_vars"
 
-  if grep -Eiv '^[[:space:]]*--' "$migration_path" | grep -Eiq '\b(TRUNCATE|DROP[[:space:]]+TABLE|DROP[[:space:]]+COLUMN|DELETE[[:space:]]+FROM)\b'; then
-    echo "ERRO: Migration online-safe contem comando destrutivo: $migration"
-    echo "Reclassifique como MANUAL_RISK_MIGRATIONS e use fluxo manual com backup."
-    exit 1
-  fi
+  echo "[migrations] aplicando $CLASS: $f_base..."
 
-  echo "[migrations] aplicando online-safe: $migration..."
-  cat "$migration_path" | docker compose -f "$COMPOSE_FILE" exec -T -e PGOPTIONS="$PG_OPTS" "$DB_SERVICE" \
-    psql -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$DB_NAME"
-
-  escaped_migration="$(sql_escape_literal "$migration")"
-
-  docker compose -f "$COMPOSE_FILE" exec -T -e PGOPTIONS="$PG_OPTS" "$DB_SERVICE" \
-    psql -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$DB_NAME" \
-    -c "INSERT INTO schema_migrations (migration_name) VALUES ('${escaped_migration}') ON CONFLICT (migration_name) DO NOTHING;"
+  # Run inside a single transaction if not relying on its own
+  # shellcheck disable=SC2086  # COMPOSE_PROJECT_FLAG precisa expandir para nada quando vazio; quotar transforma em string "" literal e quebra o docker compose
+  docker compose $COMPOSE_PROJECT_FLAG -f "$COMPOSE_FILE" exec -T -e PGOPTIONS="$PG_OPTS" "$DB_SERVICE" \
+    psql -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$DB_NAME" <<SQL
+BEGIN;
+$(cat "$f_path")
+INSERT INTO schema_migrations (migration_name, applied_by) VALUES ('${f_base}', 'ci:$(whoami)@$(hostname)');
+COMMIT;
+SQL
 done
 
-if [ "${#PENDING_MANUAL[@]}" -gt 0 ] && is_true "$ALLOW_MANUAL_MIGRATIONS"; then
-  for migration in "${PENDING_MANUAL[@]}"; do
-    migration_path="$MIGRATIONS_DIR/$migration"
-    echo "[migrations] aplicando manual/risk: $migration..."
-
-    cat "$migration_path" | docker compose -f "$COMPOSE_FILE" exec -T -e PGOPTIONS="$PG_OPTS" "$DB_SERVICE" \
-      psql -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$DB_NAME"
-
-    escaped_migration="$(sql_escape_literal "$migration")"
-
-    docker compose -f "$COMPOSE_FILE" exec -T -e PGOPTIONS="$PG_OPTS" "$DB_SERVICE" \
-      psql -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$DB_NAME" \
-      -c "INSERT INTO schema_migrations (migration_name) VALUES ('${escaped_migration}') ON CONFLICT (migration_name) DO NOTHING;"
-  done
-fi
-
-echo "[migrations] validando schema minimo esperado..."
-docker compose -f "$COMPOSE_FILE" exec -T -e PGOPTIONS="$PG_OPTS" "$DB_SERVICE" \
-  psql -v ON_ERROR_STOP=1 -U "$DB_USER" -d "$DB_NAME" <<'SQL'
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1
-    FROM information_schema.columns
-    WHERE table_name = 'system_suggestions'
-      AND column_name = 'name_pt'
-  ) THEN
-    RAISE EXCEPTION 'Schema invalido: coluna system_suggestions.name_pt ausente';
-  END IF;
-
-  IF NOT EXISTS (
-    SELECT 1
-    FROM information_schema.tables
-    WHERE table_name = 'scenario_suggestions'
-  ) THEN
-    RAISE EXCEPTION 'Schema invalido: tabela scenario_suggestions ausente';
-  END IF;
-END $$;
-SQL
-
 echo "[migrations] schema em conformidade para runtime."
+exit 0

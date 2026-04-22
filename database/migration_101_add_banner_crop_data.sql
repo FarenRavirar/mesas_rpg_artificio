@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- Migration 101: Adicionar campo banner_crop_data para crop visual via CSS
 -- Data: 2026-04-14
 -- Descrição: Armazenar coordenadas de crop visual (x, y, width, height) para display com object-position CSS

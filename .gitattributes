@@ -3,3 +3,9 @@
 *.html text eol=lf
 *.css text eol=lf
 *.md text eol=lf
+
+# Enforce LF on critical infra files (cross-OS)
+database/*.sql text eol=lf
+scripts/deploy/*.sh text eol=lf
+testes/deploy/*.sh text eol=lf
+testes/deploy/*.bats text eol=lf
