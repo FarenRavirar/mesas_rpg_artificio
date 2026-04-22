@@ -1,6 +1,6 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 22/04/2026 00:47 BRT
+**Última atualização:** 22/04/2026 10:24 BRT
 
 ---
 
@@ -21,6 +21,9 @@
 - Erros E154, E155, E156 documentados em `ERRORS_SOLUTIONS.md`
 - Checklist de reconciliação adicionado em `BRANCH_POLICY.md`
 - Backup prod disponível: `/tmp/backup_prod_prepromotion_20260422_005727.sql` (434K)
+- **Fixit 002 formalizado retroativamente:** `specs/002-fixit-extension/spec.md`, `plan.md` e `tasks.md` criados
+- **Runner PowerShell revalidado em execução real:** correção de condição booleana em `fixit-common.ps1` eliminou falha de parâmetro `-or`
+- **Runner Bash revalidado via Git for Windows (`bash.exe`) sem WSL:** fluxo completo até proposta de fix com `FIXIT_AUTO_APPROVE` desativado
 
 **Status técnico anterior (17/04/2026):**
 - Deploy beta concluído com sucesso (run `24483615951`)
@@ -53,14 +56,78 @@
 
 ## Próxima Ação
 
-**Feature 001 concluída em beta e produção.** Próximas ações opcionais:
-1. Remover `scripts/deploy/apply_required_migrations.sh.bak` (T048)
-2. Ativar branch protection em `main` e `dev` via GitHub UI
-3. Corrigir job `smoke` em `deploy-beta.yml` (erro de sintaxe bash, não bloqueante)
+1. Aguardar direcionamento explícito do mantenedor para o próximo escopo após formalização da sessão 6.
+2. Se solicitado, aplicar o Fixit em bug real com evidência em sessão dedicada.
+3. Manter `specs/002-fixit-extension/` como referência canônica da integração retroativa.
 
 ---
 
 ## Última Sessão
+
+**Data:** 22/04/2026 10:16 BRT  
+**Tipo:** Documentação Retroativa da Implementação Fixit  
+**Arquivo:** `sessoes/26-04-22_6_documentacao-retroativa-fixit.md`  
+**O que foi feito:**
+- Criados artefatos SDD retroativos da feature `002-fixit-extension` (`spec.md`, `plan.md`, `tasks.md`)
+- Corrigido bloqueador adicional no runner PowerShell em `fixit-common.ps1` (expressão booleana de `Get-RepoRoot`)
+- Revalidação real do runner PowerShell concluída com carregamento completo de contexto
+- Revalidação real do runner Bash via Git for Windows (`bash.exe`) concluída sem uso de WSL
+
+**Status:** ✅ Formalização retroativa e validação operacional da integração Fixit concluídas.
+
+
+---
+
+## Sessão Anterior
+
+**Data:** 22/04/2026 09:07 BRT  
+**Tipo:** Correções Fixit (Integração Specify)  
+**Arquivo:** `sessoes/26-04-22_5_correcoes-fixit-integracao-specify.md`  
+**O que foi feito:**
+- `fixit-run.ps1` reestruturado para eliminar falhas de parsing e remover prompt interativo
+- `fixit-common.ps1` ajustado para compatibilidade entre `pwsh` e `powershell.exe`
+- README e scripts Bash alinhados com governança (sem automação de commit)
+- Validação inicial executada em PowerShell/Git Bash com bloqueio funcional de pré-requisito
+
+**Status:** ✅ Base técnica da integração Fixit estabilizada para formalização retroativa na sessão 6.
+
+---
+
+## Sessão Anterior
+
+**Data:** 22/04/2026 07:38 BRT  
+**Tipo:** Investigação Selos DDAL e Covil do Lich  
+**Arquivo:** `sessoes/26-04-22_4_investigacao-selos-ddal-covil.md`  
+**O que foi feito:**
+
+### Investigação Completa (5 Fases)
+
+**Fase 1 — Diagnóstico de Dados:**
+- Schema verificado: `is_ddal` e `is_covil` existem na tabela `tables`
+- Dados em beta: 2 mesas, 0 com selos (não há dados para testar visualmente)
+
+**Fase 2 — Diagnóstico de Backend:**
+- ✅ Rotas públicas (`/api/v1/tables`, `/api/v1/tables/:slug`) retornam ambos os campos
+- ❌ Rota do painel (`/api/v1/gm/tables`) não retorna `is_covil`
+
+**Fase 3 — Diagnóstico de Frontend:**
+- ✅ Página de detalhe: `TableHero.tsx` e `CertificationsSection.tsx` funcionam
+- ❌ `TableCard.tsx`: falta selo Covil
+- ❌ `TableCardDashboard.tsx`: faltam ambos os selos
+
+**Fase 4 — Diagnóstico de Regras de Design:**
+- REQ-09 marcado como concluído em 15/04/2026, mas implementação incompleta
+
+**Fase 5 — Relatório Final:**
+- Causa raiz: implementação parcial (funciona na página de detalhe, falta nos cards)
+- Proposta: 3 correções mínimas (TableCard.tsx, TableCardDashboard.tsx, gmPanel.ts)
+- Estimativa: 15 minutos
+
+**Status:** ✅ Investigação completa. Aguardando aprovação para implementar correções.
+
+---
+
+## Sessão Anterior
 
 **Data:** 22/04/2026 01:46 BRT  
 **Tipo:** Promoção Feature 001 para Produção  

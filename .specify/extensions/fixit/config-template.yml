@@ -1,0 +1,30 @@
+# Spec-Kit Fixit Extension Configuration
+# Copied to .specify/extensions/fixit/fixit-config.yml on install
+
+# Maximum number of files before showing scope warning
+max_files_warning: 4
+
+# Enable escalation warnings (scope, spec conflict, constitution violation)
+escalation_warnings: true
+
+# Read SESSION_FAILURES_REGISTRY.md for known failure patterns
+read_failures_registry: true
+failures_registry_path: "docs/sdd/SESSION_FAILURES_REGISTRY.md"
+
+# Search historical sessions for similar bugs and corrections
+read_sessions_history: true
+sessions_active_path: "sessoes/"
+sessions_archived_path: "sessoes/encerradas/"
+
+# Read project governance documents
+read_agents_md: true
+agents_md_path: "AGENTS.md"
+
+read_architecture_headers: true
+architecture_path: "ARQUITETURA_PROJETO.md"
+
+# Output configuration
+output:
+  inline_only: true
+  no_report_files: true
+  no_task_creation: true

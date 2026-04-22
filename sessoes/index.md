@@ -1,6 +1,6 @@
 # Índice de Sessões
 
-Última atualização: 20/04/2026 16:54 BRT
+Última atualização: 22/04/2026 10:19 BRT
 
 ---
 
@@ -125,30 +125,35 @@
 | 6 | `encerradas\26-04-20_6_atividade-predeploy-dev.md` |
 | 7 | `encerradas\26-04-20_7_sdd-sessao-continuacao.md` |
 | 8 | `encerradas\26-04-20_8_spec-retomada-fluxo.md` |
-| 9 | `26-04-20_9_gate-migrations-refactor.md` |
+| 9 | `encerradas\26-04-20_9_gate-migrations-refactor.md` |
 
 ---
 
-## 21/04/2026 (1 sessão)
+## 21/04/2026 (2 sessões)
 
 | # | Arquivo |
 |---|---|
-| 1 | `26-04-21_1_fix-stdin-drain.md` |
+| 1 | `encerradas\26-04-21_1_fix-stdin-drain.md` |
+| 2 | `encerradas\26-04-21_2_beta-deploy-recovery.md` |
 
 ---
 
-## 22/04/2026 (2 sessões)
+## 22/04/2026 (6 sessões)
 
 | # | Arquivo |
 |---|---|
-| 1 | `26-04-22_1_pr-feature-001.md` |
-| 2 | `26-04-22_2_beta-deploy-recovery.md` |
+| 1 | `encerradas\26-04-22_1_pr-feature-001.md` |
+| 2 | `encerradas\26-04-22_2_beta-deploy-recovery.md` |
+| 3 | `encerradas\26-04-22_3_prod-promotion.md` |
+| 4 | `26-04-22_4_investigacao-selos-ddal-covil.md` |
+| 5 | `encerradas\26-04-22_5_correcoes-fixit-integracao-specify.md` |
+| 6 | `encerradas\26-04-22_6_documentacao-retroativa-fixit.md` |
 
 ---
 
 ## Sessão Mais Recente
 
-`26-04-22_2_beta-deploy-recovery.md`
+`encerradas\26-04-22_6_documentacao-retroativa-fixit.md`
 
 ---
 
@@ -164,4 +169,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-04-22_3_*`
+**Próxima sessão:** `26-04-22_7_*`

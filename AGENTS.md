@@ -336,7 +336,8 @@ AA-MM-DD_N_<escopo>.md
 5. **Arquivos que serão modificados**
 6. **Critério de conclusão explícito**
 7. `[ ] Atualizar RESUMO_EXECUCAO.md` — último item obrigatório
-8. `[ ] Atualizar index.md` — adicionar sessão ao índice
+8. `[ ] Mover sessão para encerradas/ (quando autorizado)` — arquivamento após confirmação
+9. `[ ] Atualizar index.md` — adicionar sessão ao índice
 
 **Ao finalizar a sessão:**
 - Todos os itens da checklist [x]

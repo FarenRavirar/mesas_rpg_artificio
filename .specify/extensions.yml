@@ -146,3 +146,27 @@ hooks:
     prompt: Commit after syncing issues?
     description: Auto-commit after tasks-to-issues conversion
     condition: null
+  before_fixit:
+  - extension: git
+    command: speckit.git.commit
+    enabled: true
+    optional: true
+    prompt: Commit outstanding changes before bug fix?
+    description: Auto-commit before fixit
+    condition: null
+  after_fixit:
+  - extension: git
+    command: speckit.git.commit
+    enabled: true
+    optional: true
+    prompt: Commit bug fix changes?
+    description: Auto-commit after fixit
+    condition: null
+  after_init:
+  - extension: brownfield
+    command: speckit.brownfield.scan
+    enabled: true
+    optional: true
+    prompt: Scan this existing project to customize spec-kit configuration?
+    description: Auto-scan project after spec-kit init to detect tech stack and conventions
+    condition: null

@@ -1,0 +1,40 @@
+schema_version: "1.0"
+
+extension:
+  id: fixit
+  name: "Spec-Kit Fixit"
+  version: "1.0.0"
+  description: "Spec-aware bug fixing — maps bugs to spec artifacts, proposes a plan, applies minimal changes"
+  author: "Spec Kit Community (adaptado para Mesas RPG Artifício)"
+  repository: https://github.com/speckit-community/spec-kit-fixit
+  license: MIT
+
+requires:
+  speckit_version: ">=0.1.0"
+  tools:
+    - name: git
+      required: false
+
+provides:
+  commands:
+    - name: speckit.fixit.run
+      file: commands/speckit.fixit.run.md
+      description: "Fix a bug with spec awareness"
+
+  config:
+    - name: "fixit-config.yml"
+      template: "config-template.yml"
+      description: "Fixit configuration"
+      required: false
+
+tags:
+  - "bug-fixing"
+  - "spec-aware"
+  - "debugging"
+
+config:
+  defaults:
+    max_files_warning: 4
+    escalation_warnings: true
+    read_failures_registry: true
+    read_sessions_history: true
