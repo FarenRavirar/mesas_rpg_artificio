@@ -137,9 +137,18 @@
 
 ---
 
+## 22/04/2026 (2 sessões)
+
+| # | Arquivo |
+|---|---|
+| 1 | `26-04-22_1_pr-feature-001.md` |
+| 2 | `26-04-22_2_beta-deploy-recovery.md` |
+
+---
+
 ## Sessão Mais Recente
 
-`26-04-21_1_fix-stdin-drain.md`
+`26-04-22_2_beta-deploy-recovery.md`
 
 ---
 
@@ -155,4 +164,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-04-21_2_*`
+**Próxima sessão:** `26-04-22_3_*`

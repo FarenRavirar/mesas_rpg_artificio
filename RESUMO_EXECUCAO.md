@@ -1,6 +1,6 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 20/04/2026 16:54 BRT
+**Última atualização:** 22/04/2026 00:47 BRT
 
 ---
 
@@ -10,7 +10,17 @@
 **Ambiente Produção:** `mesas.artificiorpg.com` — ativa com gate de migration via `deploy-prod.yml`  
 **Branch ativa:** `dev`
 
-**Status técnico mais recente (17/04/2026):**
+**Status técnico mais recente (22/04/2026):**
+- **✅ FEATURE 001 ATIVA EM BETA** — Migration Governance Pipeline operacional
+- PR #121 mergeado em `dev` (commit `2c34097`)
+- Reconciliação inicial concluída: 46 migrations históricas reconciliadas (0 drift)
+- Deploy beta: jobs `validate`, `lint`, `enforce-dir`, `migrate`, `deploy-app` — ✅ PASSOU
+- Validação manual: todas as rotas críticas respondendo 200, health OK
+- Job `smoke` falhou com erro de sintaxe bash (não bloqueante, aplicação funcional)
+- Erros E154, E155, E156 documentados em `ERRORS_SOLUTIONS.md`
+- Checklist de reconciliação adicionado em `BRANCH_POLICY.md`
+
+**Status técnico anterior (17/04/2026):**
 - Deploy beta concluído com sucesso (run `24483615951`)
 - Deploy produção concluído com sucesso via promoção (run `24489704489`, versão `v1.1.1`)
 - Correção aplicada no fluxo de publicação de mesa: submit de create/edit usa `/api/v1/gm/tables` (resolve `405 Method Not Allowed`)
@@ -41,11 +51,46 @@
 
 ## Próxima Ação
 
-Aguardar o Merge do PR #121 (`001-gate-migrations-refactor` -> `dev`) pelo Lead Engineer. Em seguida confirmar comportamento do release notes pelo CI na promoção para Prod.
+Aguardar autorização do mantenedor para:
+1. Corrigir job `smoke` em `deploy-beta.yml` (erro de sintaxe bash, não bloqueante)
+2. Promoção `dev → main` (feature 001 para produção)
+3. Reconciliação inicial de prod (seguir checklist em `BRANCH_POLICY.md`)
 
 ---
 
 ## Última Sessão
+
+**Data:** 22/04/2026 00:47 BRT  
+**Tipo:** Recovery Deploy Beta — Feature 001  
+**Arquivo:** `sessoes/26-04-22_2_beta-deploy-recovery.md`  
+**O que foi feito:**
+
+### Reconciliação Inicial (Parte A)
+- Migration_114 aplicada manualmente via `cat | docker exec -i` (bootstrap da coluna `applied_by`)
+- 45 migrations restantes reconciliadas via loop de `--mark-applied`
+- Validação: 0 `[DISK_ONLY]`, 0 `[DB_ONLY]` — drift zerado
+
+### Deploy Beta (Parte B)
+- Commit vazio para trigger: `chore: trigger deploy-beta apos reconciliacao` (`b2a84eb`)
+- Jobs `validate`, `lint`, `enforce-dir`, `migrate`, `deploy-app`: ✅ PASSOU
+- Job `smoke`: ❌ FALHOU (erro de sintaxe bash no script de smoke test)
+
+### Validação Manual (Parte C)
+- Root: 200
+- Health: `{"status":"ok","environment":"beta","db":"connected","usersSampled":true}`
+- Tables: 200
+- Systems: 200
+- **✅ FEATURE 001 ATIVA EM BETA CONFIRMADA**
+
+### Documentação (Parte D)
+- E154, E155, E156 adicionados a `ERRORS_SOLUTIONS.md`
+- Checklist de reconciliação adicionado em `BRANCH_POLICY.md`
+- Handoff SDD-001 atualizado com status beta ativa
+- `RESUMO_EXECUCAO.md` e `index.md` atualizados
+
+**Status:** ✅ Feature 001 operacional em beta. Reconciliação validada. Deploy funcional (smoke test não bloqueante).
+
+---
 
 **Data:** 20/04/2026 19:00 BRT  
 **Tipo:** Implementação Gate de Migrations SDD-001  
