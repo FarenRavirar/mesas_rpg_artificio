@@ -635,15 +635,16 @@ ssh -F C:\projetos\config faren "docker exec mesas-app wget -qO- http://127.0.0.
 ## E150 - Rotas críticas falham após deploy com frontend healthy (stale upstream no Nginx)
 
 **Sintoma:**
-Após deploy/restart de containers, as rotas `GET /api/v1/tables` e `GET /auth/google` passam a falhar (tipicamente `502`) mesmo com containers `mesas-api` e frontend em estado `healthy`.
+Após deploy/restart de containers, as rotas `GET /api/v1/tables`, `GET /api/v1/systems?view=tree` e `GET /auth/google` passam a falhar (tipicamente `502`) mesmo com containers `mesas-api` e frontend em estado `healthy`.
 
 **Causa raiz confirmada (16/04/2026):**
-O Nginx no frontend manteve resolução de upstream antiga para o container de API após troca de IP interno no Docker network. Com isso, o proxy continuou tentando encaminhar para IP inválido, afetando principalmente as rotas de listagem de mesas e redirecionamento OAuth.
+O Nginx no frontend manteve resolução de upstream antiga para o container de API após troca de IP interno no Docker network. Com isso, o proxy continuou tentando encaminhar para IP inválido, afetando principalmente as rotas de listagem de mesas, árvore de sistemas e redirecionamento OAuth.
 
 **Diagnóstico rápido:**
 1. Validar rotas críticas:
 ```bash
 curl -s -o /dev/null -w "%{http_code}" "https://mesasbeta.artificiorpg.com/api/v1/tables?limit=1"
+curl -s -o /dev/null -w "%{http_code}" "https://mesasbeta.artificiorpg.com/api/v1/systems?view=tree"
 curl -s -D /tmp/beta_oauth.headers -o /dev/null -w "%{http_code}" "https://mesasbeta.artificiorpg.com/auth/google?frontend_redirect=https%3A%2F%2Fmesasbeta.artificiorpg.com"
 grep -i '^location: https://accounts.google.com/o/oauth2/v2/auth' /tmp/beta_oauth.headers
 ```
@@ -664,13 +665,270 @@ docker restart mesas-beta-frontend
 docker restart mesas-app
 ```
 2. Aguardar `Health.Status=healthy` no frontend.
-3. Revalidar `tables` e `auth/google`.
+3. Revalidar `tables`, `systems?view=tree` e `auth/google`.
 4. Se falhar novamente, marcar deploy como falho e coletar logs de frontend/API.
 
 **Prevenção obrigatória:**
-1. Workflows `deploy-beta.yml` e `deploy-prod.yml` devem validar rotas críticas (`/api/v1/tables?limit=1` e `/auth/google?frontend_redirect=...`) após health dos containers.
+1. Workflows `deploy-beta.yml`, `deploy-prod.yml` e `promote-to-prod.yml` devem validar rotas críticas (`/api/v1/tables?limit=1`, `/api/v1/systems?view=tree` e `/auth/google?frontend_redirect=...`) após health dos containers.
 2. Em falha dessas rotas com containers healthy, executar auto-recuperação controlada (`docker restart` do frontend), aguardar health e revalidar uma única vez.
 3. Persistindo falha após segunda validação, abortar deploy e manter evidências em log.
 4. Checklist operacional deve conter gate explícito dessas validações (PRE_DEPLOY_CHECKLIST.md e OPERACAO_PRODUCAO.md).
 
 **Data:** 16/04/2026
+
+---
+
+## E151 - DRIFT ERROR: banco possui migration não encontrada no disco (drift I2)
+
+**Sintoma:**
+Deploy falha com mensagem `DRIFT ERROR: Banco possui migration não encontrada no disco: migration_XX_nome.sql`. O gate de migrations detecta que a tabela `schema_migrations` possui entrada que não existe no diretório `database/`.
+
+**Causa raiz confirmada (21/04/2026):**
+Migration foi aplicada manualmente via SSH no banco de produção/beta para corrigir incidente urgente, mas o arquivo `.sql` não foi commitado no repositório. O gate detecta drift I2 (hotfix manual sem reconciliação) e bloqueia deploy para evitar inconsistência entre código e schema.
+
+**Diagnóstico:**
+```bash
+# Listar migrations pendentes e índice transacional (Beta)
+ssh -F C:\projetos\config faren "cd /opt/mesas-beta && bash scripts/deploy/reconcile_migrations.sh --list docker-compose.beta.yml mesas-beta-db"
+
+# Listar migrations pendentes e índice transacional (Produção)
+ssh -F C:\projetos\config faren "cd /opt/mesas && bash scripts/deploy/reconcile_migrations.sh --list docker-compose.prod.yml mesas-db"
+```
+
+Saída esperada mostra `[DB_ONLY]` para a migration que existe no banco mas não no disco.
+
+**Solução validada:**
+1. Reconciliar manualmente sem executar novamente:
+```bash
+ssh -F C:\projetos\config faren "cd /opt/mesas-beta && bash scripts/deploy/reconcile_migrations.sh --mark-applied migration_XX_nome.sql docker-compose.beta.yml mesas-beta-db"
+```
+2. Commitar o arquivo `.sql` no repositório se ainda não foi versionado
+3. Validar que drift foi resolvido executando `--list` novamente
+
+**Prevenção obrigatória:**
+1. Sempre executar `reconcile_migrations.sh --mark-applied` após qualquer intervenção manual via SSH (ver `OPERACAO_PRODUCAO.md` §11)
+2. Sempre commitar o arquivo `.sql` do hotfix no repositório após aplicação manual
+3. Nunca aplicar migration via SSH sem reconciliação posterior
+
+**Data:** 21/04/2026
+
+---
+
+## E152 - Deploy bloqueado por migration manual-risk pendente sem autorização
+
+**Sintoma:**
+Deploy falha com mensagem `MANUAL-RISK ERROR: Existem migrations manual-risk pendentes. Deploy bloqueado sem ALLOW_MANUAL_MIGRATIONS=true.` e exit code 3. Workflow termina antes de aplicar qualquer migration.
+
+**Causa raiz confirmada (21/04/2026):**
+Migration destrutiva (`DROP TABLE`, `DELETE FROM`, `ALTER COLUMN TYPE`, `TRUNCATE`) foi commitada com header `-- @class: manual-risk`. O gate bloqueia por padrão e exige autorização explícita via `workflow_dispatch` com flag `ALLOW_MANUAL_MIGRATIONS=true`. Em produção, também exige `PROD_BACKUP_FILE` (path do dump validado) e `REQUIRE_PROD_BACKUP_FOR_MANUAL=true`.
+
+**Diagnóstico:**
+```bash
+# Verificar classificação das migrations pendentes
+grep -n "@class:" database/migration_*.sql
+
+# Confirmar que migration é realmente destrutiva
+cat database/migration_XX_nome.sql | grep -E "DROP|DELETE|TRUNCATE|ALTER.*TYPE"
+```
+
+**Solução validada:**
+
+**Opção A — Autorizar via workflow_dispatch:**
+```bash
+# Acessar GitHub Actions → workflow "Deploy Production" (ou "Deploy Beta")
+# Clicar em "Run workflow" e preencher inputs:
+# - ALLOW_MANUAL_MIGRATIONS: true
+# - PROD_BACKUP_FILE: /tmp/backup_20260421_1430_pre_deploy.sql
+# - REQUIRE_PROD_BACKUP_FOR_MANUAL: true (apenas produção)
+```
+
+**Opção B — Reclassificar se marcação incorreta:**
+Se a migration foi incorretamente classificada como `manual-risk`, editar header do arquivo `.sql`:
+```sql
+-- @class: online-safe
+```
+Commitar, push e redisparar deploy.
+
+**Prevenção obrigatória:**
+1. Sempre gerar backup validado ANTES de autorizar `ALLOW_MANUAL_MIGRATIONS=true` (ver `PRE_DEPLOY_CHECKLIST.md` fase 3)
+2. Validar classificação de risco no PR review — se marca destrutiva está coerente com conteúdo SQL
+3. Consultar `migrations_guide.md` seção "Classificação de Risco" para regras de classificação
+
+**Data:** 21/04/2026
+
+---
+
+## E153 - Drift I5: migrations dessincronizadas entre dev e main
+
+**Sintoma:**
+Deploy detecta divergência entre estado esperado pela branch e estado real do banco. Mensagem de drift aponta migration presente em um ambiente e ausente no outro, ou `DRIFT ERROR` cruzado ao promover branch.
+
+**Causa raiz confirmada (21/04/2026):**
+Migration aplicada em beta mas não promovida para main, ou vice-versa. Causas comuns: merge parcial entre branches; feature mergeada em `dev` sem promoção subsequente para `main`; hotfix aplicado em `main` sem backport para `dev`.
+
+**Diagnóstico:**
+```bash
+# Verificar migrations presentes em dev e ausentes em main
+git log origin/main..origin/dev --oneline -- database/
+
+# Verificar migrations presentes em main e ausentes em dev (caso oposto)
+git log origin/dev..origin/main --oneline -- database/
+
+# Listar divergência de commits
+git rev-list --left-right --count origin/main...origin/dev
+```
+
+**Solução validada:**
+
+**Caso 1 — dev possui migrations que main não tem (cenário comum):**
+```bash
+# Promover via PR padrão
+gh pr create --base main --head dev --title "chore: sync migrations dev → main" --body "Sincronização de migrations pendentes"
+```
+
+**Caso 2 — main possui migrations que dev não tem (hotfix direto em prod):**
+```bash
+# Backport via cherry-pick
+git checkout dev
+git cherry-pick <commit-hash-da-migration>
+git push origin dev
+```
+
+**Prevenção obrigatória:**
+1. Sempre promover migrations via PR de `dev` para `main` — nunca aplicar diretamente em produção sem passar por beta
+2. Workflow `preflight-prod.yml` detecta drift I5 antes do merge em `main` e posta relatório no PR
+3. Evitar hotfix direto em `main` quando possível — preferir aplicar em beta primeiro e promover
+
+**Data:** 21/04/2026
+
+---
+
+## E154 - Reconciliação inicial: "Muitas migrations pendentes (N > 5)" no primeiro deploy após feature 001
+
+**Sintoma:**
+Deploy beta/prod falha com mensagem `::error::Muitas migrations pendentes (28 > 5).` no job `migrate`. Todos os outros jobs (validate, lint, enforce-dir) passam. O erro ocorre na primeira aplicação da feature 001 em ambiente com banco pré-existente.
+
+**Causa raiz confirmada (22/04/2026):**
+Schema histórico foi aplicado antes da tabela `schema_migrations` existir. Quando a feature 001 é instalada pela primeira vez, o script `apply_required_migrations.sh` detecta todas as migrations históricas como "pendentes" porque não há registro delas na tabela de controle. O limite de segurança de 5 migrations pendentes bloqueia o deploy para evitar aplicação massiva acidental.
+
+**Diagnóstico:**
+```bash
+# Listar drift (Beta)
+ssh -F C:/projetos/config faren "cd /opt/mesas-beta && bash scripts/deploy/reconcile_migrations.sh --list docker-compose.beta.yml mesas-beta-db"
+
+# Listar drift (Produção)
+ssh -F C:/projetos/config faren "cd /opt/mesas && bash scripts/deploy/reconcile_migrations.sh --list docker-compose.prod.yml mesas-db"
+```
+
+Saída esperada mostra grande quantidade de `[DISK_ONLY]` (migrations no disco sem registro no banco) e 0 `[DB_ONLY]`.
+
+**Solução validada (22/04/2026):**
+
+**Passo 1 — Aplicar migration_114 manualmente (bootstrap da coluna `applied_by`):**
+```bash
+ssh -F C:/projetos/config faren "cat /opt/mesas-beta/database/migration_114_add_applied_by.sql | docker exec -i mesas-beta-db psql -U admin -d mesas_rpg"
+```
+
+**Passo 2 — Reconciliar migrations históricas em lote:**
+```bash
+# Criar lista de migrations [DISK_ONLY] (excluindo migration_114 que já foi aplicada)
+# Executar loop de reconciliação via PowerShell ou script bash
+```
+
+**Passo 3 — Validar reconciliação:**
+```bash
+bash scripts/deploy/reconcile_migrations.sh --list docker-compose.beta.yml mesas-beta-db
+```
+Esperado: 0 `[DISK_ONLY]`, 0 `[DB_ONLY]`.
+
+**Passo 4 — Disparar deploy normalmente.**
+
+**Prevenção obrigatória:**
+1. Próximos ambientes (prod) devem ser reconciliados **antes** de tentar deploy, não depois
+2. Documentar checklist de reconciliação inicial em `BRANCH_POLICY.md` e `pr-description.md`
+3. Adicionar seção "Reconciliação Inicial" no `PRE_DEPLOY_CHECKLIST.md` para ambientes novos
+
+**Recorrente:** Sim (vai acontecer em prod na primeira instalação da feature 001)
+
+**Data:** 22/04/2026
+
+---
+
+## E155 - Job smoke em deploy-beta.yml falha com "syntax error near unexpected token 'fi'"
+
+**Sintoma:**
+Deploy beta completa jobs `validate`, `lint`, `enforce-dir`, `migrate` e `deploy-app` com sucesso, mas falha no job `smoke` com erro `bash: -c: line 43: syntax error near unexpected token 'fi'`. Exit code 2. Aplicação está funcional (rotas respondendo 200), mas workflow marca deploy como falho.
+
+**Causa raiz provisória (22/04/2026):**
+Erro de sintaxe bash em heredoc/script SSH do job `smoke` no workflow `deploy-beta.yml`. Bloco `if ... fi` mal formado na linha 43 do script remoto. Não afeta funcionalidade da aplicação — todas as rotas críticas respondendo corretamente após deploy.
+
+**Diagnóstico:**
+```bash
+gh run view <RUN_ID> --log-failed | grep -A 5 smoke
+```
+
+Saída mostra:
+```
+smoke	Smoke Tests	err: bash: -c: line 43: syntax error near unexpected token 'fi'
+smoke	Smoke Tests	2026/04/22 03:35:10 Process exited with status 2
+```
+
+**Solução pendente:**
+1. Investigar workflow `deploy-beta.yml` job `smoke`
+2. Identificar bloco `if ... fi` mal formado (provavelmente problema de escape em heredoc ou sintaxe bash)
+3. Corrigir sintaxe
+4. Testar com commit vazio: `git commit --allow-empty -m "test: validar correcao smoke test"`
+
+**Prevenção obrigatória:**
+Não é recorrente (primeira ocorrência após feature 001 entrar ativa). Correção pendente sem urgência — não bloqueia operação. Job `smoke` é validação adicional; rotas críticas já são validadas em `deploy-app`.
+
+**Recorrente:** Não
+
+**Data:** 22/04/2026
+
+---
+
+## E156 - reconcile_migrations.sh --mark-applied falha com "column 'applied_by' does not exist"
+
+**Sintoma:**
+Comando `reconcile_migrations.sh --mark-applied migration_XX.sql` falha com erro PostgreSQL: `ERROR: column "applied_by" of relation "schema_migrations" does not exist`. Ocorre ao tentar reconciliar migrations em banco que ainda não tem a migration_114 aplicada.
+
+**Causa raiz confirmada (22/04/2026):**
+Migration_114 adiciona a coluna `applied_by` que o próprio script de reconciliação usa no `INSERT INTO schema_migrations`. Bootstrap requer aplicar migration_114 manualmente antes da reconciliação em lote. Sem essa coluna, o script falha ao tentar inserir registro com `applied_by`.
+
+**Diagnóstico:**
+```bash
+# Verificar se coluna applied_by existe
+docker exec mesas-beta-db psql -U admin -d mesas_rpg -c '\d schema_migrations'
+```
+
+Se output mostrar apenas `migration_name` e `applied_at` (sem `applied_by`), o problema está confirmado.
+
+**Solução validada (22/04/2026):**
+
+**Passo 1 — Aplicar migration_114 via pipe:**
+```bash
+cat /opt/mesas-beta/database/migration_114_add_applied_by.sql | docker exec -i mesas-beta-db psql -U admin -d mesas_rpg
+```
+
+Esperado: `ALTER TABLE`, `DO`, `NOTICE: schema_migrations.applied_by: ok`
+
+**Passo 2 — Executar loop de reconciliação normalmente:**
+```bash
+bash scripts/deploy/reconcile_migrations.sh --mark-applied migration_01_base_schema.sql docker-compose.beta.yml mesas-beta-db
+# ... repetir para outras migrations
+```
+
+**Passo 3 — Marcar migration_114 também:**
+```bash
+bash scripts/deploy/reconcile_migrations.sh --mark-applied migration_114_add_applied_by.sql docker-compose.beta.yml mesas-beta-db
+```
+
+**Prevenção obrigatória:**
+1. Em reconciliação inicial de **prod**, aplicar migration_114 primeiro antes do loop
+2. Documentar isso no checklist pós-merge do `BRANCH_POLICY.md`
+3. Adicionar nota no `pr-description.md` sobre ordem de bootstrap
+
+**Recorrente:** Sim (vai acontecer de novo em prod na primeira reconciliação)
+
+**Data:** 22/04/2026

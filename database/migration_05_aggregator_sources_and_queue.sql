@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- =============================================================================
 -- migration_05_aggregator_sources_and_queue.sql
 -- Feature Aggregator Discord: fontes, fila bruta e candidatos editoriais

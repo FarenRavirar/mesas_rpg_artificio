@@ -1,6 +1,6 @@
 # Índice de Sessões
 
-Última atualização: 20/04/2026 07:53 BRT
+Última atualização: 20/04/2026 16:54 BRT
 
 ---
 
@@ -101,7 +101,7 @@
 
 | # | Arquivo |
 |---|---|
-| 1 | `26-04-18_1_auditoria-sistemas-etapa-1.md` |
+| 1 | `encerradas\26-04-18_1_auditoria-sistemas-etapa-1.md` |
 
 ---
 
@@ -109,26 +109,46 @@
 
 | # | Arquivo |
 |---|---|
-| 1 | `26-04-19_1_validacao-manual-bugs-ajustes-etapa-1.md` |
+| 1 | `encerradas\26-04-19_1_validacao-manual-bugs-ajustes-etapa-1.md` |
 
 ---
 
-## 20/04/2026 (6 sessões)
+## 20/04/2026 (8 sessões)
 
 | # | Arquivo |
 |---|---|
-| 1 | `26-04-20_1_atividade-fase1-diagnostico.md` |
-| 2 | `26-04-20_2_atividade-fasea-fundacao-backend.md` |
-| 3 | `26-04-20_3_atividade-faseb-rota-leitura.md` |
-| 4 | `26-04-20_4_atividade-fased-frontend.md` |
-| 5 | `26-04-20_5_atividade-fasee-documentacao.md` |
-| 6 | `26-04-20_6_atividade-predeploy-dev.md` |
+| 1 | `encerradas\26-04-20_1_atividade-fase1-diagnostico.md` |
+| 2 | `encerradas\26-04-20_2_atividade-fasea-fundacao-backend.md` |
+| 3 | `encerradas\26-04-20_3_atividade-faseb-rota-leitura.md` |
+| 4 | `encerradas\26-04-20_4_atividade-fased-frontend.md` |
+| 5 | `encerradas\26-04-20_5_atividade-fasee-documentacao.md` |
+| 6 | `encerradas\26-04-20_6_atividade-predeploy-dev.md` |
+| 7 | `encerradas\26-04-20_7_sdd-sessao-continuacao.md` |
+| 8 | `encerradas\26-04-20_8_spec-retomada-fluxo.md` |
+| 9 | `26-04-20_9_gate-migrations-refactor.md` |
+
+---
+
+## 21/04/2026 (1 sessão)
+
+| # | Arquivo |
+|---|---|
+| 1 | `26-04-21_1_fix-stdin-drain.md` |
+
+---
+
+## 22/04/2026 (2 sessões)
+
+| # | Arquivo |
+|---|---|
+| 1 | `26-04-22_1_pr-feature-001.md` |
+| 2 | `26-04-22_2_beta-deploy-recovery.md` |
 
 ---
 
 ## Sessão Mais Recente
 
-`26-04-20_6_atividade-predeploy-dev.md`
+`26-04-22_2_beta-deploy-recovery.md`
 
 ---
 
@@ -144,4 +164,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-04-20_7_*`
+**Próxima sessão:** `26-04-22_3_*`

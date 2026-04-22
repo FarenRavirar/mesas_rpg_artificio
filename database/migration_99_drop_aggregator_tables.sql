@@ -1,3 +1,9 @@
+-- @class: manual-risk
+-- @requires-backup: true
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- =============================================================================
 -- migration_99_drop_aggregator_tables.sql
 -- Remove sistema de ingestão automática (AggregatorBot) desacoplado

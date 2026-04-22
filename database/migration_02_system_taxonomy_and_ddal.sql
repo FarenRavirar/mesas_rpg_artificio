@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- =============================================================================
 -- migration_02_system_taxonomy_and_ddal.sql
 -- Taxonomia hierárquica de sistemas + aliases + campos DDAL em mesas

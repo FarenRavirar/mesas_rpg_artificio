@@ -187,7 +187,24 @@ Server is running on port 3000
 
 ---
 
-### PASSO 11: Validar Healthcheck
+### PASSO 11: Reconciliar Gate de Migrations (OBRIGATÓRIO)
+
+> [!CAUTION]
+> A falha neste passo causará erro de Drift Reverso (I2) e bloqueará completamente o próximo deploy automatizado do CI.
+
+Para que o pipeline saiba que esta migration foi aplicada via hotfix manual, você deve registrar o nome dela no disco do gate de migrations.
+
+```bash
+# Ambiente beta (padrão para hotfix):
+bash scripts/deploy/reconcile_migrations.sh --mark-applied migration_XX_nome.sql docker-compose.beta.yml mesas-beta-db
+
+# Ambiente prod (apenas se hotfix foi aplicado direto em produção):
+# bash scripts/deploy/reconcile_migrations.sh --mark-applied migration_XX_nome.sql docker-compose.prod.yml mesas-db
+```
+
+---
+
+### PASSO 12: Validar Healthcheck
 
 ```bash
 # Sair do SSH
@@ -206,7 +223,7 @@ curl.exe https://mesasbeta.artificiorpg.com/api/v1/health
 
 ---
 
-### PASSO 12: Documentar Migration Aplicada
+### PASSO 13: Documentar Migration Aplicada
 
 Atualizar `ambiente_atual_mesas.md` ou documentação equivalente:
 
@@ -483,7 +500,7 @@ Regras do gate de migrations (`apply_required_migrations.sh`):
   - migration de risco pendente sem autorização explícita (`ALLOW_MANUAL_MIGRATIONS=true`)
 - Em produção, migration de risco exige backup (`PROD_BACKUP_FILE`) quando `REQUIRE_PROD_BACKUP_FOR_MANUAL=true`
 - Configura proteção de lock/tempo via `LOCK_TIMEOUT` e `STATEMENT_TIMEOUT`
-- Valida schema mínimo ao final (`system_suggestions.name_pt` e `scenario_suggestions`)
+- Valida schema mínimo ao final (`system_suggestions.name_pt`, `scenario_suggestions`, `systems.logo_filename` e `systems.website_url`)
 
 O que o agente NUNCA deve fazer no Oracle:
 - Alterar manualmente arquivos versionados em `/opt/mesas-beta/` ou `/opt/mesas/` como fluxo padrão de deploy
@@ -781,6 +798,7 @@ Após qualquer deploy em produção, executar imediatamente:
 curl -s -o /dev/null -w "%{http_code}" https://mesas.artificiorpg.com
 curl -s https://mesas.artificiorpg.com/api/v1/health
 curl -s -o /dev/null -w "%{http_code}" "https://mesas.artificiorpg.com/api/v1/tables?limit=1"
+curl -s -o /dev/null -w "%{http_code}" "https://mesas.artificiorpg.com/api/v1/systems?view=tree"
 curl -s -D /tmp/prod_oauth.headers -o /dev/null -w "%{http_code}" "https://mesas.artificiorpg.com/auth/google?frontend_redirect=https%3A%2F%2Fmesas.artificiorpg.com"
 grep -i '^location: https://accounts.google.com/o/oauth2/v2/auth' /tmp/prod_oauth.headers
 
@@ -788,6 +806,7 @@ grep -i '^location: https://accounts.google.com/o/oauth2/v2/auth' /tmp/prod_oaut
 curl -s -o /dev/null -w "%{http_code}" https://mesasbeta.artificiorpg.com
 curl -s https://mesasbeta.artificiorpg.com/api/v1/health
 curl -s -o /dev/null -w "%{http_code}" "https://mesasbeta.artificiorpg.com/api/v1/tables?limit=1"
+curl -s -o /dev/null -w "%{http_code}" "https://mesasbeta.artificiorpg.com/api/v1/systems?view=tree"
 curl -s -D /tmp/beta_oauth.headers -o /dev/null -w "%{http_code}" "https://mesasbeta.artificiorpg.com/auth/google?frontend_redirect=https%3A%2F%2Fmesasbeta.artificiorpg.com"
 grep -i '^location: https://accounts.google.com/o/oauth2/v2/auth' /tmp/beta_oauth.headers
 
@@ -803,6 +822,7 @@ ssh -F C:\projetos\config faren "docker inspect mesas-beta-frontend --format '{{
 - Produção: HTTP 200 + health `status: ok`
 - Beta: HTTP 200 + health `status: ok`
 - `GET /api/v1/tables?limit=1` retorna `200` em produção e beta
+- `GET /api/v1/systems?view=tree` retorna `200` em produção e beta
 - `GET /auth/google?frontend_redirect=...` retorna `302` com `Location` apontando para `https://accounts.google.com/o/oauth2/v2/auth` em produção e beta
 - Containers beta (`mesas-beta-frontend`, `mesas-beta-api`, `mesas-beta-db`) continuam ativos
 - Frontends `mesas-app` e `mesas-beta-frontend` com health `healthy` (E145)
@@ -820,7 +840,7 @@ ssh -F C:\projetos\config faren "docker inspect mesas-beta-frontend --format '{{
 **Se rotas críticas falharem com containers `healthy` (E150):**
 1. Executar `docker restart` apenas no frontend do ambiente afetado (`mesas-app` ou `mesas-beta-frontend`)
 2. Aguardar frontend voltar para `healthy`
-3. Reexecutar as validações de `tables` e `auth/google` imediatamente
+3. Reexecutar as validações de `tables`, `systems?view=tree` e `auth/google` imediatamente
 4. Se persistir falha após segunda tentativa, tratar deploy como falho e coletar logs de frontend/API
 
 ---

@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- Migration 10: is_covil e imported_expires_at
 -- Aplicar em: mesas-beta-db (e depois em produção)
 -- Pré-requisito: migration_09 aplicada (colunas frequency, rules_notes, banner_url presentes)

@@ -1,6 +1,6 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 20/04/2026 07:52 BRT
+**Última atualização:** 22/04/2026 00:47 BRT
 
 ---
 
@@ -10,7 +10,17 @@
 **Ambiente Produção:** `mesas.artificiorpg.com` — ativa com gate de migration via `deploy-prod.yml`  
 **Branch ativa:** `dev`
 
-**Status técnico mais recente (17/04/2026):**
+**Status técnico mais recente (22/04/2026):**
+- **✅ FEATURE 001 ATIVA EM BETA** — Migration Governance Pipeline operacional
+- PR #121 mergeado em `dev` (commit `2c34097`)
+- Reconciliação inicial concluída: 46 migrations históricas reconciliadas (0 drift)
+- Deploy beta: jobs `validate`, `lint`, `enforce-dir`, `migrate`, `deploy-app` — ✅ PASSOU
+- Validação manual: todas as rotas críticas respondendo 200, health OK
+- Job `smoke` falhou com erro de sintaxe bash (não bloqueante, aplicação funcional)
+- Erros E154, E155, E156 documentados em `ERRORS_SOLUTIONS.md`
+- Checklist de reconciliação adicionado em `BRANCH_POLICY.md`
+
+**Status técnico anterior (17/04/2026):**
 - Deploy beta concluído com sucesso (run `24483615951`)
 - Deploy produção concluído com sucesso via promoção (run `24489704489`, versão `v1.1.1`)
 - Correção aplicada no fluxo de publicação de mesa: submit de create/edit usa `/api/v1/gm/tables` (resolve `405 Method Not Allowed`)
@@ -35,45 +45,68 @@
 - **V4 em execução (Passos 9–10 concluídos tecnicamente):** rota OG (`backend/src/routes/og.ts`) registrada em `backend/src/server.ts`, `frontend/nginx.conf` com proxy condicional para crawler, `docker-compose.beta.yml` e `docker-compose.prod.yml` com volume compartilhado `frontend_dist_*` + `INDEX_HTML_PATH`/`PUBLIC_SITE_URL`, `frontend/index.html` com fallback SEO/OG/Twitter e novo `EditGmProfileForm` integrado ao `PainelMestrePage`; typecheck backend/frontend sem erros.
 - **✅ Sessão 10 concluída (17/04/2026 17:20):** Resolvidas todas as 3 pendências da Reformulação V4: PENDÊNCIA 1 (CTA dinâmico + Central de Ajuda com 8 seções), PENDÊNCIA 2 (TableCard altura fluida - `min-h-[420px]` removido), PENDÊNCIA 3 (Rota OG extensível `/:type/:slug` com switch case). Documentação técnica 100% sincronizada (`MAPA_DE_API.md`, `ARQUITETURA_PROJETO.md` §17, `Reformulacao_mestre_v4.md` com status 21/21 patches). Changelog atualizado. **Reformulação V4 100% completa.**
 - **✅ Sessão 18_1 concluída (18/04/2026):** Fase 0 (Refatoração UX Admin - Padrão BigTech) completa como pré-requisito para auditoria de sistemas. **Bloco 1:** contadores agregados (`children_count`, `tables_count`, `aliases_count`) adicionados em `GET /api/v1/systems` via 3 left joins; tipos backend/frontend atualizados; `MAPA_DE_API.md` documentado. **Bloco 2:** componente `AdminWorkspaceLayout` criado (layout 3 colunas: workspace + inspector lateral). **Bloco 3:** 4 componentes criados (`CatalogTree`, `CatalogTreeNode`, `NodeTypeBadge`, `EntityCounters`) com árvore interativa, keyboard navigation, filtros e contadores visíveis. **Bloco 4:** 4 componentes criados (`EntityInspector`, `AliasesEditor`, `Breadcrumb`, `Field`) com edição inline, breadcrumb de contexto, slug preview, validação de tipos e dirty state tracking. **Bloco 5:** `CatalogToolbar` criado, hook `useSystems` expandido (fetchTree, createSystem, updateSystem, selectedId), helpers (findInTree, countVisibleInTree). **Bloco 6:** `ScenariosList` criado para cenários (lista vertical sem hierarquia). **Fase 0 100% completa (6/6 blocos).** **Fase 0.1 100% completa:** Passo 1 — criado `SystemsAdminView.tsx`, substituído `<SystemsPage />` por nova estrutura UX BigTech. Passo 2 — criado `ScenariosAdminView.tsx`, substituída renderização inline de cenários. Passo 3 — validação de regressão (Plataformas, Mesas, Sugestões verificadas). **UX BigTech ativada no GestaoPage (3/3 passos).**
-
+- **✅ Sessão SDD 001 - Refatoração do Gate de Migrations Concluída (20/04/2026):** Implementados testes `lib_migrations.bats`, reconstruído parser de `online-safe` e restrições, inserido loop transacional em `apply_required_migrations.sh`, e scripts de reconcile para desvios em produção. Injeção em lote de cabeçalhos nas velhas migrations (`chore(001)`). PR #121 de liberação submetido para merge em `dev`. (Backups realizados na VM `faren` previamente).
 
 ---
 
 ## Próxima Ação
 
-**Executar deploy em dev (beta) e validar fluxo funcional da atividade admin no ambiente de interface**
-
-1. Publicar alterações para `dev` (beta).
-2. Executar Gate C funcional em beta com eventos reais (`user.registered`, `table.*`, `system_suggestion.*`, `scenario_suggestion.*`).
-3. Rodar testes manuais T1–T13 da FASE D em `/gestao` (aba Atividades/filtros/paginação) após deploy.
+Aguardar autorização do mantenedor para:
+1. Corrigir job `smoke` em `deploy-beta.yml` (erro de sintaxe bash, não bloqueante)
+2. Promoção `dev → main` (feature 001 para produção)
+3. Reconciliação inicial de prod (seguir checklist em `BRANCH_POLICY.md`)
 
 ---
 
 ## Última Sessão
 
-**Data:** 20/04/2026 07:52 BRT  
-**Tipo:** Execução — Atividade Admin (pré-deploy dev)  
-**Arquivo:** `sessoes/26-04-20_6_atividade-predeploy-dev.md`  
+**Data:** 22/04/2026 00:47 BRT  
+**Tipo:** Recovery Deploy Beta — Feature 001  
+**Arquivo:** `sessoes/26-04-22_2_beta-deploy-recovery.md`  
 **O que foi feito:**
 
-### 1. Governança atualizada ✅
-- `AGENTS.md` atualizado: changelog agora obrigatório apenas para mudanças que impactam mestres/usuários finais
-- Mudanças exclusivas de área administrativa interna foram formalmente isentas de changelog
+### Reconciliação Inicial (Parte A)
+- Migration_114 aplicada manualmente via `cat | docker exec -i` (bootstrap da coluna `applied_by`)
+- 45 migrations restantes reconciliadas via loop de `--mark-applied`
+- Validação: 0 `[DISK_ONLY]`, 0 `[DB_ONLY]` — drift zerado
 
-### 2. Revalidação técnica pré-deploy concluída ✅
-- Backend: `npx tsc --noEmit` (exit code 0)
-- Frontend: `npm run build` (exit code 0)
+### Deploy Beta (Parte B)
+- Commit vazio para trigger: `chore: trigger deploy-beta apos reconciliacao` (`b2a84eb`)
+- Jobs `validate`, `lint`, `enforce-dir`, `migrate`, `deploy-app`: ✅ PASSOU
+- Job `smoke`: ❌ FALHOU (erro de sintaxe bash no script de smoke test)
 
-### 3. Estado funcional do Gate C em beta aferido ⚠️
-- Consulta SQL read-only executada em `activity_log` para `user.registered`, `table.*`, `system_suggestion.*`, `scenario_suggestion.*`
-- Resultado atual: `(0 rows)`
-- Conclusão: sem evidência funcional de tráfego real até o momento
+### Validação Manual (Parte C)
+- Root: 200
+- Health: `{"status":"ok","environment":"beta","db":"connected","usersSampled":true}`
+- Tables: 200
+- Systems: 200
+- **✅ FEATURE 001 ATIVA EM BETA CONFIRMADA**
 
-### 4. Diretriz operacional registrada ✅
-- Testes T1–T13 e validação funcional ponta a ponta definidos para execução após deploy em dev (beta), conforme comando explícito do usuário
-- `sessoes/adm_atv.md` atualizado com a diretriz e evidências técnicas pré-deploy
+### Documentação (Parte D)
+- E154, E155, E156 adicionados a `ERRORS_SOLUTIONS.md`
+- Checklist de reconciliação adicionado em `BRANCH_POLICY.md`
+- Handoff SDD-001 atualizado com status beta ativa
+- `RESUMO_EXECUCAO.md` e `index.md` atualizados
 
-**Status:** Pré-requisitos técnicos/documentais executados; validação funcional em ambiente dev permanece pendente de geração de eventos reais após deploy.
+**Status:** ✅ Feature 001 operacional em beta. Reconciliação validada. Deploy funcional (smoke test não bloqueante).
+
+---
+
+**Data:** 20/04/2026 19:00 BRT  
+**Tipo:** Implementação Gate de Migrations SDD-001  
+**Arquivo:** Escopo Direto SDD
+**O que foi feito:**
+
+### Fases Concluídas
+- **Fase 1:** Setup e Invetário de 45 migrations gerados, e ADRs de design submetidos.
+- **Fase 2:** Infraestrutura Red mockada (bats, fixtures de exceção criadas).
+- **Fase 3:** Lib e scripts BASH refeitos, idempotência e checagem anti-dump construídas (`reconcile`, `preflight`).
+- **Fase 4:** Actions do GitHub reconstruídos, dependência em cadeia `enforce-dir -> lint -> deploy -> smoke` isolada.
+- **Fase 5:** Cabeçalhos injetados dinamicamente em 45 velhos SQLs e mudados passivamente para `database/`
+
+**Status:** ✅ PR Aberto (#121) e pronto para validação visual pelo responsável.
+
+
 
 
 

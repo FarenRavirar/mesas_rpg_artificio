@@ -1,3 +1,9 @@
+-- @class: online-safe
+-- @requires-backup: false
+-- @author: legacy
+-- @created: 2026-04-20
+-- @description: retro-migration header
+
 -- Migration 108: activity_log
 -- Objetivo: criar trilha de auditoria administrativa para o painel /gestao
 -- Segurança: idempotente (CREATE TABLE/INDEX IF NOT EXISTS)
