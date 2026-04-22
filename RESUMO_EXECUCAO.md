@@ -11,14 +11,16 @@
 **Branch ativa:** `dev`
 
 **Status técnico mais recente (22/04/2026):**
-- **✅ FEATURE 001 ATIVA EM BETA** — Migration Governance Pipeline operacional
-- PR #121 mergeado em `dev` (commit `2c34097`)
-- Reconciliação inicial concluída: 46 migrations históricas reconciliadas (0 drift)
-- Deploy beta: jobs `validate`, `lint`, `enforce-dir`, `migrate`, `deploy-app` — ✅ PASSOU
-- Validação manual: todas as rotas críticas respondendo 200, health OK
-- Job `smoke` falhou com erro de sintaxe bash (não bloqueante, aplicação funcional)
+- **✅ FEATURE 001 ATIVA EM PRODUÇÃO** — Migration Governance Pipeline operacional em beta e prod
+- PR #123 mergeado em `dev` (commit `2c34097`), promovido para `main` (commit `e08eea8`)
+- **Beta:** Reconciliação inicial concluída (46 migrations, 0 drift), deploy verde, health OK
+- **Prod:** Reconciliação inicial concluída (46 migrations, 0 drift), deploy verde (run 24760559583), health OK
+- Validação manual: todas as rotas críticas respondendo 200 em beta e prod
+- Integridade de dados prod: 9 mesas, 10 usuários (preservados)
+- Migration_105 reclassificada para `manual-risk` (commit `e08eea8`)
 - Erros E154, E155, E156 documentados em `ERRORS_SOLUTIONS.md`
 - Checklist de reconciliação adicionado em `BRANCH_POLICY.md`
+- Backup prod disponível: `/tmp/backup_prod_prepromotion_20260422_005727.sql` (434K)
 
 **Status técnico anterior (17/04/2026):**
 - Deploy beta concluído com sucesso (run `24483615951`)
@@ -51,14 +53,53 @@
 
 ## Próxima Ação
 
-Aguardar autorização do mantenedor para:
-1. Corrigir job `smoke` em `deploy-beta.yml` (erro de sintaxe bash, não bloqueante)
-2. Promoção `dev → main` (feature 001 para produção)
-3. Reconciliação inicial de prod (seguir checklist em `BRANCH_POLICY.md`)
+**Feature 001 concluída em beta e produção.** Próximas ações opcionais:
+1. Remover `scripts/deploy/apply_required_migrations.sh.bak` (T048)
+2. Ativar branch protection em `main` e `dev` via GitHub UI
+3. Corrigir job `smoke` em `deploy-beta.yml` (erro de sintaxe bash, não bloqueante)
 
 ---
 
 ## Última Sessão
+
+**Data:** 22/04/2026 01:46 BRT  
+**Tipo:** Promoção Feature 001 para Produção  
+**Arquivo:** `sessoes/26-04-22_3_prod-promotion.md`  
+**O que foi feito:**
+
+### Backup e Preparação
+- Backup prod gerado: `/tmp/backup_prod_prepromotion_20260422_005727.sql` (434K)
+- Beta validada: health OK, todas as rotas respondendo 200
+
+### PR e Merge
+- PR #123 criado e mergeado em `main`
+- Preflight detectou 31 migrations pendentes (esperado)
+
+### Reconciliação Inicial de Prod
+- Migration_114 aplicada manualmente (bootstrap `applied_by`)
+- 28 migrations antigas (01-99) reconciliadas via `--mark-applied --force`
+- Migration_114 e migration_105 marcadas
+- **Drift zerado:** 46 migrations em disco = 46 no banco
+
+### Correções Durante Deploy
+- Migration_105 reclassificada de `online-safe` para `manual-risk` (contém `DROP CONSTRAINT`)
+- Commit `e08eea8`: `fix(migrations): corrige classificacao migration_105 para manual-risk`
+
+### Deploy Prod
+- Run 24760559583: ✅ PASSOU
+- Jobs: `validate`, `lint`, `enforce-dir`, `migrate`, `deploy-app` — todos verdes
+- Deploy concluído em 1m44s
+
+### Validação Final
+- Root: 200
+- Health: `{"status":"ok","environment":"production","db":"connected","usersSampled":true}`
+- Tables: 200
+- Systems: 200
+- **Integridade de dados:** 9 mesas, 10 usuários (preservados)
+
+**Status:** ✅ Feature 001 operacional em beta e produção. Migration Governance Pipeline ativo.
+
+---
 
 **Data:** 22/04/2026 00:47 BRT  
 **Tipo:** Recovery Deploy Beta — Feature 001  
