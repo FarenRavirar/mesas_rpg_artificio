@@ -1,3 +1,14 @@
+# ============================================================================
+# WORKFLOW: CI — Validação de PR
+# RESPONSIBILITY: Continuous Integration
+# TRIGGER: Pull request para branch dev
+# SCOPE: Valida build de frontend e backend antes de merge
+# DEPENDENCIES: Nenhuma
+# CONSUMERS: Nenhum (gate de PR)
+# MAINTAINER: Equipe de desenvolvimento
+# LAST UPDATED: 2026-04-23
+# ============================================================================
+
 name: CI — Validação de PR
 
 on:

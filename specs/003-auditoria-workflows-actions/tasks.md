@@ -57,9 +57,9 @@ T001 → T002 → T003..T011 (inventory) → T012..T020 (diagnosis) → T021..T0
 
 **Tasks**:
 
-- [ ] T001 Criar branch `feat/003-auditoria-workflows-actions` a partir de `dev`
-- [ ] T002 Criar estrutura de artefatos de auditoria em `specs/003-auditoria-workflows-actions/audit/`
-- [ ] T003 Documentar baseline de workflows ativos via `ls -1 .github/workflows/*.yml > specs/003-auditoria-workflows-actions/audit/baseline-workflows.txt`
+- [x] T001 Criar branch `feat/003-auditoria-workflows-actions` a partir de `dev`
+- [x] T002 Criar estrutura de artefatos de auditoria em `specs/003-auditoria-workflows-actions/audit/`
+- [x] T003 Documentar baseline de workflows ativos via `ls -1 .github/workflows/*.yml > specs/003-auditoria-workflows-actions/audit/baseline-workflows.txt`
 
 ---
 
@@ -74,16 +74,16 @@ T001 → T002 → T003..T011 (inventory) → T012..T020 (diagnosis) → T021..T0
 
 **Tasks**:
 
-- [ ] T004 [P] Inventariar `ci.yml` em `specs/003-auditoria-workflows-actions/audit/inventory-ci.md`
-- [ ] T005 [P] Inventariar `deploy-beta.yml` em `specs/003-auditoria-workflows-actions/audit/inventory-deploy-beta.md`
-- [ ] T006 [P] Inventariar `deploy-prod.yml` em `specs/003-auditoria-workflows-actions/audit/inventory-deploy-prod.md`
-- [ ] T007 [P] Inventariar `promote-to-prod.yml` em `specs/003-auditoria-workflows-actions/audit/inventory-promote-to-prod.md`
-- [ ] T008 [P] Inventariar `preflight-prod.yml` em `specs/003-auditoria-workflows-actions/audit/inventory-preflight-prod.md`
-- [ ] T009 [P] Inventariar `docker-cleanup.yml` em `specs/003-auditoria-workflows-actions/audit/inventory-docker-cleanup.md`
-- [ ] T010 [P] Inventariar `sync-arquitetura.yml` em `specs/003-auditoria-workflows-actions/audit/inventory-sync-arquitetura.md`
-- [ ] T011 [P] Inventariar workflows reutilizáveis `_enforce-migration-dir.yml` e `_lint-shell.yml` em `specs/003-auditoria-workflows-actions/audit/inventory-reusable.md`
-- [ ] T012 Consolidar inventário completo em `specs/003-auditoria-workflows-actions/audit/inventory-consolidated.md` com mapeamento de consumidores de workflows reutilizáveis
-- [ ] T013 Validar SC-001: confirmar que 100% dos workflows estão inventariados e classificados por responsabilidade operacional
+- [x] T004 [P] Inventariar `ci.yml` em `specs/003-auditoria-workflows-actions/audit/inventory-ci.md`
+- [x] T005 [P] Inventariar `deploy-beta.yml` em `specs/003-auditoria-workflows-actions/audit/inventory-deploy-beta.md`
+- [x] T006 [P] Inventariar `deploy-prod.yml` em `specs/003-auditoria-workflows-actions/audit/inventory-deploy-prod.md`
+- [x] T007 [P] Inventariar `promote-to-prod.yml` em `specs/003-auditoria-workflows-actions/audit/inventory-promote-to-prod.md`
+- [x] T008 [P] Inventariar `preflight-prod.yml` em `specs/003-auditoria-workflows-actions/audit/inventory-preflight-prod.md`
+- [x] T009 [P] Inventariar `docker-cleanup.yml` em `specs/003-auditoria-workflows-actions/audit/inventory-docker-cleanup.md`
+- [x] T010 [P] Inventariar `sync-arquitetura.yml` em `specs/003-auditoria-workflows-actions/audit/inventory-sync-arquitetura.md`
+- [x] T011 [P] Inventariar workflows reutilizáveis `_enforce-migration-dir.yml` e `_lint-shell.yml` em `specs/003-auditoria-workflows-actions/audit/inventory-reusable.md`
+- [x] T012 Consolidar inventário completo em `specs/003-auditoria-workflows-actions/audit/inventory-consolidated.md` com mapeamento de consumidores de workflows reutilizáveis
+- [x] T013 Validar SC-001: confirmar que 100% dos workflows estão inventariados e classificados por responsabilidade operacional
 
 ---
 
@@ -98,13 +98,13 @@ T001 → T002 → T003..T011 (inventory) → T012..T020 (diagnosis) → T021..T0
 
 **Tasks**:
 
-- [ ] T014 Analisar sobreposição de gatilhos entre workflows de deploy (`deploy-beta.yml`, `deploy-prod.yml`, `promote-to-prod.yml`) em `specs/003-auditoria-workflows-actions/audit/findings-deploy-overlap.md`
-- [ ] T015 Analisar política de concorrência em `deploy-beta.yml` (risco de backlog de commits obsoletos) em `specs/003-auditoria-workflows-actions/audit/findings-beta-concurrency.md`
-- [ ] T016 Analisar padrões de falha silenciosa em scripts de deploy (`|| true`, fallback permissivo) em `specs/003-auditoria-workflows-actions/audit/findings-silent-failures.md`
-- [ ] T017 Analisar risco de corrida operacional entre `deploy-prod.yml` e `promote-to-prod.yml` (ambos acessam mesma infraestrutura) em `specs/003-auditoria-workflows-actions/audit/findings-prod-race.md`
-- [ ] T018 Analisar impacto de mudanças em workflows reutilizáveis (`_enforce-migration-dir.yml`, `_lint-shell.yml`) nos consumidores em `specs/003-auditoria-workflows-actions/audit/findings-reusable-contract-risk.md`
-- [ ] T019 Consolidar achados com severidade e impacto operacional em `specs/003-auditoria-workflows-actions/audit/findings-consolidated.md`
-- [ ] T020 Validar SC-002: confirmar que 100% dos achados críticos e altos têm ação de regularização definida
+- [x] T014 Analisar sobreposição de gatilhos entre workflows de deploy (`deploy-beta.yml`, `deploy-prod.yml`, `promote-to-prod.yml`) em `specs/003-auditoria-workflows-actions/audit/findings-deploy-overlap.md`
+- [x] T015 Analisar política de concorrência em `deploy-beta.yml` (risco de backlog de commits obsoletos) em `specs/003-auditoria-workflows-actions/audit/findings-beta-concurrency.md`
+- [x] T016 Analisar padrões de falha silenciosa em scripts de deploy (`|| true`, fallback permissivo) em `specs/003-auditoria-workflows-actions/audit/findings-silent-failures.md`
+- [x] T017 Analisar risco de corrida operacional entre `deploy-prod.yml` e `promote-to-prod.yml` (ambos acessam mesma infraestrutura) em `specs/003-auditoria-workflows-actions/audit/findings-prod-race.md`
+- [x] T018 Analisar impacto de mudanças em workflows reutilizáveis (`_enforce-migration-dir.yml`, `_lint-shell.yml`) nos consumidores em `specs/003-auditoria-workflows-actions/audit/findings-reusable-contract-risk.md`
+- [x] T019 Consolidar achados com severidade e impacto operacional em `specs/003-auditoria-workflows-actions/audit/findings-consolidated.md`
+- [x] T020 Validar SC-002: confirmar que 100% dos achados críticos e altos têm ação de regularização definida
 
 ---
 
@@ -119,13 +119,13 @@ T001 → T002 → T003..T011 (inventory) → T012..T020 (diagnosis) → T021..T0
 
 **Tasks**:
 
-- [ ] T021 Planejar separação explícita de responsabilidades entre `deploy-prod.yml` (break-glass) e `promote-to-prod.yml` (canônico) em `specs/003-auditoria-workflows-actions/audit/action-prod-separation.md`
-- [ ] T022 Planejar ajuste de política de concorrência em `deploy-beta.yml` para priorizar commit mais recente em `specs/003-auditoria-workflows-actions/audit/action-beta-concurrency.md`
-- [ ] T023 Planejar eliminação de padrões tolerantes em etapas críticas de validação em `specs/003-auditoria-workflows-actions/audit/action-failure-propagation.md`
-- [ ] T024 Planejar documentação de fronteiras operacionais entre workflows em `specs/003-auditoria-workflows-actions/audit/action-boundaries.md`
-- [ ] T025 Mapear consumidores de workflows reutilizáveis antes de qualquer alteração em `specs/003-auditoria-workflows-actions/audit/reusable-consumers-map.md`
-- [ ] T026 Consolidar plano de regularização com rollback explícito por ação em `specs/003-auditoria-workflows-actions/audit/regularization-plan.md`
-- [ ] T027 Validar que nenhuma ação planejada remove workflow sem mapeamento prévio de dependências
+- [x] T021 Planejar separação explícita de responsabilidades entre `deploy-prod.yml` (break-glass) e `promote-to-prod.yml` (canônico) em `specs/003-auditoria-workflows-actions/audit/action-prod-separation.md`
+- [x] T022 Planejar ajuste de política de concorrência em `deploy-beta.yml` para priorizar commit mais recente em `specs/003-auditoria-workflows-actions/audit/action-beta-concurrency.md`
+- [x] T023 Planejar eliminação de padrões tolerantes em etapas críticas de validação em `specs/003-auditoria-workflows-actions/audit/action-failure-propagation.md`
+- [x] T024 Planejar documentação de fronteiras operacionais entre workflows em `specs/003-auditoria-workflows-actions/audit/action-boundaries.md`
+- [x] T025 Mapear consumidores de workflows reutilizáveis antes de qualquer alteração em `specs/003-auditoria-workflows-actions/audit/reusable-consumers-map.md`
+- [x] T026 Consolidar plano de regularização com rollback explícito por ação em `specs/003-auditoria-workflows-actions/audit/regularization-plan.md`
+- [x] T027 Validar que nenhuma ação planejada remove workflow sem mapeamento prévio de dependências
 
 ---
 
@@ -140,12 +140,12 @@ T001 → T002 → T003..T011 (inventory) → T012..T020 (diagnosis) → T021..T0
 
 **Tasks**:
 
-- [ ] T028 Aplicar separação de responsabilidades em `deploy-prod.yml` (adicionar comentário de uso excepcional) e `promote-to-prod.yml` (marcar como canônico)
-- [ ] T029 Aplicar ajuste de política de concorrência em `deploy-beta.yml` (revisar `cancel-in-progress` conforme decisão de research.md)
-- [ ] T030 Aplicar eliminação de padrões tolerantes em etapas críticas de `deploy-beta.yml` e `deploy-prod.yml`
-- [ ] T031 Aplicar documentação de fronteiras operacionais em comentários inline dos workflows
-- [ ] T032 Validar que workflows reutilizáveis não sofreram alterações de contrato sem aprovação de consumidores
-- [ ] T033 Registrar evidência de aplicação (commit SHA, arquivos alterados) em `specs/003-auditoria-workflows-actions/audit/application-evidence.md`
+- [x] T028 Aplicar separação de responsabilidades em `deploy-prod.yml` (adicionar comentário de uso excepcional) e `promote-to-prod.yml` (marcar como canônico)
+- [x] T029 Aplicar ajuste de política de concorrência em `deploy-beta.yml` (revisar `cancel-in-progress` conforme decisão de research.md)
+- [x] T030 Aplicar eliminação de padrões tolerantes em etapas críticas de `deploy-beta.yml` e `deploy-prod.yml`
+- [x] T031 Aplicar documentação de fronteiras operacionais em comentários inline dos workflows
+- [x] T032 Validar que workflows reutilizáveis não sofreram alterações de contrato sem aprovação de consumidores
+- [x] T033 Registrar evidência de aplicação (commit SHA, arquivos alterados) em `specs/003-auditoria-workflows-actions/audit/application-evidence.md`
 - [ ] T034 Testar rollback de uma correção aplicada para validar reversibilidade
 
 ---

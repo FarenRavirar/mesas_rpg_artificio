@@ -1,4 +1,20 @@
-name: Deploy Production
+# ============================================================================
+# WORKFLOW: Deploy Production (BREAK-GLASS ONLY)
+# RESPONSIBILITY: Continuous Deployment (Production - Emergency)
+# TRIGGER: Manual (workflow_dispatch) - USO RESTRITO
+# SCOPE: Deploy direto para produção SEM governança de PR
+# DEPENDENCIES: _enforce-migration-dir.yml, _lint-shell.yml
+# CONSUMERS: Nenhum
+# MAINTAINER: Equipe de operações
+# LAST UPDATED: 2026-04-23
+# NOTES: 
+#   - USO APENAS EM EMERGÊNCIAS (vulnerabilidade crítica, downtime)
+#   - Requer aprovação verbal do mantenedor
+#   - Bypassa governance gate
+#   - Workflow canônico: promote-to-prod.yml
+# ============================================================================
+
+name: Deploy Production (BREAK-GLASS ONLY — Use promote-to-prod.yml instead)
 
 on:
   workflow_dispatch:
@@ -72,7 +88,9 @@ jobs:
             # CORRECAO WF-ROLLBACK-01 (prod): rollback automatico se build falhar apos o down
             rollback() {
               echo "ROLLBACK: tentando resubir containers de producao..."
-              docker compose -f docker-compose.prod.yml up -d --force-recreate || true
+              if ! docker compose -f docker-compose.prod.yml up -d --force-recreate; then
+                echo "ERRO: rollback de containers de producao falhou"
+              fi
               echo "AVISO: Rollback tentado. Verificar estado manualmente."
             }
             trap rollback ERR
@@ -95,6 +113,18 @@ jobs:
               fi
               sleep 3
             done
+
+            SNAPSHOT_FILE="/tmp/mesas-prod-predeploy-${{ github.run_id }}.dump"
+            echo "Criando snapshot pré-deploy do banco de produção em $SNAPSHOT_FILE"
+            if ! timeout 120s docker exec mesas-db pg_dump -U admin -d mesas_rpg -Fc -f /tmp/predeploy.dump; then
+              echo "ERRO: Falha ao criar snapshot do banco de produção"
+              exit 1
+            fi
+            if ! docker cp mesas-db:/tmp/predeploy.dump "$SNAPSHOT_FILE"; then
+              echo "ERRO: Falha ao copiar snapshot para o host"
+              exit 1
+            fi
+            docker exec mesas-db rm -f /tmp/predeploy.dump
 
             bash ./scripts/deploy/apply_required_migrations.sh docker-compose.prod.yml mesas-db
 
@@ -135,11 +165,22 @@ jobs:
             PROD_OAUTH_URL="https://mesas.artificiorpg.com/auth/google?frontend_redirect=https%3A%2F%2Fmesas.artificiorpg.com"
 
             check_prod_critical_routes() {
-              local tables_code systems_tree_code oauth_code
+              local tables_code systems_tree_code oauth_code oauth_header_ok
 
-              tables_code=$(curl -sS -o /tmp/prod_tables_check.json -w "%{http_code}" "$PROD_TABLES_URL" || true)
-              systems_tree_code=$(curl -sS -o /tmp/prod_systems_tree_check.json -w "%{http_code}" "$PROD_SYSTEMS_TREE_URL" || true)
-              oauth_code=$(curl -sS -D /tmp/prod_oauth_check.headers -o /dev/null -w "%{http_code}" "$PROD_OAUTH_URL" || true)
+              if ! tables_code=$(curl -sS -o /tmp/prod_tables_check.json -w "%{http_code}" "$PROD_TABLES_URL"); then
+                tables_code="000"
+              fi
+              if ! systems_tree_code=$(curl -sS -o /tmp/prod_systems_tree_check.json -w "%{http_code}" "$PROD_SYSTEMS_TREE_URL"); then
+                systems_tree_code="000"
+              fi
+              if ! oauth_code=$(curl -sS -D /tmp/prod_oauth_check.headers -o /dev/null -w "%{http_code}" "$PROD_OAUTH_URL"); then
+                oauth_code="000"
+              fi
+
+              oauth_header_ok="no"
+              if grep -qi '^location: https://accounts.google.com/o/oauth2/v2/auth' /tmp/prod_oauth_check.headers; then
+                oauth_header_ok="yes"
+              fi
 
               if [ "$tables_code" != "200" ]; then
                 echo "ERRO: /api/v1/tables retornou HTTP $tables_code em producao (E150)"
@@ -151,7 +192,7 @@ jobs:
                 return 1
               fi
 
-              if [ "$oauth_code" != "302" ] || ! grep -qi '^location: https://accounts.google.com/o/oauth2/v2/auth' /tmp/prod_oauth_check.headers; then
+              if [ "$oauth_code" != "302" ] || [ "$oauth_header_ok" != "yes" ]; then
                 echo "ERRO: /auth/google nao retornou redirect valido em producao (HTTP $oauth_code) (E150)"
                 return 1
               fi
@@ -159,30 +200,86 @@ jobs:
               return 0
             }
 
+            restore_prod_snapshot() {
+              if [ ! -f "$SNAPSHOT_FILE" ]; then
+                echo "ERRO: Snapshot de produção não encontrado em $SNAPSHOT_FILE"
+                return 1
+              fi
+
+              echo "Restaurando snapshot do banco de produção a partir de $SNAPSHOT_FILE"
+              if ! docker cp "$SNAPSHOT_FILE" mesas-db:/tmp/predeploy.dump; then
+                echo "ERRO: Falha ao copiar snapshot para container mesas-db"
+                return 1
+              fi
+
+              if ! timeout 180s docker exec mesas-db pg_restore -U admin -d mesas_rpg --clean --if-exists /tmp/predeploy.dump; then
+                echo "ERRO: Falha ao restaurar snapshot no banco de produção"
+                return 1
+              fi
+
+              docker exec mesas-db rm -f /tmp/predeploy.dump
+              if ! docker compose -f docker-compose.prod.yml up -d --force-recreate; then
+                echo "ERRO: Falha ao subir containers após restore do snapshot"
+                return 1
+              fi
+
+              return 0
+            }
+
             if ! check_prod_critical_routes; then
-              echo "AVISO: Rotas criticas de producao falharam. Tentando auto-recuperacao E150 (restart do frontend)..."
-              docker restart mesas-app
+              echo "ERRO: Rotas críticas de produção falharam. Coletando diagnóstico..."
+              docker compose -f docker-compose.prod.yml logs mesas-app --tail=80 > /tmp/prod_frontend_failure.log
+              docker compose -f docker-compose.prod.yml logs mesas-api --tail=80 > /tmp/prod_api_failure.log
 
-              FRONTEND_RETRIES=0
-              until [ "$(docker inspect --format '{{.State.Health.Status}}' "$FRONTEND_CONTAINER" 2>/dev/null || echo 'missing')" = "healthy" ]; do
-                FRONTEND_RETRIES=$((FRONTEND_RETRIES+1))
-                if [ $FRONTEND_RETRIES -ge $MAX_FRONTEND_RETRIES ]; then
-                  echo "ERRO: Frontend de producao nao voltou healthy apos recuperacao E150"
-                  docker inspect "$FRONTEND_CONTAINER" --format '{{json .State.Health}}' || true
-                  docker compose -f docker-compose.prod.yml logs mesas-app mesas-api --tail=120
-                  exit 1
+              if grep -qi "ECONNREFUSED" /tmp/prod_frontend_failure.log; then
+                echo "DIAGNÓSTICO: padrão E150 detectado (ECONNREFUSED). Tentando recovery específico..."
+                docker restart mesas-app
+
+                FRONTEND_RETRIES=0
+                until [ "$(docker inspect --format '{{.State.Health.Status}}' "$FRONTEND_CONTAINER" 2>/dev/null || echo 'missing')" = "healthy" ]; do
+                  FRONTEND_RETRIES=$((FRONTEND_RETRIES+1))
+                  if [ $FRONTEND_RETRIES -ge $MAX_FRONTEND_RETRIES ]; then
+                    echo "ERRO: Frontend não voltou healthy após recovery E150"
+                    docker compose -f docker-compose.prod.yml logs mesas-app mesas-api --tail=120
+                    break
+                  fi
+                  sleep 3
+                done
+
+                sleep 5
+                if check_prod_critical_routes; then
+                  echo "Recovery E150 concluído com sucesso"
+                else
+                  echo "ERRO: Recovery E150 não normalizou rotas críticas"
                 fi
-                sleep 3
-              done
-
-              sleep 5
+              else
+                echo "DIAGNÓSTICO: falha não corresponde a E150. Recovery automático não aplicável."
+              fi
 
               if ! check_prod_critical_routes; then
-                echo "ERRO: Rotas criticas de producao permanecem falhando apos recuperacao E150"
-                docker compose -f docker-compose.prod.yml ps
-                docker compose -f docker-compose.prod.yml logs mesas-app mesas-api mesas-db --tail=120
+                echo "Iniciando rollback completo de produção (banco + containers)..."
+                if ! restore_prod_snapshot; then
+                  echo "ERRO CRÍTICO: rollback de produção falhou"
+                  docker compose -f docker-compose.prod.yml ps
+                  docker compose -f docker-compose.prod.yml logs mesas-app mesas-api mesas-db --tail=120
+                  exit 1
+                fi
+
+                sleep 10
+                if ! check_prod_critical_routes; then
+                  echo "ERRO CRÍTICO: rollback executado, mas rotas críticas seguem falhando"
+                  docker compose -f docker-compose.prod.yml ps
+                  docker compose -f docker-compose.prod.yml logs mesas-app mesas-api mesas-db --tail=120
+                  exit 1
+                fi
+
+                echo "Rollback completo de produção concluído com sucesso. Workflow será marcado como falha para alerta operacional."
                 exit 1
               fi
+            }
+
+            if [ -f "$SNAPSHOT_FILE" ]; then
+              rm -f "$SNAPSHOT_FILE"
             fi
 
             docker compose -f docker-compose.prod.yml ps

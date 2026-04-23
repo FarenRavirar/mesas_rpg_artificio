@@ -176,17 +176,18 @@
 
 ---
 
-## 23/04/2026 (1 sessão)
+## 23/04/2026 (2 sessões)
 
 | # | Arquivo |
 |---|---|
 | 1 | `26-04-23_1_verificacao_arquiteture_mapa_de_api.md` |
+| 2 | `26-04-23_2_auditoria-workflows-github-actions.md` |
 
 ---
 
 ## Sessão Mais Recente
 
-`26-04-23_1_verificacao_arquiteture_mapa_de_api.md` (ativa)
+`26-04-23_2_auditoria-workflows-github-actions.md` (ativa)
 
 ---
 
@@ -202,4 +203,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-04-23_2_*`
+**Próxima sessão:** `26-04-23_3_*`

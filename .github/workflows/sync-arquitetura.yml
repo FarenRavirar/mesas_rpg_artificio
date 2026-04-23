@@ -1,3 +1,18 @@
+# ============================================================================
+# WORKFLOW: Sync ARQUITETURA_PROJETO.md
+# RESPONSIBILITY: Documentation
+# TRIGGER: Push para branch dev
+# SCOPE: Sincronização automática de documentação de arquitetura via LLM
+# DEPENDENCIES: Nenhuma
+# CONSUMERS: Nenhum
+# MAINTAINER: Equipe de desenvolvimento
+# LAST UPDATED: 2026-04-23
+# NOTES: 
+#   - Não-bloqueante (falha não afeta deploys)
+#   - Depende de API externa (ROUTER_URL)
+#   - Cria PR com patches propostos (requer revisão humana)
+# ============================================================================
+
 name: Sync ARQUITETURA_PROJETO.md
 
 on:
