@@ -1,0 +1,320 @@
+openapi: 3.0.3
+info:
+  title: Workflow Audit Regularization API Contract
+  version: 1.0.0
+  description: Contrato para registro de inventário, achados, ações de regularização e evidências da feature 003.
+servers:
+  - url: https://example.local
+    description: Placeholder de contrato (documentação de domínio da feature)
+paths:
+  /workflow-inventory:
+    get:
+      summary: Listar workflows inventariados
+      operationId: listWorkflowInventory
+      responses:
+        '200':
+          description: Inventário retornado com sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WorkflowInventoryItem'
+    post:
+      summary: Registrar item de inventário
+      operationId: createWorkflowInventoryItem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkflowInventoryItemInput'
+      responses:
+        '201':
+          description: Item criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowInventoryItem'
+  /findings:
+    get:
+      summary: Listar achados da auditoria
+      operationId: listFindings
+      responses:
+        '200':
+          description: Achados listados
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Finding'
+    post:
+      summary: Criar achado
+      operationId: createFinding
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FindingInput'
+      responses:
+        '201':
+          description: Achado criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Finding'
+  /regularization-actions:
+    post:
+      summary: Registrar ação de regularização
+      operationId: createRegularizationAction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegularizationActionInput'
+      responses:
+        '201':
+          description: Ação registrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegularizationAction'
+  /validation-scenarios:
+    post:
+      summary: Registrar cenário de validação
+      operationId: createValidationScenario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidationScenarioInput'
+      responses:
+        '201':
+          description: Cenário registrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationScenario'
+  /evidence-records:
+    post:
+      summary: Registrar evidência de execução
+      operationId: createEvidenceRecord
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvidenceRecordInput'
+      responses:
+        '201':
+          description: Evidência registrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceRecord'
+components:
+  schemas:
+    WorkflowInventoryItem:
+      type: object
+      required:
+        - id
+        - file_path
+        - workflow_name
+        - trigger_types
+        - jobs
+        - operational_responsibility
+        - criticality
+      properties:
+        id:
+          type: string
+        file_path:
+          type: string
+        workflow_name:
+          type: string
+        trigger_types:
+          type: array
+          items:
+            type: string
+        trigger_filters:
+          type: object
+          additionalProperties: true
+        jobs:
+          type: array
+          items:
+            type: string
+        uses_reusable:
+          type: array
+          items:
+            type: string
+        called_by:
+          type: array
+          items:
+            type: string
+        concurrency_group:
+          type: string
+          nullable: true
+        cancel_in_progress:
+          type: boolean
+          nullable: true
+        operational_responsibility:
+          type: string
+          enum: [ci, deploy-beta, deploy-prod, promotion, governance, maintenance]
+        criticality:
+          type: string
+          enum: [critical, high, medium, low]
+    WorkflowInventoryItemInput:
+      allOf:
+        - $ref: '#/components/schemas/WorkflowInventoryItem'
+
+    Finding:
+      type: object
+      required:
+        - id
+        - workflow_id
+        - severity
+        - category
+        - title
+        - technical_description
+        - operational_impact
+        - evidence_refs
+        - status
+      properties:
+        id:
+          type: string
+        workflow_id:
+          type: string
+        severity:
+          type: string
+          enum: [critical, high, medium, low]
+        category:
+          type: string
+          enum: [redundancy, race-condition, silent-failure, trigger-overlap, contract-risk, observability-gap]
+        title:
+          type: string
+        technical_description:
+          type: string
+        operational_impact:
+          type: string
+        evidence_refs:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [open, triaged, in-remediation, resolved, accepted-risk]
+    FindingInput:
+      allOf:
+        - $ref: '#/components/schemas/Finding'
+
+    RegularizationAction:
+      type: object
+      required:
+        - id
+        - finding_id
+        - action_type
+        - target_files
+        - change_scope
+        - rollback_steps
+        - risk_level
+        - status
+      properties:
+        id:
+          type: string
+        finding_id:
+          type: string
+        action_type:
+          type: string
+          enum: [yaml-adjustment, trigger-scope, concurrency-policy, failure-propagation, documentation-boundary]
+        target_files:
+          type: array
+          items:
+            type: string
+        change_scope:
+          type: string
+          enum: [atomic, multi-file-controlled]
+        rollback_steps:
+          type: array
+          items:
+            type: string
+        risk_level:
+          type: string
+          enum: [low, medium, high]
+        status:
+          type: string
+          enum: [planned, approved, applied, validated, rolled-back]
+    RegularizationActionInput:
+      allOf:
+        - $ref: '#/components/schemas/RegularizationAction'
+
+    ValidationScenario:
+      type: object
+      required:
+        - id
+        - type
+        - trigger_event
+        - preconditions
+        - expected_behavior
+        - expected_status
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [happy-path, off-happy-path]
+        trigger_event:
+          type: string
+        preconditions:
+          type: array
+          items:
+            type: string
+        expected_behavior:
+          type: string
+        expected_status:
+          type: string
+          enum: [success, failure]
+        executed_run_refs:
+          type: array
+          items:
+            type: string
+        result_status:
+          type: string
+          enum: [pass, fail, blocked]
+          nullable: true
+    ValidationScenarioInput:
+      allOf:
+        - $ref: '#/components/schemas/ValidationScenario'
+
+    EvidenceRecord:
+      type: object
+      required:
+        - id
+        - run_reference
+        - workflow_id
+        - scenario_id
+        - log_excerpt
+        - observed_status
+        - recorded_at
+      properties:
+        id:
+          type: string
+        run_reference:
+          type: string
+        workflow_id:
+          type: string
+        scenario_id:
+          type: string
+        log_excerpt:
+          type: string
+        observed_status:
+          type: string
+          enum: [success, failure, cancelled, skipped]
+        recorded_at:
+          type: string
+          format: date-time
+    EvidenceRecordInput:
+      allOf:
+        - $ref: '#/components/schemas/EvidenceRecord'

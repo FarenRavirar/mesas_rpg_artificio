@@ -46,7 +46,6 @@ docs/Reformulacao_mestre_v-final.md
 /.agents/skills
 /.specify/extensions
 /.specify/templates
-/specs
 /.specify/templates
 prompt_claude.md
 /.specify
@@ -57,5 +56,4 @@ specify_help.txt
 /.specify
 /.specify
 /sessoes
-/specs
 /.specify

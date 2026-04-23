@@ -1,0 +1,9 @@
+﻿ci.yml
+deploy-beta.yml
+deploy-prod.yml
+docker-cleanup.yml
+preflight-prod.yml
+promote-to-prod.yml
+sync-arquitetura.yml
+_enforce-migration-dir.yml
+_lint-shell.yml
