@@ -167,9 +167,9 @@ jobs:
               systems_tree_code=$(curl -sS -o /tmp/beta_systems_tree_check.json -w "%{http_code}" "$BETA_SYSTEMS_TREE_URL" || true)
               oauth_code=$(curl -sS -D /tmp/beta_oauth_check.headers -o /dev/null -w "%{http_code}" "$BETA_OAUTH_URL" || true)
 
-              if [ "$tables_code" != "200" ]; return 1; fi
-              if [ "$systems_tree_code" != "200" ]; return 1; fi
-              if [ "$oauth_code" != "302" ]; return 1; fi
+              if [ "$tables_code" != "200" ]; then return 1; fi
+              if [ "$systems_tree_code" != "200" ]; then return 1; fi
+              if [ "$oauth_code" != "302" ]; then return 1; fi
               return 0
             }
 
