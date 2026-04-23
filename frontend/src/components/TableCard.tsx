@@ -108,6 +108,11 @@ export function TableCardComponent({ table }: { table: TableCard }) {
 
         {/* Badges críticos apenas */}
         <div className="absolute top-3 left-3 flex flex-wrap gap-2">
+          {table.is_covil && (
+            <span className="px-2 py-1 rounded-md text-[11px] font-black tracking-wide text-purple-100 bg-black/70 backdrop-blur-sm border border-purple-500/40">
+              👑 Covil do Lich
+            </span>
+          )}
           {table.is_ddal && (
             <span className="px-2 py-1 rounded-md text-[11px] font-black tracking-wide text-amber-100 bg-black/70 backdrop-blur-sm border border-amber-500/30">
               🛡️ DDAL

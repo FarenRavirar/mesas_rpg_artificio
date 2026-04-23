@@ -73,7 +73,7 @@ Como auditor, quero os artefatos `spec.md`, `plan.md` e `tasks.md` da feature 00
 - **FR-005**: O fluxo MUST bloquear quando `tasks.md` não possuir nenhuma tarefa concluída (`- [x]`).
 - **FR-006**: O fluxo MUST operar sem prompts interativos quando `FIXIT_AUTO_APPROVE` estiver ausente ou diferente de `yes`.
 - **FR-007**: A extensão MUST não registrar hooks de commit automático.
-- **FR-008**: O contexto MUST carregar, quando disponíveis, `spec.md/specs.md`, `tasks.md`, `plan.md`, `constitution.md`, `SESSION_FAILURES_REGISTRY.md`, sessões e cabeçalhos de `AGENTS.md`/`ARQUITETURA_PROJETO.md`.
+- **FR-008**: O contexto MUST carregar, quando disponíveis, `spec.md/specs.md`, `tasks.md`, `plan.md`, `constitution.md`, `SESSION_FAILURES_REGISTRY.md`, sessões e cabeçalhos de `AGENTS.md`/`.specify/arquiteture.md`.
 - **FR-009**: O `apply-fix.sh` MUST criar backup antes de tentar aplicar estratégias de correção.
 - **FR-010**: A feature 002 MUST possuir trilha SDD retroativa com `spec.md`, `plan.md` e `tasks.md` no diretório da feature.
 

@@ -3,7 +3,7 @@
 /**
  * sync-arquitetura.js
  * Analisa o diff do último merge em dev e gera um relatório
- * das seções do ARQUITETURA_PROJETO.md que precisam de revisão.
+ * das seções do .specify/arquiteture.md que precisam de revisão.
  *
  * Não depende de API externa. Funciona em qualquer ambiente.
  *
@@ -15,10 +15,10 @@ const fs = require('fs');
 const path = require('path');
 
 const DIFF_PATH = '/tmp/last_merge.diff';
-const ARQUITETURA_PATH = path.join(process.cwd(), 'ARQUITETURA_PROJETO.md');
+const ARQUITETURA_PATH = path.join(process.cwd(), '.specify/arquiteture.md');
 const OUTPUT_PATH = '/tmp/arquitetura_patch.md';
 
-// Mapeamento de padrões no diff para seções do ARQUITETURA_PROJETO.md
+// Mapeamento de padrões no diff para seções do .specify/arquiteture.md
 const SECAO_MAP = [
   {
     pattern: /docker-compose|Dockerfile|container_name|mesas-beta-frontend|mesas-beta-api|mesas-beta-db/i,
@@ -103,7 +103,7 @@ function main() {
     console.log('Diff não afeta seções documentadas. Nada a atualizar.');
     fs.writeFileSync(
       OUTPUT_PATH,
-      '# Nenhuma atualização necessária\n\nO diff do último merge não afeta seções documentadas no ARQUITETURA_PROJETO.md.\n'
+      '# Nenhuma atualização necessária\n\nO diff do último merge não afeta seções documentadas no .specify/arquiteture.md.\n'
     );
     process.exit(0);
   }
@@ -129,10 +129,10 @@ function main() {
     '',
     '---',
     '',
-    '## Seções do ARQUITETURA_PROJETO.md que precisam de revisão',
+    '## Seções do .specify/arquiteture.md que precisam de revisão',
     '',
     '> **Ação necessária:** Revise cada seção abaixo e atualize',
-    '> o ARQUITETURA_PROJETO.md manualmente se necessário.',
+    '> o .specify/arquiteture.md manualmente se necessário.',
     '',
   ];
 
@@ -154,7 +154,7 @@ function main() {
     }
 
     if (trecho) {
-      linhasOutput.push('**Trecho atual no ARQUITETURA_PROJETO.md:**');
+      linhasOutput.push('**Trecho atual no .specify/arquiteture.md:**');
       linhasOutput.push('```');
       linhasOutput.push(trecho.trim());
       linhasOutput.push('```');
@@ -167,7 +167,7 @@ function main() {
 
   linhasOutput.push('## Como aplicar');
   linhasOutput.push('');
-  linhasOutput.push('1. Abra o `ARQUITETURA_PROJETO.md`');
+  linhasOutput.push('1. Abra o `.specify/arquiteture.md`');
   linhasOutput.push('2. Navegue até cada seção listada acima');
   linhasOutput.push('3. Compare com os arquivos alterados e atualize o que estiver desatualizado');
   linhasOutput.push('4. Feche este PR após aplicar as atualizações necessárias');

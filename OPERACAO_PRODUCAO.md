@@ -646,9 +646,9 @@ bash ./scripts/deploy/apply_required_migrations.sh docker-compose.prod.yml mesas
 | `404 Not Found` | Build frontend ausente, rota errada ou rsync incompleto | Verificar logs do workflow e logs do container `mesas-beta-frontend` ou `mesas-app` |
 | Site desatualizado | Cache de navegador agressivo ou deploy não concluído | Hard refresh e conferência do run no GitHub Actions |
 | API não sobe | Falha de conexão com PostgreSQL ou variável ausente | Verificar `.env`, `DATABASE_URL` e logs do container da API |
-| Healthcheck falha com `Invalid URL` | `DATABASE_URL` montada incorretamente com caractere especial na senha | Consultar `ERRORS_SOLUTIONS.md` E086 |
-| OAuth falha | Callback divergente entre ambiente, compose e runtime | Validar `GOOGLE_CALLBACK_URL` e consultar `ERRORS_SOLUTIONS.md` correspondente |
-| Worker futuro silencioso | Circuit breaker ativo ou dependência externa indisponível | Verificar logs da API e consultar `ERRORS_SOLUTIONS.md` |
+| Healthcheck falha com `Invalid URL` | `DATABASE_URL` montada incorretamente com caractere especial na senha | Consultar `.specify/memory/errors.md` E086 |
+| OAuth falha | Callback divergente entre ambiente, compose e runtime | Validar `GOOGLE_CALLBACK_URL` e consultar `.specify/memory/errors.md` correspondente |
+| Worker futuro silencioso | Circuit breaker ativo ou dependência externa indisponível | Verificar logs da API e consultar `.specify/memory/errors.md` |
 
 ### 5.1 Nota sobre nomes de containers
 
@@ -692,7 +692,7 @@ Mapeamentos relevantes atualmente conhecidos:
 
 ## 7. Limitações conhecidas do `gh` na VM
 
-Ver `ERRORS_SOLUTIONS.md` E055 e E056.
+Ver `.specify/memory/errors.md` E055 e E056.
 
 Comando canônico:
 ```bash
@@ -742,7 +742,7 @@ Para correlação operacional, considerar `America/Araguaina` como referência l
 > 2. Locks de diretório no Windows (E101)
 > 3. Problemas de permissão e conflitos locais
 >
-> **Ver:** `ERRORS_SOLUTIONS.md` E143 e E101
+> **Ver:** `.specify/memory/errors.md` E143 e E101
 
 > Sempre seguir este playbook antes de qualquer push para `main`.
 > Autorização explícita do responsável é obrigatória antes de iniciar.
@@ -828,7 +828,7 @@ ssh -F C:\projetos\config faren "docker inspect mesas-beta-frontend --format '{{
 - Frontends `mesas-app` e `mesas-beta-frontend` com health `healthy` (E145)
 
 **Se beta cair após deploy de produção:**
-1. Registrar incidente `E144` em `ERRORS_SOLUTIONS.md`
+1. Registrar incidente `E144` em `.specify/memory/errors.md`
 2. Recuperar beta imediatamente (`docker compose -f docker-compose.beta.yml up -d --force-recreate`)
 3. Corrigir workflow antes do próximo deploy
 

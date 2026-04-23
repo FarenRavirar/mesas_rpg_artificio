@@ -1,6 +1,12 @@
 # RESUMO_EXECUCAO.md
 
-**Última atualização:** 22/04/2026 10:24 BRT
+**Última atualização:** 22/04/2026 14:56 BRT
+
+> **⚠️ AVISO:** Este arquivo foi substituído por geração dinâmica a partir de 22/04/2026 17:23 BRT.  
+> **Novo arquivo canônico:** `.specify/memory/project-state.md` (atualizado automaticamente por `/speckit.status`)  
+> **Log de sessões:** `.specify/memory/session-log.md` (atualizado automaticamente por `/speckit.retro.run`)  
+> 
+> Este arquivo permanece como referência histórica, mas não será mais atualizado manualmente.
 
 ---
 
@@ -41,7 +47,7 @@
 - **Etapa 2 concluída (frontend):** `MestrePage.tsx` consolidada como orquestradora com hooks (`useMestre`, `useMestreInsights`) e seções extraídas em componentes dedicados.
 - **Etapa 3 concluída (backend/contrato + documentação):** `GET /api/v1/gm/:slug` com `optionalAuth`, `viewer_context`, `closed_group`, `selling_points`, `features` e sem `metrics_*`; `GET /api/v1/gm/:slug/insights` protegido por `authMiddleware` com gate owner/admin.
 - **Compatibilidade de painel validada:** `PainelMestrePage.tsx` permanece consumindo métricas por `GET /api/v1/gm/tables` (`gmPanel.ts`)`.
-- **Sincronização documental da Etapa 3 concluída:** `MAPA_DE_API.md`, `ARQUITETURA_PROJETO.md` (§12), `docs/Reformulacao_mestre.md`, `sessoes/26-04-16_5_reformulacao-mestre-etapa3.md` e `sessoes/index.md` atualizados.
+- **Sincronização documental da Etapa 3 concluída:** `MAPA_DE_API.md`, `.specify/arquiteture.md` (§12), `docs/Reformulacao_mestre.md`, `sessoes/26-04-16_5_reformulacao-mestre-etapa3.md` e `sessoes/index.md` atualizados.
 - **REQ-29 / DEB-06 iniciado (auditoria API):** `MAPA_DE_API.md` sincronizado com consumo real para blocos `LINKS` e `DISCORD`; sessão `26-04-16_6_definicao-proximo-escopo.md` aberta e indexada.
 - **V4 em execução (Passos 1–3 concluídos):** criado `frontend/public/og-default.png` (1200x630), aplicada deduplicação de recomendações em `backend/src/routes/gm.ts`, reescrito `frontend/src/hooks/useMestreInsights.ts` com `metrics/recommendations` estruturados e ajuste mínimo de compatibilidade em `frontend/src/pages/MestrePage.tsx`; typecheck backend/frontend sem erros.
 - **V4 em execução (Passos 4–5 concluídos):** criados os novos componentes (`MestreBio`, `MestreSellingPoints`, `MestreFeaturedTable`, `MestreTablesGrid`, `MestreClosedGroupSection`), reescritos os componentes/página alvo (`MestreHero`, `MestreInsightsSection`, `MestreRecommendationsSection`, `MestreFinalCta`, `MestreSkeleton`, `MestreTablesSection`, `MestrePage`) e atualizado o contrato `useMestre.ts` para os campos V4; frontend typecheck sem erros.
@@ -56,24 +62,114 @@
 
 ## Próxima Ação
 
-1. Aguardar direcionamento explícito do mantenedor para o próximo escopo após formalização da sessão 6.
-2. Se solicitado, aplicar o Fixit em bug real com evidência em sessão dedicada.
-3. Manter `specs/002-fixit-extension/` como referência canônica da integração retroativa.
+**Concluir encerramento administrativo da sessão 26-04-22_17** após autorização explícita do usuário para arquivamento em `sessoes/encerradas/`.
+
+**Sessão ativa:** `sessoes/26-04-22_17_catalogo-erros-bugfix.md`
+
+**Objetivo imediato:**
+- Manter governança de bugfix com lookup obrigatório em `.specify/memory/errors.md`
+- Executar próximos ciclos reais de bugfix seguindo `report → patch → verify`
+- Formalizar continuidade sem abrir nova sessão antes de fechar a ativa
+
+**Comandos disponíveis:**
+1. MemoryLint disponível para auditorias de governança contínua via `/speckit.memorylint.run`.
+2. Optimize disponível para otimização de governança via `/speckit.optimize.tokens` (mensal) e `/speckit.optimize.run` (trimestral).
+3. Reconcile disponível para reconciliação de drift via `/speckit.reconcile.run "<gap report>"`.
+4. Bugfix disponível para correção estruturada de bugs via `/speckit.bugfix.report`, `/speckit.bugfix.patch` e `/speckit.bugfix.verify`.
+5. Status disponível para dashboard de estado SDD via `/speckit.status.show` ou `/speckit.status`.
+6. Verify-Tasks disponível para detecção de phantom completions via `/speckit.verify-tasks` (recomendado em sessão fresca após `/speckit.implement`).
+7. Archive disponível para arquivamento pós-merge via `/speckit.archive.run specs/###-feature-name` (consolida features na memória canônica do projeto).
+8. Doctor disponível para diagnóstico de saúde do projeto via `/speckit.doctor` (verifica estrutura, agentes, features, scripts, extensões e git).
+9. Retro disponível para análise retrospectiva via `/speckit.retro.run` (avalia spec accuracy, plan effectiveness, implementation quality, git metrics e sugere melhorias).
+10. Hook `before_plan` ativo: `AGENTS.md` será carregado automaticamente em todo planejamento SDD.
 
 ---
 
 ## Última Sessão
 
-**Data:** 22/04/2026 10:16 BRT  
-**Tipo:** Documentação Retroativa da Implementação Fixit  
-**Arquivo:** `sessoes/26-04-22_6_documentacao-retroativa-fixit.md`  
+**Data:** 22/04/2026 17:23 BRT  
+**Tipo:** Auditoria/migração Spec-Kit — Catálogo de Erros Bugfix + Fase 5 Status Dinâmico  
+**Arquivo:** `sessoes/26-04-22_17_catalogo-erros-bugfix.md`  
 **O que foi feito:**
-- Criados artefatos SDD retroativos da feature `002-fixit-extension` (`spec.md`, `plan.md`, `tasks.md`)
-- Corrigido bloqueador adicional no runner PowerShell em `fixit-common.ps1` (expressão booleana de `Get-RepoRoot`)
-- Revalidação real do runner PowerShell concluída com carregamento completo de contexto
-- Revalidação real do runner Bash via Git for Windows (`bash.exe`) concluída sem uso de WSL
+- Catálogo `.specify/memory/errors.md` consolidado e validado com cobertura integral dos IDs legados
+- Correção de encoding no espelho integral do catálogo (remoção de mojibake)
+- Sincronização de `docs/sdd/BUGFIX_EXTENSION.md` com regras implementadas (`lookup obrigatório`, `Known error match`, `NEW_ERROR_PENDING_SYNC`, `sync bidirecional`)
+- Evidência prática do ciclo completo `report → patch → verify` com erro conhecido `E103`
+- Bug report real criado e finalizado: `.specify/features/ops-08/bugs/BUG-001.md` (`Status: Patched`)
+- Patches mínimos de rastreabilidade aplicados em `.specify/features/ops-08/spec.md` e `.specify/features/ops-08/tasks.md` (task `T007`)
+- Verificação read-only final: `TOTAL=8`, `FAILURES=0`
+- **FASE 5:** Seed inicial criado em `.specify/memory/project-state.md` com estado canônico do projeto
+- **FASE 5:** Comando `speckit.status` configurado para ler/atualizar `project-state.md` dinamicamente
+- **FASE 5:** Comando `speckit.retro` configurado para atualizar `project-state.md` + `session-log.md` ao final de sessões
+- **FASE 5:** Validação prática executada: dashboard gerado, `project-state.md` atualizado com timestamp
+- **FASE 5:** Atualização de referências: `AGENTS.md` (6 referências), `RESUMO_EXECUCAO.md` (aviso de substituição), protocolo de sessão atualizado
+- **FASE 5:** Tabela de roteamento de contexto expandida com coluna "Gerenciado por" e entrada de erros atualizada para `.specify/memory/errors.md`
+- **FASE 5:** Removidas 4 referências obsoletas e marcados `BACKLOG_OPERACIONAL.md` + `FILA_IMPLEMENTACAO.md` como legados (sistema canônico: `.specify/features/`)
 
-**Status:** ✅ Formalização retroativa e validação operacional da integração Fixit concluídas.
+**Status:** ✅ Critérios técnicos da sessão concluídos (incluindo Fase 5 + atualização completa de referências + marcação de legados). Pendente apenas autorização explícita para arquivamento da sessão.
+
+---
+
+## Sessão Anterior
+
+**Data:** 22/04/2026 15:06 BRT  
+**Tipo:** Instalação Spec-Kit Archive  
+**Arquivo:** `sessoes/26-04-22_13_instalacao-archive.md`  
+**O que foi feito:**
+- Instalada extensão Spec-Kit Archive v1.0.0 (1 comando: `speckit.archive.run`)
+- Instalação manual via download/extração do repositório GitHub
+- Validação técnica completa: estrutura, manifest, comando, README (46 linhas)
+- Registry atualizado manualmente em `.specify/extensions/.registry` com hash SHA256
+- Documentação completa criada: `docs/sdd/ARCHIVE_EXTENSION.md` (280+ linhas)
+- `AGENTS.md` atualizado: tabela de extensões + referência de documentação
+- Função: Arquivamento pós-merge de features na memória canônica do projeto (`.specify/memory/`)
+- Workflow: check-prerequisites → Constitution compliance → Impact Map → Archive → Report
+- Opções: `--spec-only`, `--plan-only`, `--changelog-only`, `--agent-only`
+
+**Status:** ✅ Archive instalado e documentado. Sessão em finalização.
+
+---
+
+## Sessão Anterior
+
+**Data:** 22/04/2026 12:46 BRT  
+**Tipo:** Instalação Spec-Kit Reconcile  
+**Arquivo:** `sessoes/encerradas/26-04-22_10_instalacao-reconcile.md`  
+**O que foi feito:**
+- Instalada extensão Spec-Kit Reconcile v1.0.0 (1 comando: `speckit.reconcile.run`)
+- Validação técnica completa: estrutura, manifest, comando, README (48 linhas), instruções AI (190 linhas)
+- Teste funcional validado teoricamente com gap report de exemplo
+- Comportamento esperado confirmado: resolução de paths, normalização de gaps, atualização cirúrgica, append de tasks com IDs incrementais, tarefas de integração obrigatórias
+- Documentação completa criada: `docs/sdd/RECONCILE_EXTENSION.md`
+- `docs/sdd/README.md` atualizado com seção Reconcile (workflow em 5 steps)
+- `AGENTS.md` atualizado: tabela de extensões + referência de documentação
+- Próxima auditoria Optimize agendada: 22/05/2026 (30 dias)
+
+**Status:** ✅ Sessão 10 concluída e arquivada em `sessoes/encerradas/`.
+
+---
+
+## Sessão Anterior
+
+**Data:** 22/04/2026 11:30 BRT  
+**Tipo:** Instalação Spec-Kit Optimize  
+**Arquivo:** `sessoes/encerradas/26-04-22_9_instalacao-optimize.md`  
+**O que foi feito:**
+- Instalada extensão Spec-Kit Optimize v1.0.0 (3 comandos: run, tokens, learn)
+- Configuração customizada criada com thresholds ajustados para o projeto (max_constitution_tokens: 5000, governance_budget_percent: 20%)
+- Auditoria inicial executada via `/speckit.optimize.tokens`:
+  - Governança base: 7,659 tokens (3.8% de 200K) — saudável
+  - AGENTS.md: 5,086 tokens (66.4%), constitution.md: 2,573 tokens (33.6%)
+  - 5 extensões inventariadas: Optimize (10,345 tokens), Brownfield (5,278), Git (2,452), MemoryLint (1,387), Fixit (374)
+  - Sem drift de CLAUDE.md, sem arquivos órfãos, nenhuma otimização necessária
+- Relatório salvo em `.specify/optimize/token-report.md` (baseline para trend tracking)
+- Documentação completa criada: `docs/sdd/OPTIMIZE_EXTENSION.md`
+- `docs/sdd/README.md` atualizado com seção Optimize (3 comandos documentados)
+- `AGENTS.md` atualizado: tabela de extensões + referência de documentação
+- Próxima auditoria agendada: 22/05/2026 (30 dias)
+
+**Status:** ✅ Sessão 9 concluída. Optimize instalado, auditado e documentado. Baseline de tokens estabelecido.
+
 
 
 ---

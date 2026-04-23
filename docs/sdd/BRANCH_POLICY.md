@@ -82,7 +82,7 @@ A estratégia de merge é definida pela **branch protection** configurada no Git
 - ❌ **NUNCA** merge local (`git merge dev` ou `git checkout main && git merge dev`)
 
 **Motivo:**
-Merge local com `git checkout` entre branches causa deleção temporária de arquivos, gerando pânico e risco de perda de trabalho. Ver `ERRORS_SOLUTIONS.md` E143.
+Merge local com `git checkout` entre branches causa deleção temporária de arquivos, gerando pânico e risco de perda de trabalho. Ver `.specify/memory/errors.md` E143.
 
 ---
 
@@ -146,7 +146,7 @@ Após o merge da Feature 001 (`001-gate-migrations-refactor`) em `main`, o mante
 
 **Ao subir a feature 001 em ambiente que já possui schema aplicado historicamente (beta concluído em 22/04/2026, prod pendente):**
 
-1. **Aplicar manualmente `migration_114_add_applied_by.sql`** via `cat | docker exec -i` (bootstrap da coluna usada pelo próprio script de reconciliação). Ver E156 em `ERRORS_SOLUTIONS.md`.
+1. **Aplicar manualmente `migration_114_add_applied_by.sql`** via `cat | docker exec -i` (bootstrap da coluna usada pelo próprio script de reconciliação). Ver E156 em `.specify/memory/errors.md`.
 
 2. **Executar loop de `reconcile_migrations.sh --mark-applied`** para todas as migrations `[DISK_ONLY]` restantes.
 
@@ -154,7 +154,7 @@ Após o merge da Feature 001 (`001-gate-migrations-refactor`) em `main`, o mante
 
 4. **Só então disparar o deploy normal.**
 
-**Motivo:** Schema histórico foi aplicado antes da tabela `schema_migrations` existir. Primeira aplicação da feature 001 detecta todas as migrations históricas como "pendentes" e bloqueia deploy com erro "Muitas migrations pendentes (N > 5)". Ver E154 em `ERRORS_SOLUTIONS.md`.
+**Motivo:** Schema histórico foi aplicado antes da tabela `schema_migrations` existir. Primeira aplicação da feature 001 detecta todas as migrations históricas como "pendentes" e bloqueia deploy com erro "Muitas migrations pendentes (N > 5)". Ver E154 em `.specify/memory/errors.md`.
 
 
 ---
@@ -164,7 +164,7 @@ Após o merge da Feature 001 (`001-gate-migrations-refactor`) em `main`, o mante
 Para evitar duplicação, este documento **não** cobre:
 
 - **Fluxo detalhado de promoção dev → main:** Ver `OPERACAO_PRODUCAO.md` §10
-- **Problema com `git checkout` entre branches:** Ver `ERRORS_SOLUTIONS.md` E143
+- **Problema com `git checkout` entre branches:** Ver `.specify/memory/errors.md` E143
 - **Comandos Git e GitHub CLI:** Ver `GIT_WORKFLOW.md`
 - **Regras de commit e sessões:** Ver `AGENTS.md` e `.specify/memory/constitution.md` §9
 - **Migrations e drift detection:** Ver `migrations_guide.md` e `PRE_DEPLOY_CHECKLIST.md`

@@ -822,6 +822,7 @@ router.get('/tables', authMiddleware, async (req: Request, res: Response) => {
         't.publisher_role',
         't.actual_gm_name',
         't.is_ddal',
+        't.is_covil',
         't.ddal_code',
         't.ddal_name',
         't.ddal_tier',

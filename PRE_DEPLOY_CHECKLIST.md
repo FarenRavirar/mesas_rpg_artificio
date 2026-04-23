@@ -59,7 +59,7 @@ ssh -F C:\projetos\config faren \
 > - ✅ Criar PR via GitHub CLI: `gh pr create --base main --head dev`
 > - ✅ Fazer merge via GitHub: `gh pr merge <número> --merge`
 >
-> **Motivo:** `git checkout` entre branches remove temporariamente arquivos que existem em uma branch mas não em outra, causando pânico no usuário. Ver `ERRORS_SOLUTIONS.md` E143.
+> **Motivo:** `git checkout` entre branches remove temporariamente arquivos que existem em uma branch mas não em outra, causando pânico no usuário. Ver `.specify/memory/errors.md` E143.
 >
 > **Regra adicional de isolamento (E144):** Workflow de produção NUNCA pode remover containers do beta.
 > - ❌ Proibido usar limpeza global: `docker ps -a --filter "name=mesas-" | ... | docker rm -f`
@@ -124,7 +124,7 @@ Se a bateria 4 falhar e os logs mostrarem um crash backend em Produção no minu
 2. Desfaça a branch no diretório local da VM apontando pro hash do commit anterior e faça checkout seguro (`git revert` ou `git checkout <hash_antigo>`).
 3. Rode `docker compose up -d` para restaurar.
 4. Se o esquema do banco foi tocado e quebrou o App revertido, restaure o SQL via comando baseut de restabelecimento. `docker exec mesas-db psql ... < /tmp/backup_...sql`
-5. Diagnostique os deltas de schema **No ambiente Beta** ou **em ambiente isolado**, NÃO usando o banco de produção de playground. Crie relatório em `ERRORS_SOLUTIONS.md` documentando o rollback, em base na evidência guardada pela investigação pré-reversão.
+5. Diagnostique os deltas de schema **No ambiente Beta** ou **em ambiente isolado**, NÃO usando o banco de produção de playground. Crie relatório em `.specify/memory/errors.md` documentando o rollback, em base na evidência guardada pela investigação pré-reversão.
 
 ---
 

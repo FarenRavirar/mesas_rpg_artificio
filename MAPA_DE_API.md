@@ -398,5 +398,5 @@
 4. Backend injeta meta tags Open Graph dinâmicas no `index.html`
 5. Retorna HTML completo com meta tags personalizadas
 
-**Referência:** Ver `ARQUITETURA_PROJETO.md` §17 para detalhes completos da implementação.
+**Referência:** Ver `.specify/arquiteture.md` §17 para detalhes completos da implementação.
 

@@ -22,6 +22,8 @@ interface MyTableEnhanced {
   system_logo_filename?: string | null;
   system_website_url?: string | null;
   image_url?: string | null;
+  is_ddal?: boolean;
+  is_covil?: boolean;
   metrics?: TableMetrics;
   vtt_platform?: {
     id: string;
@@ -89,6 +91,19 @@ export function TableCardDashboard({
             img.src = bannerPlaceholder;
           }}
         />
+
+        <div className="absolute top-2 left-2 flex flex-wrap gap-1.5 z-10">
+          {table.is_covil && (
+            <span className="px-2 py-1 rounded-md text-[10px] font-black tracking-wide text-purple-100 bg-black/70 backdrop-blur-sm border border-purple-500/40">
+              👑 Covil do Lich
+            </span>
+          )}
+          {table.is_ddal && (
+            <span className="px-2 py-1 rounded-md text-[10px] font-black tracking-wide text-amber-100 bg-black/70 backdrop-blur-sm border border-amber-500/30">
+              🛡️ DDAL
+            </span>
+          )}
+        </div>
 
         {(table.modality === 'online' || table.modality === 'hibrida') && table.vtt_platform?.logo_filename && (
           table.vtt_platform.website_url ? (

@@ -16,10 +16,10 @@ Só lê, valida e atualiza arquivos markdown.
 
 Leia nesta ordem:
 1. AGENTS.md (seção "Fontes de Verdade" e "Roteamento de Contexto")
-2. RESUMO_EXECUCAO.md (estado atual)
+2. `.specify/memory/project-state.md` (estado atual — gerado dinamicamente)
 3. docs/sync-patches/ (patches pendentes de aplicar)
-4. FILA_IMPLEMENTACAO.md (itens concluídos sem limpeza)
-5. BACKLOG_OPERACIONAL.md (REQs com status desatualizado)
+4. `docs/legacy/FILA_IMPLEMENTACAO.md` (legado — novos itens em `.specify/features/*/tasks.md`)
+5. `docs/legacy/BACKLOG_OPERACIONAL.md` (legado — novos itens em `.specify/features/*/spec.md`)
 
 ---
 
@@ -32,7 +32,7 @@ Execute nesta ordem a cada sessão:
 1. Listar arquivos em docs/sync-patches/ não processados
 2. Para cada patch:
    - Ler o patch proposto
-   - Verificar se o trecho atual no ARQUITETURA_PROJETO.md
+   - Verificar se o trecho atual no `.specify/arquiteture.md`
      ainda corresponde ao "Trecho atual" do patch
    - Se sim: aplicar o "Trecho proposto" cirurgicamente
    - Se não: o código já mudou novamente — descartar patch
@@ -40,7 +40,7 @@ Execute nesta ordem a cada sessão:
 3. Commit: "docs: aplica patches de arquitetura [data]"
 4. **Solicitar autorização explícita no chat antes de push/PR**
 
-### Tarefa 2 — Limpar FILA_IMPLEMENTACAO.md
+### Tarefa 2 — Limpar `docs/legacy/FILA_IMPLEMENTACAO.md` (Legado)
 
 1. Identificar itens com status concluido
 2. Verificar se o item está concluido há mais de 2 sessões
@@ -49,7 +49,7 @@ Execute nesta ordem a cada sessão:
 4. Manter apenas itens pendente e em_execucao na área ativa
 5. Commit: "docs: limpa itens concluídos da FILA [data]"
 
-### Tarefa 3 — Limpar BACKLOG_OPERACIONAL.md
+### Tarefa 3 — Limpar `docs/legacy/BACKLOG_OPERACIONAL.md` (Legado)
 
 1. Identificar REQs em "Concluídos Recentes" com data
 2. REQs com mais de 30 dias → remover
@@ -66,13 +66,11 @@ Execute nesta ordem a cada sessão:
 4. Rotas novas não listadas → adicionar
 5. Commit: "docs: atualiza MAPA_DE_API [data]"
 
-### Tarefa 5 — Atualizar RESUMO_EXECUCAO.md
+### Tarefa 5 — Atualizar `.specify/memory/project-state.md`
 
 1. Ler /sessoes/ mais recente
-2. Atualizar seção "Última sessão"
-3. Atualizar seção "Próxima ação imediata"
-4. Atualizar tabela "Itens em andamento"
-5. Incluir no mesmo commit da tarefa anterior
+2. Executar `/speckit.status` para regenerar estado dinâmico
+3. Validar que o arquivo foi atualizado corretamente
 
 ---
 
@@ -102,7 +100,7 @@ Execute nesta ordem a cada sessão:
 - Criar ou modificar migrations
 - Executar npm ou comandos de build
 - Acessar a VM via SSH
-- Modificar ARQUITETURA_PROJETO.md além dos patches aprovados
+- Modificar `.specify/arquiteture.md` além dos patches aprovados
 - Fazer push ou abrir PR sem autorização explícita no chat
 
 ## Comandos Git permitidos
@@ -120,10 +118,10 @@ Execute nesta ordem a cada sessão:
 
 A sessão termina quando:
 - Todos os patches em docs/sync-patches/ foram processados
-- FILA_IMPLEMENTACAO.md está limpa (sem lotes inteiros concluídos)
-- BACKLOG_OPERACIONAL.md está limpa (sem REQs expirados)
+- `docs/legacy/FILA_IMPLEMENTACAO.md` está limpa (sem lotes inteiros concluídos)
+- `docs/legacy/BACKLOG_OPERACIONAL.md` está limpa (sem REQs expirados)
 - MAPA_DE_API.md está atualizado com sessões recentes
-- RESUMO_EXECUCAO.md está atualizado
+- `.specify/memory/project-state.md` está atualizado via `/speckit.status`
 - PR de documentação foi aberto
 
 ---

@@ -1,7 +1,7 @@
 # AGENTS.md — Governança de Agentes de IA
 **Projeto:** Anúncios de Mesas RPG (Portal Colaborativo)
 **Fonte canônica de governança.** Em conflito com qualquer outro arquivo, este prevalece.
-Em conflito com `ARQUITETURA_PROJETO.md` sobre arquitetura ou contratos técnicos, prevalece `ARQUITETURA_PROJETO.md`.
+Em conflito com `.specify/arquiteture.md` sobre arquitetura ou contratos técnicos, prevalece `.specify/arquiteture.md`.
 
 ---
 
@@ -9,46 +9,43 @@ Em conflito com `ARQUITETURA_PROJETO.md` sobre arquitetura ou contratos técnico
 
 Execute nesta ordem, sem pular etapas:
 
-1. Ler `RESUMO_EXECUCAO.md` — estado atual e próxima ação (arquivo completo, é curto)
+1. Ler `.specify/memory/project-state.md` — estado atual e próxima ação (gerado por `/speckit.status`)
 2. Ler este arquivo (`AGENTS.md`) na íntegra
 3. Verificar se existe sessão ativa com checklist incompleta em `/sessoes/`
-4. **Se existir sessão ativa incompleta:** continuar nela; **é proibido criar nova sessão**
+4. **Se existir sessão ativa incompleta:** continuar nela; é proibido criar nova sessão
 5. **Só criar nova sessão** quando houver pedido explícito do usuário **ou** quando a sessão ativa estiver 100% concluída e o usuário autorizar avançar
-6. Abrir/retomar o arquivo da sessão escolhida e registrar imediatamente:
-   - o que vai fazer
-   - o que precisa ser feito
-   - o que foi feito
+6. Abrir/retomar o arquivo da sessão e registrar imediatamente: o que vai fazer · o que precisa ser feito · o que foi feito
 7. Atualizar a sessão **antes** de qualquer alteração técnica
 8. Atualizar a sessão após cada etapa executada (progresso contínuo)
 9. Só iniciar trabalho após concluir os passos acima
 
-> **ENFORCEMENT CRÍTICO (F15):** os itens 6, 7 e 8 acima não são 
-> aspiracionais. Sessão não atualizada em tempo real é falha 
-> processual registrada no `docs/sdd/SESSION_FAILURES_REGISTRY.md`. 
-> A cada 3 commits dentro da branch SDD atual (qualquer tipo — feat, 
-> fix, docs, chore) sem commit correspondente em `sessoes/`, o agente 
-> está OBRIGADO a parar e atualizar o arquivo de sessão. Se o 
-> mantenedor perguntar "cadê a sessão?", a resposta esperada é "já 
-> atualizei há <N> minutos", não "vou criar agora".
+> **ENFORCEMENT CRÍTICO (F15):** os itens 6, 7 e 8 não são aspiracionais. Sessão não atualizada em tempo real é falha processual registrada no `docs/sdd/SESSION_FAILURES_REGISTRY.md`. A cada 3 commits dentro da branch SDD atual sem commit correspondente em `sessoes/`, o agente DEVE parar e atualizar o arquivo de sessão.
 
-## Leitura obrigatória de governance SDD
+---
 
-Antes de qualquer alteração técnica no repositório, ler os arquivos abaixo 
-conforme gatilho aplicável:
+## GATE OBRIGATÓRIO — TAREFAS COMPLEXAS
 
-- `.specify/memory/constitution.md` — regras invioláveis SDD e infra. 
-  Cabeçalhos sempre; arquivo completo se trabalho envolver SDD, testes, 
-  deploy, migrations, ou mudança > 10 linhas.
-- `docs/sdd/SESSION_FAILURES_REGISTRY.md` — 14 falhas processuais 
-  calibradas. Cabeçalhos sempre; consulta por código (F01-F14) quando 
-  mantenedor referenciar.
-- `docs/sdd/MAINTAINER_REVIEW_CHECKLIST.md` — gatilhos de bloqueio 
-  imediato. Leitura completa obrigatória em qualquer trabalho SDD.
-- `docs/sdd/analyze-governance-gate.md` — gate de /speckit.analyze. 
-  Leitura completa obrigatória ANTES de rodar /speckit.analyze.
+**Se a tarefa envolver auditoria, mapeamento, implementação de feature ou qualquer trabalho com escopo > 10 linhas:**
 
-Se o trabalho for trivial (< 10 linhas, sem teste, sem deploy), leitura 
-de cabeçalhos é suficiente. Qualquer dúvida, leitura completa.
+1. OBRIGATÓRIO executar `/speckit.specify` antes de qualquer leitura de arquivo de código
+2. Aguardar spec aprovada antes de prosseguir para `/speckit.plan`
+3. Aguardar plan aprovado antes de `/speckit.tasks`
+4. Proibido iniciar busca manual em código sem spec ativa
+
+**Tarefa simples (correção pontual, < 10 linhas, sem teste, sem deploy):** leitura de cabeçalhos dos MDs de governança é suficiente — prosseguir diretamente.
+
+---
+
+## LEITURA OBRIGATÓRIA DE GOVERNANCE SDD
+
+Antes de qualquer alteração técnica, ler conforme gatilho:
+
+| Arquivo | Quando ler |
+|---|---|
+| `.specify/memory/constitution.md` | Cabeçalhos sempre; arquivo completo se: SDD, testes, deploy, migrations, ou mudança > 10 linhas |
+| `docs/sdd/SESSION_FAILURES_REGISTRY.md` | Cabeçalhos sempre; completo ao referenciar código F01–F14 |
+| `docs/sdd/MAINTAINER_REVIEW_CHECKLIST.md` | Leitura completa em qualquer trabalho SDD |
+| `docs/sdd/analyze-governance-gate.md` | Leitura completa ANTES de rodar `/speckit.analyze` |
 
 ---
 
@@ -57,52 +54,53 @@ de cabeçalhos é suficiente. Qualquer dúvida, leitura completa.
 **Nunca abra um arquivo grande sem grep primeiro.**
 
 ```bash
-# Sempre: localizar antes de abrir
-grep -n "padrão" arquivo.md
-# Depois: abrir só as linhas necessárias via view_range
+grep -n "padrão" arquivo.md          # localizar antes de abrir
+# depois: abrir só as linhas necessárias via view_range
 ```
 
 **Arquivos que nunca abrir na íntegra:**
-- `ARQUITETURA_PROJETO.md` (1396+ linhas) → grep pelo §, abrir só a seção
-- `FILA_IMPLEMENTACAO.md` → grep por "pendente" ou ver detalhes no BACKLOG
-- `BACKLOG_OPERACIONAL.md` → grep pelo REQ ou ver no Índice
-
-**Diferença entre documentos:**
-- `BACKLOG_OPERACIONAL.md` = **O QUE FAZER** (features/produto). Guia canônico para agentes.
-- `FILA_IMPLEMENTACAO.md` = **COMO FAZER** (detalhes técnicos). Referência para implementação.
-- **Regra:** Primeiro verificar BACKLOG. Se precisa details técnicos, verificar FILA.
-- **Regra:** Itens novos → primeiro no BACKLOG. FILA recebe detalhes após.
+- `.specify/arquiteture.md` (800+ linhas) → grep pelo §, abrir só a seção
+- `docs/legacy/FILA_IMPLEMENTACAO.md` → consulta histórica apenas
+- `docs/legacy/BACKLOG_OPERACIONAL.md` → consulta histórica apenas
 
 **Hierarquia de leitura por sessão:**
-1. `RESUMO_EXECUCAO.md` + item da FILA via grep (sempre)
-2. Seção relevante de `ARQUITETURA_PROJETO.md` (só se afetado)
+1. `.specify/memory/project-state.md` + feature ativa em `.specify/features/` (sempre)
+2. Seção relevante de `.specify/arquiteture.md` (só se afetado)
 3. Arquivo de código alvo + `MAPA_DE_API.md` (só se afetado)
 4. Arquivos inteiros > 100 linhas: **nunca por padrão**
+
+**Sistema legado vs. SDD:**
+- **Legado:** `docs/legacy/BACKLOG_OPERACIONAL.md` e `docs/legacy/FILA_IMPLEMENTACAO.md` (consulta histórica)
+- **SDD (canônico):** `.specify/features/{id}/spec.md` (O QUE FAZER) e `.specify/features/{id}/tasks.md` (COMO FAZER)
+- **Regra:** Novos requisitos → criar feature via `/speckit.specify`
 
 ---
 
 ## ROTEAMENTO DE CONTEXTO
 
-| Situação | Arquivo | Como acessar |
-|---|---|---|
-| Regras Invioláveis do Projeto | `.specify/memory/constitution.md` | Cabeçalhos sempre; Completo se: SDD, testes, deploy ou mudança > 10 linhas |
-| Memória de Falhas Operacionais | `docs/sdd/SESSION_FAILURES_REGISTRY.md` | Cabeçalhos sempre; Completo se: SDD, testes, deploy ou mudança > 10 linhas |
-| Gatilhos de bloqueio / Review | `docs/sdd/MAINTAINER_REVIEW_CHECKLIST.md` | Cabeçalhos sempre; Completo se: SDD, testes, deploy ou mudança > 10 linhas |
-| Auditoria / /speckit.analyze | `docs/sdd/analyze-governance-gate.md` | Arquivo completo antes de qualquer run de auditoria |
-| Banco, modelo de dados, rotas de API | `ARQUITETURA_PROJETO.md` §4 e §12 | grep pelo §, só a seção |
-| Upload, imagens, Cloudinary | `ARQUITETURA_PROJETO.md` §16 | grep pelo §, só a seção |
-| Roles, permissões, autenticação | `ARQUITETURA_PROJETO.md` §5 e §6 | grep pelo §, só a seção |
-| Decisões arquiteturais | `ARQUITETURA_PROJETO.md` §14 | grep pelo §, só a seção |
-| Git, branch, merge, deploy | `GIT_WORKFLOW.md` | seção relevante |
-| Deploy em produção (checklist) | `PRE_DEPLOY_CHECKLIST.md` | arquivo completo |
-| Operação em produção ou beta | `OPERACAO_PRODUCAO.md` | seção relevante |
-| Falha de ambiente, encoding, template | `PRE-FLIGHT_CHECKLIST.md` | arquivo completo |
-| Erro com solução validada | `ERRORS_SOLUTIONS.md` | grep por `E###` |
-| Migrations (criar, aplicar, erros) | `migrations_guide.md` | seção relevante |
-| Backlog de requisitos (produto) | `BACKLOG_OPERACIONAL.md` | Ver Índice ou grep pelo REQ |
-| Fila de execução técnica | `FILA_IMPLEMENTACAO.md` | Ver BACKLOG para detalhes |
-| Índice rápido e checklists | `GUIA_RAPIDO_OPERACIONAL.md` | arquivo completo |
-| Estado atual e próxima ação | `RESUMO_EXECUCAO.md` | arquivo completo |
+| Situação | Arquivo | Como acessar | Gerenciado por |
+|---|---|---|---|
+| Regras Invioláveis do Projeto | `.specify/memory/constitution.md` | Cabeçalhos sempre; Completo se: SDD, testes, deploy ou mudança > 10 linhas | `/speckit.constitution` |
+| Arquitetura do projeto (substitui `ARQUITETURA_PROJETO.md`) | `.specify/arquiteture.md` | Seção relevante via busca por `##` | Manual |
+| Memória de Falhas Operacionais | `docs/sdd/SESSION_FAILURES_REGISTRY.md` | Cabeçalhos sempre; Completo se: SDD, testes, deploy ou mudança > 10 linhas | Manual |
+| Gatilhos de bloqueio / Review | `docs/sdd/MAINTAINER_REVIEW_CHECKLIST.md` | Cabeçalhos sempre; Completo se: SDD, testes, deploy ou mudança > 10 linhas | Manual |
+| Auditoria / /speckit.analyze | `docs/sdd/analyze-governance-gate.md` | Arquivo completo antes de qualquer run de auditoria | `/speckit.analyze` |
+| Introdução ao sistema SDD | `docs/sdd/README.md` | Arquivo completo ao iniciar trabalho SDD | Manual |
+| Mapeamento SDD (onde buscar info) | `docs/sdd/MAPEAMENTO_SDD.md` | Consultar ao criar specs | Manual |
+| Política de branches SDD | `docs/sdd/BRANCH_POLICY.md` | Seção relevante ao trabalhar com branches | Manual |
+| Agente especializado em docs | `DOCS_AGENT.md` | Arquivo completo se trabalho for exclusivo de .md | Manual |
+| Git, branch, merge, deploy | `GIT_WORKFLOW.md` | seção relevante | Manual |
+| Deploy em produção (checklist) | `PRE_DEPLOY_CHECKLIST.md` | arquivo completo | Manual |
+| Operação em produção ou beta | `OPERACAO_PRODUCAO.md` | seção relevante | Manual |
+| Falha de ambiente, encoding, template | `PRE-FLIGHT_CHECKLIST.md` | arquivo completo | Manual |
+| Erro encontrado? (substitui `ERRORS_SOLUTIONS.md`) | `.specify/memory/errors.md` | consultar `E###` e executar `/speckit.fixit.run <descrição>` | `/speckit.fixit.run` |
+| Migrations (criar, aplicar, erros) | `migrations_guide.md` | seção relevante | Manual |
+| Backlog de requisitos (produto) | `.specify/features/req-XX/` | Fonte canônica de requisitos por feature | `/speckit.specify` |
+| Planejando feature? | `.specify/features/req-XX/spec.md` | iniciar com `/speckit.specify` | `/speckit.specify` |
+| Executando lote? | `.specify/features/req-XX/tasks.md` | executar tarefas na ordem definida | Manual |
+| Índice rápido e checklists | `GUIA_RAPIDO_OPERACIONAL.md` | arquivo completo | Manual |
+| Estado atual e próxima ação (substitui `RESUMO_EXECUCAO.md`) | `.specify/memory/project-state.md` | gerado por `/speckit.status` | `/speckit.status` |
+| Log de sessões e retrospectivas | `.specify/memory/session-log.md` | append automático | `/speckit.retro.run` |
 
 ---
 
@@ -113,7 +111,7 @@ grep -n "padrão" arquivo.md
 **Execute diretamente (sem pedir confirmação):**
 - Feature já especificada em documento canônico
 - Ajuste de UX dentro do padrão estabelecido
-- Correção de bug com solução em `ERRORS_SOLUTIONS.md`
+- Correção de bug com solução em `.specify/memory/errors.md`
 - Atualização de documentação por delta
 
 **Pare e pergunte quando:**
@@ -124,23 +122,39 @@ grep -n "padrão" arquivo.md
 
 **Comportamento que causa travamento — proibido:**
 - Re-ler o mesmo arquivo múltiplas vezes na mesma sessão
-- Consultar `ARQUITETURA_PROJETO.md` repetidamente ou na íntegra
+- Consultar `.specify/arquiteture.md` repetidamente ou na íntegra
 - Pedir confirmação para cada linha de código
 - Reformular o mesmo plano múltiplas vezes sem executar
 - Usar "arquivo muito grande" como motivo para não terminar
+- Verbalizar raciocínio de escolha de ferramenta antes de executar
 
 ### Checklist mental antes de cada ação
 ```
 [ ] Já li este arquivo nesta sessão?
 [ ] O plano está claro?
 [ ] Estou prestes a re-analisar algo que já analisei?
+[ ] Tenho spec ativa para esta tarefa (se complexa)?
 ```
 
 ### Quando encontrar um erro
 1. Parar tentativas imediatamente
-2. `grep -n "E###" ERRORS_SOLUTIONS.md`
+2. `grep -n "E###" .specify/memory/errors.md`
 3. Se constar: aplicar solução documentada
 4. Se não constar: descobrir, registrar no arquivo, só então continuar
+
+---
+
+## FERRAMENTAS
+
+Preferir específicas sobre genéricas. Executar direto — sem verbalizar a escolha.
+
+| Evitar | Usar |
+|---|---|
+| `bash grep` | `grep_search` |
+| `bash ls` | `list_dir` |
+| `bash cat` (visualizar) | `view_file` |
+| `bash cat` / `sed` (editar) | `replace_file_content` / `write_to_file` |
+| `bash cat` (criar arquivo) | `write_to_file` |
 
 ---
 
@@ -152,7 +166,7 @@ Uma tarefa só está concluída quando **todas** as condições abaixo são verd
 [ ] Busca final retorna ZERO resultados para o padrão da tarefa
 [ ] TODOS os itens da checklist da sessão estão [x]
 [ ] Nenhum arquivo parcialmente modificado
-[ ] RESUMO_EXECUCAO.md atualizado com a sessão atual
+[ ] `.specify/memory/project-state.md` atualizado via `/speckit.status` ou `/speckit.retro.run`
 ```
 
 Se qualquer condição for falsa: **continue trabalhando**.
@@ -214,8 +228,8 @@ Posso prosseguir?
 
 | Operação | Autorização |
 |---|---|
-| Criar branch `feature/<escopo>` | Automático |
-| `git push origin feature/*` | Automático |
+| Criar branch `feat/NNN-nome` | Automático |
+| `git push origin feat/*` | Automático |
 | Abrir PR para dev | Automático |
 | `git push origin dev` | Exige autorização explícita |
 | `git push origin main` | Exige autorização explícita |
@@ -223,7 +237,7 @@ Posso prosseguir?
 
 ### Proibição absoluta — checkout entre branches
 
-Nunca usar `git checkout` entre `dev` e `main` durante deploy. Causa desaparecimento de arquivos (ver `ERRORS_SOLUTIONS.md` E143).
+Nunca usar `git checkout` entre `dev` e `main` durante deploy. Causa desaparecimento de arquivos (ver `.specify/memory/errors.md` E143).
 
 ```bash
 # CORRETO — deploy via PR
@@ -237,13 +251,18 @@ git rev-list --left-right --count origin/main...origin/dev
 
 ### Documentação — onde registrar
 
-| Tipo | Arquivo |
-|---|---|
-| Requisito de produto | `BACKLOG_OPERACIONAL.md` |
-| Tarefa técnica | `FILA_IMPLEMENTACAO.md` |
-| Erro com solução validada | `ERRORS_SOLUTIONS.md` |
+| Tipo | Arquivo | Status |
+|---|---|---|
+| Requisito de produto | `.specify/features/{id}/spec.md` | ✅ Canônico (SDD) |
+| Tarefa técnica | `.specify/features/{id}/tasks.md` | ✅ Canônico (SDD) |
+| Erro com solução validada | `.specify/memory/errors.md` | ✅ Canônico |
+| ~~Requisito de produto~~ | ~~`BACKLOG_OPERACIONAL.md`~~ | ⚠️ Legado |
+| ~~Tarefa técnica~~ | ~~`FILA_IMPLEMENTACAO.md`~~ | ⚠️ Legado |
 
-Nunca registrar no lugar errado.
+**Sistema canônico (SDD):**
+- Novos requisitos → criar feature em `.specify/features/{id}/` via `/speckit.specify`
+- Feature contém: `spec.md` (requisitos), `plan.md` (arquitetura), `tasks.md` (execução)
+- Após conclusão → arquivar via `/speckit.archive.run`
 
 ### Artefatos Obrigatórios por Feature SDD
 
@@ -252,21 +271,15 @@ Toda feature SDD deve ter os seguintes artefatos em `specs/NNN-*/` antes de abri
 - `spec.md` — especificação da feature
 - `plan.md` — plano de implementação
 - `tasks.md` — checklist de execução
-- `pr-description.md` — sumário executivo para o corpo do PR
+- `pr-description.md` — sumário executivo para o corpo do PR (criado como última tarefa de documentação)
 
-O `pr-description.md` deve ser criado como última tarefa de documentação (geralmente T047 ou equivalente) e deve conter:
-- Sumário executivo da feature
-- Mudanças por fase/componente
-- Testing evidence (links para logs, commits de testes GREEN)
-- Checklist pós-merge (se aplicável)
+O `pr-description.md` deve conter: sumário executivo · mudanças por fase/componente · testing evidence · checklist pós-merge.
 
 ### Changelog
 
-Toda mudança visível que impacte **mestres e/ou usuários finais** exige entrada em `database/changelogs.json` antes do deploy.
+Toda mudança visível que impacte **mestres e/ou usuários finais** exige entrada em `database/changelogs.json` antes do deploy. Mudanças exclusivas de área administrativa interna não exigem registro.
 
-Mudanças **exclusivas de área administrativa interna** (painel/fluxos apenas de admin) **não exigem** registro em changelog.
-
-**CUIDADO BLOQUEANTE:** Melhorias publicadas na mesma data DEVEM, OBRIGATORIAMENTE, ser unificadas em um único objeto (ex: `YYYY-MM-DD-atualizacoes-do-dia`). É proibido criar ou manter múltiplas entradas JSON dispersas sobre a mesma data de calendário. Aglomere todas as novidades em bullets sob a mesma propriedade "body".
+**CUIDADO BLOQUEANTE:** Melhorias publicadas na mesma data DEVEM ser unificadas em um único objeto. Proibido criar múltiplas entradas JSON para a mesma data de calendário.
 
 ```json
 {
@@ -285,12 +298,12 @@ Linguagem 100% leiga. Proibido: `sidebar vertical`, `migration`, `refactor`, `pl
 
 ## REGRAS ESPECÍFICAS DO PROJETO
 
-- **Cloudinary:** `VITE_CLOUDINARY_CLOUD_NAME` e `VITE_CLOUDINARY_UPLOAD_PRESET` são variáveis de build-time. Nunca hardcodar. Upload de imagens exclusivamente via backend com signed preset.
+- **Cloudinary:** `VITE_CLOUDINARY_CLOUD_NAME` e `VITE_CLOUDINARY_UPLOAD_PRESET` são variáveis de build-time. Nunca hardcodar. Upload exclusivamente via backend com signed preset.
 - **Google OAuth:** único método de autenticação. Sem login por e-mail/senha sem autorização.
 - **Discord:** vínculo opcional de perfil. Não substitui Google OAuth.
 - **Elevação de role:** `player` → `gm` ao criar primeiro `gm_profile`. Lógica exclusiva do Backend.
 - **`cover_deletehash`, `avatar_deletehash`, `banner_deletehash`:** nunca retornados por rotas públicas.
-- **Nome do banco:** `mesas_rpg`, não `mesas`. Ver `ERRORS_SOLUTIONS.md` E059.
+- **Nome do banco:** `mesas_rpg`, não `mesas`. Ver `.specify/memory/errors.md` E059.
 - **Compromissos inegociáveis:** gratuidade, sem anúncios, sem coleta desnecessária de dados.
 - **UX:** toda mudança de interface valida contra as 10 Heurísticas de Nielsen antes do merge.
 
@@ -332,24 +345,25 @@ AA-MM-DD_N_<escopo>.md
 1. **Cabeçalho** — Data, Objetivo (1–2 frases)
 2. **Vínculos** — Sessão Anterior e Próxima Sessão (se aplicável)
 3. **Plano de execução** — lista numerada
-4. **Checklist** — `[ ]` / `[x]` de cada passo
+4. **Checklist de fechamento** — executar `/speckit.retro.run` (substitui checklist manual)
 5. **Arquivos que serão modificados**
 6. **Critério de conclusão explícito**
-7. `[ ] Atualizar RESUMO_EXECUCAO.md` — último item obrigatório
+7. `[ ] Atualizar .specify/memory/project-state.md via /speckit.status` — último item obrigatório
 8. `[ ] Mover sessão para encerradas/ (quando autorizado)` — arquivamento após confirmação
 9. `[ ] Atualizar index.md` — adicionar sessão ao índice
 
 **Ao finalizar a sessão:**
-- Todos os itens da checklist [x]
-- `RESUMO_EXECUCAO.md` atualizado com campo "Última Sessão"
+- Fechamento registrado via `/speckit.retro.run` (substitui checklist manual)
+- `.specify/memory/project-state.md` atualizado via `/speckit.status` ou `/speckit.retro.run`
+- `.specify/memory/session-log.md` atualizado com entrada da sessão
 - `index.md` atualizado com nova sessão
-- Verificar se sessão referenciada no RESUMO_EXECUCAO.md existe (validação)
+- Verificar se sessão referenciada no project-state.md existe (validação)
 
 **Arquivamento de sessões encerradas:**
 - Sessões concluídas permanecem em `/sessoes/` até confirmação explícita do usuário
-- **Somente após o usuário confirmar** que a sessão está encerrada, mover o arquivo para `/sessoes/encerradas/`
-- Atualizar `index.md` com o novo caminho: `encerradas/AA-MM-DD_N_<escopo>.md`
-- Nunca mover sessões automaticamente sem autorização explícita do usuário
+- Somente após confirmação do usuário, mover para `/sessoes/encerradas/`
+- Atualizar `index.md` com novo caminho
+- Nunca mover sessões automaticamente
 
 ---
 
@@ -376,7 +390,9 @@ AA-MM-DD_N_<escopo>.md
 | Beta (ativo) | `mesasbeta.artificiorpg.com` | `dev` | `/opt/mesas-beta/` |
 | Produção (ativo) | `mesas.artificiorpg.com` | `main` | `/opt/mesas/` |
 
-Fluxo: `feature/<escopo>` → `dev` (beta) → aprovação → `main` (produção).
+Fluxo: `feat/NNN-nome` → `dev` (beta) → aprovação → `main` (produção).
+
+> **Referência:** Credenciais de banco, variáveis de ambiente e infraestrutura completa estão documentadas em `.specify/arquiteture.md` §2 e §11.
 
 ---
 
@@ -394,37 +410,63 @@ Próximos Passos  — próximos passos objetivos e imediatos
 
 ---
 
-## IDIOMA
+## COMANDOS SPEC-KIT E EXTENSÕES
 
-Toda comunicação em **português**. Nomes de arquivos, comandos, funções e identificadores de código permanecem no formato original.
+**Natureza dos comandos:** Todos os comandos Spec-Kit são **instruções para o agente AI**, não comandos CLI executáveis diretamente no terminal.
+
+### Extensões Instaladas
+
+| Extensão | Versão | Comandos | Tipo |
+|---|---|---|---|
+| **Git** | - | `speckit.git.initialize`, `speckit.git.feature`, `speckit.git.validate`, `speckit.git.remote`, `speckit.git.commit` | Automação Git |
+| **Fixit** | - | `speckit.fixit.run` | Correção de bugs com consciência de spec |
+| **Brownfield** | - | `speckit.brownfield.scan`, `speckit.brownfield.bootstrap`, `speckit.brownfield.validate`, `speckit.brownfield.migrate` | Adoção incremental de SDD |
+| **MemoryLint** | 1.3.0 | `speckit.memorylint.run`, `speckit.memorylint.load-agents` | Governança de memória AI |
+| **Optimize** | 1.0.0 | `speckit.optimize.run`, `speckit.optimize.tokens`, `speckit.optimize.learn` | Otimização de governança AI |
+| **Reconcile** | 1.0.0 | `speckit.reconcile.run` | Reconciliação de drift entre artefatos SDD e implementação |
+| **Bugfix** | 1.0.0 | `speckit.bugfix.report`, `speckit.bugfix.patch`, `speckit.bugfix.verify` | Correção estruturada de bugs com rastreabilidade |
+| **Status** | 1.0.0 | `speckit.status.show`, `speckit.status` | Dashboard de estado SDD e progresso de workflow |
+| **Verify-Tasks** | 1.0.0 | `speckit.verify-tasks.run`, `speckit.verify-tasks` | Detecção de phantom completions em tasks.md |
+| **Archive** | 1.0.0 | `speckit.archive.run` | Arquivamento pós-merge de features na memória canônica |
+| **Doctor** | 1.0.0 | `speckit.doctor.check`, `speckit.doctor` | Diagnóstico de saúde do projeto Spec-Kit |
+| **Retro** | 1.0.0 | `speckit.retro.run` | Análise retrospectiva de sprint com métricas e melhorias |
+
+### Comandos Core
+
+- `/speckit.specify` — gera `spec.md` (especificação da feature)
+- `/speckit.plan` — gera `plan.md` (plano de implementação)
+- `/speckit.tasks` — gera `tasks.md` (checklist de execução)
+- `/speckit.implement` — executa implementação seguindo tasks
+- `/speckit.constitution` — regenera `.specify/memory/constitution.md`
+
+### Protocolo de Uso
+
+1. **Comandos core:** Solicitar ao agente que execute (ex: "execute /speckit.specify")
+2. **Comandos de extensão:** Solicitar ao agente que siga as instruções do comando
+3. **Hooks automáticos:** Executam automaticamente em pontos específicos do workflow SDD
+4. **Nunca tentar executar via CLI:** `specify speckit.memorylint.run` falhará (não é comando CLI)
+
+### Documentação das Extensões
+
+- **Spec-Kit core:** `docs/sdd/README.md`
+- **Git:** `.agents/skills/speckit-git-*/`
+- **Fixit:** `docs/sdd/FIXIT_EXTENSION.md`
+- **Brownfield:** `docs/sdd/README.md` (seção Brownfield)
+- **MemoryLint:** `docs/sdd/MEMORYLINT_EXTENSION.md`
+- **Optimize:** `docs/sdd/OPTIMIZE_EXTENSION.md`
+- **Reconcile:** `docs/sdd/RECONCILE_EXTENSION.md`
+- **Bugfix:** `docs/sdd/BUGFIX_EXTENSION.md`
+- **Status:** `docs/sdd/STATUS_EXTENSION.md`
+- **Verify-Tasks:** `docs/sdd/VERIFY_TASKS_EXTENSION.md`
+- **Archive:** `docs/sdd/ARCHIVE_EXTENSION.md`
+- **Doctor:** `docs/sdd/DOCTOR_EXTENSION.md`
+- **Retro:** `docs/sdd/RETRO_EXTENSION.md`
 
 ---
 
-## PROTOCOLO DE EXECUÇÃO DE FERRAMENTAS
+## IDIOMA
 
-Antes de executar qualquer ferramenta, o agente DEVE:
-
-1. **Recitar as instruções críticas:**
-   - CRITICAL INSTRUCTION 1: Priorizar ferramentas específicas. Nunca usar cat/ls/grep/sed em bash quando há ferramentas dedicadas.
-   - CRITICAL INSTRUCTION 2: Listar todas as ferramentas relacionadas à tarefa. Só executar se outras são mais genéricas ou não aplicáveis.
-
-2. **Listar ferramentas relacionadas:**
-   - Exemplo: "Ferramentas relacionadas: grep_search (específica), view_file (específica), run_command (genérica)"
-
-3. **Justificar escolha:**
-   - Exemplo: "Usando grep_search porque é específica para busca em arquivos"
-
-4. **Só então executar**
-
-Este protocolo é obrigatório para TODA execução de ferramenta, sem exceção.
-
-### Regras específicas:
-
-- NUNCA usar `cat` para criar/editar arquivos → usar `write_to_file` ou `replace_file_content`
-- NUNCA usar `grep` em bash → usar `grep_search`
-- NUNCA usar `ls` → usar `list_dir`
-- NUNCA usar `cat` para visualizar → usar `view_file`
-- NUNCA usar `sed` para editar → usar ferramentas de edição
+Toda comunicação em **português**. Nomes de arquivos, comandos, funções e identificadores de código permanecem no formato original.
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,

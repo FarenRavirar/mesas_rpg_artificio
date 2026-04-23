@@ -62,6 +62,7 @@ interface MyTable {
   actual_gm_name: string | null;
   contacts: TableContact[];
   is_ddal?: boolean;
+  is_covil?: boolean;
   ddal_code?: string | null;
   ddal_name?: string | null;
   ddal_tier?: number | null;
