@@ -15,7 +15,7 @@ name: Deploy Beta
 on:
   push:
     branches:
-      - dev
+      - feat/003-auditoria-workflows-actions
 
 # Concurrency Policy:
 # - cancel-in-progress: true → Cancels obsolete deploys when new commit arrives
