@@ -1,6 +1,6 @@
 # Índice de Sessões
 
-Última atualização: 23/04/2026 22:54 BRT
+Última atualização: 24/04/2026 18:15 BRT
 
 ---
 
@@ -191,17 +191,26 @@
 
 ---
 
-## 24/04/2026 (1 sessão)
+## 24/04/2026 (10 sessões)
 
 | # | Arquivo |
 |---|---|
-| 1 | `26-04-24_1_fix-covil.md` |
+| 1 | `encerradas/26-04-24_1_fix-covil.md` |
+| 1b | `encerradas/26-04-24_1_fix-covil-diagnostico.md` |
+| 1c | `encerradas/26-04-24_1_hidratacao-diagnostico.md` |
+| 2 | `encerradas/26-04-24_2_hidratacao-specify.md` |
+| 3 | `encerradas/26-04-24_3_hidratacao-plan.md` |
+| 4 | `encerradas/26-04-24_4_hidratacao-tasks.md` |
+| 5 | `encerradas/26-04-24_5_diagnostico-403-beta.md` |
+| 5b | `encerradas/26-04-24_5_hidratacao-implement.md` |
+| 8 | `encerradas/26-04-24_8_hidratacao-security-fixes.md` |
+| 9 | `encerradas/26-04-24_9_matriz-ambiente.md` |
 
 ---
 
 ## Sessão Mais Recente
 
-`26-04-24_1_fix-covil.md`
+`encerradas/26-04-24_9_matriz-ambiente.md`
 
 ---
 

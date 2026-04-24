@@ -5,8 +5,10 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Se não houver PROD_DB_URL, usa um fallback dummy para não quebrar a tipagem em dev
-const prodUrl = process.env.PROD_DB_URL || 'postgresql://dummy:dummy@localhost:5432/dummy';
+const prodUrl = process.env.PROD_DB_URL;
+if (!prodUrl) {
+  throw new Error('PROD_DB_URL environment variable is required for production database connection');
+}
 
 const dialect = new PostgresDialect({
   pool: new Pool({
