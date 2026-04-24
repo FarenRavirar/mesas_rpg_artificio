@@ -10,6 +10,14 @@ hooks:
     prompt: Execute speckit.git.initialize?
     description: Initialize Git repository before constitution setup
     condition: null
+  - extension: memorylint
+    command: speckit.memorylint.run
+    enabled: true
+    optional: true
+    prompt: Run MemoryLint to prune out-of-bounds architecture rules and enrich missing
+      infrastructure guidelines in AGENTS.md?
+    description: ''
+    condition: null
   before_specify:
   - extension: git
     command: speckit.git.feature
@@ -33,6 +41,14 @@ hooks:
     optional: true
     prompt: Commit outstanding changes before planning?
     description: Auto-commit before implementation planning
+    condition: null
+  - extension: memorylint
+    command: speckit.memorylint.load-agents
+    enabled: true
+    optional: false
+    prompt: Execute speckit.memorylint.load-agents?
+    description: 'Mandatory gate: Load AGENTS.md to enforce core rules and prevent
+      rule drift during the planning (plan.md generation) phase.'
     condition: null
   before_tasks:
   - extension: git
@@ -122,6 +138,13 @@ hooks:
     prompt: Commit implementation changes?
     description: Auto-commit after implementation
     condition: null
+  - extension: bugfix
+    command: speckit.bugfix.verify
+    enabled: true
+    optional: true
+    prompt: Run bugfix consistency check after implementation?
+    description: Verify spec artifact consistency after implementation completes
+    condition: null
   after_checklist:
   - extension: git
     command: speckit.git.commit
@@ -145,4 +168,28 @@ hooks:
     optional: true
     prompt: Commit after syncing issues?
     description: Auto-commit after tasks-to-issues conversion
+    condition: null
+  before_fixit:
+  - extension: git
+    command: speckit.git.commit
+    enabled: true
+    optional: true
+    prompt: Commit outstanding changes before bug fix?
+    description: Auto-commit before fixit
+    condition: null
+  after_fixit:
+  - extension: git
+    command: speckit.git.commit
+    enabled: true
+    optional: true
+    prompt: Commit bug fix changes?
+    description: Auto-commit after fixit
+    condition: null
+  after_init:
+  - extension: brownfield
+    command: speckit.brownfield.scan
+    enabled: true
+    optional: true
+    prompt: Scan this existing project to customize spec-kit configuration?
+    description: Auto-scan project after spec-kit init to detect tech stack and conventions
     condition: null

@@ -1,3 +1,15 @@
+# ============================================================================
+# WORKFLOW: Preflight Prod Gate
+# RESPONSIBILITY: Continuous Integration (Production Gate)
+# TRIGGER: Pull request para branch main (paths: database/**, scripts/deploy/**)
+# SCOPE: Valida drift de migrations entre beta e produção
+# DEPENDENCIES: Nenhuma
+# CONSUMERS: Nenhum (gate de PR)
+# MAINTAINER: Equipe de operações
+# LAST UPDATED: 2026-04-23
+# NOTES: Bloqueia PR se migrations não estão sincronizadas entre ambientes
+# ============================================================================
+
 name: Preflight Prod Gate
 
 on:

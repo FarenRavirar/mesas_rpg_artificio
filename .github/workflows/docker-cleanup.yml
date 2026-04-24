@@ -1,3 +1,15 @@
+# ============================================================================
+# WORKFLOW: Docker Cleanup
+# RESPONSIBILITY: Maintenance
+# TRIGGER: Agendado (Sundays 3 AM UTC) ou manual
+# SCOPE: Limpeza periódica de recursos Docker no servidor
+# DEPENDENCIES: Nenhuma
+# CONSUMERS: Nenhum
+# MAINTAINER: Equipe de operações
+# LAST UPDATED: 2026-04-23
+# NOTES: Mantém apenas 3 imagens mais recentes por repositório
+# ============================================================================
+
 name: Docker Cleanup
 
 on:

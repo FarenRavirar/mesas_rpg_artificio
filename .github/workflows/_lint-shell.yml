@@ -1,3 +1,17 @@
+# ============================================================================
+# REUSABLE WORKFLOW: Lint Shell Scripts and Workflows
+# VERSION: v1
+# CONTRACT:
+#   Inputs: None
+#   Outputs: None
+#   Secrets: None
+#   Behavior: Runs shellcheck on ./scripts + actionlint on workflows
+#   Dependencies: None
+# BREAKING CHANGES: Require new major version (v2, v3, etc)
+# CONSUMERS: deploy-beta.yml, deploy-prod.yml, promote-to-prod.yml
+# LAST UPDATED: 2026-04-23
+# ============================================================================
+
 name: Lint Shell
 
 on:

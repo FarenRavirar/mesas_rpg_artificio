@@ -31,7 +31,7 @@ Se o agente escreve qualquer destas frases, parar e investigar:
 
 ## Após merge da feature
 
-- [ ] Registrar em `ERRORS_SOLUTIONS.md` as falhas processuais observadas
+- [ ] Registrar em `.specify/memory/errors.md` as falhas processuais observadas
 - [ ] Atualizar constitution.md se novos padrões emergiram
 
 ## Gatilhos de alerta específicos (mapeados do registry F01-F14)

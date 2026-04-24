@@ -75,7 +75,7 @@ Herda de `constitution.md`. Diferenças:
 
 **MDs canônicos além dos listados em Seção 3:**
 - `AGENTS.md` — **proibido editar**.
-- `ARQUITETURA_PROJETO.md`.
+- `.specify/arquiteture.md`.
 - `BACKLOG_OPERACIONAL.md`.
 - `FILA_IMPLEMENTACAO.md`.
 - `DOCS_AGENT.md`.

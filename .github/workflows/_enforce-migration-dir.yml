@@ -1,3 +1,17 @@
+# ============================================================================
+# REUSABLE WORKFLOW: Enforce Migration Directory
+# VERSION: v1
+# CONTRACT:
+#   Inputs: None
+#   Outputs: None
+#   Secrets: None
+#   Behavior: Validates migration_*.sql files are in allowed paths
+#   Dependencies: .github/migration-dir-allowlist must exist
+# BREAKING CHANGES: Require new major version (v2, v3, etc)
+# CONSUMERS: deploy-beta.yml, deploy-prod.yml, promote-to-prod.yml
+# LAST UPDATED: 2026-04-23
+# ============================================================================
+
 name: Enforce Migration Dir
 
 on:

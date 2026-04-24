@@ -1,6 +1,18 @@
 # Índice de Sessões
 
-Última atualização: 20/04/2026 16:54 BRT
+Última atualização: 23/04/2026 09:14 BRT
+
+---
+
+## 22/04/2026 (5 sessões)
+
+| # | Arquivo |
+|---|---|
+| 1 | `encerradas/26-04-22_1_migracao-governanca-legacy.md` |
+| 2 | `encerradas/26-04-22_2_migracao-fila-tasks.md` |
+| 13 | `encerradas/26-04-22_13_instalacao-archive.md` |
+| 14 | `encerradas/26-04-22_14_instalacao-doctor.md` |
+| 15 | `encerradas/26-04-22_15_instalacao-retro.md` |
 
 ---
 
@@ -125,30 +137,59 @@
 | 6 | `encerradas\26-04-20_6_atividade-predeploy-dev.md` |
 | 7 | `encerradas\26-04-20_7_sdd-sessao-continuacao.md` |
 | 8 | `encerradas\26-04-20_8_spec-retomada-fluxo.md` |
-| 9 | `26-04-20_9_gate-migrations-refactor.md` |
+| 9 | `encerradas\26-04-20_9_gate-migrations-refactor.md` |
 
 ---
 
-## 21/04/2026 (1 sessão)
+## 21/04/2026 (2 sessões)
 
 | # | Arquivo |
 |---|---|
-| 1 | `26-04-21_1_fix-stdin-drain.md` |
+| 1 | `encerradas\26-04-21_1_fix-stdin-drain.md` |
+| 2 | `encerradas\26-04-21_2_beta-deploy-recovery.md` |
 
 ---
 
-## 22/04/2026 (2 sessões)
+## 22/04/2026 (16 sessões)
 
 | # | Arquivo |
 |---|---|
-| 1 | `26-04-22_1_pr-feature-001.md` |
-| 2 | `26-04-22_2_beta-deploy-recovery.md` |
+| 1 | `encerradas/26-04-22_1_pr-feature-001.md` |
+| 2 | `encerradas/26-04-22_2_beta-deploy-recovery.md` |
+| 3 | `encerradas/26-04-22_3_prod-promotion.md` |
+| 4 | `encerradas/26-04-22_4_investigacao-selos-ddal-covil.md` |
+| 5 | `encerradas/26-04-22_5_correcoes-fixit-integracao-specify.md` |
+| 6 | `encerradas/26-04-22_6_documentacao-retroativa-fixit.md` |
+| 7 | `encerradas/26-04-22_7_instalacao-memorylint.md` |
+| 8 | `encerradas/26-04-22_8_auditoria-memorylint.md` |
+| 9 | `encerradas/26-04-22_9_instalacao-optimize.md` |
+| 10 | `encerradas/26-04-22_10_instalacao-reconcile.md` |
+| 11 | `encerradas/26-04-22_11_instalacao-bugfix.md` |
+| 12 | `encerradas/26-04-22_12_instalacao-status.md` |
+| 16-18 | `encerradas/26-04-22_16-18_migracao-sdd-completa.md` |
+| 19 | `encerradas/26-04-22_19_check-doctor-inicial.md` |
+| 20 | `encerradas/26-04-22_20_regularizacao-plan-features.md` |
+| 21 | `encerradas/26-04-22_21_check-migracao-v4-errors.md` |
+| 22 | `26-04-22_22_verificacao-arquiteture-v5.md` |
+| aux-1 | `encerradas/fase8-validacao-workflows.md` |
+| aux-2 | `encerradas/prompt_sessao_selos.md` |
+
+---
+
+## 23/04/2026 (4 sessões)
+
+| # | Arquivo |
+|---|---|
+| 1 | `encerradas/26-04-23_1_auditoria-workflows-github-actions.md` |
+| 2 | `encerradas/26-04-23_2_auditoria-workflows-github-actions.md` |
+| 3 | `26-04-23_3_auditoria-workflows-github-actions-phase6.md` |
+| 4 | `26-04-23_4_auditoria-redundancia-workflows.md` |
 
 ---
 
 ## Sessão Mais Recente
 
-`26-04-22_2_beta-deploy-recovery.md`
+`26-04-23_4_auditoria-redundancia-workflows.md`
 
 ---
 
@@ -164,4 +205,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-04-22_3_*`
+**Próxima sessão:** `26-04-23_5_*`

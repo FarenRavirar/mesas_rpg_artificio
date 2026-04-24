@@ -20,10 +20,50 @@ description: "Task list template for feature implementation"
 
 ## Path Conventions
 
-- **Single project**: `src/`, `tests/` at repository root
-- **Web app**: `backend/src/`, `frontend/src/`
-- **Mobile**: `api/src/`, `ios/src/` or `android/src/`
-- Paths shown below assume single project - adjust based on plan.md structure
+This project uses a **monorepo structure**:
+
+- **Backend**: `backend/src/` (Node.js + Express + TypeScript)
+- **Frontend**: `frontend/src/` (React + Vite + TypeScript)
+- **Database**: `database/` (PostgreSQL migrations)
+- **Scripts**: `scripts/` (deployment automation)
+
+## Build & Test Commands
+
+### Backend
+
+```bash
+cd backend && npm run build    # TypeScript compilation to dist/
+cd backend && npm run dev      # Development server with nodemon
+cd backend && npm run start    # Production server (node dist/server.js)
+```
+
+### Frontend
+
+```bash
+cd frontend && npm run build   # Vite production build to dist/
+cd frontend && npm run dev     # Vite dev server (hot reload)
+cd frontend && npm run lint    # ESLint validation
+```
+
+### Database
+
+```bash
+# Migrations run on remote VM via SSH
+ssh -F C:/projetos/config faren "docker exec mesas-beta-db psql -U admin -d mesas_rpg -f /path/to/migration.sql"
+
+# Local validation (syntax check only)
+psql --dry-run -f database/migration_NNN_description.sql
+```
+
+### Integration
+
+```bash
+# Deploy to beta environment (triggers CI/CD)
+git push origin dev
+
+# Deploy to production (via PR)
+gh pr create --base main --head dev
+```
 
 <!-- 
   ============================================================================

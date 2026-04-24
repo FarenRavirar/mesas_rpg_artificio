@@ -100,6 +100,34 @@
 - **[Entity 1]**: [What it represents, key attributes without implementation]
 - **[Entity 2]**: [What it represents, relationships to other entities]
 
+## Database Migrations *(if feature modifies schema)*
+
+<!--
+  ACTION REQUIRED: Complete this section if the feature requires database schema changes.
+  Follow migrations_guide.md protocol.
+-->
+
+**Migration File**: `database/migration_NNN_description.sql`
+
+### Schema Changes
+
+- **Tables Added**: [list new tables with purpose]
+- **Tables Modified**: [list altered tables with specific changes]
+- **Columns Added/Modified**: [list column changes with types]
+- **Indexes Added**: [list new indexes for performance]
+- **Data Migrations**: [describe any data transformations or backfills]
+
+### Migration Safety Checklist
+
+- [ ] Migration is reversible (rollback plan documented)
+- [ ] Migration tested in beta environment first
+- [ ] No TRUNCATE, DROP, DELETE, or ALTER without backup
+- [ ] Follows `migrations_guide.md` protocol
+- [ ] Migration number follows sequential pattern
+- [ ] Applied via `_enforce-migration-dir.yml` workflow
+
+---
+
 ## Success Criteria *(mandatory)*
 
 <!--

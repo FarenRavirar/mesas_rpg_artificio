@@ -155,11 +155,13 @@ Para ajudar na priorização, descreva:
 ## 📚 Para quem quer acompanhar em mais detalhe
 
 - [RESUMO_EXECUCAO.md](RESUMO_EXECUCAO.md) — estado atual e próxima ação
-- [ARQUITETURA_PROJETO.md](ARQUITETURA_PROJETO.md) — arquitetura e contratos
+- [.specify/arquiteture.md](.specify/arquiteture.md) — arquitetura e contratos
 - [MAPA_DE_API.md](MAPA_DE_API.md) — rotas e consumidores
-- [BACKLOG_OPERACIONAL.md](BACKLOG_OPERACIONAL.md) — visão de produto
-- [FILA_IMPLEMENTACAO.md](FILA_IMPLEMENTACAO.md) — fila técnica
-- [ERRORS_SOLUTIONS.md](ERRORS_SOLUTIONS.md) — histórico de erros e soluções
+- [Catálogo de Erros](.specify/memory/errors.md) — histórico de erros e soluções
+- [Estado do Projeto](.specify/memory/project-state.md) — estado atual e próxima ação (gerado dinamicamente)
+- [Features SDD](.specify/features/) — especificações e tarefas de features ativas
+- [BACKLOG_OPERACIONAL.md (Legado)](docs/legacy/BACKLOG_OPERACIONAL.md) — visão de produto (consulta histórica)
+- [FILA_IMPLEMENTACAO.md (Legado)](docs/legacy/FILA_IMPLEMENTACAO.md) — fila técnica (consulta histórica)
 - [OPERACAO_PRODUCAO.md](OPERACAO_PRODUCAO.md) — operação beta/produção
 - [PRE_DEPLOY_CHECKLIST.md](PRE_DEPLOY_CHECKLIST.md) — checklist pré-deploy
 

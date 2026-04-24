@@ -12,7 +12,7 @@
 - **Domínio:** portal colaborativo de mesas de RPG.
 - **Stack:** TypeScript (91%), pastas `backend/`, `frontend/`, `database/`, `scripts/`, `testes/`.
 - **Infra:** `docker-compose.beta.yml` e `docker-compose.prod.yml`; ambientes beta e produção ativos.
-- **Governança existente:** `AGENTS.md`, `ARQUITETURA_PROJETO.md`, `BACKLOG_OPERACIONAL.md`, `MAPA_DE_API.md`, `FILA_IMPLEMENTACAO.md`, `ERRORS_SOLUTIONS.md`, `OPERACAO_PRODUCAO.md`, `PRE_DEPLOY_CHECKLIST.md`, `migrations_guide.md`, `.agents/`, `.cursorrules`, `.clinerules`, `.gemini/`.
+- **Governança existente:** `AGENTS.md`, `.specify/arquiteture.md`, `BACKLOG_OPERACIONAL.md`, `MAPA_DE_API.md`, `FILA_IMPLEMENTACAO.md`, `ERRORS_SOLUTIONS.md`, `OPERACAO_PRODUCAO.md`, `PRE_DEPLOY_CHECKLIST.md`, `migrations_guide.md`, `.agents/`, `.cursorrules`, `.clinerules`, `.gemini/`.
 - **Classificação:** BROWNFIELD. MDs canônicos e `.agents/` NÃO podem ser sobrescritos.
 
 ---
@@ -87,7 +87,7 @@ Regras:
 7. **Testes antes do merge:** (a) TDAD estrito (teste antes do código); (b) sim, apenas unit; (c) opcional por feature; (d) não sei.
 8. **Modelo de PR:** (a) PR por feature spec completa; (b) PR por task atômica; (c) livre; (d) não sei.
 9. **Gate de migrations:** (a) manter `migrations_guide.md` como único caminho; (b) estender SDD com aprovação extra; (c) não sei.
-10. **MDs canônicos intocáveis** (confirmar lista): AGENTS.md, ARQUITETURA_PROJETO.md, BACKLOG_OPERACIONAL.md, MAPA_DE_API.md, FILA_IMPLEMENTACAO.md, ERRORS_SOLUTIONS.md, OPERACAO_PRODUCAO.md, PRE_DEPLOY_CHECKLIST.md, migrations_guide.md. (a) confirmo; (b) remover algum — qual; (c) adicionar outro.
+10. **MDs canônicos intocáveis** (confirmar lista): AGENTS.md, .specify/arquiteture.md, BACKLOG_OPERACIONAL.md, MAPA_DE_API.md, FILA_IMPLEMENTACAO.md, ERRORS_SOLUTIONS.md, OPERACAO_PRODUCAO.md, PRE_DEPLOY_CHECKLIST.md, migrations_guide.md. (a) confirmo; (b) remover algum — qual; (c) adicionar outro.
 11. **Idioma dos artefatos SDD:** (a) pt-BR; (b) en; (c) misto.
 12. **Formato dos specs:** (a) Markdown (default); (b) JSON; (c) ambos.
 13. **Script Spec Kit:** (a) `sh`; (b) `ps`; (c) detectar pelo OS.
@@ -290,7 +290,7 @@ Ver docs/sdd/BRANCH_POLICY.md.
 
 | Artefato SDD | Fonte de verdade canônica |
 |--------------|--------------------------|
-| constitution.md — stack | AGENTS.md + ARQUITETURA_PROJETO.md |
+| constitution.md — stack | AGENTS.md + .specify/arquiteture.md |
 | constitution.md — operação | OPERACAO_PRODUCAO.md |
 | spec.md — contexto | BACKLOG_OPERACIONAL.md + FILA_IMPLEMENTACAO.md |
 | plan.md — API | MAPA_DE_API.md |
@@ -430,7 +430,7 @@ Leia spec_claude.md na raiz e execute ESTRITAMENTE:
    Exceção: são permitidos apenas comandos de diagnóstico/read-only, sem efeito colateral (ex.: git --version, python3 --version, uv --version, git status).
 
 2. LEITURA PREPARATÓRIA — leia em ordem e resuma em até 10 linhas:
-   AGENTS.md, ARQUITETURA_PROJETO.md, OPERACAO_PRODUCAO.md, migrations_guide.md, BACKLOG_OPERACIONAL.md, MAPA_DE_API.md.
+   AGENTS.md, .specify/arquiteture.md, OPERACAO_PRODUCAO.md, migrations_guide.md, BACKLOG_OPERACIONAL.md, MAPA_DE_API.md.
    Pare e aguarde "continue".
 
 3. PRERREQUISITOS (Seção 2): git --version, python3 --version, uv --version. Se uv faltar, reportar e pedir autorização. Verificar git status limpo. Se sujo, parar.

@@ -49,50 +49,46 @@ specs/[###-feature]/
 
 ### Source Code (repository root)
 <!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
+  ACTION REQUIRED: Adjust the structure below based on which modules this feature affects.
+  Remove sections that are not relevant to this specific feature.
 -->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
 backend/
 ├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
+│   ├── db/              # Database connection (Kysely query builder)
+│   ├── domain/          # Business entities and types
+│   ├── middleware/      # Express middleware (auth, rate-limit, error handling)
+│   ├── repositories/    # Data access layer
+│   ├── routes/          # HTTP route handlers
+│   ├── services/        # Business logic layer
+│   ├── utils/           # Shared utilities
+│   ├── validators/      # Zod schemas for request validation
+│   └── server.ts        # Express server entry point
+├── migrations/          # SQL migrations (if not in database/)
+└── package.json         # Backend dependencies (Express, Kysely, JWT, etc.)
 
 frontend/
 ├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
+│   ├── components/      # Reusable UI components
+│   ├── contexts/        # React contexts
+│   ├── features/        # Feature-specific modules
+│   ├── hooks/           # Custom React hooks
+│   ├── pages/           # Route pages
+│   ├── schemas/         # Zod validation schemas
+│   ├── services/        # API client services
+│   ├── types/           # TypeScript type definitions
+│   └── utils/           # Shared utilities
+└── package.json         # Frontend dependencies (React, Vite, TailwindCSS, etc.)
 
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
+database/
+└── migration_NNN_*.sql  # PostgreSQL migrations (sequential numbering)
 
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+scripts/
+└── [deployment and maintenance scripts]
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: This project uses a **monorepo with separated frontend/backend/database** modules. Features typically span multiple modules (e.g., API endpoint in backend + UI in frontend + schema change in database).
 
 ## Complexity Tracking
 

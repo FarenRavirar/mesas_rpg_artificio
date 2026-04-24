@@ -2,13 +2,13 @@
 
 | Artefato SDD | Fonte de verdade canônica |
 |--------------|--------------------------|
-| constitution.md — stack | AGENTS.md + ARQUITETURA_PROJETO.md |
+| constitution.md — stack | AGENTS.md + `.specify/arquiteture.md` |
 | constitution.md — operação | OPERACAO_PRODUCAO.md |
-| spec.md — contexto | BACKLOG_OPERACIONAL.md + FILA_IMPLEMENTACAO.md |
+| spec.md — contexto | `.specify/features/{id}/spec.md` (canônico) ou `docs/legacy/BACKLOG_OPERACIONAL.md` + `docs/legacy/FILA_IMPLEMENTACAO.md` (legado) |
 | plan.md — API | MAPA_DE_API.md |
 | plan.md — migration | migrations_guide.md |
 | tasks.md — pré-deploy | PRE_DEPLOY_CHECKLIST.md |
-| erros durante implement | ERRORS_SOLUTIONS.md |
+| erros durante implement | `.specify/memory/errors.md` |
 
 ## Regra de sincronização
 - Spec introduz novo endpoint → última task (Polish) ATUALIZA MAPA_DE_API.md.
