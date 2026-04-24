@@ -13,9 +13,12 @@
 name: Preflight Prod Gate
 
 on:
-  push:
+  pull_request:
     branches:
-      - feat/003-auditoria-workflows-actions
+      - main
+    paths:
+      - 'database/**'
+      - 'scripts/deploy/**'
 
 jobs:
   preflight:
@@ -56,7 +59,6 @@ jobs:
           DB_USER: admin
           DB_NAME: mesas_rpg
         run: |
-          echo "Induzindo falha preflight (T037)" && exit 1
           bash scripts/deploy/preflight_prod.sh
 
       - name: Read Report
