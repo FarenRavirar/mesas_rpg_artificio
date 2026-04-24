@@ -182,10 +182,10 @@ T001 → T002 → T003..T011 (inventory) → T012..T020 (diagnosis) → T021..T0
 
 **Tasks**:
 
-- [ ] T042 Consolidar relatório final de auditoria em `specs/003-auditoria-workflows-actions/audit/audit-report.md` com itens corrigidos, riscos residuais e pendências bloqueantes
-- [ ] T043 Validar SC-005: confirmar que toda correção aplicada possui evidência literal associada e rastreável
-- [ ] T044 Gerar `specs/003-auditoria-workflows-actions/pr-description.md` com sumário executivo, mudanças por workflow, testing evidence e checklist pós-merge
-- [ ] T045 Atualizar sessão `sessoes/26-04-23_2_auditoria-workflows-github-actions.md` com encerramento da feature e executar `/speckit.retro.run`
+- [x] T042 Consolidar relatório final de auditoria em `specs/003-auditoria-workflows-actions/audit/audit-report.md` com itens corrigidos, riscos residuais e pendências bloqueantes
+- [x] T043 Validar SC-005: confirmar que toda correção aplicada possui evidência literal associada e rastreável
+- [x] T044 Gerar `specs/003-auditoria-workflows-actions/pr-description.md` com sumário executivo, mudanças por workflow, testing evidence e checklist pós-merge
+- [x] T045 Atualizar sessão `sessoes/26-04-23_4_auditoria-redundancia-workflows.md` com encerramento da feature e executar `/speckit.retro.run`
 
 ---
 

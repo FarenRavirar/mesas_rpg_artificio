@@ -176,18 +176,20 @@
 
 ---
 
-## 23/04/2026 (2 sessões)
+## 23/04/2026 (4 sessões)
 
 | # | Arquivo |
 |---|---|
-| 1 | `26-04-23_1_verificacao_arquiteture_mapa_de_api.md` |
-| 2 | `26-04-23_2_auditoria-workflows-github-actions.md` |
+| 1 | `encerradas/26-04-23_1_auditoria-workflows-github-actions.md` |
+| 2 | `encerradas/26-04-23_2_auditoria-workflows-github-actions.md` |
+| 3 | `26-04-23_3_auditoria-workflows-github-actions-phase6.md` |
+| 4 | `26-04-23_4_auditoria-redundancia-workflows.md` |
 
 ---
 
 ## Sessão Mais Recente
 
-`26-04-23_2_auditoria-workflows-github-actions.md` (ativa)
+`26-04-23_4_auditoria-redundancia-workflows.md`
 
 ---
 
@@ -203,4 +205,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-04-23_3_*`
+**Próxima sessão:** `26-04-23_5_*`
