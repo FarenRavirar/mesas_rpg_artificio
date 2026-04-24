@@ -12,11 +12,14 @@
 name: CI — Validação de PR
 
 on:
-  pull_request:
+  push:
     branches:
-      - dev
+      - feat/003-auditoria-workflows-actions
 
 jobs:
+  lint:
+    uses: ./.github/workflows/_lint-shell.yml
+
   build-frontend:
     runs-on: ubuntu-latest
     steps:
