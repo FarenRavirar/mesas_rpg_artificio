@@ -146,7 +146,7 @@ T001 → T002 → T003..T011 (inventory) → T012..T020 (diagnosis) → T021..T0
 - [x] T031 Aplicar documentação de fronteiras operacionais em comentários inline dos workflows
 - [x] T032 Validar que workflows reutilizáveis não sofreram alterações de contrato sem aprovação de consumidores
 - [x] T033 Registrar evidência de aplicação (commit SHA, arquivos alterados) em `specs/003-auditoria-workflows-actions/audit/application-evidence.md`
-- [ ] T034 Testar rollback de uma correção aplicada para validar reversibilidade
+- [x] T034 Testar rollback de uma correção aplicada para validar reversibilidade
 
 ---
 
@@ -161,13 +161,13 @@ T001 → T002 → T003..T011 (inventory) → T012..T020 (diagnosis) → T021..T0
 
 **Tasks**:
 
-- [ ] T035 [P] Validar cenário off-happy-path: erro induzido em migration gate de `deploy-beta.yml` deve resultar em status ❌ em `specs/003-auditoria-workflows-actions/audit/validation-beta-migration-failure.md`
-- [ ] T036 [P] Validar cenário off-happy-path: erro induzido em shellcheck de `ci.yml` deve resultar em status ❌ em `specs/003-auditoria-workflows-actions/audit/validation-ci-shellcheck-failure.md`
-- [ ] T037 [P] Validar cenário off-happy-path: erro induzido em preflight de `preflight-prod.yml` deve bloquear promoção em `specs/003-auditoria-workflows-actions/audit/validation-preflight-block.md`
-- [ ] T038 [P] Validar cenário happy-path: push para `dev` dispara apenas `deploy-beta.yml` (não `deploy-prod.yml`) em `specs/003-auditoria-workflows-actions/audit/validation-beta-trigger-isolation.md`
-- [ ] T039 [P] Validar cenário happy-path: PR aprovado para `main` dispara apenas `promote-to-prod.yml` (não `deploy-prod.yml`) em `specs/003-auditoria-workflows-actions/audit/validation-prod-trigger-isolation.md`
-- [ ] T040 Consolidar evidências de validação com run URLs e status observados em `specs/003-auditoria-workflows-actions/audit/validation-evidence.md`
-- [ ] T041 Validar SC-003 e SC-004: confirmar que não há duplicidade indevida e que 100% dos cenários off-happy-path exibem status coerente
+- [x] T035 [P] Validar cenário off-happy-path: erro induzido em migration gate de `deploy-beta.yml` deve resultar em status ❌ em `specs/003-auditoria-workflows-actions/audit/validation-beta-migration-failure.md`
+- [x] T036 [P] Validar cenário off-happy-path: erro induzido em shellcheck de `ci.yml` deve resultar em status ❌ em `specs/003-auditoria-workflows-actions/audit/validation-ci-shellcheck-failure.md`
+- [x] T037 [P] Validar cenário off-happy-path: erro induzido em preflight de `preflight-prod.yml` deve bloquear promoção em `specs/003-auditoria-workflows-actions/audit/validation-preflight-block.md`
+- [x] T038 [P] Validar cenário happy-path: push para `dev` dispara apenas `deploy-beta.yml` (não `deploy-prod.yml`) em `specs/003-auditoria-workflows-actions/audit/validation-beta-trigger-isolation.md`
+- [x] T039 [P] Validar cenário happy-path: PR aprovado para `main` dispara apenas `promote-to-prod.yml` (não `deploy-prod.yml`) em `specs/003-auditoria-workflows-actions/audit/validation-prod-trigger-isolation.md`
+- [x] T040 Consolidar evidências de validação com run URLs e status observados em `specs/003-auditoria-workflows-actions/audit/validation-evidence.md`
+- [x] T041 Validar SC-003 e SC-004: confirmar que não há duplicidade indevida e que 100% dos cenários off-happy-path exibem status coerente
 
 ---
 
