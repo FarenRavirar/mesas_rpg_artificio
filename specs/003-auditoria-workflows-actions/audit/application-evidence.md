@@ -284,3 +284,45 @@ git commit -m "revert: restore workflow names"
 **Applied by:** Automated execution (Phase 5)  
 **Authorized by:** User (2026-04-23)  
 **Reviewed by:** Pending
+
+### T034: Validação de Rollback Atômico (Off-Happy-Path) em Beta ?
+
+**Status:** APPLIED & VALIDATED
+**Priority:** CRITICAL
+**Date:** 2026-04-23
+
+**Evidência de Validação:**
+- **Run URL:** https://github.com/FarenRavirar/mesas_rpg_artificio/actions/runs/24863641138
+- **Método de Falha Induzida:** Um script observador remoto aguardou a finalização do job deploy-app e a recriação do container mesas-beta-frontend. Imediatamente, substituiu as configurações do Nginx injetando uma diretiva eturn 500; na rota crítica /api/v1/tables.
+- **Comportamento do Pipeline:**
+  1. O job smoke executou check_beta_critical_routes.
+  2. A rota /api/v1/tables retornou HTTP 500.
+  3. O workflow detectou a anomalia (esperado HTTP 200) e invocou estore_beta_snapshot.
+  4. O snapshot atômico pg_restore foi restaurado com sucesso.
+  5. docker compose up -d --force-recreate recriou os containers forçando o uso da imagem/configuração sem os artefatos quebrados.
+  6. O workflow retornou exit 1 marcando o pipeline como falha no GitHub Actions.
+
+**Trecho do Log Comprovando o Rollback:**
+``log
+smoke	Smoke Tests	2026-04-23T23:43:38.3274540Z out: ERRO: Smoke tests falharam. Iniciando rollback completo (banco + containers)...
+smoke	Smoke Tests	2026-04-23T23:43:38.3276153Z out: Restaurando snapshot do banco beta a partir de /tmp/mesas-beta-predeploy-24863641138.dump
+smoke	Smoke Tests	2026-04-23T23:43:40.2673972Z err:  Container mesas-beta-db  Recreate
+smoke	Smoke Tests	2026-04-23T23:43:40.5595716Z err:  Container mesas-beta-db  Recreated
+smoke	Smoke Tests	2026-04-23T23:43:40.5596363Z err:  Container mesas-beta-api  Recreate
+smoke	Smoke Tests	2026-04-23T23:43:50.8138099Z err:  Container mesas-beta-api  Recreated
+smoke	Smoke Tests	2026-04-23T23:43:50.8138806Z err:  Container mesas-beta-frontend  Recreate
+smoke	Smoke Tests	2026-04-23T23:43:51.0073955Z err:  Container mesas-beta-frontend  Recreated
+...
+smoke	Smoke Tests	2026-04-23T23:44:12.1997554Z 2026/04/23 23:44:12 Process exited with status 1
+smoke	Smoke Tests	2026-04-23T23:44:12.1998877Z out: Rollback completo concluído com sucesso. Workflow será marcado como falha para alerta operacional.
+``
+
+**Estado dos Containers Após o Rollback:**
+``bash
+NAME                  IMAGE                            COMMAND                  SERVICE               CREATED          STATUS                    PORTS
+mesas-beta-api        mesas-beta-mesas-beta-api        "docker-entrypoint.s…"   mesas-beta-api        59 seconds ago   Up 37 seconds (healthy)   3000/tcp
+mesas-beta-db         postgres:16-alpine               "docker-entrypoint.s…"   mesas-beta-db         59 seconds ago   Up 48 seconds (healthy)   5432/tcp
+mesas-beta-frontend   mesas-beta-mesas-beta-frontend   "/docker-entrypoint.…"   mesas-beta-frontend   49 seconds ago   Up 37 seconds (healthy)   80/tcp
+``
+
+**Conclusão da T034:** O teste provou categoricamente que falhas estruturais críticas no runtime/deploy ativam o freio de segurança (E150), restaurando a integridade da aplicação e sinalizando o CI/CD adequadamente, fechando assim a Phase 5 com sucesso e sem resíduos.
