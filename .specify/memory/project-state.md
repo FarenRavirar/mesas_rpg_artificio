@@ -1,7 +1,7 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-04-23T24:15:00-03:00  
-**Atualizado por:** conclusão manual da Phase 6 (Validação Off-Happy-Path) na sessão 26-04-23_3
+**Última atualização:** 2026-04-24T10:55:00-03:00  
+**Atualizado por:** sessão 26-04-24_1 (fix bug-ux covil)
 ---
 
 ## Ambientes
@@ -18,8 +18,8 @@
 **Branch ativa:** `dev`  
 **Último commit:** `77e971e` — chore: adiciona configuração de testes e atualiza dependências
 
-**Feature ativa:** `specs/003-auditoria-workflows-actions/`  
-**Sessão ativa:** `sessoes/26-04-23_3_auditoria-workflows-github-actions-phase6.md`
+**Feature ativa:** `specs/bug-ux-covil/`  
+**Sessão ativa:** `sessoes/26-04-24_1_fix-covil.md`
 
 **Progresso da feature 003 (24/04/2026 00:15 BRT):**
 - `/speckit.specify` concluído: `spec.md` gerado com FR-001..FR-012 e SC-001..SC-005
@@ -54,7 +54,16 @@
   - Evidências consolidadas documentando `failure` bloqueante em shellcheck, migrations gate e preflight
   - Prova de isolamento entre deploys de Beta vs Produção via modelo opt-in (`workflow_dispatch`)
 - **Phase 7 (Finalização e Fechamento) concluída:** Relatório final (`audit-report.md`) e `pr-description.md` gerados. Tarefas T042-T045 concluídas.
-- **Próxima ação:** Preparar deploy de `dev` para `main` (Produção).
+- **Investigação forense da promoção concluída:** causa da falha `fatal: ambiguous argument 'v1.2.3'` confirmada no run `24867211797` (job `release`, step `Montar resumo executivo`).
+- **Patch mínimo aplicado em produção pipeline:** `.github/workflows/promote-to-prod.yml` atualizado para usar `TARGET_REF` com fallback em `origin/main` quando `${VERSION}` não existe como revisão Git no runner.
+- **Validação local pós-patch:** sintaxe YAML do workflow validada (`YAML_PARSE_OK`) e cálculo de range validado sem erro de revisão ambígua.
+
+**Progresso Bugfix-UX (Covil e Placeholders):**
+- `/speckit.bugfix.report` concluído: Gerados os reports e mapeados para o E157.
+- `/speckit.bugfix.patch` concluído: Diagnóstico executado e artefatos de plan e tasks atualizados.
+- Implementação concluída: `gmPanel.ts` e `TableCardDashboard.tsx` atualizados para propagar as flags e a capa corretamente.
+- `/speckit.validate` concluído: Relatório de validação (validation-report.md) gerado com status PASS, garantindo cobertura de 100% dos requisitos.
+- **Próxima ação:** Deploy para Beta.
 
 ---
 
@@ -71,15 +80,16 @@
 
 ## Features Ativas
 
-**Total de features:** 15 diretórios em `.specify/features/`
+**Total de features:** 16 diretórios em `.specify/features/`
 
 **Condição atual dos artefatos:**
-- `spec.md`: 15/15 presentes
-- `tasks.md`: 15/15 presentes
-- `plan.md`: 15/15 presentes (**0 pendências**)
+- `spec.md`: 16/16 presentes
+- `tasks.md`: 15/16 presentes
+- `plan.md`: 15/16 presentes (**0 pendências**)
 
 | Feature | Tasks Concluídas | Plan.md | Status |
 |---|---|---|---|
+| bug-ux-covil | 3/3 (100%) | ✅ | Validado |
 | deb-01 | 0/3 (0%) | ✅ | Pendente |
 | deb-02 | 0/6 (0%) | ✅ | Pendente |
 | deb-03 | 0/6 (0%) | ✅ | Pendente |
@@ -96,15 +106,20 @@
 | req-29 | 0/8 (0%) | ✅ | Pendente |
 | req-orphan | 0/15 (0%) | ✅ | Pendente |
 
-**Feature com maior GUT pendente:** ops-08 (GUT 100, 0% concluído)
+**Feature com maior GUT pendente:** ops-08 (GUT 100, 0% concluído) e bug-ux-covil (GUT 100).
 
 ---
 
 ## Próxima Ação
 
+**Bugfix UX (Covil e Placeholders):**
+1. ✅ **Concluído:** Diagnóstico, patch, implementação e validação (`/speckit.validate`) do bugfix Covil/Placeholders finalizados.
+2. **Próximo passo:** Realizar deploy para o ambiente Beta e atestar que os cards exibem as mudanças em runtime.
+
 **Feature 003 — Auditoria de Workflows GitHub Actions:**
 1. ✅ **Concluído:** A auditoria dos workflows (Feature 003) alcançou 100% de integridade com a erradicação do vazamento documental (Phase 7 concluída).
 2. O branch `dev` está completamente blindado e validado off-happy-path.
+3. **Próximo passo imediato:** Executar novo `workflow_dispatch` de `promote-to-prod.yml` para validar job `release` GREEN.e blindado e validado off-happy-path.
 3. **Próximo passo imediato:** Iniciar preparação e execução do deploy para Produção (`dev` → `main`) seguindo rigorosamente as diretrizes.
 
 **Artefatos da Phase 4:**

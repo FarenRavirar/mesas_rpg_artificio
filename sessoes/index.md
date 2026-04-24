@@ -1,6 +1,6 @@
 # Índice de Sessões
 
-Última atualização: 23/04/2026 09:14 BRT
+Última atualização: 23/04/2026 22:54 BRT
 
 ---
 
@@ -170,26 +170,38 @@
 | 19 | `encerradas/26-04-22_19_check-doctor-inicial.md` |
 | 20 | `encerradas/26-04-22_20_regularizacao-plan-features.md` |
 | 21 | `encerradas/26-04-22_21_check-migracao-v4-errors.md` |
-| 22 | `26-04-22_22_verificacao-arquiteture-v5.md` |
+| 22 | `encerradas/26-04-22_22_verificacao-arquiteture-v5.md` |
 | aux-1 | `encerradas/fase8-validacao-workflows.md` |
 | aux-2 | `encerradas/prompt_sessao_selos.md` |
 
 ---
 
-## 23/04/2026 (4 sessões)
+## 23/04/2026 (7 sessões)
 
 | # | Arquivo |
 |---|---|
 | 1 | `encerradas/26-04-23_1_auditoria-workflows-github-actions.md` |
 | 2 | `encerradas/26-04-23_2_auditoria-workflows-github-actions.md` |
-| 3 | `26-04-23_3_auditoria-workflows-github-actions-phase6.md` |
-| 4 | `26-04-23_4_auditoria-redundancia-workflows.md` |
+| 3 | `encerradas/26-04-23_3_auditoria-workflows-github-actions-phase6.md` |
+| 4 | `encerradas/26-04-23_4_auditoria-redundancia-workflows.md` |
+| 5 | `encerradas/26-04-23_5_promocao-dev-main-feature003.md` |
+| 6 | `encerradas/26-04-23_6_investigacao-forense-promocao-producao.md` |
+| 7 | `encerradas/26-04-23_7_registro-bugs-ux.md` |
+| 8 | `encerradas/26-04-23_1_verificacao_arquiteture_mapa_de_api.md` |
+
+---
+
+## 24/04/2026 (1 sessão)
+
+| # | Arquivo |
+|---|---|
+| 1 | `26-04-24_1_fix-covil.md` |
 
 ---
 
 ## Sessão Mais Recente
 
-`26-04-23_4_auditoria-redundancia-workflows.md`
+`26-04-24_1_fix-covil.md`
 
 ---
 
@@ -205,4 +217,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-04-23_5_*`
+**Próxima sessão:** `26-04-24_2_*`

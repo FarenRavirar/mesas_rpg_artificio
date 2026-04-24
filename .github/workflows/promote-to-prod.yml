@@ -372,11 +372,16 @@ jobs:
         run: |
           set -euo pipefail
 
+          TARGET_REF="origin/main"
+          if git rev-parse --verify "${VERSION}" >/dev/null 2>&1; then
+            TARGET_REF="${VERSION}"
+          fi
+
           if [ -n "${PREVIOUS_TAG}" ]; then
-            RANGE="${PREVIOUS_TAG}..${VERSION}"
-            git diff --name-only "${PREVIOUS_TAG}" "${VERSION}" > changed_files.txt
+            RANGE="${PREVIOUS_TAG}..${TARGET_REF}"
+            git diff --name-only "${PREVIOUS_TAG}" "${TARGET_REF}" > changed_files.txt
           else
-            RANGE="${VERSION}"
+            RANGE="${TARGET_REF}"
             : > changed_files.txt
           fi
 
