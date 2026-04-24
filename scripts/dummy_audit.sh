@@ -1,4 +1,5 @@
 #!/bin/bash
-# Script temporário para induzir erro de shellcheck (SC2086)
-VAR="valor"
-echo $VAR
+# Script com erro de sintaxe gravíssimo para forçar falha no Shellcheck
+if [ 1 -eq 1 ]; then
+  echo "oi"
+# Cadê o fi?
