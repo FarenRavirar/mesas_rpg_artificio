@@ -47,7 +47,8 @@ services:
     networks:
       - gerenciador_telegram_default
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
+      - PROD_DB_URL=${PROD_DB_URL}
       - APP_ENV=beta
       - PORT=3000
       - DB_HOST=mesas-beta-db
