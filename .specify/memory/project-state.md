@@ -1,7 +1,7 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-04-24T10:55:00-03:00  
-**Atualizado por:** sessão 26-04-24_1 (fix bug-ux covil)
+**Última atualização:** 2026-04-25T19:30:00-03:00  
+**Atualizado por:** sessão 26-04-25_3_fix-mismatch-userid
 ---
 
 ## Ambientes
@@ -65,6 +65,12 @@
 - `/speckit.validate` concluído: Relatório de validação (validation-report.md) gerado com status PASS, garantindo cobertura de 100% dos requisitos.
 - **Próxima ação:** Deploy para Beta.
 
+**Progresso Hidratação Beta (25/04/2026):**
+- Sessão `26-04-25_2_hidratacao-arquitetural-completa`: 3 commits (03db4f3, 7cac9ab, a0cb459) — lazy-load em prod.ts, workflow injeta PROD_DB_URL via secret, compose com placeholder + reconcilia NODE_ENV. Resolve E160.
+- Sessão `26-04-25_3_fix-mismatch-userid`: 4 commits (201eb11, bc74176, 9ab498d, aac9274) — fix userId/id, ajuste ON CONFLICT em auth_providers/user_systems, log de debug temporário, case dedicado para player_profiles. Resolve E161, E162, E163.
+- Bug arquitetural pendente E164: IDs divergentes prod vs beta causam FK violation + transaction abortada (25P02). Decisão: refatorar para arquitetura semântica via JSON intermediário em sessão futura.
+- Estado runtime: container mesas-beta-api saudável; site no ar; endpoint /api/v1/admin/sync/hydrate retorna 500 quando admin clica "Executar sincronização" (bloqueio E164).
+
 ---
 
 ## Migrations
@@ -122,6 +128,11 @@
 3. **Próximo passo imediato:** Executar novo `workflow_dispatch` de `promote-to-prod.yml` para validar job `release` GREEN.e blindado e validado off-happy-path.
 3. **Próximo passo imediato:** Iniciar preparação e execução do deploy para Produção (`dev` → `main`) seguindo rigorosamente as diretrizes.
 
+**Hidratação Beta (Refatoração Semântica via JSON):**
+1. ✅ **Concluído:** Resolução de E160-E163 (infraestrutura, auth, ON CONFLICT, schema).
+2. **Próximo passo:** Abrir nova sessão para refatorar `backend/src/routes/adminHydration.ts` para arquitetura semântica via JSON. Decisão arquitetural: import por slug/email em vez de id direto. Permite reuso futuro pra import via Discord bot.
+3. **Critério de início:** Sessão nova com plano completo (export → JSON intermediário → import semântico).
+
 **Artefatos da Phase 4:**
 - 5 planos de ação em `specs/003-auditoria-workflows-actions/audit/action-*.md`
 - Plano consolidado: 1 CRITICAL, 3 HIGH, 1 MEDIUM
@@ -145,7 +156,7 @@
 ## Bloqueios Ativos
 
 **Bloqueios/pendências ativos:**
-- Nenhum.
+- E164 (hidratação beta): IDs divergentes prod vs beta + transaction abortada após FK violation. Endpoint /api/v1/admin/sync/hydrate retorna 500. Decisão: refatoração arquitetural via JSON em sessão futura.
 
 
 ---
