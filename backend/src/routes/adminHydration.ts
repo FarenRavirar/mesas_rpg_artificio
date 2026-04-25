@@ -136,7 +136,6 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
 
             let result: any;
 
-            console.log(`[HYDRATE-DEBUG] processando tabela=${tableName} record_id=${(record as any).id ?? 'no_id'}`);
             switch (tableName) {
               // 1) CATÁLOGO (ON CONFLICT slug/url/composite DO UPDATE)
               case 'systems':
@@ -257,7 +256,6 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
               // 4 e 5) IDENTIDADE e INTERAÇÕES (ON CONFLICT id/PK DO NOTHING)
               case 'users':
               case 'profiles':
-              case 'player_profiles':
               case 'gm_profiles':
               case 'user_preferences':
               case 'user_links':
@@ -268,6 +266,14 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
                   .values(safeRecord)
                   .onConflict((oc) => oc.column('id').doNothing())
                   .returning(['id', sql<string>`xmax`.as('xmax')])
+                  .executeTakeFirst();
+                break;
+
+              case 'player_profiles':
+                result = await trx.insertInto(tableName as any)
+                  .values(safeRecord)
+                  .onConflict((oc) => oc.column('user_id').doNothing())
+                  .returning(['user_id', sql<string>`xmax`.as('xmax')])
                   .executeTakeFirst();
                 break;
 
@@ -315,7 +321,6 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
               updated++;
             }
           } catch (e: any) {
-            console.error(`[HYDRATE-DEBUG] erro em tabela=${tableName} record=${JSON.stringify(record).substring(0, 200)}`);
             // T009/spec: Se der erro de FK por estar órfão, apenas ignora
             if (e.code === '23503') { // foreign_key_violation
               console.warn(`[Hydration] FK violation: tabela=${tableName} id=${record.id}`, {
