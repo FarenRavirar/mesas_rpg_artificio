@@ -273,7 +273,7 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
               case 'auth_providers':
                 result = await trx.insertInto(tableName as any)
                   .values(safeRecord)
-                  .onConflict((oc) => oc.columns(['provider', 'provider_user_id']).doNothing())
+                  .onConflict((oc) => oc.column('id').doNothing())
                   .returning(['id', sql<string>`xmax`.as('xmax')])
                   .executeTakeFirst();
                 break;
@@ -281,7 +281,7 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
               case 'user_systems':
                 result = await trx.insertInto(tableName as any)
                   .values(safeRecord)
-                  .onConflict((oc) => oc.columns(['user_id', 'system_id', 'type']).doNothing())
+                  .onConflict((oc) => oc.column('id').doNothing())
                   .returning(['id', sql<string>`xmax`.as('xmax')])
                   .executeTakeFirst();
                 break;
