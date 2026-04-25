@@ -40,7 +40,7 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
   console.log('[HYDRATE-DEBUG] req.user:', JSON.stringify((req as any).user));
   console.log('[HYDRATE-DEBUG] authHeader:', req.headers.authorization?.substring(0, 30));
   const userRole = (req as any).user?.role;
-  const userId = (req as any).user?.id;
+  const userId = (req as any).user?.userId;
   
   if (!userId || userRole !== 'admin') {
     return res.status(403).json({ error: 'Acesso restrito a administradores.' });
