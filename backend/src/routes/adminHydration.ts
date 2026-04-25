@@ -121,7 +121,6 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
               rawSafeRecord.url = 'https://dummy.link';
             }
 
-<<<<<<< Updated upstream
             const allowedFields = SYNC_FIELDS[tableName];
             if (!allowedFields) {
               console.warn(`[Hydration] Tabela ${tableName} sem allowlist definida — pulando`);
@@ -131,16 +130,9 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
               Object.entries(rawSafeRecord).filter(([key]) => allowedFields.includes(key))
             );
 
-            // Busca no DB local (Beta) para checar se existe e comparar
-            const existingRecord = await trx.selectFrom(tableName as any)
-              .selectAll()
-              .where('id', '=', record.id)
-              .executeTakeFirst();
-=======
             const updateObj = { ...safeRecord };
             delete updateObj.id;
             delete updateObj.created_at;
->>>>>>> Stashed changes
 
             let result: any;
 
@@ -319,24 +311,7 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
             } else if (result.xmax === '0') {
               inserted++;
             } else {
-<<<<<<< Updated upstream
-              // UPDATE (só se diferente)
-              // Comparação básica JSON com ordering
-              const sortedExisting = JSON.stringify(existingRecord, Object.keys(existingRecord).sort());
-              const sortedSafe = JSON.stringify(safeRecord, Object.keys(safeRecord).sort());
-              const isEqual = sortedExisting === sortedSafe;
-              if (!isEqual) {
-                await trx.updateTable(tableName as any)
-                  .set(safeRecord)
-                  .where('id', '=', record.id)
-                  .execute();
-                updated++;
-              } else {
-                ignored++;
-              }
-=======
               updated++;
->>>>>>> Stashed changes
             }
           } catch (e: any) {
             // T009/spec: Se der erro de FK por estar órfão, apenas ignora
