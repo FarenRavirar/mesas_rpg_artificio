@@ -136,6 +136,7 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
 
             let result: any;
 
+            console.log(`[HYDRATE-DEBUG] processando tabela=${tableName} record_id=${(record as any).id ?? 'no_id'}`);
             switch (tableName) {
               // 1) CATÁLOGO (ON CONFLICT slug/url/composite DO UPDATE)
               case 'systems':
@@ -314,6 +315,7 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
               updated++;
             }
           } catch (e: any) {
+            console.error(`[HYDRATE-DEBUG] erro em tabela=${tableName} record=${JSON.stringify(record).substring(0, 200)}`);
             // T009/spec: Se der erro de FK por estar órfão, apenas ignora
             if (e.code === '23503') { // foreign_key_violation
               console.warn(`[Hydration] FK violation: tabela=${tableName} id=${record.id}`, {
