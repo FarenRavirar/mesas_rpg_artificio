@@ -37,6 +37,8 @@ const router = Router();
 // T004: Middleware de proteção
 // T005: Safety gate de ambiente
 router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response) => {
+  console.log('[HYDRATE-DEBUG] req.user:', JSON.stringify((req as any).user));
+  console.log('[HYDRATE-DEBUG] authHeader:', req.headers.authorization?.substring(0, 30));
   const userRole = (req as any).user?.role;
   const userId = (req as any).user?.id;
   
@@ -119,6 +121,7 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
               rawSafeRecord.url = 'https://dummy.link';
             }
 
+<<<<<<< Updated upstream
             const allowedFields = SYNC_FIELDS[tableName];
             if (!allowedFields) {
               console.warn(`[Hydration] Tabela ${tableName} sem allowlist definida — pulando`);
@@ -133,12 +136,190 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
               .selectAll()
               .where('id', '=', record.id)
               .executeTakeFirst();
+=======
+            const updateObj = { ...safeRecord };
+            delete updateObj.id;
+            delete updateObj.created_at;
+>>>>>>> Stashed changes
 
-            if (!existingRecord) {
-              // INSERT
-              await trx.insertInto(tableName as any).values(safeRecord).execute();
+            let result: any;
+
+            switch (tableName) {
+              // 1) CATÁLOGO (ON CONFLICT slug/url/composite DO UPDATE)
+              case 'systems':
+              case 'scenarios':
+              case 'platforms':
+              case 'tags':
+              case 'vtt_platforms':
+              case 'communication_platforms':
+                delete updateObj.slug;
+                result = await trx.insertInto(tableName as any)
+                  .values(safeRecord)
+                  .onConflict((oc) => oc.column('slug').doUpdateSet(updateObj))
+                  .returning(['id', sql<string>`xmax`.as('xmax')])
+                  .executeTakeFirst();
+                break;
+                
+              case 'sources':
+                delete updateObj.url;
+                result = await trx.insertInto(tableName as any)
+                  .values(safeRecord)
+                  .onConflict((oc) => oc.column('url').doUpdateSet(updateObj))
+                  .returning(['id', sql<string>`xmax`.as('xmax')])
+                  .executeTakeFirst();
+                break;
+
+              case 'scenario_aliases':
+                delete updateObj.alias_slug;
+                delete updateObj.scenario_id;
+                result = await trx.insertInto(tableName as any)
+                  .values(safeRecord)
+                  .onConflict((oc) => oc.columns(['scenario_id', 'alias_slug']).doUpdateSet(updateObj))
+                  .returning(['id', sql<string>`xmax`.as('xmax')])
+                  .executeTakeFirst();
+                break;
+
+              case 'system_aliases':
+                delete updateObj.alias_slug;
+                delete updateObj.system_id;
+                result = await trx.insertInto(tableName as any)
+                  .values(safeRecord)
+                  .onConflict((oc) => oc.columns(['system_id', 'alias_slug']).doUpdateSet(updateObj))
+                  .returning(['id', sql<string>`xmax`.as('xmax')])
+                  .executeTakeFirst();
+                break;
+
+              case 'setting_style_suggestions':
+                delete updateObj.setting_name;
+                result = await trx.insertInto(tableName as any)
+                  .values(safeRecord)
+                  .onConflict((oc) => oc.column('setting_name').doUpdateSet(updateObj))
+                  .returning(['id', sql<string>`xmax`.as('xmax')])
+                  .executeTakeFirst();
+                break;
+
+              // 2) SUGGESTIONS (ON CONFLICT id DO NOTHING)
+              case 'vtt_platform_suggestions':
+              case 'scenario_suggestions':
+              case 'system_suggestions':
+                result = await trx.insertInto(tableName as any)
+                  .values(safeRecord)
+                  .onConflict((oc) => oc.column('id').doNothing())
+                  .returning(['id', sql<string>`xmax`.as('xmax')])
+                  .executeTakeFirst();
+                break;
+
+              // 3) MESAS (ON CONFLICT id DO UPDATE)
+              case 'tables':
+              case 'table_contacts':
+              case 'table_schedules':
+              case 'table_history':
+              case 'imported_tables':
+              case 'table_metrics':
+              case 'table_interests':
+                result = await trx.insertInto(tableName as any)
+                  .values(safeRecord)
+                  .onConflict((oc) => oc.column('id').doUpdateSet(updateObj))
+                  .returning(['id', sql<string>`xmax`.as('xmax')])
+                  .executeTakeFirst();
+                break;
+
+              // MESAS - COMPOSTAS (ON CONFLICT PK DO UPDATE/NOTHING)
+              case 'table_platforms':
+                delete updateObj.table_id;
+                delete updateObj.platform_id;
+                if (Object.keys(updateObj).length > 0) {
+                  result = await trx.insertInto(tableName as any)
+                    .values(safeRecord)
+                    .onConflict((oc) => oc.columns(['table_id', 'platform_id']).doUpdateSet(updateObj))
+                    .returning(['table_id', sql<string>`xmax`.as('xmax')])
+                    .executeTakeFirst();
+                } else {
+                  result = await trx.insertInto(tableName as any)
+                    .values(safeRecord)
+                    .onConflict((oc) => oc.columns(['table_id', 'platform_id']).doNothing())
+                    .returning(['table_id', sql<string>`xmax`.as('xmax')])
+                    .executeTakeFirst();
+                }
+                break;
+
+              case 'table_tags':
+                delete updateObj.table_id;
+                delete updateObj.tag_id;
+                if (Object.keys(updateObj).length > 0) {
+                  result = await trx.insertInto(tableName as any)
+                    .values(safeRecord)
+                    .onConflict((oc) => oc.columns(['table_id', 'tag_id']).doUpdateSet(updateObj))
+                    .returning(['table_id', sql<string>`xmax`.as('xmax')])
+                    .executeTakeFirst();
+                } else {
+                  result = await trx.insertInto(tableName as any)
+                    .values(safeRecord)
+                    .onConflict((oc) => oc.columns(['table_id', 'tag_id']).doNothing())
+                    .returning(['table_id', sql<string>`xmax`.as('xmax')])
+                    .executeTakeFirst();
+                }
+                break;
+
+              // 4 e 5) IDENTIDADE e INTERAÇÕES (ON CONFLICT id/PK DO NOTHING)
+              case 'users':
+              case 'profiles':
+              case 'player_profiles':
+              case 'gm_profiles':
+              case 'user_preferences':
+              case 'user_links':
+              case 'gm_profile_metrics':
+              case 'questions':
+              case 'answers':
+                result = await trx.insertInto(tableName as any)
+                  .values(safeRecord)
+                  .onConflict((oc) => oc.column('id').doNothing())
+                  .returning(['id', sql<string>`xmax`.as('xmax')])
+                  .executeTakeFirst();
+                break;
+
+              case 'auth_providers':
+                result = await trx.insertInto(tableName as any)
+                  .values(safeRecord)
+                  .onConflict((oc) => oc.columns(['provider', 'provider_user_id']).doNothing())
+                  .returning(['id', sql<string>`xmax`.as('xmax')])
+                  .executeTakeFirst();
+                break;
+
+              case 'user_systems':
+                result = await trx.insertInto(tableName as any)
+                  .values(safeRecord)
+                  .onConflict((oc) => oc.columns(['user_id', 'system_id', 'type']).doNothing())
+                  .returning(['id', sql<string>`xmax`.as('xmax')])
+                  .executeTakeFirst();
+                break;
+
+              case 'bookmarks':
+                result = await trx.insertInto(tableName as any)
+                  .values(safeRecord)
+                  .onConflict((oc) => oc.columns(['user_id', 'table_id']).doNothing())
+                  .returning(['user_id', sql<string>`xmax`.as('xmax')])
+                  .executeTakeFirst();
+                break;
+
+              case 'reviews':
+                result = await trx.insertInto(tableName as any)
+                  .values(safeRecord)
+                  .onConflict((oc) => oc.columns(['table_id', 'user_id']).doNothing())
+                  .returning(['id', sql<string>`xmax`.as('xmax')])
+                  .executeTakeFirst();
+                break;
+
+              default:
+                throw new Error(`Tabela ${tableName} não tem estratégia de hidratação definida no switch`);
+            }
+
+            if (!result) {
+              ignored++;
+            } else if (result.xmax === '0') {
               inserted++;
             } else {
+<<<<<<< Updated upstream
               // UPDATE (só se diferente)
               // Comparação básica JSON com ordering
               const sortedExisting = JSON.stringify(existingRecord, Object.keys(existingRecord).sort());
@@ -153,6 +334,9 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
               } else {
                 ignored++;
               }
+=======
+              updated++;
+>>>>>>> Stashed changes
             }
           } catch (e: any) {
             // T009/spec: Se der erro de FK por estar órfão, apenas ignora
