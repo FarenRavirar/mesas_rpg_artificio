@@ -80,8 +80,28 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
       ] as const;
 
       for (const tableName of tablesToSync) {
-        // Obter registros de Prod
-        const prodRecords = await prodDb.selectFrom(tableName as any).selectAll().execute();
+        // Obter registros de Prod com identificadores semânticos para FKs
+        let prodRecords: any[];
+        
+        if (tableName === 'tables') {
+          // T003-T006: Export com LEFT JOINs para capturar slugs das FKs
+          prodRecords = await prodDb
+            .selectFrom('tables')
+            .leftJoin('communication_platforms', 'tables.communication_platform_id', 'communication_platforms.id')
+            .leftJoin('vtt_platforms', 'tables.vtt_platform_id', 'vtt_platforms.id')
+            .leftJoin('systems', 'tables.system_id', 'systems.id')
+            .leftJoin('scenarios', 'tables.scenario_id', 'scenarios.id')
+            .selectAll('tables')
+            .select([
+              'communication_platforms.slug as communication_platform_slug',
+              'vtt_platforms.slug as vtt_platform_slug',
+              'systems.slug as system_slug',
+              'scenarios.slug as scenario_slug'
+            ])
+            .execute();
+        } else {
+          prodRecords = await prodDb.selectFrom(tableName as any).selectAll().execute();
+        }
         
         // T010: Contadores
         let candidates = prodRecords.length;
@@ -201,8 +221,96 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
                   .executeTakeFirst();
                 break;
 
-              // 3) MESAS (ON CONFLICT id DO UPDATE)
+              // 3) MESAS (ON CONFLICT id DO UPDATE) - COM RESOLUÇÃO SEMÂNTICA DE FKs
               case 'tables':
+                // T007-T010: Resolver FKs via subqueries por slug
+                const resolvedRecord: any = { ...safeRecord };
+                
+                // T007: Resolver communication_platform_id por slug
+                if (record.communication_platform_slug) {
+                  const cpResult = await trx
+                    .selectFrom('communication_platforms')
+                    .select('id')
+                    .where('slug', '=', record.communication_platform_slug)
+                    .executeTakeFirst();
+                  
+                  if (!cpResult) {
+                    // T011: FK órfã - skip com warning
+                    console.warn(`[Hydration] FK órfã: tabela=tables id=${record.id} communication_platform_slug=${record.communication_platform_slug}`);
+                    ignored++;
+                    continue;
+                  }
+                  resolvedRecord.communication_platform_id = cpResult.id;
+                }
+                
+                // T008: Resolver vtt_platform_id por slug
+                if (record.vtt_platform_slug) {
+                  const vttResult = await trx
+                    .selectFrom('vtt_platforms')
+                    .select('id')
+                    .where('slug', '=', record.vtt_platform_slug)
+                    .executeTakeFirst();
+                  
+                  if (!vttResult) {
+                    // T011: FK órfã - skip com warning
+                    console.warn(`[Hydration] FK órfã: tabela=tables id=${record.id} vtt_platform_slug=${record.vtt_platform_slug}`);
+                    ignored++;
+                    continue;
+                  }
+                  resolvedRecord.vtt_platform_id = vttResult.id;
+                }
+                
+                // T009: Resolver system_id por slug
+                if (record.system_slug) {
+                  const sysResult = await trx
+                    .selectFrom('systems')
+                    .select('id')
+                    .where('slug', '=', record.system_slug)
+                    .executeTakeFirst();
+                  
+                  if (!sysResult) {
+                    // T011: FK órfã - skip com warning
+                    console.warn(`[Hydration] FK órfã: tabela=tables id=${record.id} system_slug=${record.system_slug}`);
+                    ignored++;
+                    continue;
+                  }
+                  resolvedRecord.system_id = sysResult.id;
+                }
+                
+                // T010: Resolver scenario_id por slug
+                if (record.scenario_slug) {
+                  const scResult = await trx
+                    .selectFrom('scenarios')
+                    .select('id')
+                    .where('slug', '=', record.scenario_slug)
+                    .executeTakeFirst();
+                  
+                  if (!scResult) {
+                    // T011: FK órfã - skip com warning
+                    console.warn(`[Hydration] FK órfã: tabela=tables id=${record.id} scenario_slug=${record.scenario_slug}`);
+                    ignored++;
+                    continue;
+                  }
+                  resolvedRecord.scenario_id = scResult.id;
+                }
+                
+                // Remover campos de slug do registro final (não existem no schema)
+                delete resolvedRecord.communication_platform_slug;
+                delete resolvedRecord.vtt_platform_slug;
+                delete resolvedRecord.system_slug;
+                delete resolvedRecord.scenario_slug;
+                
+                const updateObjTables: any = { ...resolvedRecord };
+                delete updateObjTables.id;
+                delete updateObjTables.created_at;
+                
+                result = await trx.insertInto('tables')
+                  .values(resolvedRecord as any)
+                  .onConflict((oc) => oc.column('id').doUpdateSet(updateObjTables as any))
+                  .returning(['id', sql<string>`xmax`.as('xmax')])
+                  .executeTakeFirst();
+                break;
+                
               case 'table_contacts':
               case 'table_schedules':
               case 'table_history':
