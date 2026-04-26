@@ -130,8 +130,12 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
               rawSafeRecord.contact_methods = null;
             }
             if (tableName === 'table_contacts') {
-              rawSafeRecord.discord_server_url = 'https://discord.gg/dummy';
               rawSafeRecord.value = 'dummy_contact';
+              if (rawSafeRecord.channel === 'discord') {
+                rawSafeRecord.discord_server_url = 'https://discord.gg/dummy';
+              } else {
+                rawSafeRecord.discord_server_url = null;
+              }
             }
             if (tableName === 'profiles') {
               rawSafeRecord.display_name = `User_${record.id}`;
