@@ -25,7 +25,9 @@ Estes problemas afetam a experiência do mestre e a consistência visual do proj
 
 - **REQ-01 (Sincronização Covil do Lich):** O selo de "Covil do Lich" e "DDAL" deve ser exibido corretamente nos cards para as mesas com a flag correspondente ativada, refletindo o comportamento já testado e corrigido no código fonte, visível tanto em dev quanto em produção. *(Clarification: Corrigir a injeção de is_covil no payload do GM Panel para garantir que o front-end renderize o selo corretamente)*
 - **REQ-02 (Imagens no Painel do Mestre):** O card das mesas no painel do mestre (`TableCardDashboard`) deve renderizar a `banner_url` ou `avatar_url` reais quando existentes, sem recorrer indevidamente ao placeholder se a mesa possui capa válida no catálogo. *(Clarification: Alinhar o mapeamento de imagem do GM Panel para que consuma a mesma coluna validada do catálogo público, substituindo banner_url por cover_url se aplicável)*
+- **REQ-03 (Visibilidade de Badges Independente de Overlay):** Badges de certificação (Covil do Lich, DDAL) devem ser visíveis na página de detalhes da mesa (`/mesas/:slug`) independente do estado do overlay visual. O componente `TableHero` deve renderizar badges mesmo quando `showOverlay={false}`, ajustando apenas o posicionamento visual. *(Clarification: Desacoplar renderização de badges do bloco condicional de overlay para garantir visibilidade em todos os contextos de uso)*
 
+**Bugfix**: 2026-04-28 — [BUG-004] Adicionado REQ-03 para corrigir acoplamento indevido entre overlay e badges no TableHero.
 **Bugfix**: 2026-04-24 — [BUG-001, BUG-002] Adicionados clarifications pós-diagnóstico de implementation drift no backend.
 
 ---

@@ -1222,3 +1222,97 @@ Sempre garantir a consistência dos contratos das chaves do payload do JWT entre
 
 
 
+---
+
+## E165 - Badges não aparecem na página da mesa
+
+**Sintoma:**
+Selo "Covil do Lich" e badges DDAL não aparecem visualmente na página de detalhes da mesa (`/mesas/:slug`), apesar de:
+- Dados `is_covil = true` estarem corretos no banco de dados
+- Backend retornar `is_covil` corretamente na API
+- Mapper frontend transformar corretamente em `certifications.covil`
+- Utility `tableBadges.ts` gerar badge corretamente
+
+**Causa raiz confirmada (28/04/2026):**
+Acoplamento indevido entre overlay visual e badges no componente `TableHero`. O componente renderiza badges dentro do bloco condicional `{showOverlay && (...)}` (linhas 52-82). Quando `MesaPage` usa `showOverlay={false}` para ter banner limpo (apenas imagem), TODOS os badges são ocultados junto com o overlay.
+
+**Diagnóstico:**
+1. Verificar dados no banco:
+```bash
+ssh -F C:\projetos\config faren "docker exec mesas-beta-db psql -U admin -d mesas_rpg -c 'SELECT id, slug, title, is_covil FROM tables WHERE is_covil = true LIMIT 3;'"
+```
+
+2. Verificar resposta da API:
+```bash
+curl -s "https://mesasbeta.artificiorpg.com/api/v1/tables/<slug>" | grep -i "is_covil"
+```
+
+3. Inspecionar código:
+- `frontend/src/features/table/components/TableHero.tsx` linhas 52-82: badges dentro de `{showOverlay && (...)}`
+- `frontend/src/pages/MesaPage.tsx` linha 162: `<TableHero vm={vm} variant="full" showOverlay={false} />`
+
+**Solução validada (28/04/2026):**
+Desacoplar badges do overlay no `TableHero.tsx`:
+
+1. Renderizar badges SEMPRE, independente de `showOverlay`
+2. Ajustar posicionamento baseado no estado do overlay:
+   - `showOverlay={true}`: badges dentro do overlay (catálogo/home)
+   - `showOverlay={false}`: badges posicionados absolutamente no topo do hero (página de detalhes)
+
+**Implementação:**
+```tsx
+// TableHero.tsx - Estrutura corrigida
+export function TableHero({ vm, variant = 'full', showOverlay = true }: TableHeroProps) {
+  const badges = getTableBadges({
+    is_ddal: vm.certifications.ddal !== undefined,
+    is_covil: vm.certifications.covil !== undefined,
+  });
+
+  return (
+    <div className="relative rounded-2xl overflow-hidden">
+      <img src={vm.coverUrl || bannerPlaceholder} alt={vm.title} />
+      
+      {/* Badges sempre visíveis - posicionamento condicional */}
+      {!showOverlay && badges.length > 0 && (
+        <div className="absolute top-4 left-4 flex flex-wrap gap-2 z-10">
+          {badges.map((badge) => (
+            <span key={badge.id} className={getBadgeClasses(badge.color)}>
+              <badge.icon className="w-3.5 h-3.5" />
+              {badge.label}
+            </span>
+          ))}
+        </div>
+      )}
+      
+      {/* Overlay com badges integrados */}
+      {showOverlay && (
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent">
+          <div className="absolute bottom-0 left-0 p-6 w-full space-y-3">
+            <div className="flex flex-wrap gap-2">
+              {badges.map((badge) => (/* ... */))}
+            </div>
+            {/* ... resto do conteúdo ... */}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+**Arquivos afetados:**
+- `frontend/src/features/table/components/TableHero.tsx`
+- `frontend/src/pages/MesaPage.tsx` (contexto de uso)
+
+**Prevenção obrigatória:**
+1. Nunca acoplar informação crítica (badges, status, certificações) a elementos puramente visuais (overlays, gradientes)
+2. Sempre validar visibilidade de componentes em TODOS os contextos de uso (catálogo, home, página de detalhes)
+3. Marcar tasks como completas SOMENTE após validação visual em todos os contextos
+
+**Rastreabilidade SDD:**
+- Bug report: `BUG-004` em `.specify/features/bug-ux-covil/bugs/`
+- Spec: REQ-03 em `.specify/features/bug-ux-covil/spec.md`
+- Tasks: T007 (implementação), T008 (validação)
+
+**Data de catalogação:** 28/04/2026
+

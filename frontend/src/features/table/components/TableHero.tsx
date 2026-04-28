@@ -48,6 +48,24 @@ export function TableHero({ vm, variant = 'full', showOverlay = true }: TableHer
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
       )}
 
+      {/* CORREÇÃO BUG-004: Badges sempre visíveis - posicionamento condicional */}
+      {!showOverlay && badges.length > 0 && (
+        <div className="absolute top-4 left-4 flex flex-wrap gap-2 z-10">
+          {badges.map((badge) => {
+            const BadgeIcon = badge.icon;
+            return (
+              <span
+                key={badge.id}
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${getBadgeClasses(badge.color)}`}
+              >
+                <BadgeIcon className="w-3.5 h-3.5" />
+                {badge.label}
+              </span>
+            );
+          })}
+        </div>
+      )}
+
       {/* Content - Condicional */}
       {showOverlay && (
         <div className="absolute bottom-0 left-0 p-6 w-full space-y-3">
