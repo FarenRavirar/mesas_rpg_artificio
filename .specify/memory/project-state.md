@@ -1,7 +1,7 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-04-25T19:30:00-03:00  
-**Atualizado por:** sessão 26-04-25_3_fix-mismatch-userid
+**Última atualização:** 2026-04-28T12:06:00-03:00  
+**Atualizado por:** sessão 26-04-28_1_fix-publicacao-mesa-opcao
 ---
 
 ## Ambientes
@@ -16,10 +16,10 @@
 ## Estado Técnico Atual
 
 **Branch ativa:** `dev`  
-**Último commit:** `77e971e` — chore: adiciona configuração de testes e atualiza dependências
+**Último commit:** `79ca32a` — fix(create-table): normaliza price_type para enum backend
 
 **Feature ativa:** `specs/bug-ux-covil/`  
-**Sessão ativa:** `sessoes/26-04-24_1_fix-covil.md`
+**Sessão ativa:** `sessoes/26-04-28_1_fix-publicacao-mesa-opcao.md`
 
 **Progresso da feature 003 (24/04/2026 00:15 BRT):**
 - `/speckit.specify` concluído: `spec.md` gerado com FR-001..FR-012 e SC-001..SC-005
@@ -58,18 +58,17 @@
 - **Patch mínimo aplicado em produção pipeline:** `.github/workflows/promote-to-prod.yml` atualizado para usar `TARGET_REF` com fallback em `origin/main` quando `${VERSION}` não existe como revisão Git no runner.
 - **Validação local pós-patch:** sintaxe YAML do workflow validada (`YAML_PARSE_OK`) e cálculo de range validado sem erro de revisão ambígua.
 
-**Progresso Bugfix-UX (Covil e Placeholders):**
-- `/speckit.bugfix.report` concluído: Gerados os reports e mapeados para o E157.
-- `/speckit.bugfix.patch` concluído: Diagnóstico executado e artefatos de plan e tasks atualizados.
-- Implementação concluída: `gmPanel.ts` e `TableCardDashboard.tsx` atualizados para propagar as flags e a capa corretamente.
-- `/speckit.validate` concluído: Relatório de validação (validation-report.md) gerado com status PASS, garantindo cobertura de 100% dos requisitos.
-- **Próxima ação:** Deploy para Beta.
-
-**Progresso Hidratação Beta (25/04/2026):**
-- Sessão `26-04-25_2_hidratacao-arquitetural-completa`: 3 commits (03db4f3, 7cac9ab, a0cb459) — lazy-load em prod.ts, workflow injeta PROD_DB_URL via secret, compose com placeholder + reconcilia NODE_ENV. Resolve E160.
-- Sessão `26-04-25_3_fix-mismatch-userid`: 4 commits (201eb11, bc74176, 9ab498d, aac9274) — fix userId/id, ajuste ON CONFLICT em auth_providers/user_systems, log de debug temporário, case dedicado para player_profiles. Resolve E161, E162, E163.
-- Bug arquitetural pendente E164: IDs divergentes prod vs beta causam FK violation + transaction abortada (25P02). Decisão: refatorar para arquitetura semântica via JSON intermediário em sessão futura.
-- Estado runtime: container mesas-beta-api saudável; site no ar; endpoint /api/v1/admin/sync/hydrate retorna 500 quando admin clica "Executar sincronização" (bloqueio E164).
+**Progresso Bugfix-UX (Covil e Placeholders + BUG-003 price_type):**
+- `/speckit.bugfix.report` concluído para BUG-003 em `.specify/features/bug-ux-covil/bugs/BUG-003.md`.
+- `/speckit.bugfix.patch` concluído com atualização de `plan.md` e `tasks.md` (T004/T005/T006).
+- Implementação aplicada em `frontend/src/features/create-table/utils/mapper.ts` com normalização `free/paid` -> `gratuita/paga`.
+- `/speckit.bugfix.verify` concluído com consistência entre artefatos e código alterado.
+- **Validação global em beta concluída:**
+  - Infra VM: `mesas-beta-api`, `mesas-beta-frontend`, `mesas-beta-db` saudáveis.
+  - DB enum: `price_type` contém `gratuita`, `paga`.
+  - Runtime endpoint: `POST /api/v1/gm/tables` com `price_type="gratuita"` retornou `HTTP 201`, criando `id=98f9e6f1-97db-4b86-93aa-6de6471140fc`.
+- **Status atual:** Bugfix validado em dev/beta.
+- **Próxima ação:** executar retro/status de fechamento da sessão e manter monitoramento pós-correção no painel.
 
 ---
 
@@ -95,7 +94,7 @@
 
 | Feature | Tasks Concluídas | Plan.md | Status |
 |---|---|---|---|
-| bug-ux-covil | 3/3 (100%) | ✅ | Validado |
+| bug-ux-covil | 6/6 (100%) | ✅ | Validado (inclui BUG-003) |
 | deb-01 | 0/3 (0%) | ✅ | Pendente |
 | deb-02 | 0/6 (0%) | ✅ | Pendente |
 | deb-03 | 0/6 (0%) | ✅ | Pendente |
@@ -112,15 +111,15 @@
 | req-29 | 0/8 (0%) | ✅ | Pendente |
 | req-orphan | 0/15 (0%) | ✅ | Pendente |
 
-**Feature com maior GUT pendente:** ops-08 (GUT 100, 0% concluído) e bug-ux-covil (GUT 100).
+**Feature com maior GUT pendente:** ops-08 (GUT 100, 0% concluído).
 
 ---
 
 ## Próxima Ação
 
-**Bugfix UX (Covil e Placeholders):**
-1. ✅ **Concluído:** Diagnóstico, patch, implementação e validação (`/speckit.validate`) do bugfix Covil/Placeholders finalizados.
-2. **Próximo passo:** Realizar deploy para o ambiente Beta e atestar que os cards exibem as mudanças em runtime.
+**Bugfix UX (Covil/Placeholders/PriceType):**
+1. ✅ **Concluído:** Diagnóstico, patch, implementação, verify e validação global do BUG-003 em beta.
+2. **Próximo passo:** Encerrar formalmente a sessão com `/speckit.status` e `/speckit.retro.run`.
 
 **Feature 003 — Auditoria de Workflows GitHub Actions:**
 1. ✅ **Concluído:** A auditoria dos workflows (Feature 003) alcançou 100% de integridade com a erradicação do vazamento documental (Phase 7 concluída).

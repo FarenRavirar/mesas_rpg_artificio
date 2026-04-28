@@ -1,5 +1,6 @@
 import { getSlotsVisualState } from '../utils/slots';
 import { SystemBadge } from './SystemBadge';
+import { CertificationBadges } from './CertificationBadges';
 import bannerPlaceholder from '../assets/banner_placeholder.webp';
 
 interface TableMetrics {
@@ -93,16 +94,7 @@ export function TableCardDashboard({
         />
 
         <div className="absolute top-2 left-2 flex flex-wrap gap-1.5 z-10">
-          {table.is_covil && (
-            <span className="px-2 py-1 rounded-md text-[10px] font-black tracking-wide text-purple-100 bg-black/70 backdrop-blur-sm border border-purple-500/40">
-              👑 Covil do Lich
-            </span>
-          )}
-          {table.is_ddal && (
-            <span className="px-2 py-1 rounded-md text-[10px] font-black tracking-wide text-amber-100 bg-black/70 backdrop-blur-sm border border-amber-500/30">
-              🛡️ DDAL
-            </span>
-          )}
+          <CertificationBadges is_covil={table.is_covil} is_ddal={table.is_ddal} />
         </div>
 
         {(table.modality === 'online' || table.modality === 'hibrida') && table.vtt_platform?.logo_filename && (

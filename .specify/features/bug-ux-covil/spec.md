@@ -41,10 +41,16 @@ Estes problemas afetam a experiência do mestre e a consistência visual do proj
 
 ## Ações e Escopo Restrito
 
-Esta feature atua **exclusivamente** nestes escopos:
-1. `frontend/src/components/TableCard.tsx`
-2. `frontend/src/components/TableCardDashboard.tsx`
-3. `frontend/src/pages/PainelMestrePage.tsx`
-4. `backend/src/routes/gmPanel.ts`
+Esta feature atua **exclusivamente** nestes escopos reconciliados:
+1. `backend/src/routes/gmPanel.ts`
+2. `backend/src/routes/gm.ts`
+3. `frontend/src/components/TableCard.tsx`
+4. `frontend/src/components/TableCardDashboard.tsx`
+5. `frontend/src/components/CertificationBadges.tsx`
+6. `frontend/src/components/mestre/MestreFeaturedTable.tsx`
+7. `frontend/src/features/create-table/utils/mapper.ts`
+8. `frontend/src/features/create-table/hooks/useCreateTableForm.ts`
+9. `frontend/src/features/table/components/TableHero.tsx`
+10. `frontend/src/pages/PainelMestrePage.tsx`
 
 Nenhum outro escopo ou feature funcional será alterado.

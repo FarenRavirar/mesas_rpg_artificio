@@ -10,7 +10,11 @@ Esta alteração corrige o drift entre os componentes UI do mestre (`TableCardDa
 
 ## Escopo Modificado
 - `backend/src/routes/gmPanel.ts`
+- `backend/src/routes/gm.ts`
+- `frontend/src/components/TableCard.tsx`
 - `frontend/src/components/TableCardDashboard.tsx`
+- `frontend/src/components/CertificationBadges.tsx`
+- `frontend/src/components/mestre/MestreFeaturedTable.tsx`
 - `frontend/src/features/create-table/utils/mapper.ts`
 - `frontend/src/features/create-table/hooks/useCreateTableForm.ts`
 - `frontend/src/features/table/components/TableHero.tsx` (BUG-004)

@@ -84,6 +84,8 @@ Antes de declarar qualquer transição de estado, o agente DEVE colar no chat:
 - Output LITERAL (não resumido, não filtrado) da execução
 - Arquivos criados ou modificados listados por `git status`
 
+Regra específica de slash commands: é proibido marcar `[x]` em qualquer `/speckit.*` sem evidência explícita do procedimento executado (workflow/skill + atualizações documentais obrigatórias).
+
 Qualquer transição sem esses quatro itens é rejeitada pelo mantenedor.
 
 ### 9.3 Commits atômicos
