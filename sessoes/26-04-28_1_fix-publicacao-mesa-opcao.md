@@ -106,6 +106,7 @@
 - Branch local `005-runtime-workflows` apagada após constar em `git branch --merged dev`.
 - Stash temporário reaplicado e removido; deleções intencionais do mantenedor voltaram ao working tree em `dev`, sem stage.
 - Confirmação do mantenedor: deleções em `.cline/`, `.clinerules/`, `.cursorrules*`, scripts legados e `tmp/` são intencionais e devem ser sincronizadas no `dev` local como limpeza de arquivos de outros agentes.
+- Autorização explícita recebida para executar `git push origin dev`.
 
 ## Aprovação necessária — T016 atualização npm na VM
 - **Ação:** atualizar somente o npm global da VM de `10.9.7` para `11.13.0`, mantendo Node.js em `v22.22.2`.
