@@ -1,6 +1,6 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-04-28T12:06:00-03:00  
+**Última atualização:** 2026-04-28T18:21:21-03:00
 **Atualizado por:** sessão 26-04-28_1_fix-publicacao-mesa-opcao
 ---
 
@@ -15,10 +15,10 @@
 
 ## Estado Técnico Atual
 
-**Branch ativa:** `dev`  
+**Branch ativa:** `005-runtime-workflows`
 **Último commit:** `79ca32a` — fix(create-table): normaliza price_type para enum backend
 
-**Feature ativa:** `specs/bug-ux-covil/`  
+**Feature ativa:** `specs/005-runtime-workflows/`
 **Sessão ativa:** `sessoes/26-04-28_1_fix-publicacao-mesa-opcao.md`
 
 **Progresso da feature 003 (24/04/2026 00:15 BRT):**
@@ -120,6 +120,13 @@
 **Bugfix UX (Covil/Placeholders/PriceType):**
 1. ✅ **Concluído:** Diagnóstico, patch, implementação, verify e validação global do BUG-003 em beta.
 2. **Próximo passo:** Encerrar formalmente a sessão com `/speckit.status` e `/speckit.retro.run`.
+
+**Pacote operacional — Runtime e Workflows (novo):**
+1. ✅ **US1 concluída:** `mesas-cron` corrigido para executar scripts compilados (`node dist/scripts/*.js`) em produção; container recriado e validado `Up` por mais de 30 minutos, sem `ts-node: not found`.
+2. ✅ **US2 concluída:** Node.js mantido em `v22.22.2`; npm global da VM atualizado de `10.9.7` para `11.13.0`; serviços principais continuam saudáveis.
+3. ✅ **US3 concluída:** workflows `ci.yml`, `deploy-beta.yml`, `deploy-prod.yml` e `promote-to-prod.yml` revisados e alinhados com Node 22/npm/Docker; nenhuma divergência de runtime exigiu patch.
+4. **Estado operacional transitório:** `/opt/mesas/backend/package.json` foi atualizado diretamente na VM para validar o cron antes do commit/deploy formal; reconciliar via commit/deploy da branch antes de considerar o estado remoto limpo.
+5. **Próximo passo:** finalizar artefatos SDD da feature 005, busca final e preparar commit apenas quando o mantenedor autorizar a etapa de teste/commit.
 
 **Feature 003 — Auditoria de Workflows GitHub Actions:**
 1. ✅ **Concluído:** A auditoria dos workflows (Feature 003) alcançou 100% de integridade com a erradicação do vazamento documental (Phase 7 concluída).

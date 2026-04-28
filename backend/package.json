@@ -14,9 +14,12 @@
     "systems:import-json": "ts-node src/scripts/importSistemas.ts",
     "scenarios:import": "ts-node src/scripts/importCenarios.ts",
     "metrics:cleanup": "ts-node src/scripts/cleanupMetricEvents.ts",
-    "og:worker": "ts-node src/scripts/processLinkMetadataJobs.ts",
-    "og:cleanup": "ts-node src/scripts/cleanupLinkMetadataCache.ts",
-    "og:cron": "ts-node src/scripts/cronRunner.ts"
+    "og:worker": "node dist/scripts/processLinkMetadataJobs.js",
+    "og:cleanup": "node dist/scripts/cleanupLinkMetadataCache.js",
+    "og:cron": "node dist/scripts/cronRunner.js",
+    "og:worker:dev": "ts-node src/scripts/processLinkMetadataJobs.ts",
+    "og:cleanup:dev": "ts-node src/scripts/cleanupLinkMetadataCache.ts",
+    "og:cron:dev": "ts-node src/scripts/cronRunner.ts"
   },
   "keywords": [],
   "author": "",

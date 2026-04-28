@@ -472,6 +472,5 @@ Próximos Passos  — próximos passos objetivos e imediatos
 Toda comunicação em **português**. Nomes de arquivos, comandos, funções e identificadores de código permanecem no formato original.
 
 <!-- SPECKIT START -->
-For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan
+Current active plan: `specs/005-runtime-workflows/plan.md`.
 <!-- SPECKIT END -->
