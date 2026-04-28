@@ -1,7 +1,7 @@
 # Token Usage Report
 
-**Date:** 2026-04-22T14:25:00Z  
-**Target Context Window:** 200,000 tokens  
+**Date:** 2026-04-22T14:25:00Z
+**Target Context Window:** 200,000 tokens
 **Estimation Method:** chars ÷ 4.0 (configurable via `chars_per_token`)
 
 ---

@@ -1,8 +1,8 @@
 # Feature Specification: Pacote Operacional Runtime e Workflows
 
-**Feature Branch**: `005-runtime-workflows`  
-**Created**: 2026-04-28  
-**Status**: Draft  
+**Feature Branch**: `005-runtime-workflows`
+**Created**: 2026-04-28
+**Status**: Draft
 **Input**: User description: "Pacote operacional Runtime e Workflows, cobrindo: 1. revisão e correção do mesas-cron; 2. atualização do npm e Node.js; 3. revisão dos workflows"
 
 ## User Scenarios & Testing *(mandatory)*

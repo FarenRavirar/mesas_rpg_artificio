@@ -33,7 +33,7 @@ Review code changes and provide structured feedback with severity levels.
    ```bash
    # Get staged changes
    git diff --cached --name-only
-   
+
    # Get branch changes
    git diff main...HEAD --name-only
    ```
@@ -75,13 +75,13 @@ Review code changes and provide structured feedback with severity levels.
 6. **Generate Review Report**:
    ```markdown
    # Code Review Report
-   
+
    **Date**: [timestamp]
    **Scope**: [files reviewed]
    **Overall**: APPROVE | REQUEST CHANGES | NEEDS DISCUSSION
-   
+
    ## Summary
-   
+
    | Severity | Count |
    |----------|-------|
    | 🔴 Critical | X |
@@ -89,9 +89,9 @@ Review code changes and provide structured feedback with severity levels.
    | 🟡 Medium | X |
    | 🟢 Low | X |
    | 💡 Suggestions | X |
-   
+
    ## Findings
-   
+
    ### 🔴 CRITICAL: SQL Injection Risk
    **File**: `src/db/queries.ts:45`
    **Code**:
@@ -104,20 +104,20 @@ Review code changes and provide structured feedback with severity levels.
    const query = 'SELECT * FROM users WHERE id = $1';
    await db.query(query, [userId]);
    ```
-   
+
    ### 🟡 MEDIUM: Complex Function
    **File**: `src/auth/handler.ts:120`
    **Issue**: Function has cyclomatic complexity of 15
    **Suggestion**: Extract into smaller functions
-   
+
    ## What's Good
-   
+
    - Clear naming conventions
    - Good test coverage
    - Proper TypeScript types
-   
+
    ## Recommended Actions
-   
+
    1. **Must fix before merge**: [critical/high items]
    2. **Should address**: [medium items]
    3. **Consider for later**: [low/suggestions]

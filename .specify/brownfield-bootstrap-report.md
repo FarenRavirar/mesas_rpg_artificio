@@ -1,7 +1,7 @@
 # Bootstrap Complete — Mesas RPG Artifício
 
-**Command**: `/speckit.brownfield.bootstrap`  
-**Date**: 2026-04-22  
+**Command**: `/speckit.brownfield.bootstrap`
+**Date**: 2026-04-22
 **Profile Source**: `.specify/brownfield-project-profile.md`
 
 ---
@@ -226,10 +226,10 @@ New features created with `/speckit.specify` will now:
 
 ## Compliance
 
-✅ **Never overwrite without asking** — Constitution and AGENTS.md preserved  
-✅ **Derive from reality** — All changes based on detected codebase patterns  
-✅ **No invented conventions** — Only documented existing practices  
-✅ **Respect existing setup** — Merged improvements, didn't replace  
+✅ **Never overwrite without asking** — Constitution and AGENTS.md preserved
+✅ **Derive from reality** — All changes based on detected codebase patterns
+✅ **No invented conventions** — Only documented existing practices
+✅ **Respect existing setup** — Merged improvements, didn't replace
 ✅ **Module-aware** — Templates now reflect monorepo structure
 
 ---

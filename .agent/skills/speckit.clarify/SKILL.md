@@ -4,7 +4,7 @@ description: Identify underspecified areas in the current feature spec by asking
 version: 1.0.0
 depends-on:
   - speckit.specify
-handoffs: 
+handoffs:
   - label: Build Technical Plan
     agent: speckit.plan
     prompt: Create a plan for the spec. I am building with...

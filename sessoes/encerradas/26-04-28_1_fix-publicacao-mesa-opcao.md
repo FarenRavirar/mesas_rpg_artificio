@@ -1,6 +1,6 @@
 # 26-04-28_1_fix-publicacao-mesa-opcao.md
 
-**Data:** 28/04/2026  
+**Data:** 28/04/2026
 **Objetivo:** Corrigir bug 400 ao publicar mesa no painel (`Invalid option: expected one of "gratuita"|"paga"`) seguindo rotina completa de bugfix SDD.
 
 ## Vínculos
@@ -14,7 +14,7 @@
 4. [x] Executar `/speckit.bugfix.verify` (consistência entre artefatos).
 5. [x] Implementar correção mínima no código (frontend/backend/integrado, conforme causa).
 6. [x] Validar com evidências (comando, output literal, arquivos alterados).
-7. [ ] Atualizar `project-state.md` com status e próxima ação.
+7. [x] Atualizar `project-state.md` com status e próxima ação.
 8. [x] Executar validação global solicitada: frontend + backend + VM remota + banco (somente leitura) para garantir ausência de novos conflitos de contrato.
 
 ## O que precisa ser feito
@@ -207,7 +207,7 @@ time="2026-04-28T18:19:01-03:00" level=warning msg="The \"PROD_DB_URL\" variable
 ```text
 ssh -F C:/projetos/config faren 'cd /opt/mesas && docker logs --tail 40 mesas-cron 2>&1'
 [CronRunner] Executando: npm run og:worker às 2026-04-28T20:55:52.977Z
-[CronRunner] STDOUT (npm run og:worker): 
+[CronRunner] STDOUT (npm run og:worker):
 > backend@1.0.0 og:worker
 > node dist/scripts/processLinkMetadataJobs.js
 
@@ -215,7 +215,7 @@ ssh -F C:/projetos/config faren 'cd /opt/mesas && docker logs --tail 40 mesas-cr
 [MetadataWorker] Nenhum job pendente.
 
 [CronRunner] Executando: npm run og:worker às 2026-04-28T21:00:53.019Z
-[CronRunner] STDOUT (npm run og:worker): 
+[CronRunner] STDOUT (npm run og:worker):
 > backend@1.0.0 og:worker
 > node dist/scripts/processLinkMetadataJobs.js
 
@@ -223,7 +223,7 @@ ssh -F C:/projetos/config faren 'cd /opt/mesas && docker logs --tail 40 mesas-cr
 [MetadataWorker] Nenhum job pendente.
 
 [CronRunner] Executando: npm run og:worker às 2026-04-28T21:05:53.119Z
-[CronRunner] STDOUT (npm run og:worker): 
+[CronRunner] STDOUT (npm run og:worker):
 > backend@1.0.0 og:worker
 > node dist/scripts/processLinkMetadataJobs.js
 
@@ -231,7 +231,7 @@ ssh -F C:/projetos/config faren 'cd /opt/mesas && docker logs --tail 40 mesas-cr
 [MetadataWorker] Nenhum job pendente.
 
 [CronRunner] Executando: npm run og:worker às 2026-04-28T21:10:53.140Z
-[CronRunner] STDOUT (npm run og:worker): 
+[CronRunner] STDOUT (npm run og:worker):
 > backend@1.0.0 og:worker
 > node dist/scripts/processLinkMetadataJobs.js
 
@@ -239,7 +239,7 @@ ssh -F C:/projetos/config faren 'cd /opt/mesas && docker logs --tail 40 mesas-cr
 [MetadataWorker] Nenhum job pendente.
 
 [CronRunner] Executando: npm run og:worker às 2026-04-28T21:15:53.156Z
-[CronRunner] STDOUT (npm run og:worker): 
+[CronRunner] STDOUT (npm run og:worker):
 > backend@1.0.0 og:worker
 > node dist/scripts/processLinkMetadataJobs.js
 
@@ -498,14 +498,14 @@ mesas-cron   mesas-mesas-cron   "docker-entrypoint.s…"   mesas-cron   11 secon
 [CronRunner] Iniciado com sucesso. Agendamentos registrados.
 [CronRunner] Executando: npm run og:worker às 2026-04-28T20:15:52.416Z
 [CronRunner] Executando: npm run og:cleanup às 2026-04-28T20:15:52.422Z
-[CronRunner] STDOUT (npm run og:worker): 
+[CronRunner] STDOUT (npm run og:worker):
 > backend@1.0.0 og:worker
 > node dist/scripts/processLinkMetadataJobs.js
 
 [MetadataWorker] Acordando por gatilho...
 [MetadataWorker] Nenhum job pendente.
 
-[CronRunner] STDOUT (npm run og:cleanup): 
+[CronRunner] STDOUT (npm run og:cleanup):
 > backend@1.0.0 og:cleanup
 > node dist/scripts/cleanupLinkMetadataCache.js
 
@@ -566,7 +566,7 @@ mesas-cron   mesas-mesas-cron   "docker-entrypoint.s…"   mesas-cron   33 minut
 [MetadataWorker] Nenhum job pendente.
 
 [CronRunner] Executando: npm run og:worker às 2026-04-28T20:40:52.794Z
-[CronRunner] STDOUT (npm run og:worker): 
+[CronRunner] STDOUT (npm run og:worker):
 > backend@1.0.0 og:worker
 > node dist/scripts/processLinkMetadataJobs.js
 
@@ -574,7 +574,7 @@ mesas-cron   mesas-mesas-cron   "docker-entrypoint.s…"   mesas-cron   33 minut
 [MetadataWorker] Nenhum job pendente.
 
 [CronRunner] Executando: npm run og:worker às 2026-04-28T20:45:52.868Z
-[CronRunner] STDOUT (npm run og:worker): 
+[CronRunner] STDOUT (npm run og:worker):
 > backend@1.0.0 og:worker
 > node dist/scripts/processLinkMetadataJobs.js
 
@@ -596,14 +596,14 @@ mesas-cron   mesas-mesas-cron   "docker-entrypoint.s…"   mesas-cron   31 minut
 [CronRunner] Iniciado com sucesso. Agendamentos registrados.
 [CronRunner] Executando: npm run og:worker às 2026-04-28T20:15:52.416Z
 [CronRunner] Executando: npm run og:cleanup às 2026-04-28T20:15:52.422Z
-[CronRunner] STDOUT (npm run og:worker): 
+[CronRunner] STDOUT (npm run og:worker):
 > backend@1.0.0 og:worker
 > node dist/scripts/processLinkMetadataJobs.js
 
 [MetadataWorker] Acordando por gatilho...
 [MetadataWorker] Nenhum job pendente.
 
-[CronRunner] STDOUT (npm run og:cleanup): 
+[CronRunner] STDOUT (npm run og:cleanup):
 > backend@1.0.0 og:cleanup
 > node dist/scripts/cleanupLinkMetadataCache.js
 
@@ -612,7 +612,7 @@ mesas-cron   mesas-mesas-cron   "docker-entrypoint.s…"   mesas-cron   31 minut
 [MetadataCleanup] 0 links marcados para revalidação (> 60 dias obsoletos).
 
 [CronRunner] Executando: npm run og:worker às 2026-04-28T20:20:52.501Z
-[CronRunner] STDOUT (npm run og:worker): 
+[CronRunner] STDOUT (npm run og:worker):
 > backend@1.0.0 og:worker
 > node dist/scripts/processLinkMetadataJobs.js
 
@@ -620,7 +620,7 @@ mesas-cron   mesas-mesas-cron   "docker-entrypoint.s…"   mesas-cron   31 minut
 [MetadataWorker] Nenhum job pendente.
 
 [CronRunner] Executando: npm run og:worker às 2026-04-28T20:25:52.572Z
-[CronRunner] STDOUT (npm run og:worker): 
+[CronRunner] STDOUT (npm run og:worker):
 > backend@1.0.0 og:worker
 > node dist/scripts/processLinkMetadataJobs.js
 
@@ -628,7 +628,7 @@ mesas-cron   mesas-mesas-cron   "docker-entrypoint.s…"   mesas-cron   31 minut
 [MetadataWorker] Nenhum job pendente.
 
 [CronRunner] Executando: npm run og:worker às 2026-04-28T20:30:52.668Z
-[CronRunner] STDOUT (npm run og:worker): 
+[CronRunner] STDOUT (npm run og:worker):
 > backend@1.0.0 og:worker
 > node dist/scripts/processLinkMetadataJobs.js
 
@@ -636,7 +636,7 @@ mesas-cron   mesas-mesas-cron   "docker-entrypoint.s…"   mesas-cron   31 minut
 [MetadataWorker] Nenhum job pendente.
 
 [CronRunner] Executando: npm run og:worker às 2026-04-28T20:35:52.725Z
-[CronRunner] STDOUT (npm run og:worker): 
+[CronRunner] STDOUT (npm run og:worker):
 > backend@1.0.0 og:worker
 > node dist/scripts/processLinkMetadataJobs.js
 
@@ -644,7 +644,7 @@ mesas-cron   mesas-mesas-cron   "docker-entrypoint.s…"   mesas-cron   31 minut
 [MetadataWorker] Nenhum job pendente.
 
 [CronRunner] Executando: npm run og:worker às 2026-04-28T20:40:52.794Z
-[CronRunner] STDOUT (npm run og:worker): 
+[CronRunner] STDOUT (npm run og:worker):
 > backend@1.0.0 og:worker
 > node dist/scripts/processLinkMetadataJobs.js
 
@@ -652,7 +652,7 @@ mesas-cron   mesas-mesas-cron   "docker-entrypoint.s…"   mesas-cron   31 minut
 [MetadataWorker] Nenhum job pendente.
 
 [CronRunner] Executando: npm run og:worker às 2026-04-28T20:45:52.868Z
-[CronRunner] STDOUT (npm run og:worker): 
+[CronRunner] STDOUT (npm run og:worker):
 > backend@1.0.0 og:worker
 > node dist/scripts/processLinkMetadataJobs.js
 
@@ -686,14 +686,14 @@ mesas-cron   mesas-mesas-cron   "docker-entrypoint.s…"   mesas-cron   31 minut
   - Ação preventiva consolidada: regra explícita no `AGENTS.md` proibindo tratar `/speckit.*` como comando de terminal.
 
 ## Checklist de fechamento (ordem fixa)
-- [ ] Atualizar `.specify/memory/project-state.md` via `/speckit.status`
+- [x] Atualizar `.specify/memory/project-state.md` via `/speckit.status`
 - [x] `/speckit.retro.run`
 - [x] Atualizar `.specify/memory/session-log.md`
-- [ ] Atualizar `sessoes/index.md`
-- [ ] Mover sessão para `encerradas/` (quando autorizado)
+- [x] Atualizar `sessoes/index.md`
+- [x] Mover sessão para `encerradas/` (autorizado pelo mantenedor em 2026-04-28)
 
 ## Arquivos que serão modificados
-- `sessoes/26-04-28_1_fix-publicacao-mesa-opcao.md`
+- `sessoes/encerradas/26-04-28_1_fix-publicacao-mesa-opcao.md`
 - `sessoes/index.md`
 - `.specify/features/bug-ux-covil/bugs/BUG-003.md`
 - `.specify/features/bug-ux-covil/plan.md`
@@ -702,6 +702,7 @@ mesas-cron   mesas-mesas-cron   "docker-entrypoint.s…"   mesas-cron   31 minut
 - `backend/package.json`
 - `specs/005-runtime-workflows/tasks.md`
 - `specs/005-runtime-workflows/quickstart.md`
+- `specs/005-runtime-workflows/pr-description.md`
 - `.specify/memory/project-state.md`
 
 ## Critério de conclusão explícito
@@ -710,3 +711,16 @@ Publicação de mesa no painel beta concluindo sem 400 por enum inválido, com c
 [2026-04-28 19:12:42 -03:00] Correção solicitada: limpar aviso ShellCheck SC2086 em .github/workflows/_enforce-migration-dir.yml, preservando a validação de diretório canônico de migrations.
 [2026-04-28 19:13:31 -03:00] Correção aplicada: removido eval e expansão textual de FIND_EXCLUDES; find agora recebe array Bash com argumentos preservados. Validação YAML OK; shellcheck/actionlint local indisponível; git diff --check sem erros.
 [2026-04-28 19:14:29 -03:00] Aprovação recebida: commitar e enviar correção do lint para origin/dev, disparando Deploy Beta.
+[2026-04-28 19:35:00 -03:00] Fechamento SDD autorizado: `pr-description.md` criado para `specs/005-runtime-workflows/`; T028 adicionada e concluída; project-state, session-log e index atualizados; sessão autorizada para arquivamento em `sessoes/encerradas/`.
+
+## Retro final da feature 005 (`/speckit.retro.run`)
+- [x] Retro executada como procedimento do agente, não CLI.
+- Resultado: feature `005-runtime-workflows` concluída em `dev` com US1, US2 e US3 validadas.
+- Evidências:
+  - Commit `549cd3e` atualizou Node/npm/actions/Dockerfiles e documentação.
+  - Commit `bf1eb29` corrigiu lint `SC2086` em workflow reutilizável.
+  - Deploy Beta `25079585177` concluiu verde após atualização de runtime.
+  - Deploy Beta `25080459429` concluiu verde após correção de lint, sem `SC2086`.
+  - VM validada com Node `v25.9.0` e npm `11.13.0`.
+  - `mesas-cron` validado sem recorrência de `ts-node: not found`.
+- Risco residual: Node 25 é Current, não LTS; promoção para produção deve continuar por PR/gate aprovado.

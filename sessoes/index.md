@@ -212,13 +212,13 @@
 
 | # | Arquivo |
 |---|---|
-| 1 | `26-04-28_1_fix-publicacao-mesa-opcao.md` |
+| 1 | `encerradas/26-04-28_1_fix-publicacao-mesa-opcao.md` |
 
 ---
 
 ## Sessão Mais Recente
 
-`26-04-28_1_fix-publicacao-mesa-opcao.md`
+`encerradas/26-04-28_1_fix-publicacao-mesa-opcao.md`
 
 ---
 
@@ -234,4 +234,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-04-24_2_*`
+**Próxima sessão:** `26-04-28_2_*`

@@ -41,7 +41,7 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
   console.log('[HYDRATE-DEBUG] authHeader:', req.headers.authorization?.substring(0, 30));
   const userRole = (req as any).user?.role;
   const userId = (req as any).user?.userId;
-  
+
   if (!userId || userRole !== 'admin') {
     return res.status(403).json({ error: 'Acesso restrito a administradores.' });
   }
@@ -58,7 +58,7 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
     await prodDb.selectFrom('users').select('id').limit(1).execute();
     // T006: Transação única
     await db.transaction().execute(async (trx) => {
-      
+
       // T008: Ordem topológica de FKs
       const tablesToSync = [
         // Raízes
@@ -82,7 +82,7 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
       for (const tableName of tablesToSync) {
         // Obter registros de Prod com identificadores semânticos para FKs
         let prodRecords: any[];
-        
+
         if (tableName === 'tables') {
           // T003-T006: Export com LEFT JOINs para capturar slugs das FKs
           prodRecords = await prodDb
@@ -102,7 +102,7 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
         } else {
           prodRecords = await prodDb.selectFrom(tableName as any).selectAll().execute();
         }
-        
+
         // T010: Contadores
         let candidates = prodRecords.length;
         let inserted = 0;
@@ -175,7 +175,7 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
                   .returning(['id', sql<string>`xmax`.as('xmax')])
                   .executeTakeFirst();
                 break;
-                
+
               case 'sources':
                 delete updateObj.url;
                 result = await trx.insertInto(tableName as any)
@@ -229,7 +229,7 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
               case 'tables':
                 // T007-T010: Resolver FKs via subqueries por slug
                 const resolvedRecord: any = { ...safeRecord };
-                
+
                 // T007: Resolver communication_platform_id por slug
                 if (record.communication_platform_slug) {
                   const cpResult = await trx
@@ -237,7 +237,7 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
                     .select('id')
                     .where('slug', '=', record.communication_platform_slug)
                     .executeTakeFirst();
-                  
+
                   if (!cpResult) {
                     // T011: FK órfã - skip com warning
                     console.warn(`[Hydration] FK órfã: tabela=tables id=${record.id} communication_platform_slug=${record.communication_platform_slug}`);
@@ -246,7 +246,7 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
                   }
                   resolvedRecord.communication_platform_id = cpResult.id;
                 }
-                
+
                 // T008: Resolver vtt_platform_id por slug
                 if (record.vtt_platform_slug) {
                   const vttResult = await trx
@@ -254,7 +254,7 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
                     .select('id')
                     .where('slug', '=', record.vtt_platform_slug)
                     .executeTakeFirst();
-                  
+
                   if (!vttResult) {
                     // T011: FK órfã - skip com warning
                     console.warn(`[Hydration] FK órfã: tabela=tables id=${record.id} vtt_platform_slug=${record.vtt_platform_slug}`);
@@ -263,7 +263,7 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
                   }
                   resolvedRecord.vtt_platform_id = vttResult.id;
                 }
-                
+
                 // T009: Resolver system_id por slug
                 if (record.system_slug) {
                   const sysResult = await trx
@@ -271,7 +271,7 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
                     .select('id')
                     .where('slug', '=', record.system_slug)
                     .executeTakeFirst();
-                  
+
                   if (!sysResult) {
                     // T011: FK órfã - skip com warning
                     console.warn(`[Hydration] FK órfã: tabela=tables id=${record.id} system_slug=${record.system_slug}`);
@@ -280,7 +280,7 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
                   }
                   resolvedRecord.system_id = sysResult.id;
                 }
-                
+
                 // T010: Resolver scenario_id por slug
                 if (record.scenario_slug) {
                   const scResult = await trx
@@ -288,7 +288,7 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
                     .select('id')
                     .where('slug', '=', record.scenario_slug)
                     .executeTakeFirst();
-                  
+
                   if (!scResult) {
                     // T011: FK órfã - skip com warning
                     console.warn(`[Hydration] FK órfã: tabela=tables id=${record.id} scenario_slug=${record.scenario_slug}`);
@@ -297,24 +297,24 @@ router.post('/sync/hydrate', authMiddleware, async (req: Request, res: Response)
                   }
                   resolvedRecord.scenario_id = scResult.id;
                 }
-                
+
                 // Remover campos de slug do registro final (não existem no schema)
                 delete resolvedRecord.communication_platform_slug;
                 delete resolvedRecord.vtt_platform_slug;
                 delete resolvedRecord.system_slug;
                 delete resolvedRecord.scenario_slug;
-                
+
                 const updateObjTables: any = { ...resolvedRecord };
                 delete updateObjTables.id;
                 delete updateObjTables.created_at;
-                
+
                 result = await trx.insertInto('tables')
                   .values(resolvedRecord as any)
                   .onConflict((oc) => oc.column('id').doUpdateSet(updateObjTables as any))
                   .returning(['id', sql<string>`xmax`.as('xmax')])
                   .executeTakeFirst();
                 break;
-                
+
               case 'table_contacts':
               case 'table_schedules':
               case 'table_history':

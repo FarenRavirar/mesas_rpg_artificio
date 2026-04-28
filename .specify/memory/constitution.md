@@ -48,7 +48,7 @@
 - Segredos via env vars, nunca em código.
 
 ## 7. Camadas imutáveis (não reescrever)
-AGENTS.md, .specify/arquiteture.md, .specify/memory/errors.md, MAPA_DE_API.md, OPERACAO_PRODUCAO.md, PRE_DEPLOY_CHECKLIST.md, migrations_guide.md.
+AGENTS.md, .specify/arquiteture.md, .specify/memory/errors.md, MAPA_DE_API.md, PRE_DEPLOY_CHECKLIST.md, docs/sdd/BRANCH_POLICY.md, migrations_guide.md.
 *(Exceção: qualquer arquivo pode mudar se justificado e melhor para o projeto sob a ótica da Implementação SDD)*
 
 **Nota:** `BACKLOG_OPERACIONAL.md`, `FILA_IMPLEMENTACAO.md` e `ERRORS_SOLUTIONS.md` foram migrados para `docs/legacy/` e substituídos por `.specify/features/*/` e `.specify/memory/errors.md`.

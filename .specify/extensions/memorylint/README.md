@@ -1,6 +1,6 @@
 # MemoryLint
 
-MemoryLint is a Spec-kit extension designed for AI memory governance and boundary checking. 
+MemoryLint is a Spec-kit extension designed for AI memory governance and boundary checking.
 
 This extension serves as an "infrastructure guardian," ensuring that project-specific architecture rules stay in the constitution, while automatically supplementing missing general workflows in the global agent configuration.
 

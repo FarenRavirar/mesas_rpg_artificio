@@ -11,7 +11,7 @@ while true; do
       fi
       sleep 1
     done
-    
+
     echo "Aguardando novo frontend ficar healthy..."
     while true; do
       STATUS=$(docker inspect -f "{{.State.Health.Status}}" mesas-beta-frontend 2>/dev/null || echo "missing")

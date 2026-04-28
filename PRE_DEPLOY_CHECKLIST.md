@@ -6,8 +6,10 @@
 > Este checklist constitui a principal barreira de defesa contra corrupção do banco de dados e downtime da Produção. A Produção é a Única Fonte de Dados Reais do sistema. Qualquer agente que subverter essa lista será responsabilizado por perda de dados críticos.
 >
 > **Documentos relacionados:**
-> - `GIT_WORKFLOW.md` seção 3d — Fluxo de promoção para produção
-> - `OPERACAO_PRODUCAO.md` seção 10 — Playbook canônico de promoção dev -> main
+> - `AGENTS.md` — regras pétreas, aprovações explícitas e protocolo de sessão
+> - `docs/sdd/BRANCH_POLICY.md` — política de branches e merge via PR
+> - `.specify/memory/project-state.md` — estado atual e próxima ação
+> - `migrations_guide.md` — regras de migration, drift e reconciliação
 
 ---
 
@@ -15,7 +17,7 @@
 
 Antes sequer de cogitar enviar código novo para produção, o agente DEVE garantir que a versão "Release Candidate" rodou perfeitamente no Beta.
 
-- [ ] **Mergulho pré-deploy:** Ler `AGENTS.md`, `RESUMO_EXECUCAO.md` e consultar este checklist.
+- [ ] **Mergulho pré-deploy:** Ler `AGENTS.md`, `.specify/memory/project-state.md`, `docs/sdd/BRANCH_POLICY.md`, `migrations_guide.md` e consultar este checklist.
 - [ ] **Paridade Testada no Beta:** O código que vai para produção já foi submetido via push/merge para a branch `dev` e os containers do `mesas-beta` iniciaram com sucesso?
 - [ ] **Migrations Foram Executadas no Beta:** Se houve nova Migration `.sql`, ela subiu pro banco Beta sem quebrar os dados preexistentes?
 - [ ] **Relatório do Preflight (`preflight_prod`):** O PR de promoção apresenta o comentário automático do preflight? O status do drift detectado é `GO` (seguro) ou exige `ATTENTION` (bloqueios pendentes/risco)?

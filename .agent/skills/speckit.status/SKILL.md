@@ -58,38 +58,38 @@ Generate a dashboard view of all features and their completion status.
 5. **Generate Dashboard**:
    ```markdown
    # Speckit Status Dashboard
-   
+
    **Generated**: [timestamp]
    **Total Features**: X
-   
+
    ## Overview
-   
+
    | Feature | Phase | Progress | Blockers | Next Action |
    |---------|-------|----------|----------|-------------|
    | auth-system | Implement | 75% | 0 | Complete remaining tasks |
    | payment-flow | Plan | 40% | 2 | Resolve clarifications |
-   
+
    ## Feature Details
-   
+
    ### [Feature Name]
-   
+
    ```
    Spec:  ████████░░ 80%
    Plan:  ██████████ 100%
    Tasks: ██████░░░░ 60%
    ```
-   
+
    **Blockers**:
    - [ ] Clarification needed: "What payment providers?"
-   
+
    **Recent Activity**:
    - Last modified: [date]
    - Files changed: [list]
-   
+
    ---
-   
+
    ## Summary
-   
+
    - Features Ready for Implementation: X
    - Features Blocked: Y
    - Overall Project Completion: Z%

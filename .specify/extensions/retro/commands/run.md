@@ -146,22 +146,22 @@ Conduct a structured retrospective analysis of the completed development cycle �
    ══════════════════════════
    Feature:           {feature_name}
    Duration:          {first_commit} → {last_commit}
-   
+
    📝 Specification
    Requirements:      {total} total, {fulfilled} fulfilled, {partial} partial
    Spec Accuracy:     {accuracy}%
-   
+
    📋 Planning
    Tasks:             {total_tasks} total, {completed} completed
    Added during impl: {unplanned_tasks}
    Plan Score:        {plan_score}
-   
+
    💻 Implementation
    Commits:           {commit_count}
    Files changed:     {files_changed}
    Lines:             +{additions} / -{deletions}
    Test/Code ratio:   {test_ratio}
-   
+
    🔍 Quality
    Review findings:   🔴{blockers} 🟡{warnings} 🟢{suggestions}
    QA pass rate:      {qa_pass_rate}%
@@ -195,7 +195,7 @@ Conduct a structured retrospective analysis of the completed development cycle �
     IMP-001 [HIGH] Add data model validation to spec template
     → The spec lacked entity relationship details, causing 3 unplanned tasks during implementation.
     → Suggestion: Add a "Data Model" section to the spec template with entity, attribute, and relationship requirements.
-    
+
     IMP-002 [MEDIUM] Include browser compatibility in QA checklist
     → QA missed a CSS rendering issue in Safari that was caught post-merge.
     → Suggestion: Add cross-browser testing scenarios to the QA test plan.
@@ -227,7 +227,7 @@ Conduct a structured retrospective analysis of the completed development cycle �
     - Append new entry with format:
       ```markdown
       ## {timestamp} — {feature_name}
-      
+
       **Tipo:** Retrospectiva
       **Tasks concluídas:** {completed_tasks}
       **Tasks iniciadas mas não concluídas:** {incomplete_tasks}

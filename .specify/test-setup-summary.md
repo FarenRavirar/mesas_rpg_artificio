@@ -1,6 +1,6 @@
 # Resumo da Configuração de Testes
 
-**Data**: 2026-04-22  
+**Data**: 2026-04-22
 **Status**: ✅ Completo
 
 ---

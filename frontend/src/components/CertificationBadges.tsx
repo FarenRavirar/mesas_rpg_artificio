@@ -7,7 +7,7 @@ interface CertificationBadgesProps {
 /**
  * Componente compartilhado para renderizar badges de certificação de mesas.
  * Centraliza a lógica e estilos de badges Covil do Lich e DDAL.
- * 
+ *
  * @param is_covil - Se a mesa é certificada pelo Covil do Lich
  * @param is_ddal - Se a mesa é certificada DDAL (D&D Adventurers League)
  * @param className - Classes CSS adicionais para o container

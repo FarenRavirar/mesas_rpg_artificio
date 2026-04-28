@@ -56,27 +56,27 @@ Post-implementation validation that compares code against spec requirements.
 5. **Generate Validation Report**:
    ```markdown
    # Validation Report: [Feature Name]
-   
+
    **Date**: [timestamp]
    **Status**: PASS | PARTIAL | FAIL
-   
+
    ## Coverage Summary
-   
+
    | Metric | Count | Percentage |
    |--------|-------|------------|
    | Requirements Covered | X/Y | Z% |
    | Acceptance Criteria Met | X/Y | Z% |
    | Edge Cases Handled | X/Y | Z% |
    | Tests Present | X/Y | Z% |
-   
+
    ## Uncovered Requirements
-   
+
    | Requirement | Status | Notes |
    |-------------|--------|-------|
    | [REQ-001] | Missing | No implementation found |
-   
+
    ## Recommendations
-   
+
    1. [Action item for gaps]
    ```
 

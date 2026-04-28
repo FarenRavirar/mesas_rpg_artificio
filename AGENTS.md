@@ -89,9 +89,9 @@ grep -n "padrão" arquivo.md          # localizar antes de abrir
 | Mapeamento SDD (onde buscar info) | `docs/sdd/MAPEAMENTO_SDD.md` | Consultar ao criar specs | Manual |
 | Política de branches SDD | `docs/sdd/BRANCH_POLICY.md` | Seção relevante ao trabalhar com branches | Manual |
 | Agente especializado em docs | `DOCS_AGENT.md` | Arquivo completo se trabalho for exclusivo de .md | Manual |
-| Git, branch, merge, deploy | `GIT_WORKFLOW.md` | seção relevante | Manual |
+| Git, branch, merge, deploy | `docs/sdd/BRANCH_POLICY.md` + `PRE_DEPLOY_CHECKLIST.md` | seção relevante + checklist completo em produção | Manual |
 | Deploy em produção (checklist) | `PRE_DEPLOY_CHECKLIST.md` | arquivo completo | Manual |
-| Operação em produção ou beta | `OPERACAO_PRODUCAO.md` | seção relevante | Manual |
+| Estado operacional de produção ou beta | `.specify/memory/project-state.md` + `.specify/arquiteture.md` | estado atual sempre; seção arquitetural relevante via busca | `/speckit.status` + Manual |
 | Falha de ambiente, encoding, template | `PRE-FLIGHT_CHECKLIST.md` | arquivo completo | Manual |
 | Erro encontrado? (substitui `ERRORS_SOLUTIONS.md`) | `.specify/memory/errors.md` | consultar `E###` e executar `/speckit.fixit.run <descrição>` | `/speckit.fixit.run` |
 | Migrations (criar, aplicar, erros) | `migrations_guide.md` | seção relevante | Manual |
@@ -370,7 +370,7 @@ AA-MM-DD_N_<escopo>.md
 
 ## INFRAESTRUTURA
 
-- **VM Oracle:** `gh` autenticado para a conta mantenedora. Ver `GIT_WORKFLOW.md` §8.
+- **VM Oracle:** `gh` autenticado para a conta mantenedora. Consultar `.specify/arquiteture.md` apenas pela seção relevante quando detalhes de infraestrutura forem necessários.
   Acesso SSH: `ssh -F C:\projetos\config faren`
 - **Token/PAT:** nunca registrar, expor ou versionar em chat, logs, commits ou arquivos.
 - **Cloudflare Tunnel:** nunca criar novos túneis ou containers `cloudflared` paralelos.

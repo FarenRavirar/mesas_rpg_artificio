@@ -47,23 +47,23 @@ Compare two versions of a specification artifact and produce a structured diff r
 4. **Generate Report**:
    ```markdown
    # Diff Report: [filename]
-   
+
    **Compared**: [version A] → [version B]
    **Date**: [timestamp]
-   
+
    ## Summary
    - X additions, Y removals, Z modifications
-   
+
    ## Changes by Section
-   
+
    ### [Section Name]
-   
+
    | Type | Content | Impact |
    |------|---------|--------|
    | + Added | [new text] | [what this means] |
    | - Removed | [old text] | [what this means] |
    | ~ Modified | [before] → [after] | [what this means] |
-   
+
    ## Risk Assessment
    - Breaking changes: [list any]
    - Scope changes: [list any]

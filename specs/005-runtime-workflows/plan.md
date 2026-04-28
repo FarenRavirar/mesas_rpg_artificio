@@ -10,12 +10,12 @@ Corrigir a falha operacional do `mesas-cron`, atualizar a baseline para Node.js 
 ## Technical Context
 
 **Language/Version**: TypeScript 5.x; Node.js 25.9.0 Current; npm 11.13.0
-**Primary Dependencies**: Node.js, npm, Docker Compose, GitHub Actions, backend Express/Kysely, scripts operacionais em TypeScript  
-**Storage**: PostgreSQL 16 em containers remotos (`mesas-db`, `mesas-beta-db`)  
-**Testing**: `npm run build` no backend/frontend; validação read-only de containers via SSH; healthchecks Docker; logs do `mesas-cron`; smoke checks HTTP existentes nos workflows  
+**Primary Dependencies**: Node.js, npm, Docker Compose, GitHub Actions, backend Express/Kysely, scripts operacionais em TypeScript
+**Storage**: PostgreSQL 16 em containers remotos (`mesas-db`, `mesas-beta-db`)
+**Testing**: `npm run build` no backend/frontend; validação read-only de containers via SSH; healthchecks Docker; logs do `mesas-cron`; smoke checks HTTP existentes nos workflows
 **Target Platform**: VM Oracle Cloud Ubuntu 24.04; containers Docker `node:25.9.0-alpine` e `nginx:alpine`; GitHub Actions `ubuntu-latest`
-**Project Type**: Monorepo web app + API + operação Docker/CI  
-**Performance Goals**: `mesas-cron` saudável por pelo menos 30 minutos; builds locais e CI sem regressão; workflows sem divergência de runtime  
+**Project Type**: Monorepo web app + API + operação Docker/CI
+**Performance Goals**: `mesas-cron` saudável por pelo menos 30 minutos; builds locais e CI sem regressão; workflows sem divergência de runtime
 **Constraints**: Ações que reiniciem containers, executem build no servidor ou alterem produção exigem aprovação explícita; Docker/Postgres vivem exclusivamente na VM remota; runtime deve permanecer alinhado entre VM, Dockerfiles e workflows
 **Scale/Scope**: 1 serviço cron em produção, containers API/frontend beta/prod, Dockerfiles backend/frontend, workflows CI/deploy/promoção e scripts npm relacionados a rotinas operacionais
 

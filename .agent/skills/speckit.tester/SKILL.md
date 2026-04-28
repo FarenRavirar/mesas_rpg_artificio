@@ -29,10 +29,10 @@ Detect the project's test framework, execute tests, and generate a comprehensive
    ```bash
    # Check package.json for test frameworks
    cat package.json 2>/dev/null | grep -E "(jest|vitest|mocha|ava|tap)"
-   
+
    # Check for Python test frameworks
    ls pytest.ini setup.cfg pyproject.toml 2>/dev/null
-   
+
    # Check for Go tests
    find . -name "*_test.go" -maxdepth 3 2>/dev/null | head -1
    ```
@@ -46,7 +46,7 @@ Detect the project's test framework, execute tests, and generate a comprehensive
    | `Cargo.toml` + `#[test]` | Cargo test |
 
 2. **Run Tests with Coverage**:
-   
+
    | Framework | Command |
    |-----------|---------|
    | Jest | `npx jest --coverage --json --outputFile=coverage/test-results.json` |
@@ -72,13 +72,13 @@ Detect the project's test framework, execute tests, and generate a comprehensive
 5. **Generate Report**:
    ```markdown
    # Test Report
-   
+
    **Date**: [timestamp]
    **Framework**: [detected]
    **Status**: PASS | FAIL
-   
+
    ## Summary
-   
+
    | Metric | Value |
    |--------|-------|
    | Total Tests | X |
@@ -87,22 +87,22 @@ Detect the project's test framework, execute tests, and generate a comprehensive
    | Skipped | X |
    | Duration | X.Xs |
    | Coverage | X% |
-   
+
    ## Failed Tests
-   
+
    ### [test name]
    **File**: `path/to/test.ts:42`
    **Error**: Expected X but received Y
    **Suggestion**: Check mock setup for...
-   
+
    ## Coverage by File
-   
+
    | File | Lines | Branches | Functions |
    |------|-------|----------|-----------|
    | src/auth.ts | 85% | 70% | 90% |
-   
+
    ## Next Actions
-   
+
    1. Fix failing test: [name]
    2. Increase coverage in: [low coverage files]
    ```

@@ -429,7 +429,7 @@ Use para localizar o erro sem varrer a tabela inteira:
 | ID | Sintoma | Causa provável | Diagnóstico rápido | Solução validada | Prevenção |
 |---|---|---|---|---|---|
 | E101 | `git merge` trava com "Deletion of directory 'X' failed. Should I try again? (y/n)" e não completa mesmo respondendo 'y' ou 'n' | Windows mantém lock em diretórios que foram deletados em uma branch mas ainda existem em outra; processo em background (IDE, antivírus, indexador) pode estar acessando o diretório | Comando `git merge` ou `git merge --squash` trava aguardando input infinitamente; diretórios como `backend/scripts`, `frontend/src/styles` aparecem na mensagem | **NUNCA tentar merge local com squash quando há deleção de diretórios.** Usar GitHub PR: `gh pr create --base dev --head feature/X --title "..." --body "..."` seguido de `gh pr merge <número> --squash --delete-branch`. O merge remoto no GitHub não sofre de locks do Windows | Sempre usar workflow via PR para merges que envolvem deleção de diretórios; evitar `git merge --squash` localmente no Windows; se necessário merge local, usar `git merge` sem squash e depois fazer squash no GitHub |
-| E143 | Arquivos desaparecem ao fazer `git checkout` entre branches — usuário vê arquivos sendo deletados e entra em pânico | **Causa raiz confirmada (13/04/2026):** Comportamento NORMAL do Git. Ao fazer `git checkout main` vindo de `dev`, o Git remove arquivos que existem em `dev` mas não em `main` para refletir o estado correto da branch `main`. Ao voltar para `dev` com `git checkout dev`, os arquivos são restaurados automaticamente. **Problema:** Usuário vê arquivos importantes desaparecendo (ex: `MAPA_DE_API.md`, `map_scratch.json`, `RESUMO_EXECUCAO.md`, `generateMap.js`) e acredita que foram perdidos permanentemente | Usuário executa `git checkout main` e vê arquivos sendo deletados; IDE mostra arquivos riscados ou ausentes; usuário reporta "arquivos foram excluídos" | **Solução imediata:** `git checkout dev` — todos os arquivos são restaurados automaticamente. **Nenhum arquivo é perdido.** Git apenas ajusta o working directory para refletir o estado de cada branch. **Prevenção:** NUNCA fazer `git checkout` entre branches para deploy — usar GitHub PR ao invés de merge local | **REGRA OBRIGATÓRIA PARA AGENTES:** NUNCA executar `git checkout <outra-branch>` durante deploy ou promoção de código. SEMPRE usar GitHub PR: `gh pr create --base main --head dev` + `gh pr merge <número>`. Se precisar verificar divergência, usar `git log origin/main..origin/dev` SEM fazer checkout. Adicionar aviso explícito em `OPERACAO_PRODUCAO.md` e `PRE_DEPLOY_CHECKLIST.md` |
+| E143 | Arquivos desaparecem ao fazer `git checkout` entre branches — usuário vê arquivos sendo deletados e entra em pânico | **Causa raiz confirmada (13/04/2026):** Comportamento NORMAL do Git. Ao fazer `git checkout main` vindo de `dev`, o Git remove arquivos que existem em `dev` mas não em `main` para refletir o estado correto da branch `main`. Ao voltar para `dev` com `git checkout dev`, os arquivos são restaurados automaticamente. **Problema:** Usuário vê arquivos importantes desaparecendo (ex: `MAPA_DE_API.md`, `map_scratch.json`, `RESUMO_EXECUCAO.md`, `generateMap.js`) e acredita que foram perdidos permanentemente | Usuário executa `git checkout main` e vê arquivos sendo deletados; IDE mostra arquivos riscados ou ausentes; usuário reporta "arquivos foram excluídos" | **Solução imediata:** `git checkout dev` — todos os arquivos são restaurados automaticamente. **Nenhum arquivo é perdido.** Git apenas ajusta o working directory para refletir o estado de cada branch. **Prevenção:** NUNCA fazer `git checkout` entre branches para deploy — usar GitHub PR ao invés de merge local | **REGRA OBRIGATÓRIA PARA AGENTES:** NUNCA executar `git checkout <outra-branch>` durante deploy ou promoção de código. SEMPRE usar GitHub PR: `gh pr create --base main --head dev` + `gh pr merge <número>`. Se precisar verificar divergência, usar `git log origin/main..origin/dev` SEM fazer checkout. Manter aviso explícito em `AGENTS.md`, `PRE_DEPLOY_CHECKLIST.md` e `docs/sdd/BRANCH_POLICY.md` |
 | E144 | Deploy de produção derruba ambiente beta (mesasbeta retorna 502 após deploy em main) | **Causa raiz confirmada (13/04/2026):** Workflow `deploy-prod.yml` executa limpeza destrutiva global: `docker ps -a --filter "name=mesas-" ... | xargs docker rm -f`. Esse filtro captura e remove também containers do beta (`mesas-beta-frontend`, `mesas-beta-api`, `mesas-beta-db`) porque todos começam com `mesas-`. Resultado: produção sobe, beta fica OFF | Após deploy de produção bem-sucedido, `https://mesasbeta.artificiorpg.com` retorna `502`; `docker ps -a --filter name=mesas-beta` não lista containers; logs do GitHub Actions mostram remoção explícita de `mesas-beta-frontend`, `mesas-beta-api`, `mesas-beta-db` | **Recuperação imediata validada:** `ssh ... "cd /opt/mesas-beta && git fetch origin dev && git reset --hard origin/dev && docker compose -f docker-compose.beta.yml up -d --force-recreate"` restaura beta em ~30s; healthcheck volta para 200 | **Prevenção obrigatória:** No `deploy-prod.yml`, remover limpeza global por nome. Se precisar remover órfãos, usar escopo de projeto compose (`docker compose -f docker-compose.prod.yml down --remove-orphans`) ou filtro estrito por labels do projeto de produção. Nunca usar `name=mesas-` em comandos destrutivos globais |
 | E145 | Frontend responde externamente com HTTP 200, mas container permanece `unhealthy` | Healthcheck do frontend usando `http://localhost:80` resolve para IPv6 (`[::1]`) no container; Nginx estava acessível em IPv4 loopback (`127.0.0.1`) e o probe falhava com `Connection refused` | `docker inspect <frontend> --format '{{json .State.Health}}'` mostra `Connecting to localhost:80 ([::1]:80)` + `Connection refused`; ao mesmo tempo `curl` no domínio retorna 200 | Ajustar healthcheck em `docker-compose.prod.yml` e `docker-compose.beta.yml` para `http://127.0.0.1:80`, recriar apenas os frontends (`mesas-app` e `mesas-beta-frontend`) e validar health `healthy` | Workflows `deploy-prod.yml` e `deploy-beta.yml` devem falhar deploy se frontend não atingir `healthy` no timeout; considerar deploy falho mesmo quando site externo responde 200 |
 | E146 | Deploy beta falha com `container name ... is already in use` durante criação do `mesas-beta-db` | Corrida entre execuções simultâneas do workflow `Deploy Beta` no mesmo host, ambas tentando executar `docker compose up -d` e recriar o mesmo conjunto de containers | Dois runs de `Deploy Beta` iniciados em sequência curta; um run falha com conflito de nome enquanto outro conclui; erro explícito no log: `Container mesas-beta-db ... already in use` | Reexecutar deploy após término do run concorrente e validar estado dos containers beta (`frontend`, `api`, `db`) como `healthy` | Serializar execução no workflow com `concurrency` (group por branch) e lock no host com `flock` (`/tmp/mesas-beta-deploy.lock`) para garantir exclusão mútua |
@@ -674,7 +674,7 @@ const getValidUrl = (value: string): string => {
   if (value.startsWith('http://') || value.startsWith('https://')) {
     return value;
   }
-  
+
   if (contact.channel === 'whatsapp') {
     if (value.startsWith('wa.me')) {
       return `https://${value}`;
@@ -686,7 +686,7 @@ const getValidUrl = (value: string): string => {
       return `https://wa.me/${fullNumber}`;
     }
   }
-  
+
   return `https://${value}`;
 };
 ```
@@ -924,7 +924,7 @@ docker restart mesas-app
 1. Workflows `deploy-beta.yml`, `deploy-prod.yml` e `promote-to-prod.yml` devem validar rotas críticas (`/api/v1/tables?limit=1`, `/api/v1/systems?view=tree` e `/auth/google?frontend_redirect=...`) após health dos containers.
 2. Em falha dessas rotas com containers healthy, executar auto-recuperação controlada (`docker restart` do frontend), aguardar health e revalidar uma única vez.
 3. Persistindo falha após segunda validação, abortar deploy e manter evidências em log.
-4. Checklist operacional deve conter gate explícito dessas validações (PRE_DEPLOY_CHECKLIST.md e OPERACAO_PRODUCAO.md).
+4. Checklist operacional deve conter gate explícito dessas validações em `PRE_DEPLOY_CHECKLIST.md`.
 
 **Data:** 16/04/2026
 
@@ -958,7 +958,7 @@ ssh -F C:\projetos\config faren "cd /opt/mesas-beta && bash scripts/deploy/recon
 3. Validar que drift foi resolvido executando `--list` novamente
 
 **Prevenção obrigatória:**
-1. Sempre executar `reconcile_migrations.sh --mark-applied` após qualquer intervenção manual via SSH (ver `OPERACAO_PRODUCAO.md` §11)
+1. Sempre executar `reconcile_migrations.sh --mark-applied` após qualquer intervenção manual via SSH (ver `migrations_guide.md`)
 2. Sempre commitar o arquivo `.sql` do hotfix no repositório após aplicação manual
 3. Nunca aplicar migration via SSH sem reconciliação posterior
 
@@ -1271,7 +1271,7 @@ export function TableHero({ vm, variant = 'full', showOverlay = true }: TableHer
   return (
     <div className="relative rounded-2xl overflow-hidden">
       <img src={vm.coverUrl || bannerPlaceholder} alt={vm.title} />
-      
+
       {/* Badges sempre visíveis - posicionamento condicional */}
       {!showOverlay && badges.length > 0 && (
         <div className="absolute top-4 left-4 flex flex-wrap gap-2 z-10">
@@ -1283,7 +1283,7 @@ export function TableHero({ vm, variant = 'full', showOverlay = true }: TableHer
           ))}
         </div>
       )}
-      
+
       {/* Overlay com badges integrados */}
       {showOverlay && (
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent">
@@ -1315,4 +1315,3 @@ export function TableHero({ vm, variant = 'full', showOverlay = true }: TableHer
 - Tasks: T007 (implementação), T008 (validação)
 
 **Data de catalogação:** 28/04/2026
-

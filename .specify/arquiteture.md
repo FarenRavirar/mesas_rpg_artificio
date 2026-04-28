@@ -1,7 +1,7 @@
 # Constituição — Arquitetura do Projeto
 
 > **Documento vivo de arquitetura.** Versão migrada para Spec-Kit — Abril/2026.
-> 
+>
 > **Fonte canônica de arquitetura.** Em conflito com qualquer outro arquivo, este prevalece.
 > Este documento é a versão adaptada para o ecossistema Spec-Kit do `ARQUITETURA_PROJETO.md` original.
 

@@ -1,7 +1,7 @@
 ---
 name: speckit.quizme
 description: Challenge the specification with Socratic questioning to identify logical gaps, unhandled edge cases, and robustness issues.
-handoffs: 
+handoffs:
   - label: Clarify Spec Requirements
     agent: speckit.clarify
     prompt: Clarify specification requirements

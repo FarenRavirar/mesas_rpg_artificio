@@ -23,7 +23,7 @@
 
 ## Issues
 
-Nenhum problema encontrado (TypeScript ou Linting) nos arquivos alvo da feature (`gmPanel.ts` e `TableCardDashboard.tsx`). 
+Nenhum problema encontrado (TypeScript ou Linting) nos arquivos alvo da feature (`gmPanel.ts` e `TableCardDashboard.tsx`).
 
 *(Nota: o backend não possui configuração do ESLint ativa nativamente, mas compilou com sucesso 100% via `tsc`).*
 

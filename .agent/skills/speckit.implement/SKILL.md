@@ -179,32 +179,32 @@ At the start of execution and after every 3 modifications:
 7. **Execute implementation following the task plan with Ironclad Protocols**:
 
    **For EACH task**, follow this sequence:
-   
+
    a. **Blast Radius Analysis (Protocol 1)**:
       - Identify all files that will be modified
       - Run `grep` to find all dependents
       - Report the blast radius
-   
+
    b. **Strategy Decision**:
       - If LOW risk (≤2 affected files): Proceed with inline modification
       - If MEDIUM/HIGH risk (>2 files): Apply Strangler Pattern (Protocol 2)
-   
+
    c. **Reproduction Script (Protocol 3)**:
       - Create `repro_task_[ID].ts` that demonstrates expected behavior
       - Run it to confirm current state (should fail for new features, or fail for bugs)
-   
+
    d. **Implementation**:
       - Execute the task according to plan
       - **Phase-by-phase execution**: Complete each phase before moving to the next
       - **Respect dependencies**: Run sequential tasks in order, parallel tasks [P] can run together
       - **Follow TDD approach**: Execute test tasks before their corresponding implementation tasks
       - **File-based coordination**: Tasks affecting the same files must run sequentially
-   
+
    e. **Verification**:
       - Run the reproduction script again (should now pass)
       - Run existing tests to ensure no regression
       - If any test fails: **STOP** and report the regression
-   
+
    f. **Cleanup**:
       - Delete temporary repro scripts OR convert to permanent tests
       - Mark task as complete `[X]` in tasks.md

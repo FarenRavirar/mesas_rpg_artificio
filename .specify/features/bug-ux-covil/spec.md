@@ -1,9 +1,9 @@
 # Correções de UX/UI: Selos e Placeholders (Bugfix)
 
-**ID:** BUGFIX-UX  
-**GUT:** 100 (Gravidade: 5, Urgência: 5, Tendência: 4)  
-**Status:** ⏳ Especificação (Troubleshooting)  
-**Dependências:** Feature legada de Reformulação do Mestre  
+**ID:** BUGFIX-UX
+**GUT:** 100 (Gravidade: 5, Urgência: 5, Tendência: 4)
+**Status:** ⏳ Especificação (Troubleshooting)
+**Dependências:** Feature legada de Reformulação do Mestre
 
 ---
 

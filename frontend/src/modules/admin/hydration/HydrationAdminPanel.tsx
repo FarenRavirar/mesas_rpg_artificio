@@ -68,7 +68,7 @@ export const HydrationAdminPanel = () => {
         setLastResult(data);
         const dateStr = new Date().toLocaleString('pt-BR');
         setLastRunDate(dateStr);
-        
+
         // T018: Persistir no localStorage
         localStorage.setItem('lastHydrationLog', JSON.stringify({ result: data, date: dateStr }));
       } else {
@@ -98,11 +98,11 @@ export const HydrationAdminPanel = () => {
         {/* T015: Toggle Dry-Run */}
         <label className="flex items-center gap-3 cursor-pointer group">
           <div className="relative">
-            <input 
-              type="checkbox" 
-              className="sr-only" 
-              checked={dryRun} 
-              onChange={() => setDryRun(!dryRun)} 
+            <input
+              type="checkbox"
+              className="sr-only"
+              checked={dryRun}
+              onChange={() => setDryRun(!dryRun)}
               disabled={loading}
             />
             <div className={`block w-14 h-8 rounded-full transition-colors ${dryRun ? 'bg-blue-500' : 'bg-red-500'}`}></div>
@@ -123,10 +123,10 @@ export const HydrationAdminPanel = () => {
           onClick={handleHydrate}
           disabled={loading}
           className={`ml-auto flex items-center gap-2 px-6 py-3 rounded-lg font-bold transition-all ${
-            loading 
-              ? 'bg-white/10 text-white/40 cursor-not-allowed' 
-              : dryRun 
-                ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+            loading
+              ? 'bg-white/10 text-white/40 cursor-not-allowed'
+              : dryRun
+                ? 'bg-blue-600 hover:bg-blue-700 text-white'
                 : 'bg-red-600 hover:bg-red-700 text-white shadow-[0_0_15px_rgba(220,38,38,0.5)]'
           }`}
         >
@@ -148,7 +148,7 @@ export const HydrationAdminPanel = () => {
             </h3>
             <span className="text-white/40 text-sm">Última execução: {lastRunDate}</span>
           </div>
-          
+
           <div className="overflow-x-auto rounded-lg border border-white/10 bg-black/20">
             <table className="w-full text-left text-sm text-white/80">
               <thead className="bg-white/5 text-white/60 text-xs uppercase">

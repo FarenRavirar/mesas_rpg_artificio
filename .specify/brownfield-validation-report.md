@@ -1,16 +1,16 @@
 # Validation Report — Mesas RPG Artifício
 
-**Command**: `/speckit.brownfield.validate`  
-**Date**: 2026-04-22  
+**Command**: `/speckit.brownfield.validate`
+**Date**: 2026-04-22
 **Scope**: Constitution, Templates, Project Structure
 
 ---
 
 ## Executive Summary
 
-✅ **Overall Status**: PASS with minor observations  
-✅ **Checks Passed**: 18/20  
-⚠️ **Observations**: 2 items (non-blocking)  
+✅ **Overall Status**: PASS with minor observations
+✅ **Checks Passed**: 18/20
+⚠️ **Observations**: 2 items (non-blocking)
 ❌ **Failures**: 0
 
 The bootstrap configuration accurately reflects the project structure. All critical paths, frameworks, and conventions are correctly documented.
@@ -165,17 +165,17 @@ The project uses a single comprehensive `AGENTS.md` for governance rather than m
 
 ### 1. New Directories Since Bootstrap
 
-**Checked**: No new top-level directories detected  
+**Checked**: No new top-level directories detected
 **Status**: ✅ No drift
 
 ### 2. Dependency Changes
 
-**Checked**: All dependencies referenced in templates exist in package.json files  
+**Checked**: All dependencies referenced in templates exist in package.json files
 **Status**: ✅ No drift
 
 ### 3. Branch Pattern Evolution
 
-**Checked**: All active branches match documented patterns  
+**Checked**: All active branches match documented patterns
 **Status**: ✅ No drift
 
 ### 4. Test Framework Gap
