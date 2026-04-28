@@ -706,3 +706,7 @@ mesas-cron   mesas-mesas-cron   "docker-entrypoint.s…"   mesas-cron   31 minut
 
 ## Critério de conclusão explícito
 Publicação de mesa no painel beta concluindo sem 400 por enum inválido, com consistência entre spec/plan/tasks e validação global (frontend/backend/VM/DB) registrada.
+
+[2026-04-28 19:12:42 -03:00] Correção solicitada: limpar aviso ShellCheck SC2086 em .github/workflows/_enforce-migration-dir.yml, preservando a validação de diretório canônico de migrations.
+[2026-04-28 19:13:31 -03:00] Correção aplicada: removido eval e expansão textual de FIND_EXCLUDES; find agora recebe array Bash com argumentos preservados. Validação YAML OK; shellcheck/actionlint local indisponível; git diff --check sem erros.
+[2026-04-28 19:14:29 -03:00] Aprovação recebida: commitar e enviar correção do lint para origin/dev, disparando Deploy Beta.
