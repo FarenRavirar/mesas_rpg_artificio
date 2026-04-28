@@ -55,6 +55,12 @@
 - Correções aplicadas: referências a `GIT_WORKFLOW.md`, `OPERACAO_PRODUCAO.md` e `PERACAO_PRODUCAO.md` permanecem zeradas nos documentos ativos; arquivos reportados por `git diff --check` foram limpos mecanicamente; `database/migration_105_system_suggestions_align.sql` voltou para `manual-risk` com `@requires-backup: true`.
 - Validação pós-correção: `git diff --check origin/main` passou sem erros fatais; permanecem apenas avisos de normalização LF/CRLF do Git para arquivos já tocados.
 - Validação adicional: `testes/deploy/header_contract.sh` passou para todas as migrations; preflight local read-only via Git Bash retornou `# :white_check_mark: GO`; hook ativo de pre-commit não existe (`pre-commit.disabled` apenas), evitando stage automático fora de escopo.
+- Commit/push: criado `3c71eaa chore(predeploy): resolve bloqueios da promocao` e enviado para `origin/dev`.
+- PR aberto: `https://github.com/FarenRavirar/mesas_rpg_artificio/pull/135` (`dev -> main`), sem merge.
+- Preflight oficial inicial falhou: `scripts/deploy/preflight_prod.sh` tentou ler `mesas-beta-db` enquanto `Deploy Beta` ainda recriava containers (`No such container: mesas-beta-db`); o comentário automático também falhou com `Resource not accessible by integration` por falta de permissão de escrita no workflow.
+- Próxima correção autorizada dentro do mesmo escopo: ajustar `preflight_prod.sh` para aguardar o lock de deploy beta antes de consultas read-only e adicionar permissões mínimas de comentário ao `preflight-prod.yml`.
+- Correção CI aplicada: `scripts/deploy/preflight_prod.sh` agora aguarda `/tmp/mesas-beta-deploy.lock` e readiness do container antes das consultas; `.github/workflows/preflight-prod.yml` declara `contents: read`, `issues: write` e `pull-requests: write`.
+- Validação da correção CI: preflight local read-only voltou `GO`; `git diff --check` passou; Deploy Beta do commit `3c71eaa` concluiu com sucesso.
 
 ## Checklist de fechamento
 - [ ] Executar `/speckit.retro.run`

@@ -20,6 +20,11 @@ on:
       - 'database/**'
       - 'scripts/deploy/**'
 
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
 jobs:
   preflight:
     runs-on: ubuntu-latest
