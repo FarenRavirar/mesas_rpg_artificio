@@ -175,6 +175,7 @@ router.get('/:slug', publicRateLimiter, optionalAuth, async (req: Request, res: 
         't.publisher_role',
         't.actual_gm_name',
         't.featured',
+        't.is_covil',
         't.is_ddal',
         't.ddal_code',
         't.ddal_name',
