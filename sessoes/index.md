@@ -208,9 +208,17 @@
 
 ---
 
+## 28/04/2026 (1 sessão)
+
+| # | Arquivo |
+|---|---|
+| 1 | `26-04-28_1_fix-publicacao-mesa-opcao.md` |
+
+---
+
 ## Sessão Mais Recente
 
-`encerradas/26-04-24_9_matriz-ambiente.md`
+`26-04-28_1_fix-publicacao-mesa-opcao.md`
 
 ---
 

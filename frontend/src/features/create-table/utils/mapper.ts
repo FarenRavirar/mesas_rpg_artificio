@@ -28,6 +28,11 @@ export function formStateToPayload(state: FormState): CreateTablePayload {
     return 'semanal';
   };
 
+  const normalizePriceType = (value?: string | null): 'gratuita' | 'paga' => {
+    if (value === 'paga' || value === 'paid') return 'paga';
+    return 'gratuita';
+  };
+
   // CORREÇÃO REG-01: Renomear sessions para schedules e mapear estrutura correta
   const schedules = state.sessions.map((s, index) => ({
     day_of_week: s.day_of_week,
@@ -46,7 +51,7 @@ export function formStateToPayload(state: FormState): CreateTablePayload {
     description: state.form.description,
     type: state.form.type,
     modality: state.form.modality,
-    price_type: state.form.price_type,
+    price_type: normalizePriceType(state.form.price_type),
     slots_total: parseInt(state.form.slots_total) || 0,
     slots_open: parseInt(state.form.slots_open) || 0, // REQ-02: Vagas abertas
     language: state.form.language,
