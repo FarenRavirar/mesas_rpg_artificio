@@ -27,7 +27,7 @@
 - Remote: origin atual
 
 ## 4. Stack travada
-- Runtime: Node.js 22 LTS
+- Runtime: Node.js 25.9.0 Current
 - Gerenciador: npm
 - Frontend: React + Vite + TypeScript
 - Backend: Node.js + TypeScript

@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Executar a feature de forma incremental: corrigir `mesas-cron`, validar npm/Node dentro da baseline e revisar workflows sem misturar causas ou aplicar ações de produção sem aprovação.
+Executar a feature de forma incremental: corrigir `mesas-cron`, atualizar Node/npm para as versões aprovadas mais atuais e revisar workflows sem misturar causas ou aplicar ações de produção sem aprovação.
 
 ## Ordem Recomendada
 
@@ -26,7 +26,7 @@ Executar a feature de forma incremental: corrigir `mesas-cron`, validar npm/Node
 4. Avaliar npm/Node:
    - registrar versões atuais da VM e containers
    - confirmar compatibilidade do npm candidato
-   - aplicar somente atualização compatível dentro de Node 22 quando aprovado
+   - aplicar Node.js 25.9.0 Current e npm 11.13.0 quando aprovado
    - validar serviços e builds após atualização
 
 5. Revisar workflows:
@@ -66,7 +66,7 @@ ssh -F C:/projetos/config faren "node -v && npm -v"
 ## Critério de Conclusão da Feature
 
 - `mesas-cron` saudável por 30 minutos após correção
-- Node.js mantido em baseline aprovada
+- Node.js atualizado para a baseline aprovada
 - npm atualizado ou decisão documentada de não atualizar
 - workflows revisados e divergências corrigidas ou registradas
 - tasks 100% concluídas com evidência
@@ -74,9 +74,9 @@ ssh -F C:/projetos/config faren "node -v && npm -v"
 ## Evidências finais 2026-04-28
 
 - `mesas-cron` foi recriado em produção após ajuste dos scripts `og:*` para `node dist/scripts/*.js` e permaneceu `Up` por mais de 30 minutos.
-- VM validada com Node `v22.22.2` e npm `11.13.0`.
+- VM validada com Node `v25.9.0` e npm `11.13.0`.
 - `mesas-api`, `mesas-cron` e `mesas-beta-api` permanecem `Up`; APIs com healthcheck seguem `healthy`.
-- Workflows `ci.yml`, `deploy-beta.yml`, `deploy-prod.yml` e `promote-to-prod.yml` foram revisados: runner Node 22 quando aplicável, `npm ci` preservado, runtime Docker vindo de `node:22-alpine`.
+- Workflows atualizados para `actions/checkout@v5`, `actions/setup-node@v6` e `node-version: '25.9.0'`; Dockerfiles atualizados para `node:25.9.0-alpine` com npm `11.13.0`.
 - Nenhuma correção de workflow foi necessária.
 - Busca final por scripts antigos de produção (`"og:*": "ts-node`) retornou zero resultados; variantes `og:*:dev` continuam disponíveis para execução TypeScript em desenvolvimento.
 
@@ -86,6 +86,7 @@ ssh -F C:/projetos/config faren "node -v && npm -v"
 ssh -F C:/projetos/config faren 'cd /opt/mesas && docker compose -f docker-compose.prod.yml up -d --no-deps --build --force-recreate mesas-cron'
 ssh -F C:/projetos/config faren 'node -v && npm -v'
 ssh -F C:/projetos/config faren 'sudo -H npx npm@11.13.0 install -g npm@11.13.0'
+ssh -F C:/projetos/config faren 'sudo sed -i "s#https://deb.nodesource.com/node_22.x#https://deb.nodesource.com/node_25.x#g" /etc/apt/sources.list.d/nodesource.sources && sudo apt-get update && sudo apt-get install -y nodejs=25.9.0-1nodesource1'
 ssh -F C:/projetos/config faren 'cd /opt/mesas && docker compose -f docker-compose.prod.yml ps mesas-api mesas-cron && cd /opt/mesas-beta && docker compose -f docker-compose.beta.yml ps mesas-beta-api'
 rg -n '"og:(worker|cleanup|cron)": "ts-node' backend/package.json docker-compose.prod.yml docker-compose.beta.yml .github/workflows
 ```

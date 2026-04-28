@@ -35,7 +35,7 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Validate Headers
         run: bash testes/deploy/header_contract.sh
 
@@ -43,7 +43,7 @@ jobs:
     needs: [enforce-dir, lint, validate]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Migrate Database
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -102,12 +102,12 @@ jobs:
     needs: migrate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       # CORRECAO WF-TS-01
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '22'
+          node-version: '25.9.0'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
       - name: Install frontend dependencies

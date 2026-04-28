@@ -123,8 +123,8 @@
 
 **Pacote operacional — Runtime e Workflows (novo):**
 1. ✅ **US1 concluída:** `mesas-cron` corrigido para executar scripts compilados (`node dist/scripts/*.js`) em produção; container recriado e validado `Up` por mais de 30 minutos, sem `ts-node: not found`.
-2. ✅ **US2 concluída:** Node.js mantido em `v22.22.2`; npm global da VM atualizado de `10.9.7` para `11.13.0`; serviços principais continuam saudáveis.
-3. ✅ **US3 concluída:** workflows `ci.yml`, `deploy-beta.yml`, `deploy-prod.yml` e `promote-to-prod.yml` revisados e alinhados com Node 22/npm/Docker; nenhuma divergência de runtime exigiu patch.
+2. ✅ **US2 concluída:** Node.js da VM atualizado para `v25.9.0`; npm global da VM atualizado para `11.13.0`; serviços principais continuam saudáveis.
+3. ✅ **US3 concluída:** workflows atualizados para `actions/checkout@v5`, `actions/setup-node@v6` e `node-version: '25.9.0'`; Dockerfiles atualizados para `node:25.9.0-alpine` com npm `11.13.0`.
 4. **Estado operacional transitório:** `/opt/mesas/backend/package.json` foi atualizado diretamente na VM para validar o cron antes do commit/deploy formal; reconciliar via commit/deploy da branch antes de considerar o estado remoto limpo.
 5. **Próximo passo:** finalizar artefatos SDD da feature 005, busca final e preparar commit apenas quando o mantenedor autorizar a etapa de teste/commit.
 

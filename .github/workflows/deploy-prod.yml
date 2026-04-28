@@ -40,14 +40,14 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # CORRECAO WF-TS-01 (prod): Validar TypeScript ANTES de derrubar containers na VM
       # Se o build falhar aqui, o deploy nem chega ao SSH e producao permanece no ar
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '22'
+          node-version: '25.9.0'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 

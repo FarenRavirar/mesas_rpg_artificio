@@ -30,9 +30,9 @@
 
 ## Phase 4: User Story 2 - Runtime Atualizado com Segurança (P2)
 
-**Goal**: Atualização de npm/Node é avaliada e aplicada apenas dentro da baseline segura.
+**Goal**: Atualização de npm/Node é avaliada e aplicada para a versão mais atual aprovada.
 
-**Independent Test**: Versões antes/depois registradas; builds continuam passando; Node major fora da baseline não é aplicado.
+**Independent Test**: Versões antes/depois registradas; builds continuam passando; CI, VM e Dockerfiles apontam para Node 25.9.0/npm 11.13.0.
 
 - [x] T013 [US2] Registrar versões atuais de Node.js/npm da VM e containers em `sessoes/26-04-28_1_fix-publicacao-mesa-opcao.md`
 - [x] T014 [US2] Confirmar compatibilidade do npm candidato e registrar decisão em `specs/005-runtime-workflows/research.md`
@@ -42,7 +42,7 @@
 
 ## Phase 5: User Story 3 - Workflows Coerentes com o Runtime (P3)
 
-**Goal**: Workflows relevantes permanecem alinhados à baseline Node 22/npm e aos comandos de build/deploy.
+**Goal**: Workflows relevantes permanecem alinhados a Node 25.9.0/npm 11.13.0 e aos comandos de build/deploy.
 
 **Independent Test**: Cada workflow relevante tem status alinhado/divergente registrado; correções mínimas aplicadas quando necessárias.
 
@@ -76,5 +76,5 @@
 ## Implementation Strategy
 
 1. Entregar MVP com US1: `mesas-cron` sem dependência de `ts-node` em produção.
-2. Validar npm dentro de Node 22 sem alterar Node major.
+2. Validar Node 25.9.0 e npm 11.13.0 em VM, Dockerfiles e workflows.
 3. Revisar workflows e ajustar apenas divergências comprovadas.

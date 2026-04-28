@@ -102,6 +102,6 @@ Como mantenedor do projeto, preciso que os workflows de CI/deploy estejam coeren
 
 - O pacote tem foco operacional e não altera requisitos de produto voltados a mestres ou jogadores.
 - O serviço de rotinas agendadas deve ser corrigido antes de qualquer mudança maior de runtime.
-- A linha Node.js 22 LTS permanece como baseline do projeto até decisão explícita em contrário.
+- A linha Node.js 25.9.0 Current passa a ser a baseline aprovada do projeto até decisão explícita em contrário.
 - A atualização do npm dentro de uma faixa compatível pode ser avaliada neste pacote, desde que acompanhada de evidência e rollback.
 - Qualquer ação que reinicie serviços, altere produção ou execute build no servidor exige aprovação explícita conforme AGENTS.md.

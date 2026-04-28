@@ -21,23 +21,24 @@
 - Instalar devDependencies no container de produção: rejeitado por aumentar superfície e contrariar imagem enxuta.
 - Criar imagem separada para cron: possível no futuro, mas mais amplo que a correção mínima.
 
-## Decision 3: Manter Node.js 22 LTS como baseline
+## Decision 3: Atualizar para Node.js 25.9.0 Current
 
-**Decision**: O pacote deve manter Node.js 22 LTS como linha suportada. Atualização major para Node 24 fica fora de escopo sem aprovação específica.
+**Decision**: Atualizar a baseline operacional do projeto para Node.js 25.9.0 Current, a versão mais recente observada no índice oficial do Node em 2026-04-28.
 
-**Rationale**: `constitution.md` define Node.js 22 LTS. Dockerfiles usam `node:22-alpine`; workflows usam `node-version: '22'`; VM e containers API já estão em `v22.22.2`.
+**Rationale**: O mantenedor aprovou explicitamente sair da linha 22 LTS e usar a versão mais atual disponível. O índice oficial `https://nodejs.org/dist/index.json` retornou `v25.9.0` como release mais recente, com npm embarcado `11.12.1`. Para padronizar o npm latest, o projeto usa npm `11.13.0` após instalação do Node.
 
 **Alternatives considered**:
-- Atualizar tudo para Node 24: rejeitado por violar baseline atual e exigir validação maior.
-- Atualizar apenas host VM para Node 24: rejeitado por gerar divergência com containers e CI.
+- Manter Node 22 LTS: rejeitado após decisão explícita do mantenedor por "versão mais atual".
+- Atualizar apenas host VM: rejeitado por gerar divergência com containers e CI.
+- Usar tag flutuante `node:current-alpine`: rejeitado para manter rastreabilidade; `node:25.9.0-alpine` fixa a versão validada.
 
-## Decision 4: npm 11.13.0 é candidato compatível, mas deve ser validado por ambiente
+## Decision 4: npm 11.13.0 é o npm padrão da feature
 
-**Decision**: Avaliar npm 11.13.0 como atualização compatível dentro da linha Node atual, registrando versões antes/depois e evidência de build/saúde.
+**Decision**: Padronizar npm 11.13.0 na VM e nas imagens Docker baseadas em Node.
 
-**Rationale**: npm 11.13.0 declara suporte a Node `^20.17.0 || >=22.9.0`, e o ambiente observado está em Node `22.22.2`.
+**Rationale**: `npm view npm version engines --json` retornou `version: 11.13.0` e `engines.node: ^20.17.0 || >=22.9.0`, compatível com Node 25.9.0.
 
-**Validação 2026-04-28**: `npm view npm version engines --json` retornou `version: 11.13.0` e `engines.node: ^20.17.0 || >=22.9.0`. VM, `mesas-api`, `mesas-cron` e `mesas-beta-api` foram observados em Node `v22.22.2` com npm `10.9.7`, portanto o candidato é compatível com a baseline Node 22 atual.
+**Validação 2026-04-28**: VM atualizada para Node `v25.9.0` e npm `11.13.0`. Dockerfiles atualizados para `node:25.9.0-alpine` com `npm install -g npm@11.13.0` antes de `npm ci`.
 
 **Alternatives considered**:
 - Não atualizar npm: seguro, mas não atende ao objetivo do pacote.

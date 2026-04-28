@@ -107,6 +107,21 @@
 - Stash temporário reaplicado e removido; deleções intencionais do mantenedor voltaram ao working tree em `dev`, sem stage.
 - Confirmação do mantenedor: deleções em `.cline/`, `.clinerules/`, `.cursorrules*`, scripts legados e `tmp/` são intencionais e devem ser sincronizadas no `dev` local como limpeza de arquivos de outros agentes.
 - Autorização explícita recebida para executar `git push origin dev`.
+- Solicitação posterior: investigar o run GitHub Actions `25078908968` e explicar a origem dos muitos warnings sobre Node.js.
+- Investigação do run `25078908968`: workflow `Deploy Beta`, conclusão `success`, branch `dev`, commit `f896325`.
+- Origem principal dos warnings de Node.js: actions JavaScript ainda referenciadas como `actions/checkout@v4` e `actions/setup-node@v4`, que declaram runtime interno Node 20. Não é o Node do projeto nem a VM.
+- O próprio job `deploy-app` mostra `actions/setup-node@v4` instalando Node `v22.22.2`; portanto o runtime do projeto no runner está correto.
+- Origem secundária dos avisos com npm: builds Docker baseados em `node:22-alpine` ainda exibem `npm notice New major version of npm available! 10.9.7 -> 11.13.0`, porque a atualização global da VM não altera o npm embutido na imagem base Docker.
+- Tags verificadas: `actions/checkout@v5`, `actions/setup-node@v5` e `actions/setup-node@v6` existem e seus `action.yml` declaram `runs.using: node24`.
+- Green flag do mantenedor: atualizar tudo que estiver causando warning; interpretação inicial de manter Node 22 foi corrigida na sequência.
+- Correção de escopo pelo mantenedor: atualizar para as versões mais atuais de Node e npm, não manter Node 22.
+- Versões oficiais verificadas em 28/04/2026: Node `v25.9.0` no índice `https://nodejs.org/dist/index.json`; npm latest `11.13.0`.
+- VM atualizada via NodeSource de `node_22.x` para `node_25.x`: `nodejs=25.9.0-1nodesource1`; npm ajustado para `11.13.0`.
+- Workflows atualizados para `actions/checkout@v5`, `actions/setup-node@v6` e `node-version: '25.9.0'`.
+- Dockerfiles atualizados para `node:25.9.0-alpine` e instalação de `npm@11.13.0` antes de `npm ci`.
+- Validação VM pós-upgrade: `node v25.9.0`, `npm 11.13.0`; NodeSource passou a usar `node_25.x`; serviços `mesas-api`, `mesas-cron`, `mesas-beta-api`, `mesas-beta-frontend` seguem `Up`, com healthcheck saudável onde aplicável.
+- Validação local: `npm run build` passou em `backend`; `npm run build` passou em `frontend` com warnings já conhecidos de chunk/plugin timing.
+- Validação workflow/Docker: YAML parse OK para workflows alterados; `docker manifest inspect node:25.9.0-alpine` retornou manifesto com `linux/arm64`; busca por `checkout@v4`, `setup-node@v4`, `node-version: '22'`, `node:22-alpine` retornou apenas menção histórica rejeitada em `research.md`.
 
 ## Aprovação necessária — T016 atualização npm na VM
 - **Ação:** atualizar somente o npm global da VM de `10.9.7` para `11.13.0`, mantendo Node.js em `v22.22.2`.
