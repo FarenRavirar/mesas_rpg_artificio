@@ -3,6 +3,7 @@ import { sql } from 'kysely';
 import { db } from '../db';
 import { authMiddleware, optionalAuth } from '../middleware/auth';
 import { publicRateLimiter, authRateLimiter } from '../middleware/rateLimit';
+import { isValidEmail } from '../utils/validation';
 import { generateEmbedUrl, detectLinkType, LinkType } from '../services/linkService';
 import { upgradeGoogleImageQuality } from '../utils/urlValidation';
 
@@ -465,8 +466,7 @@ router.post('/:slug/contact', publicRateLimiter, async (req: Request, res: Respo
     }
 
     // Validar formato de email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!isValidEmail(email)) {
       return res.status(400).json({ error: 'Email inválido.' });
     }
 

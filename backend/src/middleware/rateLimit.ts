@@ -12,6 +12,14 @@ export const publicRateLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+export const globalRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 500,
+  message: 'Muitas requisições deste IP. Tente novamente em alguns minutos.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 /**
  * Rate limiter para rotas autenticadas
  * Limite: 50 requisições por 15 minutos por IP

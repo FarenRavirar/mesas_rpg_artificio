@@ -31,6 +31,8 @@ import ogRoutes from './routes/og';
 import 'express-async-errors';
 import { db } from './db';
 import { requestLogger } from './middleware/requestLogger';
+import { csrfProtection } from './middleware/csrfProtection';
+import { globalRateLimiter } from './middleware/rateLimit';
 
 dotenv.config();
 
@@ -74,6 +76,8 @@ app.use(cors({
 
 app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
+app.use(globalRateLimiter);
+app.use(csrfProtection(allowedFrontendOrigins));
 
 // Middleware de logging de todas as requisições
 app.use(requestLogger);

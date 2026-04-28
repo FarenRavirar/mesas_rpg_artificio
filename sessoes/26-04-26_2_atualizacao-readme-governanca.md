@@ -61,6 +61,8 @@
 - Próxima correção autorizada dentro do mesmo escopo: ajustar `preflight_prod.sh` para aguardar o lock de deploy beta antes de consultas read-only e adicionar permissões mínimas de comentário ao `preflight-prod.yml`.
 - Correção CI aplicada: `scripts/deploy/preflight_prod.sh` agora aguarda `/tmp/mesas-beta-deploy.lock` e readiness do container antes das consultas; `.github/workflows/preflight-prod.yml` declara `contents: read`, `issues: write` e `pull-requests: write`.
 - Validação da correção CI: preflight local read-only voltou `GO`; `git diff --check` passou; Deploy Beta do commit `3c71eaa` concluiu com sucesso.
+- Bloqueio novo pós-PR: GitHub Advanced Security abriu check `CodeQL` failure com 14 alerts high no PR #135; próxima ação é corrigir rate limiting, regex de e-mail vulnerável a ReDoS e proteção CSRF/origem antes de nova reavaliação GO/NO-GO.
+- Correção de segurança aplicada: limiter global leve para API, middleware de proteção CSRF por origem/token para sessão em cookie e validação de e-mail sem regex polinomial; `npm --prefix backend run build`, `npm --prefix backend test -- --runInBand` e `git diff --check` passaram.
 
 ## Checklist de fechamento
 - [ ] Executar `/speckit.retro.run`

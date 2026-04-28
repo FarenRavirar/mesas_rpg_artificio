@@ -14,6 +14,7 @@ import { TableService } from '../services/tableService';
 import { TableRepository } from '../repositories/tableRepository';
 import { BenchmarkService } from '../services/benchmarkService';
 import { logActivity } from '../services/activityLogger';
+import { isValidEmail } from '../utils/validation';
 
 const router = Router();
 
@@ -355,8 +356,7 @@ router.put('/profile', authMiddleware, async (req: Request, res: Response) => {
           
           // Validar Email
           if (channel === 'email') {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(value)) {
+            if (!isValidEmail(value)) {
               return null; // Email inválido
             }
           }
