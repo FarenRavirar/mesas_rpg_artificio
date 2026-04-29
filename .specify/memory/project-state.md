@@ -1,7 +1,7 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-04-23T24:15:00-03:00  
-**Atualizado por:** conclusão manual da Phase 6 (Validação Off-Happy-Path) na sessão 26-04-23_3
+**Última atualização:** 2026-04-28T18:21:21-03:00
+**Atualizado por:** sessão 26-04-28_1_fix-publicacao-mesa-opcao
 ---
 
 ## Ambientes
@@ -15,11 +15,11 @@
 
 ## Estado Técnico Atual
 
-**Branch ativa:** `dev`  
-**Último commit:** `77e971e` — chore: adiciona configuração de testes e atualiza dependências
+**Branch ativa:** `005-runtime-workflows`
+**Último commit:** `79ca32a` — fix(create-table): normaliza price_type para enum backend
 
-**Feature ativa:** `specs/003-auditoria-workflows-actions/`  
-**Sessão ativa:** `sessoes/26-04-23_3_auditoria-workflows-github-actions-phase6.md`
+**Feature ativa:** `specs/005-runtime-workflows/`
+**Sessão ativa:** `sessoes/26-04-28_1_fix-publicacao-mesa-opcao.md`
 
 **Progresso da feature 003 (24/04/2026 00:15 BRT):**
 - `/speckit.specify` concluído: `spec.md` gerado com FR-001..FR-012 e SC-001..SC-005
@@ -54,7 +54,21 @@
   - Evidências consolidadas documentando `failure` bloqueante em shellcheck, migrations gate e preflight
   - Prova de isolamento entre deploys de Beta vs Produção via modelo opt-in (`workflow_dispatch`)
 - **Phase 7 (Finalização e Fechamento) concluída:** Relatório final (`audit-report.md`) e `pr-description.md` gerados. Tarefas T042-T045 concluídas.
-- **Próxima ação:** Preparar deploy de `dev` para `main` (Produção).
+- **Investigação forense da promoção concluída:** causa da falha `fatal: ambiguous argument 'v1.2.3'` confirmada no run `24867211797` (job `release`, step `Montar resumo executivo`).
+- **Patch mínimo aplicado em produção pipeline:** `.github/workflows/promote-to-prod.yml` atualizado para usar `TARGET_REF` com fallback em `origin/main` quando `${VERSION}` não existe como revisão Git no runner.
+- **Validação local pós-patch:** sintaxe YAML do workflow validada (`YAML_PARSE_OK`) e cálculo de range validado sem erro de revisão ambígua.
+
+**Progresso Bugfix-UX (Covil e Placeholders + BUG-003 price_type):**
+- `/speckit.bugfix.report` concluído para BUG-003 em `.specify/features/bug-ux-covil/bugs/BUG-003.md`.
+- `/speckit.bugfix.patch` concluído com atualização de `plan.md` e `tasks.md` (T004/T005/T006).
+- Implementação aplicada em `frontend/src/features/create-table/utils/mapper.ts` com normalização `free/paid` -> `gratuita/paga`.
+- `/speckit.bugfix.verify` concluído com consistência entre artefatos e código alterado.
+- **Validação global em beta concluída:**
+  - Infra VM: `mesas-beta-api`, `mesas-beta-frontend`, `mesas-beta-db` saudáveis.
+  - DB enum: `price_type` contém `gratuita`, `paga`.
+  - Runtime endpoint: `POST /api/v1/gm/tables` com `price_type="gratuita"` retornou `HTTP 201`, criando `id=98f9e6f1-97db-4b86-93aa-6de6471140fc`.
+- **Status atual:** Bugfix validado em dev/beta.
+- **Próxima ação:** executar retro/status de fechamento da sessão e manter monitoramento pós-correção no painel.
 
 ---
 
@@ -71,15 +85,16 @@
 
 ## Features Ativas
 
-**Total de features:** 15 diretórios em `.specify/features/`
+**Total de features:** 16 diretórios em `.specify/features/`
 
 **Condição atual dos artefatos:**
-- `spec.md`: 15/15 presentes
-- `tasks.md`: 15/15 presentes
-- `plan.md`: 15/15 presentes (**0 pendências**)
+- `spec.md`: 16/16 presentes
+- `tasks.md`: 15/16 presentes
+- `plan.md`: 15/16 presentes (**0 pendências**)
 
 | Feature | Tasks Concluídas | Plan.md | Status |
 |---|---|---|---|
+| bug-ux-covil | 6/6 (100%) | ✅ | Validado (inclui BUG-003) |
 | deb-01 | 0/3 (0%) | ✅ | Pendente |
 | deb-02 | 0/6 (0%) | ✅ | Pendente |
 | deb-03 | 0/6 (0%) | ✅ | Pendente |
@@ -96,16 +111,33 @@
 | req-29 | 0/8 (0%) | ✅ | Pendente |
 | req-orphan | 0/15 (0%) | ✅ | Pendente |
 
-**Feature com maior GUT pendente:** ops-08 (GUT 100, 0% concluído)
+**Feature com maior GUT pendente:** ops-08 (GUT 100, 0% concluído).
 
 ---
 
 ## Próxima Ação
 
+**Bugfix UX (Covil/Placeholders/PriceType):**
+1. ✅ **Concluído:** Diagnóstico, patch, implementação, verify e validação global do BUG-003 em beta.
+2. **Próximo passo:** Encerrar formalmente a sessão com `/speckit.status` e `/speckit.retro.run`.
+
+**Pacote operacional — Runtime e Workflows (novo):**
+1. ✅ **US1 concluída:** `mesas-cron` corrigido para executar scripts compilados (`node dist/scripts/*.js`) em produção; container recriado e validado `Up` por mais de 30 minutos, sem `ts-node: not found`.
+2. ✅ **US2 concluída:** Node.js da VM atualizado para `v25.9.0`; npm global da VM atualizado para `11.13.0`; serviços principais continuam saudáveis.
+3. ✅ **US3 concluída:** workflows atualizados para `actions/checkout@v5`, `actions/setup-node@v6` e `node-version: '25.9.0'`; Dockerfiles atualizados para `node:25.9.0-alpine` com npm `11.13.0`.
+4. **Estado operacional transitório:** `/opt/mesas/backend/package.json` foi atualizado diretamente na VM para validar o cron antes do commit/deploy formal; reconciliar via commit/deploy da branch antes de considerar o estado remoto limpo.
+5. **Próximo passo:** finalizar artefatos SDD da feature 005, busca final e preparar commit apenas quando o mantenedor autorizar a etapa de teste/commit.
+
 **Feature 003 — Auditoria de Workflows GitHub Actions:**
 1. ✅ **Concluído:** A auditoria dos workflows (Feature 003) alcançou 100% de integridade com a erradicação do vazamento documental (Phase 7 concluída).
 2. O branch `dev` está completamente blindado e validado off-happy-path.
+3. **Próximo passo imediato:** Executar novo `workflow_dispatch` de `promote-to-prod.yml` para validar job `release` GREEN.e blindado e validado off-happy-path.
 3. **Próximo passo imediato:** Iniciar preparação e execução do deploy para Produção (`dev` → `main`) seguindo rigorosamente as diretrizes.
+
+**Hidratação Beta (Refatoração Semântica via JSON):**
+1. ✅ **Concluído:** Resolução de E160-E163 (infraestrutura, auth, ON CONFLICT, schema).
+2. **Próximo passo:** Abrir nova sessão para refatorar `backend/src/routes/adminHydration.ts` para arquitetura semântica via JSON. Decisão arquitetural: import por slug/email em vez de id direto. Permite reuso futuro pra import via Discord bot.
+3. **Critério de início:** Sessão nova com plano completo (export → JSON intermediário → import semântico).
 
 **Artefatos da Phase 4:**
 - 5 planos de ação em `specs/003-auditoria-workflows-actions/audit/action-*.md`
@@ -130,7 +162,7 @@
 ## Bloqueios Ativos
 
 **Bloqueios/pendências ativos:**
-- Nenhum.
+- E164 (hidratação beta): IDs divergentes prod vs beta + transaction abortada após FK violation. Endpoint /api/v1/admin/sync/hydrate retorna 500. Decisão: refatoração arquitetural via JSON em sessão futura.
 
 
 ---

@@ -4,11 +4,12 @@
 # =============================================================================
 
 # Estágio 1: build TypeScript
-FROM node:22-alpine AS builder
+FROM node:25.9.0-alpine AS builder
 
 WORKDIR /app
 
 COPY backend/package*.json ./
+RUN npm install -g npm@11.13.0
 RUN npm ci
 
 COPY backend/tsconfig.json ./
@@ -21,7 +22,7 @@ RUN npm run build
 
 # =============================================================================
 # Estágio 2: imagem de produção (apenas o necessário)
-FROM node:22-alpine AS production
+FROM node:25.9.0-alpine AS production
 
 WORKDIR /app
 
@@ -29,6 +30,7 @@ WORKDIR /app
 RUN apk add --no-cache vips-dev fftw-dev build-base
 
 COPY backend/package*.json ./
+RUN npm install -g npm@11.13.0
 RUN npm ci --omit=dev
 
 # Copiar build compilado

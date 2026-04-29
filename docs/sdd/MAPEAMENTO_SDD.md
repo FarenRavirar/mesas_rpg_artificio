@@ -3,7 +3,7 @@
 | Artefato SDD | Fonte de verdade canônica |
 |--------------|--------------------------|
 | constitution.md — stack | AGENTS.md + `.specify/arquiteture.md` |
-| constitution.md — operação | OPERACAO_PRODUCAO.md |
+| constitution.md — operação | AGENTS.md + `.specify/memory/project-state.md` + `PRE_DEPLOY_CHECKLIST.md` |
 | spec.md — contexto | `.specify/features/{id}/spec.md` (canônico) ou `docs/legacy/BACKLOG_OPERACIONAL.md` + `docs/legacy/FILA_IMPLEMENTACAO.md` (legado) |
 | plan.md — API | MAPA_DE_API.md |
 | plan.md — migration | migrations_guide.md |

@@ -1,6 +1,5 @@
 import express from 'express';
 import cors from 'cors';
-import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import tablesRoutes from './routes/tables';
@@ -24,12 +23,16 @@ import vttPlatformsRoutes from './routes/vttPlatforms';
 import communicationPlatformsRoutes from './routes/communicationPlatforms';
 import changelogRoutes from './routes/changelog';
 import adminTablesRoutes from './routes/adminTables';
+import adminHydrationRoutes from './routes/adminHydration';
 import activityLogRoutes from './routes/activityLog';
 import uploadRoutes from './routes/upload';
 import ogRoutes from './routes/og';
 import 'express-async-errors';
 import { db } from './db';
 import { requestLogger } from './middleware/requestLogger';
+import { csrfProtection } from './middleware/csrfProtection';
+import { parseCookies } from './middleware/parseCookies';
+import { globalRateLimiter } from './middleware/rateLimit';
 
 dotenv.config();
 
@@ -71,8 +74,10 @@ app.use(cors({
   credentials: true,
 }));
 
-app.use(cookieParser());
+app.use(parseCookies);
 app.use(express.json({ limit: '10mb' }));
+app.use(globalRateLimiter);
+app.use(csrfProtection(allowedFrontendOrigins));
 
 // Middleware de logging de todas as requisições
 app.use(requestLogger);
@@ -109,6 +114,7 @@ app.use('/api/v1/system-suggestions', systemSuggestionsRoutes);
 app.use('/api/v1/scenario-suggestions', scenarioSuggestionsRoutes);
 app.use('/api/v1/notifications', notificationsRoutes);
 app.use('/api/v1/admin', adminTablesRoutes);
+app.use('/api/v1/admin', adminHydrationRoutes);
 app.use('/api/v1/admin', systemSuggestionsAdminRoutes);
 app.use('/api/v1/admin', scenarioSuggestionsAdminRoutes);
 app.use('/api/v1/admin', activityLogRoutes);

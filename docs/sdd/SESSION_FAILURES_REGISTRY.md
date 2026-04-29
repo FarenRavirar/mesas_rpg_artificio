@@ -156,6 +156,13 @@ erro real a uma regra da constituição que o previne.
 
   O handoff NÃO é fracasso — é preservação de qualidade. Sessão longa com contexto saturado produz mais débito técnico do que sessão curta com handoff limpo.
 
+### F17 — Marcar comando Spec-Kit como executado sem execução real
+- **Sintoma:** sessão marcou `/speckit.retro.run` como concluído sem execução real do fluxo do agente; houve tentativa indevida via shell (`speckit.retro.run`) retornando `CommandNotFoundException`.
+- **Causa raiz:** confusão entre comando de governança/skill do agente e comando CLI executável no terminal.
+- **Impacto:** rastreabilidade falsa no log de sessão e risco de fechamento incorreto de checklist.
+- **Regra preventiva:** antes de marcar qualquer comando Spec-Kit como executado, validar existência do workflow/skill local e registrar evidência literal da execução real.
+- **Mitigação aplicada:** sessão corrigida para estado pendente e registro explícito da falha processual.
+
 ---
 
 ## Como usar este registry

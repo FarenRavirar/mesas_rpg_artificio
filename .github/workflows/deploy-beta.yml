@@ -35,7 +35,7 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Validate Headers
         run: bash testes/deploy/header_contract.sh
 
@@ -43,7 +43,7 @@ jobs:
     needs: [enforce-dir, lint, validate]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Migrate Database
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -102,14 +102,16 @@ jobs:
     needs: migrate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       # CORRECAO WF-TS-01
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '22'
+          node-version: '25.9.0'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
+      - name: Setup npm
+        run: npm install -g npm@11.13.0
       - name: Install frontend dependencies
         run: npm ci
         working-directory: frontend
@@ -118,11 +120,14 @@ jobs:
         working-directory: frontend
 
       - name: Deploy App Containers
+        env:
+          PROD_DB_URL: ${{ secrets.PROD_DB_URL }}
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: PROD_DB_URL
           script: |
             set -euo pipefail
             exec 9>/tmp/mesas-beta-deploy.lock
@@ -149,11 +154,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Smoke Tests
+        env:
+          PROD_DB_URL: ${{ secrets.PROD_DB_URL }}
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: PROD_DB_URL
           script: |
             set -euo pipefail
             cd /opt/mesas-beta

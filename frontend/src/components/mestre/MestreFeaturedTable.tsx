@@ -3,6 +3,7 @@ import { CheckCircle2, Star, Globe, MapPin } from 'lucide-react';
 import type { TableCard } from '../../types/tables';
 import { SlotsIndicator } from '../SlotsIndicator';
 import { SystemBadge } from '../SystemBadge';
+import { CertificationBadges } from '../CertificationBadges';
 import { getSlotsVisualState } from '../../utils/slots';
 import bannerPlaceholder from '../../assets/banner_placeholder.webp';
 
@@ -40,6 +41,16 @@ export function MestreFeaturedTable({ table }: Props) {
               img.src = bannerPlaceholder;
             }}
           />
+
+          {/* Badges de certificação */}
+          <div className="absolute top-3 right-3 z-10 max-w-[70%]">
+            <CertificationBadges
+              is_covil={table.is_covil}
+              is_ddal={table.is_ddal}
+              className="justify-end"
+            />
+          </div>
+
           <span className="mestre-featured-table-badge">
             <Star className="w-4 h-4" /> Mesa em destaque
           </span>

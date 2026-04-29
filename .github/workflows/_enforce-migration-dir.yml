@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Verify Migration Directory Canonicity
         run: |
@@ -34,15 +34,15 @@ jobs:
           fi
 
           ALLOWLIST=$(grep -v '^#' .github/migration-dir-allowlist | grep -v '^$' || true)
-          FIND_EXCLUDES=""
+          FIND_EXCLUDES=()
           
           while IFS= read -r path; do
             if [ -n "$path" ]; then
-              FIND_EXCLUDES="$FIND_EXCLUDES -not -path \"${path}*\""
+              FIND_EXCLUDES+=(-not -path "${path}*")
             fi
           done <<< "$ALLOWLIST"
 
-          VIOLATIONS=$(eval find . -name \"migration_*.sql\" $FIND_EXCLUDES -not -path \"./.git/*\" -not -path \"./node_modules/*\" 2>/dev/null || true)
+          VIOLATIONS=$(find . -name "migration_*.sql" "${FIND_EXCLUDES[@]}" -not -path "./.git/*" -not -path "./node_modules/*" 2>/dev/null || true)
 
           if [ -n "$VIOLATIONS" ]; then
             echo "::error::Arquivos migration_*.sql encontrados fora do diretorio canonico restrito:"

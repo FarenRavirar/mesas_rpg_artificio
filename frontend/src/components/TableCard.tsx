@@ -6,6 +6,7 @@ import type { TableCard } from '../types/tables';
 import { getSlotsVisualState } from '../utils/slots';
 import { SlotsIndicator } from './SlotsIndicator';
 import { SystemBadge } from './SystemBadge';
+import { CertificationBadges } from './CertificationBadges';
 import bannerPlaceholder from '../assets/banner_placeholder.webp';
 
 const modalityLabels: Record<string, string> = {
@@ -108,16 +109,7 @@ export function TableCardComponent({ table }: { table: TableCard }) {
 
         {/* Badges críticos apenas */}
         <div className="absolute top-3 left-3 flex flex-wrap gap-2">
-          {table.is_covil && (
-            <span className="px-2 py-1 rounded-md text-[11px] font-black tracking-wide text-purple-100 bg-black/70 backdrop-blur-sm border border-purple-500/40">
-              👑 Covil do Lich
-            </span>
-          )}
-          {table.is_ddal && (
-            <span className="px-2 py-1 rounded-md text-[11px] font-black tracking-wide text-amber-100 bg-black/70 backdrop-blur-sm border border-amber-500/30">
-              🛡️ DDAL
-            </span>
-          )}
+          <CertificationBadges is_covil={table.is_covil} is_ddal={table.is_ddal} />
           {isFull && (
             <span className="px-2 py-1 rounded-md text-[11px] font-black tracking-wide text-white bg-red-600 backdrop-blur-sm">
               Lotada

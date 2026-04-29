@@ -31,7 +31,7 @@ Este formato é gerado automaticamente pelo Specify CLI e garante rastreabilidad
 - Nomes sem número (`gate-migrations-refactor`)
 - CamelCase ou snake_case
 
-**Nota:** Este documento cobre apenas branches SDD. Branches não-SDD (`chore/`, `docs/`, `feature/` sem número) seguem convenções históricas documentadas em `GIT_WORKFLOW.md`.
+**Nota:** Este documento cobre branches SDD e consolida o fluxo atual de merge via PR. Branches não-SDD (`chore/`, `docs/`, `feature/` sem número) seguem as regras gerais de Git em `AGENTS.md`.
 
 ---
 
@@ -100,13 +100,13 @@ Merge local com `git checkout` entre branches causa deleção temporária de arq
 - [ ] **Todos os critérios de merge em dev** (acima)
 - [ ] **Preflight GO:** Workflow `preflight-prod.yml` executado com status `GO` (sem drift I2/I3/I5)
 - [ ] **Checklist executado:** `PRE_DEPLOY_CHECKLIST.md` completo (4 fases: validação, migrations, backup, deploy)
-- [ ] **Playbook seguido:** `OPERACAO_PRODUCAO.md` §10 (promoção dev → main via PR, nunca checkout local)
+- [ ] **Playbook seguido:** promoção `dev` → `main` via GitHub PR, conforme `PRE_DEPLOY_CHECKLIST.md` e regra de nunca fazer checkout local entre `dev` e `main`
 - [ ] **Validação beta:** Feature validada em `mesasbeta.artificiorpg.com` antes da promoção
 
 **Referências:**
 - `PRE_DEPLOY_CHECKLIST.md` — Checklist obrigatório antes de merge em main
-- `OPERACAO_PRODUCAO.md` §10 — Playbook canônico de promoção dev → main
-- `GIT_WORKFLOW.md` — Fluxo detalhado de Git e GitHub CLI
+- `AGENTS.md` — Aprovações, comandos bloqueantes e regra anti-checkout em deploy
+- `.specify/memory/project-state.md` — Estado atual, branch ativa e próxima ação
 
 ---
 
@@ -163,8 +163,8 @@ Após o merge da Feature 001 (`001-gate-migrations-refactor`) em `main`, o mante
 
 Para evitar duplicação, este documento **não** cobre:
 
-- **Fluxo detalhado de promoção dev → main:** Ver `OPERACAO_PRODUCAO.md` §10
+- **Fluxo detalhado de promoção dev → main:** Ver `PRE_DEPLOY_CHECKLIST.md`
 - **Problema com `git checkout` entre branches:** Ver `.specify/memory/errors.md` E143
-- **Comandos Git e GitHub CLI:** Ver `GIT_WORKFLOW.md`
+- **Comandos Git e GitHub CLI:** Ver `AGENTS.md` e comandos de referência no `PRE_DEPLOY_CHECKLIST.md`
 - **Regras de commit e sessões:** Ver `AGENTS.md` e `.specify/memory/constitution.md` §9
 - **Migrations e drift detection:** Ver `migrations_guide.md` e `PRE_DEPLOY_CHECKLIST.md`

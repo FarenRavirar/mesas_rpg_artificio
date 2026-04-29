@@ -3,13 +3,34 @@ set -euo pipefail
 
 # Scripts roda no runner do github actions durante puxada de PR para main.
 
+SSH_CONFIG=${SSH_CONFIG:-C:\\projetos\\config}
+DB_CONTAINER_BETA=${DB_CONTAINER_BETA:-mesas-beta-db}
+DB_CONTAINER_PROD=${DB_CONTAINER_PROD:-mesas-db}
+DB_USER=${DB_USER:-admin}
+DB_NAME=${DB_NAME:-mesas_rpg}
+BETA_DEPLOY_LOCK=${BETA_DEPLOY_LOCK:-/tmp/mesas-beta-deploy.lock}
+
+wait_for_db_container() {
+  local container="$1"
+  local lock_file="${2:-}"
+  local lock_prefix=""
+
+  if [ -n "$lock_file" ]; then
+    lock_prefix="exec 9>${lock_file}; flock -w 300 9;"
+  fi
+
+  ssh -F "$SSH_CONFIG" faren "set -euo pipefail; ${lock_prefix} for i in \$(seq 1 60); do if docker inspect '${container}' >/dev/null 2>&1 && docker exec '${container}' pg_isready -U '${DB_USER}' -d '${DB_NAME}' >/dev/null 2>&1; then exit 0; fi; sleep 2; done; docker ps --filter name='${container}'; exit 1"
+}
+
 echo "Conectando em beta..."
-PG_BETA=$(ssh -F C:\\projetos\\config faren "docker exec mesas-beta-db psql -U admin -d mesas_rpg -tAc 'SELECT version();'")
-DB_BETA=$(ssh -F C:\\projetos\\config faren "docker exec mesas-beta-db psql -U admin -d mesas_rpg -tAc 'SELECT migration_name FROM schema_migrations ORDER BY migration_name;' 2>/dev/null" || echo "")
+wait_for_db_container "$DB_CONTAINER_BETA" "$BETA_DEPLOY_LOCK"
+PG_BETA=$(ssh -F "$SSH_CONFIG" faren "docker exec ${DB_CONTAINER_BETA} psql -U ${DB_USER} -d ${DB_NAME} -tAc 'SELECT version();'")
+DB_BETA=$(ssh -F "$SSH_CONFIG" faren "docker exec ${DB_CONTAINER_BETA} psql -U ${DB_USER} -d ${DB_NAME} -tAc 'SELECT migration_name FROM schema_migrations ORDER BY migration_name;' 2>/dev/null" || echo "")
 
 echo "Conectando em prod..."
-PG_PROD=$(ssh -F C:\\projetos\\config faren "docker exec mesas-db psql -U admin -d mesas_rpg -tAc 'SELECT version();'")
-DB_PROD=$(ssh -F C:\\projetos\\config faren "docker exec mesas-db psql -U admin -d mesas_rpg -tAc 'SELECT migration_name FROM schema_migrations ORDER BY migration_name;' 2>/dev/null" || echo "")
+wait_for_db_container "$DB_CONTAINER_PROD"
+PG_PROD=$(ssh -F "$SSH_CONFIG" faren "docker exec ${DB_CONTAINER_PROD} psql -U ${DB_USER} -d ${DB_NAME} -tAc 'SELECT version();'")
+DB_PROD=$(ssh -F "$SSH_CONFIG" faren "docker exec ${DB_CONTAINER_PROD} psql -U ${DB_USER} -d ${DB_NAME} -tAc 'SELECT migration_name FROM schema_migrations ORDER BY migration_name;' 2>/dev/null" || echo "")
 
 DISK_HEAD=$(find ./database -maxdepth 1 -name "migration_*.sql" -exec basename {} \; | sort)
 

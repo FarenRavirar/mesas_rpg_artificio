@@ -14,6 +14,7 @@ import { TableService } from '../services/tableService';
 import { TableRepository } from '../repositories/tableRepository';
 import { BenchmarkService } from '../services/benchmarkService';
 import { logActivity } from '../services/activityLogger';
+import { isValidEmail } from '../utils/validation';
 
 const router = Router();
 
@@ -355,8 +356,7 @@ router.put('/profile', authMiddleware, async (req: Request, res: Response) => {
           
           // Validar Email
           if (channel === 'email') {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(value)) {
+            if (!isValidEmail(value)) {
               return null; // Email inválido
             }
           }
@@ -800,7 +800,7 @@ router.get('/tables', authMiddleware, async (req: Request, res: Response) => {
         't.slug',
         't.title',
         't.description',
-        't.banner_url as image_url',
+        sql<string | null>`COALESCE(t.cover_url, t.banner_url)`.as('image_url'),
         't.status',
         't.modality',
         't.system_id',
@@ -821,8 +821,8 @@ router.get('/tables', authMiddleware, async (req: Request, res: Response) => {
         't.safety_tools',
         't.publisher_role',
         't.actual_gm_name',
-        't.is_ddal',
-        't.is_covil',
+        sql<boolean>`COALESCE(t.is_ddal, false)`.as('is_ddal'),
+        sql<boolean>`COALESCE(t.is_covil, false)`.as('is_covil'),
         't.ddal_code',
         't.ddal_name',
         't.ddal_tier',

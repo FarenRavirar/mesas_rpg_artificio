@@ -27,7 +27,7 @@
 - Remote: origin atual
 
 ## 4. Stack travada
-- Runtime: Node.js 22 LTS
+- Runtime: Node.js 25.9.0 Current
 - Gerenciador: npm
 - Frontend: React + Vite + TypeScript
 - Backend: Node.js + TypeScript
@@ -48,7 +48,7 @@
 - Segredos via env vars, nunca em código.
 
 ## 7. Camadas imutáveis (não reescrever)
-AGENTS.md, .specify/arquiteture.md, .specify/memory/errors.md, MAPA_DE_API.md, OPERACAO_PRODUCAO.md, PRE_DEPLOY_CHECKLIST.md, migrations_guide.md.
+AGENTS.md, .specify/arquiteture.md, .specify/memory/errors.md, MAPA_DE_API.md, PRE_DEPLOY_CHECKLIST.md, docs/sdd/BRANCH_POLICY.md, migrations_guide.md.
 *(Exceção: qualquer arquivo pode mudar se justificado e melhor para o projeto sob a ótica da Implementação SDD)*
 
 **Nota:** `BACKLOG_OPERACIONAL.md`, `FILA_IMPLEMENTACAO.md` e `ERRORS_SOLUTIONS.md` foram migrados para `docs/legacy/` e substituídos por `.specify/features/*/` e `.specify/memory/errors.md`.
@@ -83,6 +83,8 @@ Antes de declarar qualquer transição de estado, o agente DEVE colar no chat:
 - Comando exato executado
 - Output LITERAL (não resumido, não filtrado) da execução
 - Arquivos criados ou modificados listados por `git status`
+
+Regra específica de slash commands: é proibido marcar `[x]` em qualquer `/speckit.*` sem evidência explícita do procedimento executado (workflow/skill + atualizações documentais obrigatórias).
 
 Qualquer transição sem esses quatro itens é rejeitada pelo mantenedor.
 
@@ -176,3 +178,47 @@ Exemplo aceito: `"docker local ausente (Windows); verificada infra remota via SS
 - `sed`, `bash`, `bats` e utilitários POSIX NÃO existem nativos no PowerShell. Nunca tentar rodar no cmd.
 - `chmod -x` é inócuo no NTFS. Para desabilitar hook, renomear (`.git/hooks/pre-commit.disabled`).
 - `Out-File` e similares do PowerShell adicionam BOM. Para arquivos texto de infra (`.gitattributes`, scripts, YAMLs), usar editor que grave UTF-8 sem BOM OU gravar via Git Bash.
+
+## 11. Regras anti-padrão arquiteturais
+
+Aprendizados consolidados de bugs reais. Cada regra existe para evitar repetição de erro já catalogado em `errors.md`.
+
+### 11.1 Lazy-load obrigatório para features opcionais
+
+Toda feature que dependa de variável de ambiente não-essencial DEVE inicializar conexões/recursos de forma lazy.
+
+- PROIBIDO: `throw new Error(...)` em load-time se a env var ausente bloqueia uma feature opcional.
+- OBRIGATÓRIO: padrão getter/Proxy que joga apenas no primeiro uso real.
+- Exceção: env vars críticas para o boot da API (JWT_SECRET, DB_HOST principal) podem manter throw em load-time.
+
+Bug que originou: E160. Feature opcional (hidratação) acoplava boot da API ao seu próprio env var; container crashava em loop.
+
+### 11.2 Sincronização entre ambientes usa identificadores semânticos
+
+Operações que copiam dados entre ambientes (hidratação, replicação, dump/restore semântico, import de fontes externas) DEVEM usar identificadores semânticos (slug, email, chave natural composta), não UUIDs gerados localmente.
+
+- PROIBIDO: assumir que `id UUID` é portável entre bancos diferentes.
+- OBRIGATÓRIO: para tabelas de catálogo, match por `slug`. Para usuários, match por `email`. Para outras entidades, definir chave semântica antes de implementar.
+- Formato preferido para import: JSON intermediário com referências por chave semântica.
+
+Bug que originou: E164. Beta e Prod gerados independentemente com `gen_random_uuid()`; UUIDs divergentes para entidades semanticamente iguais; FK violations em cascata; transação abortada (25P02).
+
+### 11.3 ON CONFLICT aponta para constraint do conflito real esperado
+
+Em queries com `ON CONFLICT`, a constraint escolhida DEVE refletir o caso real de conflito esperado em runtime. Em tabelas com múltiplas constraints UNIQUE (PK + UNIQUE composto, etc.):
+
+- DEFAULT: usar PK.
+- Outras escolhas: exigem comentário inline justificando o caso de conflito esperado.
+- PROIBIDO: assumir que "qualquer ON CONFLICT serve". SQL cobre apenas UMA constraint por query.
+
+Bug que originou: E162. Tabelas auth_providers e user_systems têm PK + UNIQUE composto; patch escolheu composto, mas conflito real era PK; estourou 23505.
+
+### 11.4 Compose do repo é fonte da verdade; hotpatches na VM são dirty state
+
+Mudanças aplicadas direto na VM (compose, env, código) sem reflexo no repo são `dirty state` por definição.
+
+- OBRIGATÓRIO: antes de iniciar trabalho novo em uma área que tenha hotpatch pendente, reconciliar dirty state no repo OU registrar formalmente como transitório com prazo de reconciliação.
+- PROIBIDO: aceitar dirty state silenciosamente como "vai ficar assim por enquanto".
+- Reconciliação envolve: editar arquivo correspondente no repo, commit atômico, deploy, validar que VM e repo estão sincronizados.
+
+Bug que originou: E160. Hotpatch da Sessão 9 (NODE_ENV, PROD_DB_URL) ficou apenas na VM; cada deploy sobrescrevia. Ciclo de "patch perde, patch volta" persistiu por dias.

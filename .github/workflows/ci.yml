@@ -20,14 +20,17 @@ jobs:
   build-frontend:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '22'
+          node-version: '25.9.0'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup npm
+        run: npm install -g npm@11.13.0
 
       - name: Instalar dependências
         run: cd frontend && npm ci
@@ -38,14 +41,17 @@ jobs:
   build-backend:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '22'
+          node-version: '25.9.0'
           cache: 'npm'
           cache-dependency-path: backend/package-lock.json
+
+      - name: Setup npm
+        run: npm install -g npm@11.13.0
 
       - name: Instalar dependências
         run: cd backend && npm ci

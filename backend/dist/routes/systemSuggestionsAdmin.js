@@ -5,6 +5,34 @@ const auth_1 = require("../middleware/auth");
 const db_1 = require("../db");
 const activityLogger_1 = require("../services/activityLogger");
 const router = (0, express_1.Router)();
+async function resolveActorName(userId, trx) {
+    const executor = trx ?? db_1.db;
+    try {
+        const profile = await executor
+            .selectFrom('profiles')
+            .select('display_name')
+            .where('user_id', '=', userId)
+            .executeTakeFirst();
+        if (profile?.display_name && profile.display_name.trim().length > 0) {
+            return profile.display_name.trim();
+        }
+        const adminUser = await executor
+            .selectFrom('users')
+            .select(['username', 'email'])
+            .where('id', '=', userId)
+            .executeTakeFirst();
+        if (adminUser?.username && adminUser.username.trim().length > 0) {
+            return adminUser.username.trim();
+        }
+        if (adminUser?.email) {
+            return adminUser.email.split('@')[0];
+        }
+    }
+    catch (error) {
+        console.error('[systemSuggestionsAdmin][resolveActorName]', error);
+    }
+    return 'Admin';
+}
 router.use(auth_1.authMiddleware, (0, auth_1.requireRole)('admin'));
 // GET /api/v1/admin/system-suggestions - Listar todas as sugestões
 router.get('/system-suggestions', async (req, res) => {
@@ -42,19 +70,7 @@ router.patch('/system-suggestions/:id/approve', async (req, res) => {
             if (!suggestion) {
                 throw new Error('NOT_FOUND_OR_REVIEWED');
             }
-            const profile = await trx
-                .selectFrom('profiles')
-                .select('display_name')
-                .where('user_id', '=', adminId)
-                .executeTakeFirst();
-            const adminUser = await trx
-                .selectFrom('users')
-                .select(['username', 'email'])
-                .where('id', '=', adminId)
-                .executeTakeFirst();
-            const adminName = profile?.display_name?.trim()
-                || adminUser?.username?.trim()
-                || (adminUser?.email ? adminUser.email.split('@')[0] : 'Admin');
+            const adminName = await resolveActorName(adminId, trx);
             // 2. Verificar se parent_id existe (se fornecido)
             if (suggestion.parent_id) {
                 const parentExists = await trx
@@ -206,19 +222,7 @@ router.patch('/system-suggestions/:id/reject', async (req, res) => {
             if (!suggestion) {
                 throw new Error('NOT_FOUND_OR_REVIEWED');
             }
-            const profile = await trx
-                .selectFrom('profiles')
-                .select('display_name')
-                .where('user_id', '=', adminId)
-                .executeTakeFirst();
-            const adminUser = await trx
-                .selectFrom('users')
-                .select(['username', 'email'])
-                .where('id', '=', adminId)
-                .executeTakeFirst();
-            const adminName = profile?.display_name?.trim()
-                || adminUser?.username?.trim()
-                || (adminUser?.email ? adminUser.email.split('@')[0] : 'Admin');
+            const adminName = await resolveActorName(adminId, trx);
             // 2. UPDATE status para rejected
             await trx
                 .updateTable('system_suggestions')

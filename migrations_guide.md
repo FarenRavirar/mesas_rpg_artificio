@@ -85,9 +85,9 @@ Não aplique migrations manualmente! O script `apply_required_migrations.sh` é 
 
 Se o deploy automatizado for bloqueado por uma migration `manual-risk` ou falhas de drift (relatório "BLOCKED" do preflight), intervenha da seguinte forma:
 
-1. Acesse o servidor (Beta ou Prod) via SSH.
-2. Siga o procedimento de emergência no **Apêndice A** de `OPERACAO_PRODUCAO.md`.
-3. Aplique os desvios de migração ou reparos no banco de dados manualmente.
+1. Acesse o servidor (Beta ou Prod) via SSH somente após aprovação explícita quando houver escrita ou risco operacional.
+2. Siga os gates de backup, autorização e rollback em `PRE_DEPLOY_CHECKLIST.md`.
+3. Aplique os desvios de migração ou reparos no banco de dados manualmente apenas quando o checklist permitir.
 4. **Reconciliação obrigatória**: Execute a confirmação para que o gate registre o arquivo e libere os próximos deploys:
    ```bash
    bash scripts/deploy/reconcile_migrations.sh --mark-applied migration_XXX_descricao.sql docker-compose.prod.yml mesas-db
@@ -152,7 +152,7 @@ ssh -F C:\projetos\config faren "cd /opt/mesas-beta && bash scripts/deploy/recon
 - **Prevenção:** Sempre usar optional chaining (`?.`) e nullish coalescing (`??`).
 
 ### Feature 001: Gate de Migrations (21/04/2026)
-- **I2 (Drift Reverso):** Hotfixes manuais aplicados via SSH bypassam `schema_migrations`, causando dessincronização entre banco e disco. **Contramedida:** passo 11 do `OPERACAO_PRODUCAO.md` torna `reconcile_migrations.sh --mark-applied` obrigatório após qualquer intervenção manual. **Ignorar =** próximo deploy bloqueado por drift.
+- **I2 (Drift Reverso):** Hotfixes manuais aplicados via SSH bypassam `schema_migrations`, causando dessincronização entre banco e disco. **Contramedida:** este guia torna `reconcile_migrations.sh --mark-applied` obrigatório após qualquer intervenção manual. **Ignorar =** próximo deploy bloqueado por drift.
 - **I3 (Validação de Header):** Desenvolvedores criavam migrations ad-hoc sem documentar tipo e autor, dificultando auditoria. **Contramedida:** validação estrita de header e template obrigatório acoplada à esteira de CI. **Ignorar =** push e deploy quebram imediatamente no preflight.
 - **I5 (Classificação Divergente):** Intervenções perigosas eram realizadas por descuido em operações de rotina sob a tag `online-safe`. **Contramedida:** pipeline intercepta operações destrutivas via regex bloqueando aprovações automáticas. **Ignorar =** bloqueio formal do deploy via CI exigindo classificação explícita `manual-risk`.
 - **Manual-Risk:** Riscos destrutivos passavam despercebidos sem backup prévio e explícito no ambiente. **Contramedida:** deploy classificado como manual fica bloqueado em Produção até que intervenção exija `ALLOW_MANUAL_MIGRATIONS=true` acompanhado de backup validado. **Ignorar =** bloqueio completo antes da alteração do schema de produção.

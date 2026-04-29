@@ -4,7 +4,7 @@
 # =============================================================================
 
 # Estágio 1: build Vite
-FROM node:22-alpine AS builder
+FROM node:25.9.0-alpine AS builder
 
 WORKDIR /app
 
@@ -21,6 +21,7 @@ ARG VITE_CLOUDINARY_UPLOAD_PRESET
 ENV VITE_CLOUDINARY_UPLOAD_PRESET=${VITE_CLOUDINARY_UPLOAD_PRESET}
 
 COPY package*.json ./
+RUN npm install -g npm@11.13.0
 RUN npm ci
 
 COPY . .
