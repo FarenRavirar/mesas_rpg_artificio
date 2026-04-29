@@ -557,7 +557,7 @@ export const CatalogoPage = () => {
         ) : (
           <>
             {/* GRID */}
-            <div className="grid min-w-0 grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            <div className="grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-[repeat(auto-fit,minmax(280px,1fr))]">
               {isLoading
                 ? Array.from({ length: 12 }).map((_, idx) => <TableCardSkeleton key={idx} />)
                 : tables.map((table) => <TableCardComponent key={table.id} table={table} />)}

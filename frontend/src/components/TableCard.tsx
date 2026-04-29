@@ -90,7 +90,7 @@ export function TableCardComponent({ table }: { table: TableCard }) {
       to={`/mesas/${table.slug}`}
       onClick={handleClick}
       onMouseEnter={handleMouseEnter}
-      className="group relative flex h-full min-h-[390px] w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#1B2A4A] shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-[var(--color-artificio-orange)]/40 hover:shadow-[0_0_30px_rgba(232,82,26,0.15)]"
+      className="group relative flex h-full min-h-[430px] w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#1B2A4A] shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-[var(--color-artificio-orange)]/40 hover:shadow-[0_0_30px_rgba(232,82,26,0.15)]"
       id={`table-card-${table.slug}`}
     >
       {/* BLOCO 1: HEADER (Imagem + Badges críticos) */}
@@ -156,7 +156,7 @@ export function TableCardComponent({ table }: { table: TableCard }) {
       </div>
 
       {/* BLOCO 2: CONTENT (Título + Sistema/Modalidade) */}
-      <div className="flex-1 p-4 flex flex-col">
+      <div className="flex flex-1 flex-col p-4">
         <div className="mb-3 flex min-h-[34px] min-w-0 flex-wrap items-center gap-2">
           {table.system_name && (
             <SystemBadge
@@ -171,7 +171,7 @@ export function TableCardComponent({ table }: { table: TableCard }) {
           </span>
         </div>
 
-        <h3 className="shrink-0 min-h-[3.25rem] text-lg font-bold text-white group-hover:text-[var(--color-artificio-orange)] transition-colors line-clamp-2 leading-tight mb-4">
+        <h3 className="mb-4 min-h-[4.75rem] shrink-0 text-lg font-bold leading-tight text-white transition-colors line-clamp-3 group-hover:text-[var(--color-artificio-orange)]">
           {table.title}
         </h3>
 
@@ -194,7 +194,7 @@ export function TableCardComponent({ table }: { table: TableCard }) {
                 <Link
                   to={`/mestre/${table.gm_slug}`}
                   onClick={(e) => e.stopPropagation()}
-                className="min-w-0 truncate text-sm font-medium text-white/70 transition-colors hover:text-white hover:underline"
+                  className="min-w-0 truncate text-sm font-medium text-white/70 transition-colors hover:text-white hover:underline"
                 >
                   {table.gm_display_name}
                 </Link>
@@ -206,16 +206,16 @@ export function TableCardComponent({ table }: { table: TableCard }) {
             </div>
           )}
 
-          <div className="flex min-w-0 items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-wrap items-end justify-between gap-x-3 gap-y-2">
             {/* Vagas */}
             <SlotsIndicator table={table} />
 
             {/* Preço */}
             {table.price_type === 'gratuita' ? (
-              <span className="text-sm font-bold text-green-400">Gratuito</span>
+              <span className="shrink-0 text-sm font-bold text-green-400">Gratuito</span>
             ) : table.price_value ? (
-              <span className="shrink-0 whitespace-nowrap text-sm font-bold text-yellow-400">
-                R$ {table.price_value}<span className="text-[10px] text-white/50 ml-1">/ sessão</span>
+              <span className="flex shrink-0 items-baseline gap-1 whitespace-nowrap text-sm font-bold text-yellow-400">
+                R$ {table.price_value}<span className="text-[10px] font-semibold text-white/50">/ sessão</span>
               </span>
             ) : null}
           </div>
