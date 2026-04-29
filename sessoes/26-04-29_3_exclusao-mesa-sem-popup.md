@@ -52,6 +52,9 @@
 - T017 concluída: `.specify/memory/project-state.md` atualizado para apontar a feature 007, validações executadas e próximo passo em Beta.
 - T018 concluída: `sessoes/index.md`, esta sessão e `.specify/memory/session-log.md` atualizados.
 - Publicação em Beta autorizada explicitamente pelo mantenedor em 29/04/2026 13:26 BRT; início do fluxo de versionamento e integração para `dev`.
+- BUG-001 reportado após deploy Beta: confirmação inline da página/preview chama `DELETE /api/v1/gm/tables/c8e809d7-6881-475f-ba01-9d9b0cc29185` e recebe `404 Mesa não encontrada`; investigação iniciada via fluxo `/speckit.bugfix.report` + patch mínimo.
+- BUG-001 diagnosticado: `MesaPage` habilita gestão para owner ou admin, mas `TableActionPanel` chamava sempre rota GM; patch aplicado para passar `deleteEndpointScope` e usar `/api/v1/admin/tables/:id` quando o usuário autenticado é admin.
+- BUG-001 validado tecnicamente: `npm --prefix frontend run build` passou; busca final por `confirm`/`prompt`/`alert` de exclusão retornou zero ocorrências; `tasks.md` atualizado com T007, T019 e T020 concluídas.
 
 ## Arquivos que serão modificados
 - `sessoes/26-04-29_3_exclusao-mesa-sem-popup.md`

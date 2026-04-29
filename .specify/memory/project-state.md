@@ -1,6 +1,6 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-04-29T13:55:00-03:00
+**Última atualização:** 2026-04-29T14:20:00-03:00
 **Atualizado por:** sessão 26-04-29_3_exclusao-mesa-sem-popup
 ---
 
@@ -33,7 +33,11 @@
   - Busca direcionada por pop-ups de exclusão de mesa retornou zero ocorrências.
   - `npm --prefix frontend run build` concluído com sucesso.
   - `database/changelogs.json` validado como JSON válido.
-- **Próximo passo:** publicar/deployar para `dev` e validar em janela anônima no Beta.
+- BUG-001 pós-deploy Beta corrigido:
+  - Causa raiz: página/preview da mesa habilitava gestão para `owner || admin`, mas `TableActionPanel` chamava sempre `DELETE /api/v1/gm/tables/:id`.
+  - Correção: `TableActionPanel` agora recebe `deleteEndpointScope` e usa `DELETE /api/v1/admin/tables/:id` quando a ação vem de admin.
+  - Validação técnica pós-bugfix: build frontend verde; busca final sem pop-ups de exclusão; changelog JSON válido; tasks 20/20.
+- **Próximo passo:** publicar/deployar o patch para `dev` e validar novamente em janela anônima no Beta.
 
 **Progresso da feature 003 (24/04/2026 00:15 BRT):**
 - `/speckit.specify` concluído: `spec.md` gerado com FR-001..FR-012 e SC-001..SC-005
@@ -132,9 +136,10 @@
 ## Próxima Ação
 
 **Feature 007 — Exclusão de Mesa Sem Pop-up:**
-1. ✅ **Implementação local concluída:** confirmação de exclusão de mesa agora ocorre dentro da página, sem pop-up, com segunda ação explícita e bloqueio durante processamento.
-2. ✅ **Validação técnica concluída:** busca direcionada sem ocorrências e build frontend verde.
-3. **Próximo passo funcional obrigatório:** publicar/deployar para `dev` e testar em janela anônima no Beta (`mesasbeta.artificiorpg.com`).
+1. ✅ **Implementação concluída:** confirmação de exclusão de mesa ocorre dentro da página, sem pop-up, com segunda ação explícita e bloqueio durante processamento.
+2. ✅ **BUG-001 corrigido após deploy Beta:** exclusão administrativa pela página/preview agora usa endpoint admin em vez do endpoint de mestre.
+3. ✅ **Validação técnica concluída:** busca direcionada sem ocorrências, build frontend verde e changelog JSON válido.
+4. **Próximo passo funcional obrigatório:** publicar/deployar o patch para `dev` e testar novamente em janela anônima no Beta (`mesasbeta.artificiorpg.com`).
 
 **Sessão 26-04-29_2 — Lançamento de itens SDD:**
 1. ✅ **Itens esgotados pelo mantenedor:** sessão encerrada documentalmente em 29/04/2026 13:02 BRT.

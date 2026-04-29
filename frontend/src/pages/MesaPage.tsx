@@ -194,7 +194,13 @@ export const MesaPage = () => {
           <aside className="space-y-4 z-10">
             {/* Fase 2: TableActionPanel (substituindo aside de 72 linhas) */}
             {/* CORREÇÃO DT-026: Passar variant baseado em canManage (owner OU admin) */}
-            {vm && <TableActionPanel vm={vm} variant={canManage ? 'owner' : 'full'} />}
+            {vm && (
+              <TableActionPanel
+                vm={vm}
+                variant={canManage ? 'owner' : 'full'}
+                deleteEndpointScope={isAdmin ? 'admin' : 'gm'}
+              />
+            )}
 
             {/* Card do Mestre */}
             {vm && showMasterCard && (

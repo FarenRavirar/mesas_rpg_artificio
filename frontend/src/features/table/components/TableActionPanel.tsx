@@ -9,6 +9,7 @@ import { useTracking } from '../../../hooks/useTracking';
 interface TableActionPanelProps {
   vm: TableViewModel;
   variant?: TableActionPanelVariant;
+  deleteEndpointScope?: 'gm' | 'admin';
 }
 
 /**
@@ -16,7 +17,7 @@ interface TableActionPanelProps {
  * Ordem fixa: CTA → Urgência → Preço → Info → Contato
  * Reutilizável em: MesaPage, Painel do Mestre, Card expandido
  */
-export function TableActionPanel({ vm, variant = 'full' }: TableActionPanelProps) {
+export function TableActionPanel({ vm, variant = 'full', deleteEndpointScope = 'gm' }: TableActionPanelProps) {
   const { trackTableClick } = useTracking();
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -26,7 +27,11 @@ export function TableActionPanel({ vm, variant = 'full' }: TableActionPanelProps
 
     setIsDeleting(true);
     try {
-      const res = await fetch(`/api/v1/gm/tables/${vm.id}`, {
+      const deleteEndpoint = deleteEndpointScope === 'admin'
+        ? `/api/v1/admin/tables/${vm.id}`
+        : `/api/v1/gm/tables/${vm.id}`;
+
+      const res = await fetch(deleteEndpoint, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -41,7 +46,7 @@ export function TableActionPanel({ vm, variant = 'full' }: TableActionPanelProps
       }
 
       toast.success('Mesa excluida com sucesso.');
-      window.location.href = '/painel';
+      window.location.href = deleteEndpointScope === 'admin' ? '/gestao' : '/painel';
     } catch {
       toast.error('Erro ao excluir mesa. Tente novamente.');
     } finally {

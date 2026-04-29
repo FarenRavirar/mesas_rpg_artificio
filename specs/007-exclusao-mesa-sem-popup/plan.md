@@ -72,7 +72,9 @@ Ver [research.md](research.md). Decisões principais:
 - Usar confirmação inline expansível junto ao botão destrutivo, sem `window.confirm`, `prompt`, `alert` ou modal.
 - Exigir segunda ação explícita no botão final "Excluir definitivamente".
 - Manter `toast` como feedback de página para sucesso/erro, por já ser padrão local.
-- Preservar endpoints `DELETE /api/v1/gm/tables/:id` e `DELETE /api/v1/admin/tables/:id`.
+- Preservar endpoints `DELETE /api/v1/gm/tables/:id` e `DELETE /api/v1/admin/tables/:id`, selecionando a rota conforme o contexto que habilitou a gestão na tela.
+
+**Bugfix**: 2026-04-29 — BUG-001 `TableActionPanel` recebe o escopo da exclusão para usar endpoint GM quando o usuário é dono da mesa e endpoint admin quando a ação vem de usuário administrador.
 
 ## Phase 1: Design Summary
 

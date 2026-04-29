@@ -78,8 +78,11 @@ Como mestre, quero ver de forma simples qual mesa será excluída e qual será a
 - **FR-008**: O sistema MUST mostrar retorno de sucesso dentro da página após a exclusão.
 - **FR-009**: O sistema MUST mostrar retorno de erro dentro da página quando a exclusão falhar.
 - **FR-010**: O sistema MUST preservar as permissões atuais de exclusão de mesa.
+- **FR-010a**: Na página/preview da mesa, o sistema MUST usar o endpoint de mestre para o dono da mesa e o endpoint administrativo para usuário admin, preservando o contexto de permissão que tornou a ação visível.
 - **FR-011**: O fluxo MUST ser compreensível e utilizável em desktop e mobile.
 - **FR-012**: O sistema MUST manter navegação clara após sucesso, cancelamento ou erro.
+
+**Bugfix**: 2026-04-29 — BUG-001 A página/preview da mesa deve selecionar a rota de exclusão conforme contexto de gestão (`gm` ou `admin`) para evitar 404 indevido em exclusões administrativas.
 
 ### Key Entities *(include if feature involves data)*
 
