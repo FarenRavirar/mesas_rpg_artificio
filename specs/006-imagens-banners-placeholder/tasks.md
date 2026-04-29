@@ -98,7 +98,9 @@
 - [x] T029 Add `Manter link direto` control to table banner URL input in `frontend/src/components/ImageUploader.tsx`
 - [x] T030 Add `Manter link direto` control to profile manual URL inputs in `frontend/src/pages/ProfileEditPage.tsx`
 - [x] T031 Centralize manual image URL import, opt-out flag and error handling in `frontend/src/hooks/useImageUrlImport.ts`
-- [x] T032 Normalize legacy master profile list fields before editing to prevent panel crashes in `frontend/src/pages/Painel/EditGmProfileForm.tsx`
+- [x] T032 Eliminate the legacy master profile edit path that could crash on non-array `selling_points`
+- [x] T033 Route master profile edit actions to the canonical `/perfil?tab=mestre` flow and remove the duplicate panel edit form
+- [x] T034 Remove legacy inline avatar URL editing from the public master actions so profile image changes use the canonical profile tab
 
 ---
 

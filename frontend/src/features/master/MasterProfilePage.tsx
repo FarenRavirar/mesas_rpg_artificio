@@ -65,20 +65,6 @@ export function MasterProfilePage() {
     loadMaster();
   }, [masterId]);
 
-  const handleAvatarUpdate = async (url: string) => {
-    const res = await fetch('/api/v1/masters/me/avatar', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ avatar_url: url }),
-    });
-
-    if (!res.ok) throw new Error('Falha ao atualizar avatar');
-
-    // Recarregar dados
-    const json = await res.json();
-    setMaster(json.data);
-  };
-
   if (loading) {
     return (
       <main className="min-h-screen bg-[var(--color-artificio-blue)] text-white flex items-center justify-center">
@@ -129,7 +115,7 @@ export function MasterProfilePage() {
         )}
         
         {/* 3. Actions (owner only) */}
-        <MasterActions vm={vm} onAvatarUpdate={handleAvatarUpdate} />
+        <MasterActions vm={vm} />
         
         {/* 4. Stats (prova social) */}
         <MasterStats vm={vm} />

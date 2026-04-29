@@ -319,6 +319,7 @@ Linguagem 100% leiga. Proibido: `sidebar vertical`, `migration`, `refactor`, `pl
 - Lógica de autenticação e permissões → Backend (Node.js/TypeScript via JWT)
 - Python → exclusivamente para scripts fora do runtime da API principal
 - Upload e processamento de imagens → sempre no Backend
+- **Normalização obrigatória de dados de fronteira:** todo dado vindo de API, banco, JSON/JSONB, query string, `localStorage` ou integração externa deve ser tratado como `unknown` até passar por normalizador tipado antes de entrar em estado React, props de componente ou renderização. É proibido chamar `.map`, `.filter`, `.reduce`, `.forEach`, spread de array, `.length` sem semântica validada, ou acessar campos aninhados assumindo formato em payload externo sem `Array.isArray`, parser/schema/normalizador ou fallback explícito. Para campos legados que podem vir como JSON string ou objeto, o normalizador deve aceitar formatos conhecidos, retornar valor seguro (`[]`, `{}` ou `null`) quando inválido e ter validação local (`npm --prefix frontend run build`) antes de commit/deploy.
 
 ---
 

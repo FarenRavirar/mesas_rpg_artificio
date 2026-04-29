@@ -69,7 +69,19 @@
 - Correção aplicada localmente: hooks de importação de imagem em `ProfileEditPage.tsx` foram movidos para antes dos retornos condicionais, e o campo manual de avatar do mestre passou a ser controlado para o importador ler a URL atual.
 - Validação local após correções adicionais: `npm --prefix frontend run build` passou; `git diff --check` passou com avisos apenas de LF/CRLF.
 - Documentação atualizada: `tasks.md` recebeu a tarefa T032 para o crash do painel; `database/changelogs.json` consolidou a nota de estabilidade no objeto único de 29/04/2026.
-
+- Commit criado e enviado para `origin/dev`: `8abeb81 fix(006): unifica importacao de imagens do perfil`.
+- Deploy Beta executado pelo GitHub Actions: run `25113443831` concluída com sucesso, incluindo `validate`, `enforce-dir`, `lint`, `migrate`, `deploy-app` e `smoke`.
+- Nova falha de fluxo apontada pelo mantenedor: o botão `Editar perfil` do painel abre uma tela própria (`EditGmProfileForm`) com campos e UX diferentes da aba padrão `Mestre` em `/perfil`.
+- Decisão de correção: registrar diretiva permanente em `AGENTS.md` para normalização obrigatória de dados de fronteira antes de uso iterável e mudar o botão do painel para navegar diretamente para `/perfil?tab=mestre`, evitando duas telas concorrentes para o mesmo fluxo.
+- Correção aplicada localmente: `AGENTS.md` recebeu diretiva de normalização obrigatória para dados de fronteira antes de `.map`, `.filter`, `.reduce`, `.forEach`, spread de array, `.length` sem semântica validada ou acesso aninhado assumido.
+- Correção aplicada localmente: botão `Editar perfil` do painel e botão do perfil público do mestre agora navegam para `/perfil?tab=mestre`; `ProfileEditPage` sincroniza a aba ativa com o parâmetro `tab` da URL.
+- Correção aplicada localmente: removida a tela duplicada `frontend/src/pages/Painel/EditGmProfileForm.tsx`, eliminando a experiência divergente e o caminho que podia quebrar com `selling_points` legado.
+- Correção aplicada localmente: removido o editor inline legado de URL de avatar em `MasterActions`; ações de edição/troca de foto do dono agora levam ao fluxo canônico da aba Mestre.
+- Validação local após unificação do destino de edição: `npm --prefix frontend run build` passou; `git diff --check` passou com avisos apenas de LF/CRLF.
+- Busca de controle: `rg "EditGmProfileForm|edit-profile|masters/me/avatar|Cole a URL da imagem"` não encontrou fluxos legados; restaram apenas os controles canônicos de URL manual/`Manter link direto`.
+- Solicitação atual do mantenedor: fazer o deploy dos arquivos que faltam para `dev` para permitir teste funcional em Beta.
+- Próxima ação operacional: verificar estado local, identificar arquivos pendentes, preparar envio controlado para `dev` e acompanhar deploy Beta até evidência de conclusão.
+- Aprovação explícita recebida do mantenedor: incluir todos os arquivos pendentes para `dev`; todos estão aprovados.
 ## Checklist de fechamento
 - [ ] Executar `/speckit.retro.run`
 - [ ] Atualizar `.specify/memory/project-state.md` via `/speckit.status`

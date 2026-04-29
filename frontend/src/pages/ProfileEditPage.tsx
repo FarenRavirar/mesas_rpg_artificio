@@ -31,6 +31,11 @@ export default function ProfileEditPage() {
   const [showSaved, setShowSaved] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
 
+  useEffect(() => {
+    const tabFromUrl = sanitizeTab(searchParams.get('tab'));
+    setActiveTab((currentTab) => (currentTab === tabFromUrl ? currentTab : tabFromUrl));
+  }, [searchParams]);
+
   // Sincronizar aba com URL
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
