@@ -436,9 +436,8 @@ export const PainelMestrePage = () => {
     }
   };
 
-  const handleDeleteTable = async (tableId: string, title: string) => {
+  const handleDeleteTable = async (tableId: string) => {
     if (!isAuthenticated) return;
-    if (!confirm(`Deletar mesa "${title}"? Esta ação não pode ser desfeita.`)) return;
 
     setDeletingTableId(tableId);
     try {
@@ -642,7 +641,7 @@ export const PainelMestrePage = () => {
                       table={table}
                       onEdit={(id: string) => navigate(`/painel?edit=${id}`)}
                       onToggle={(table) => handleToggleTableStatus(table.id, table.status, table.title)}
-                      onDelete={(table) => handleDeleteTable(table.id, table.title)}
+                      onDelete={(table) => handleDeleteTable(table.id)}
                       isToggling={togglingTableId === table.id}
                       isDeleting={deletingTableId === table.id}
                     />
