@@ -1,62 +1,65 @@
-# Quickstart: Revisão Visual e Responsiva do Catálogo
-
-## Objetivo
-
-Validar que o catálogo foi revisado contra bugs visuais relacionados, não sobrescreve a tela, segue padrão visual coerente com a gestão de sistemas e funciona de forma responsiva.
+# Quickstart: Catálogo e Painel UX Bugs
 
 ## Pré-condições
 
-- Bugs visuais relacionados ao catálogo mapeados antes da implementação.
-- Feature implementada no frontend.
-- Build técnico do frontend executado com sucesso antes de deploy.
-- Deploy disponível no Beta.
-- Teste funcional realizado em janela anônima.
+- Branch ativa: `feat/008-catalogo-painel-ux-bugs`.
+- Feature ativa em `.specify/feature.json`: `specs/008-catalogo-painel-ux-bugs`.
+- Nenhuma migration planejada.
+- Antes de implementar, revisar `tasks.md` gerado pela próxima fase.
 
-## Cenário 1: Mapeamento de bugs visuais relacionados
+## Roteiro Técnico
 
-1. Abrir o catálogo.
-2. Inspecionar menus, filtros, cards e estados visuais.
-3. Registrar bugs de sobreposição, espaçamento, rolagem horizontal, estados quebrados e inconsistências com gestão de sistemas.
-4. Classificar cada achado como dentro ou fora do escopo da feature.
+1. Confirmar arquivos alterados esperados:
+   ```powershell
+   git status --short
+   ```
 
-**Resultado esperado**: lista de achados visuais relacionados ao catálogo antes dos patches técnicos.
+2. Implementar ajustes somente nos arquivos permitidos pelo plan:
+   - `frontend/src/pages/CatalogoPage.tsx`
+   - `frontend/src/components/FilterDrawer.tsx`
+   - `frontend/src/components/ActiveFiltersChips.tsx`
+   - `frontend/src/components/TableCard.tsx`
+   - `frontend/src/components/SystemTreeSelector.tsx`
+   - `frontend/src/components/form-steps/steps/StepSystem.tsx`
+   - `frontend/src/features/create-table/utils/mapTableApiToInitialData.ts` somente se o bug de edição exigir.
 
-## Cenário 2: Catálogo em desktop
+3. Rodar validação técnica obrigatória:
+   ```powershell
+   npm --prefix frontend run build
+   ```
 
-1. Abrir o catálogo no Beta.
-2. Verificar cabeçalho, menus, filtros, cards e resultados.
-3. Rolar a página.
-4. Abrir e fechar filtros/menus.
-5. Confirmar que nenhum elemento cobre outro indevidamente.
-6. Comparar filtros e menus com o padrão da gestão de sistemas.
+4. Se houver lógica isolável nova ou corrigida no seletor/normalizador, rodar testes focados:
+   ```powershell
+   npm --prefix frontend run test
+   ```
 
-**Resultado esperado**: catálogo escaneável, sem sobreposição e visualmente coerente com a gestão de sistemas.
+## Validação Visual Local
 
-## Cenário 3: Catálogo em tablet/mobile
+Validar `/catalogo` nos seguintes cenários:
 
-1. Abrir o catálogo em viewport estreito ou dispositivo móvel.
-2. Verificar que não há rolagem horizontal indevida.
-3. Abrir e fechar menus/filtros.
-4. Confirmar que controles não cobrem resultados de forma permanente.
-5. Alternar orientação, se aplicável.
+- Desktop largo: filtros, cabeçalho e grid não se sobrepõem.
+- Tablet: grid e filtros continuam legíveis sem rolagem horizontal.
+- Mobile: drawer abre e fecha sem cobrir permanentemente os resultados; botão flutuante não oculta ações críticas.
+- Filtros ativos: chips removíveis aparecem sem quebrar linha de modo desorganizado.
+- Estados: carregando, atualizando, vazio e erro mantêm estrutura clara.
+- Conteúdo extremo: título longo, mestre com nome longo, sistema com nome longo, badges e imagem ausente.
 
-**Resultado esperado**: navegação responsiva clara, filtros acessíveis e resultados preservados.
+Validar painel:
 
-## Cenário 4: Estados do catálogo
+- Abrir criação/edição de mesa.
+- Selecionar sistema base, edição/subsistema e variante.
+- Confirmar que o seletor não troca opções de nível incorreto.
+- Confirmar que a edição de mesa carrega sem crash quando a mesa possui sistema já definido.
 
-1. Validar estado carregando.
-2. Validar estado vazio.
-3. Validar estado de erro, se reproduzível.
-4. Validar resultados com poucos e muitos cards.
-5. Validar cards com textos longos ou imagens ausentes.
+## Validação Beta
 
-**Resultado esperado**: todos os estados permanecem legíveis e sem sobreposição indevida.
+Após merge/deploy em `dev`, a validação funcional da feature só conta como final quando o mantenedor testar em janela anônima no Beta:
 
-## Evidências obrigatórias
+- `https://mesasbeta.artificiorpg.com/catalogo`
+- fluxo de edição/criação no painel, se alterado pela implementação.
 
-- Resultado do build técnico do frontend.
-- Lista de bugs visuais relacionados investigados.
-- Confirmação funcional do catálogo em desktop.
-- Confirmação funcional do catálogo em tablet/mobile.
-- Confirmação de padronização de menus/filtros com gestão de sistemas.
-- Registro de que o teste final foi feito em janela anônima no Beta.
+## Rollback
+
+- Reverter os arquivos frontend alterados nesta feature.
+- Preservar artefatos SDD para histórico.
+- Como não há migration, rollback não exige banco.

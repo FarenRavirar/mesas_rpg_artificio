@@ -1,115 +1,119 @@
-# Tasks: Revisão Visual e Responsiva do Catálogo
+# Tasks: Catálogo e Painel UX Bugs
 
-**Input**: Design documents from `/specs/008-catalogo-painel-ux-bugs/`
-**Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/, quickstart.md
-**Tests**: Build técnico do frontend e validação funcional em Beta são obrigatórios; validação visual deve cobrir desktop, tablet/mobile e comparação com gestão de sistemas.
+**Input**: Design documents from `specs/008-catalogo-painel-ux-bugs/`  
+**Prerequisites**: `plan.md`, `spec.md`, `research.md`, `data-model.md`, `contracts/README.md`, `quickstart.md`  
+**Tests**: validação técnica obrigatória com `npm --prefix frontend run build`; testes Vitest focados somente se a implementação introduzir lógica pura isolável. Validação funcional final exige Beta em janela anônima.
 
 ## Format: `[ID] [P?] [Story] Description`
 
-- **[P]**: Pode rodar em paralelo quando tocar arquivos diferentes e não depender de tarefa incompleta.
-- **[Story]**: Mapeia a tarefa para a user story da spec.
-- Todas as tarefas devem citar caminho de arquivo.
+- **[P]**: pode rodar em paralelo quando tocar arquivos diferentes e não depender de tarefa incompleta.
+- **[Story]**: mapeia a tarefa para a user story da spec.
+- Todas as tarefas citam caminhos reais de arquivos.
 
 ## Phase 1: Setup (Shared Investigation)
 
-**Purpose**: Mapear superfícies e bugs visuais relacionados antes de alterar código.
+**Purpose**: Confirmar o baseline real antes de alterar UI, já que a spec foi gerada por IA.
 
-- [ ] T001 Identificar a página/componente do catálogo em `frontend/src/` e registrar o caminho encontrado na sessão `sessoes/26-04-29_2_lancamento-itens-sdd.md`
-- [ ] T002 Identificar componentes de menus, filtros, cards e estados do catálogo em `frontend/src/` e registrar caminhos na sessão `sessoes/26-04-29_2_lancamento-itens-sdd.md`
-- [ ] T003 Identificar componentes/estilos da gestão de sistemas que servem como referência visual para menus e filtros em `frontend/src/`
-- [ ] T004 Mapear bugs visuais relacionados ao catálogo, incluindo sobreposição, rolagem horizontal, espaçamento, estados e inconsistências com gestão de sistemas, registrando achados na sessão `sessoes/26-04-29_2_lancamento-itens-sdd.md`
-
----
-
-## Phase 2: Foundational (Design Alignment)
-
-**Purpose**: Definir estratégia visual e responsiva antes dos patches.
-
-**⚠️ CRITICAL**: Nenhuma alteração visual deve iniciar antes desta fase estar concluída.
-
-- [ ] T005 Definir estratégia de padronização de menus/filtros do catálogo com base na gestão de sistemas e registrar na sessão `sessoes/26-04-29_2_lancamento-itens-sdd.md`
-- [ ] T006 Definir estratégia responsiva para desktop, tablet e mobile nos arquivos do catálogo identificados em `frontend/src/`
-- [ ] T007 Registrar na sessão `sessoes/26-04-29_2_lancamento-itens-sdd.md` os arquivos exatos que serão modificados antes do primeiro patch técnico
-
-**Checkpoint**: Fundação pronta para implementar histórias com rastreabilidade.
+- [x] T001 Registrar baseline de código consultado e achado do `SystemTreeSelector` em `sessoes/26-04-29_4_catalogo-painel-ux-bugs.md`
+- [x] T002 [P] Mapear a estrutura sticky atual do catálogo em `frontend/src/pages/CatalogoPage.tsx`
+- [x] T003 [P] Mapear o contrato visual atual do drawer mobile em `frontend/src/components/FilterDrawer.tsx`
+- [x] T004 [P] Mapear a referência de busca/filtros da gestão de sistemas em `frontend/src/features/admin/components/CatalogToolbar.tsx`
+- [x] T005 [P] Mapear o comportamento `singleSelect` e o bug de variantes em `frontend/src/components/SystemTreeSelector.tsx`
 
 ---
 
-## Phase 3: User Story 1 - Catálogo sem sobreposição visual (Priority: P1) 🎯 MVP
+## Phase 2: Foundational (Blocking Prerequisites)
 
-**Goal**: Corrigir sobreposição visual no catálogo preservando hierarquia entre menus, filtros, cards e estados.
+**Purpose**: Preparar decisões compartilhadas que bloqueiam as user stories.
 
-**Independent Test**: Abrir catálogo em desktop, interagir com menus/filtros e rolar a página confirmando ausência de sobreposição indevida.
+**CRITICAL**: Nenhuma alteração visual deve começar antes desta fase estar concluída.
+
+- [x] T006 Definir no registro de sessão `sessoes/26-04-29_4_catalogo-painel-ux-bugs.md` a lista final de arquivos frontend autorizados para implementação
+- [x] T007 Definir estratégia de layout do catálogo em `specs/008-catalogo-painel-ux-bugs/quickstart.md`, incluindo breakpoints desktop/tablet/mobile e risco de `top-[88px]`
+- [x] T008 Definir checklist de validação visual e Nielsen em `specs/008-catalogo-painel-ux-bugs/quickstart.md`
+
+**Checkpoint**: Fundação pronta; user stories podem ser implementadas e testadas em incrementos independentes.
+
+---
+
+## Phase 3: User Story 1 - Catálogo sem sobreposição visual (Priority: P1) MVP
+
+**Goal**: Remover sobreposição indevida entre cabeçalho, filtros, cards, botão mobile e estados da página.
+
+**Independent Test**: Abrir `/catalogo`, rolar em desktop, interagir com filtros e confirmar que cabeçalho/filtros não cobrem cards ou estados.
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Ajustar estrutura da página do catálogo no componente identificado em `frontend/src/` para separar menus, filtros e resultados sem sobreposição
-- [ ] T009 [US1] Ajustar estilos do catálogo no arquivo CSS correspondente em `frontend/src/` para remover posicionamentos ou limites que causam sobrescrita visual
-- [ ] T010 [US1] Ajustar estados carregando, vazio e erro do catálogo no componente identificado em `frontend/src/` para preservar estrutura visual
-- [ ] T011 [US1] Validar visualmente o catálogo em desktop e registrar evidência textual na sessão `sessoes/26-04-29_2_lancamento-itens-sdd.md`
+- [x] T009 [US1] Reestruturar cabeçalho e superfície de filtros desktop em `frontend/src/pages/CatalogoPage.tsx` para eliminar dependência frágil de `top-[88px]`
+- [x] T010 [US1] Ajustar estados de carregamento, atualização, vazio e erro em `frontend/src/pages/CatalogoPage.tsx` para manter largura e espaçamento estáveis
+- [x] T011 [P] [US1] Ajustar camada, largura e áreas fixas do drawer mobile em `frontend/src/components/FilterDrawer.tsx`
+- [ ] T012 [US1] Validar US1 localmente e registrar evidência textual em `sessoes/26-04-29_4_catalogo-painel-ux-bugs.md`
 
-**Checkpoint**: Catálogo desktop funcional e sem sobrescrever a tela.
+**Checkpoint**: Catálogo sem sobreposição visual no fluxo principal.
 
 ---
 
 ## Phase 4: User Story 2 - Menus e filtros padronizados com gestão de sistemas (Priority: P1)
 
-**Goal**: Alinhar menus e filtros do catálogo ao padrão visual e comportamental da gestão de sistemas.
+**Goal**: Tornar busca, filtros, chips e contagem do catálogo coerentes com a gestão de sistemas, preservando semântica atual dos filtros.
 
-**Independent Test**: Comparar catálogo com gestão de sistemas e confirmar consistência de espaçamento, estados, agrupamento e comportamento.
+**Independent Test**: Comparar `/catalogo` com a gestão de sistemas e confirmar consistência de agrupamento, estados, foco, limpeza e contagem.
 
 ### Implementation for User Story 2
 
-- [ ] T012 [US2] Ajustar marcação/estrutura dos filtros do catálogo no componente identificado em `frontend/src/` para refletir o padrão visual da gestão de sistemas
-- [ ] T013 [US2] Ajustar estilos de menus/filtros do catálogo no arquivo CSS correspondente em `frontend/src/` para estados ativo, vazio, foco, carregando e limpeza
-- [ ] T014 [US2] Garantir que múltiplos filtros ativos permaneçam escaneáveis no catálogo em `frontend/src/`
-- [ ] T015 [US2] Validar comparação visual com gestão de sistemas e registrar evidência textual na sessão `sessoes/26-04-29_2_lancamento-itens-sdd.md`
+- [x] T013 [US2] Reorganizar busca, filtros principais, selos, estilos e contagem em `frontend/src/pages/CatalogoPage.tsx` seguindo a densidade de `CatalogToolbar`
+- [x] T014 [P] [US2] Ajustar chips ativos para truncamento, quebra previsível e remoção individual em `frontend/src/components/ActiveFiltersChips.tsx`
+- [x] T015 [US2] Preservar parâmetros e comportamento de filtros em `frontend/src/pages/CatalogoPage.tsx` sem alterar `useCatalogFilters`
+- [ ] T016 [US2] Validar comparação visual com gestão de sistemas e registrar evidência textual em `sessoes/26-04-29_4_catalogo-painel-ux-bugs.md`
 
-**Checkpoint**: Menus e filtros coerentes com o padrão interno da plataforma.
+**Checkpoint**: Filtros do catálogo coerentes com a linguagem visual interna.
 
 ---
 
 ## Phase 5: User Story 3 - Catálogo responsivo com boas práticas modernas (Priority: P1)
 
-**Goal**: Fazer o catálogo funcionar de forma premium e responsiva em mobile, tablet e desktop.
+**Goal**: Garantir catálogo estável e confortável em mobile, tablet e desktop, sem rolagem horizontal indevida.
 
-**Independent Test**: Redimensionar a tela e confirmar ausência de rolagem horizontal indevida, controles acessíveis e resultados preservados.
+**Independent Test**: Redimensionar a tela e confirmar que filtros, drawer, chips, cards e paginação permanecem acessíveis e sem sobreposição.
 
 ### Implementation for User Story 3
 
-- [ ] T016 [US3] Implementar adaptação responsiva dos menus/filtros do catálogo no componente identificado em `frontend/src/`
-- [ ] T017 [US3] Implementar grid responsivo dos resultados no arquivo de estilos correspondente em `frontend/src/`
-- [ ] T018 [US3] Ajustar cards com textos longos, badges ou imagens ausentes no componente de card identificado em `frontend/src/`
-- [ ] T019 [US3] Validar catálogo em mobile/tablet e registrar evidência textual na sessão `sessoes/26-04-29_2_lancamento-itens-sdd.md`
+- [x] T017 [US3] Ajustar grid responsivo, espaçamento de seção e paginação em `frontend/src/pages/CatalogoPage.tsx`
+- [x] T018 [P] [US3] Ajustar cards para conteúdo longo, badges, logo VTT e imagem ausente em `frontend/src/components/TableCard.tsx`
+- [x] T019 [P] [US3] Ajustar ergonomia mobile do drawer e do rodapé de ações em `frontend/src/components/FilterDrawer.tsx`
+- [ ] T020 [US3] Validar mobile/tablet/desktop e registrar evidência textual em `sessoes/26-04-29_4_catalogo-painel-ux-bugs.md`
 
-**Checkpoint**: Catálogo responsivo sem rolagem horizontal indevida e sem controles cobrindo resultados de forma permanente.
+**Checkpoint**: Catálogo responsivo e sem rolagem horizontal indevida.
 
 ---
 
 ## Phase 6: User Story 4 - Investigar bugs visuais relacionados ao catálogo (Priority: P2)
 
-**Goal**: Garantir que a revisão não deixe bugs visuais relacionados sem classificação.
+**Goal**: Resolver ou classificar bugs relacionados ao catálogo, incluindo impacto no painel pelo seletor de sistemas compartilhado.
 
-**Independent Test**: Revisar a lista de achados visuais e confirmar que cada item foi resolvido ou explicitamente classificado como fora de escopo.
+**Independent Test**: Revisar achados mapeados e confirmar que cada item foi corrigido ou explicitamente classificado fora de escopo.
 
 ### Implementation for User Story 4
 
-- [ ] T020 [US4] Revisar achados mapeados em T004 e marcar cada um como resolvido ou fora de escopo na sessão `sessoes/26-04-29_2_lancamento-itens-sdd.md`
-- [ ] T021 [US4] Validar estados carregando, vazio, erro, poucos resultados e muitos resultados no catálogo em `frontend/src/`
-- [ ] T022 [US4] Validar zoom/fonte maior e mudança de orientação mobile no catálogo, registrando resultado na sessão `sessoes/26-04-29_2_lancamento-itens-sdd.md`
+- [x] T021 [US4] Corrigir seleção de variantes em modo `singleSelect` usando a lista de variantes correta em `frontend/src/components/SystemTreeSelector.tsx`
+- [x] T022 [P] [US4] Validar integração do seletor no passo de sistema em `frontend/src/components/form-steps/steps/StepSystem.tsx`
+- [x] T023 [US4] Verificar se o fluxo de edição exige normalização adicional antes de tocar `frontend/src/features/create-table/utils/mapTableApiToInitialData.ts`
+- [x] T024 [US4] Se T023 confirmar necessidade, normalizar payload de edição como `unknown` em `frontend/src/features/create-table/utils/mapTableApiToInitialData.ts`
+- [ ] T025 [US4] Registrar todos os bugs relacionados como resolvidos ou fora de escopo em `sessoes/26-04-29_4_catalogo-painel-ux-bugs.md`
 
-**Checkpoint**: Bugs visuais relacionados foram cobertos ou classificados.
+**Checkpoint**: Bugs relacionados ao catálogo/painel classificados e tratados.
 
 ---
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-**Purpose**: Verificações finais e evidências antes de considerar a implementação pronta para Beta.
+**Purpose**: Evidência técnica, documentação e preparação para Beta.
 
-- [ ] T023 Executar `npm --prefix frontend run build` e registrar saída na sessão `sessoes/26-04-29_2_lancamento-itens-sdd.md`
-- [ ] T024 Validar heurísticas de Nielsen aplicáveis ao catálogo em `sessoes/26-04-29_2_lancamento-itens-sdd.md`
-- [ ] T025 Validar `quickstart.md` no Beta em janela anônima após deploy e registrar resultado na sessão `sessoes/26-04-29_2_lancamento-itens-sdd.md`
-- [ ] T026 Atualizar `database/changelogs.json` se a mudança visual for publicada para usuários finais
+- [x] T026 Executar `npm --prefix frontend run build` e registrar comando e output literal em `sessoes/26-04-29_4_catalogo-painel-ux-bugs.md`
+- [ ] T027 Validar o roteiro de `specs/008-catalogo-painel-ux-bugs/quickstart.md` e registrar resultado em `sessoes/26-04-29_4_catalogo-painel-ux-bugs.md`
+- [x] T028 Atualizar `database/changelogs.json` com linguagem leiga se a mudança visual for publicada para usuários finais
+- [x] T029 Criar `specs/008-catalogo-painel-ux-bugs/pr-description.md` com sumário executivo, mudanças, evidências e checklist pós-merge
+- [ ] T030 Atualizar `.specify/memory/project-state.md` com status da feature 008 e próximo passo Beta
 
 ---
 
@@ -117,23 +121,35 @@
 
 ### Phase Dependencies
 
-- **Setup (Phase 1)**: sem dependências.
-- **Foundational (Phase 2)**: depende da identificação e mapeamento da Phase 1.
-- **US1, US2, US3 e US4**: dependem da Phase 2.
+- **Phase 1 Setup**: sem dependências.
+- **Phase 2 Foundational**: depende da Phase 1.
+- **US1, US2, US3**: dependem da Phase 2 e podem ser implementadas em ordem incremental P1.
+- **US4**: depende dos achados da Phase 1/2 e pode ser executada após o seletor compartilhado estar mapeado.
 - **Polish**: depende das histórias implementadas.
 
 ### User Story Dependencies
 
-- **US1 (P1)**: pode iniciar após Phase 2.
-- **US2 (P1)**: pode iniciar após Phase 2; usa a gestão de sistemas como referência.
-- **US3 (P1)**: pode iniciar após Phase 2; integra visualmente com US1 e US2.
-- **US4 (P2)**: deve consolidar achados após as correções principais.
+- **US1 (P1)**: MVP; remove o problema estrutural de sobreposição.
+- **US2 (P1)**: pode iniciar após US1 ou em paralelo se não tocar as mesmas seções de `CatalogoPage.tsx`.
+- **US3 (P1)**: depende da estrutura visual de US1/US2 para evitar retrabalho.
+- **US4 (P2)**: trata bugs relacionados e integração com painel; pode seguir após T005.
 
 ### Parallel Opportunities
 
-- T001, T002 e T003 podem ser levantadas em paralelo.
-- T008 e T012 podem ser paralelas se não tocarem o mesmo componente.
-- T017 e T018 podem ser paralelas se grid e card estiverem em arquivos diferentes.
+- T002, T003, T004 e T005 podem rodar em paralelo.
+- T011 pode rodar em paralelo com T010.
+- T014 pode rodar em paralelo com T013.
+- T018 e T019 podem rodar em paralelo após T017.
+- T022 pode rodar em paralelo com T023.
+
+---
+
+## Parallel Example: User Story 3
+
+```text
+Task: "T018 [P] [US3] Ajustar cards para conteúdo longo, badges, logo VTT e imagem ausente em frontend/src/components/TableCard.tsx"
+Task: "T019 [P] [US3] Ajustar ergonomia mobile do drawer e do rodapé de ações em frontend/src/components/FilterDrawer.tsx"
+```
 
 ---
 
@@ -141,15 +157,15 @@
 
 ### MVP First
 
-1. Concluir Phase 1 e Phase 2.
-2. Implementar US1 para remover sobreposição principal.
-3. Implementar US2 para padronizar menus/filtros com gestão de sistemas.
-4. Implementar US3 para completar responsividade.
-5. Executar US4 para consolidar bugs relacionados.
-6. Rodar build técnico e validar no Beta em janela anônima.
+1. Completar Phase 1 e Phase 2.
+2. Implementar US1 para eliminar a sobreposição principal.
+3. Validar US1 isoladamente e registrar evidência.
+4. Avançar US2 e US3 para consistência visual e responsividade.
+5. Executar US4 para o seletor compartilhado e bugs correlatos.
 
 ### Incremental Delivery
 
-- Cada história deve ser validada separadamente antes de avançar.
-- Nenhuma validação local substitui o teste funcional em Beta.
-- Qualquer descoberta fora do catálogo deve parar a execução e exigir atualização de spec/plan.
+- Cada user story deve terminar com evidência registrada na sessão.
+- `tasks.md` antigo foi substituído porque continha sessão errada e caminhos genéricos.
+- Nenhuma validação local substitui teste funcional em Beta em janela anônima.
+- Qualquer arquivo fora da lista de `plan.md` exige parar e pedir orientação do mantenedor.

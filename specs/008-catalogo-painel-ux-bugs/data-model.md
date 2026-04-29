@@ -1,84 +1,96 @@
-# Data Model: Revisão Visual e Responsiva do Catálogo
+# Data Model: Catálogo e Painel UX Bugs
 
-## Catálogo
+Esta feature não altera banco de dados. O modelo abaixo descreve entidades de UI, estados de apresentação e contratos de dados já existentes que precisam ser preservados.
 
-**Purpose**: Superfície de descoberta de mesas, composta por menus, filtros, resultados e estados visuais.
+## CatalogLayoutState
 
-**Key Attributes**:
-- `visualHierarchy`: organização perceptível entre título, controles e resultados.
-- `filterState`: filtros ativos, vazios e estados de interação.
-- `layoutMode`: apresentação derivada do tamanho de tela.
-- `resultState`: carregando, vazio, erro ou resultados disponíveis.
+Representa a composição visual da página pública `/catalogo`.
 
-**Validation Rules**:
-- Nenhuma área deve sobrescrever outra indevidamente.
-- Layout não deve gerar rolagem horizontal indevida.
-- Controles devem permanecer acessíveis e previsíveis em todos os breakpoints.
+**Campos**
+- `headerState`: estado visual do cabeçalho do catálogo.
+- `filterSurfaceState`: estado da superfície de filtros desktop.
+- `mobileDrawerState`: aberto, fechado ou bloqueado durante aplicação.
+- `resultsState`: carregando, atualizando, vazio, erro ou com resultados.
+- `viewportMode`: mobile, tablet ou desktop.
 
-## Menu/Filtro do Catálogo
+**Regras**
+- Cabeçalho, filtros e resultados não podem se sobrepor.
+- Em mobile, drawer e botão flutuante não podem bloquear permanentemente conteúdo essencial.
+- Estados de erro/vazio/carregando devem manter layout estável.
 
-**Purpose**: Controle de refinamento de resultados que deve seguir o padrão visual da gestão de sistemas.
+## CatalogFilterState
 
-**Key Attributes**:
-- `label`: nome claro do filtro.
-- `activeState`: indicação visual de filtro aplicado.
-- `emptyState`: comportamento quando não há opções ou resultados.
-- `interactionState`: aberto, fechado, selecionado, desabilitado ou carregando.
+Representa os filtros públicos preservados por URL.
 
-**Validation Rules**:
-- Estados devem ser visualmente distinguíveis.
-- Agrupamento deve facilitar escaneabilidade.
-- Em mobile, filtros não devem cobrir resultados de forma permanente.
-- Estilo deve ser coerente com a gestão de sistemas.
+**Campos existentes**
+- `search`
+- `system`
+- `modality`
+- `priceType`
+- `experience`
+- `seal`
+- `styles`
+- `sort`
+- `page`
 
-## Resultado/Card de Mesa
+**Regras**
+- Parâmetros e semântica existentes devem ser preservados.
+- Chips ativos devem permitir remoção individual sem quebrar os demais filtros.
+- A aplicação/limpeza de filtros deve retornar o usuário para contexto compreensível.
 
-**Purpose**: Item exibido no catálogo.
+## SystemSelectionState
 
-**Key Attributes**:
-- `title`: título da mesa.
-- `summary`: descrição curta ou texto equivalente.
-- `cover`: imagem ou fallback visual.
-- `badges`: marcadores opcionais.
-- `actions`: ações disponíveis no card, se houver.
+Representa a seleção de sistema pelo `SystemTreeSelector`, usado no catálogo e no formulário de mesa.
 
-**Validation Rules**:
-- Textos longos devem ter limite visual controlado.
-- Imagem ausente deve preservar o layout.
-- Badges e ações não devem invadir conteúdo adjacente.
-- Cards devem manter espaçamento consistente no grid.
+**Campos**
+- `selectedIds`
+- `activeRootId`
+- `activeMidId`
+- `language`
+- `search`
+- `singleSelect`
 
-## Estado Visual do Catálogo
+**Regras**
+- Em `singleSelect`, selecionar outro sistema substitui a seleção anterior.
+- A seleção de edição/subsistema/variante deve usar a lista correspondente ao nível correto.
+- Busca deve continuar funcionando por nome, nome em português, slug, path e aliases.
+- O componente deve continuar utilizável tanto no catálogo quanto no painel.
 
-**Purpose**: Situação de interface exibida conforme carregamento e filtros.
+## TableCardPresentationState
 
-**Known States**:
-- Carregando.
-- Sem resultados.
-- Erro.
-- Resultados filtrados.
-- Filtros abertos.
+Representa a robustez visual de cada card de mesa.
 
-**Validation Rules**:
-- Cada estado deve ser legível e não sobrepor indevidamente outros elementos.
-- Estados devem seguir a mesma linguagem visual do restante do catálogo.
-- Mensagens devem orientar o usuário sem jargão técnico.
+**Campos relevantes**
+- `cover_url`
+- `title`
+- `system_name`
+- `system_logo_filename`
+- `modality`
+- `featured`
+- `is_ddal`
+- `is_covil`
+- `vtt_platform`
+- `gm_display_name`
+- `slots_total`
+- `slots_open`
+- `price_type`
+- `price_value`
 
-## State Transitions
+**Regras**
+- Conteúdo longo deve truncar ou quebrar sem invadir áreas vizinhas.
+- Badges e logos devem manter dimensões estáveis.
+- Cards devem manter altura e grid previsíveis nos breakpoints planejados.
 
-### Navegação e filtro
+## EditTableInitialState
 
-1. Usuário acessa catálogo.
-2. Catálogo exibe estado inicial sem sobreposição.
-3. Usuário abre menus/filtros.
-4. Controles mudam de estado sem cobrir resultados de forma indevida.
-5. Resultados atualizam mantendo grid e espaçamento.
-6. Estados vazio/erro/carregando preservam a estrutura visual.
+Representa dados carregados da API para edição de mesa no painel.
 
-### Responsividade
+**Campos de atenção**
+- `selectedSystemId`
+- `selectedScenarioId`
+- `form.price_type`
+- arrays/objetos vindos de `sessions`, `contacts`, `setting_styles` e metadados de imagem.
 
-1. Viewport muda de desktop para tablet ou mobile.
-2. Layout reorganiza menus, filtros e resultados.
-3. Controles permanecem acessíveis.
-4. Não há rolagem horizontal indevida.
-5. Cards preservam limites e legibilidade.
+**Regras**
+- Se este arquivo for tocado, payload externo deve ser tratado como `unknown` e normalizado antes de entrar em estado React.
+- O carregamento de edição não pode crashar quando campos opcionais vierem ausentes, nulos ou em formato legado conhecido.
