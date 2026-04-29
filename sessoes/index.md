@@ -224,17 +224,18 @@
 
 ---
 
-## 29/04/2026 (1 sessão)
+## 29/04/2026 (2 sessões)
 
 | # | Arquivo |
 |---|---|
-| 1 | `26-04-29_1_imagens-banners-placeholder.md` |
+| 1 | `encerradas/26-04-29_1_imagens-banners-placeholder.md` |
+| 2 | `26-04-29_2_lancamento-itens-sdd.md` |
 
 ---
 
 ## Sessão Mais Recente
 
-`26-04-29_1_imagens-banners-placeholder.md`
+`26-04-29_2_lancamento-itens-sdd.md`
 
 ---
 
@@ -250,4 +251,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-04-29_2_*`
+**Próxima sessão:** `26-04-29_3_*`

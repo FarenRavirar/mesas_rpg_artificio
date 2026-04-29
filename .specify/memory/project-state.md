@@ -1,6 +1,6 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-04-29T10:25:00-03:00
+**Última atualização:** 2026-04-29T11:32:00-03:00
 **Atualizado por:** sessão 26-04-29_1_imagens-banners-placeholder
 ---
 
@@ -117,16 +117,16 @@
 
 ## Próxima Ação
 
-**Investigação imagens, banners e placeholders:**
-1. ✅ **Sessão aberta:** `sessoes/26-04-29_1_imagens-banners-placeholder.md`.
-2. ✅ **SDD executado:** `/speckit.specify`, `/speckit.plan` e `/speckit.tasks` concluídos em `specs/006-imagens-banners-placeholder/`.
-3. ✅ **Implementação aplicada localmente:** importação backend de URLs externas para Cloudinary; correção de alias `banner_url` no perfil público do mestre; fallback de banner centralizado no frontend; opção `Manter link direto` adicionada ao perfil.
-4. ✅ **Validação local:** backend build, backend tests, frontend build e `git diff --check` passaram.
-5. **Próximo passo:** commit/push controlado para `dev`, deploy beta e revisão do mantenedor em janela anônima nas telas afetadas. Testes funcionais/manuais só contam após deploy em `dev`.
+**Sessão 26-04-29_2 — Lançamento de itens SDD:**
+1. ✅ **Itens esgotados pelo mantenedor:** sessão encerrada documentalmente em 29/04/2026 13:02 BRT.
+2. ✅ **Artefatos preparados:** itens 007, 008, 009, 010 e 011 registrados em `specs/` com documentação SDD conforme escopo de cada item.
+3. ✅ **Sem implementação técnica nos itens:** a sessão preparou specs/plans/tasks e não iniciou correções de produto.
+4. ✅ **Índice de sessões atualizado:** `sessoes/index.md` aponta esta sessão como mais recente.
+5. **Próximo passo autorizado:** publicar/deployar a sessão documental para `dev` conforme pedido explícito do mantenedor.
 
 **Bugfix UX (Covil/Placeholders/PriceType):**
 1. ✅ **Concluído:** Diagnóstico, patch, implementação, verify e validação global do BUG-003 em beta.
-2. **Próximo passo:** Encerrar formalmente a sessão com `/speckit.status` e `/speckit.retro.run`.
+2. **Próximo passo:** manter registro histórico; sem ação imediata nesta sessão.
 
 **Pacote operacional — Runtime e Workflows (novo):**
 1. ✅ **US1 concluída:** `mesas-cron` corrigido para executar scripts compilados (`node dist/scripts/*.js`) em produção; container recriado e validado `Up` por mais de 30 minutos, sem `ts-node: not found`.

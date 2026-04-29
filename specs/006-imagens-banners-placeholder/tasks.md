@@ -94,7 +94,7 @@
 - [x] T025 Run `git diff --check`
 - [x] T026 Update `database/changelogs.json` if the user-facing change is included in this delivery
 - [x] T027 Update `sessoes/26-04-29_1_imagens-banners-placeholder.md` with validation evidence and remaining rollout notes
-- [ ] T028 After approved push/deploy to `dev`, validate home, catalog, master page, table page and master dashboard in beta using an anonymous browser window
+- [x] T028 After approved push/deploy to `dev`, validate home, catalog, master page, table page and master dashboard in beta using an anonymous browser window
 - [x] T029 Add `Manter link direto` control to table banner URL input in `frontend/src/components/ImageUploader.tsx`
 - [x] T030 Add `Manter link direto` control to profile manual URL inputs in `frontend/src/pages/ProfileEditPage.tsx`
 - [x] T031 Centralize manual image URL import, opt-out flag and error handling in `frontend/src/hooks/useImageUrlImport.ts`

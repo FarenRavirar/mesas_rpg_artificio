@@ -1,5 +1,15 @@
 # Session Log
 
+## 2026-04-29T11:32:00-03:00 — imagens-banners-placeholder
+
+**Tipo:** Retrospectiva e fechamento SDD
+**Feature:** `specs/006-imagens-banners-placeholder/`
+**Tasks concluídas:** 34/34
+**Decisões arquiteturais:** centralizar fallback de banner em `frontend/src/utils/tableImage.ts`; centralizar importação de URL manual e opção `Manter link direto` em `frontend/src/hooks/useImageUrlImport.ts`; unificar edição do perfil do mestre no fluxo canônico `/perfil?tab=mestre`; eliminar o formulário duplicado `EditGmProfileForm`.
+**Evidências principais:** backend build, backend tests, frontend build e `git diff --check` passaram durante a sessão; Deploy Beta `25114445001` verde; teste funcional do mantenedor em janela anônima no Beta confirmado em 29/04/2026 11:32 BRT.
+**Risco residual:** promoção para produção não executada nesta sessão; deve ser tratada apenas por solicitação explícita do mantenedor.
+**Sessão encerrada:** `sessoes/encerradas/26-04-29_1_imagens-banners-placeholder.md`
+
 ## 2026-04-28T12:28:00-03:00 — bug-ux-covil
 
 **Tipo:** Retrospectiva
