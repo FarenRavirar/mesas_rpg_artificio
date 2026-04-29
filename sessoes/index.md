@@ -1,6 +1,6 @@
 # Índice de Sessões
 
-Última atualização: 29/04/2026 13:55 BRT
+Última atualização: 29/04/2026 14:10 BRT
 
 ---
 
@@ -224,19 +224,20 @@
 
 ---
 
-## 29/04/2026 (3 sessões)
+## 29/04/2026 (4 sessões)
 
 | # | Arquivo |
 |---|---|
 | 1 | `encerradas/26-04-29_1_imagens-banners-placeholder.md` |
 | 2 | `26-04-29_2_lancamento-itens-sdd.md` |
-| 3 | `26-04-29_3_exclusao-mesa-sem-popup.md` |
+| 3 | `encerradas/26-04-29_3_exclusao-mesa-sem-popup.md` |
+| 4 | `26-04-29_4_catalogo-painel-ux-bugs.md` |
 
 ---
 
 ## Sessão Mais Recente
 
-`26-04-29_3_exclusao-mesa-sem-popup.md`
+`26-04-29_4_catalogo-painel-ux-bugs.md`
 
 ---
 
@@ -252,4 +253,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-04-29_4_*`
+**Próxima sessão:** `26-04-29_5_*`

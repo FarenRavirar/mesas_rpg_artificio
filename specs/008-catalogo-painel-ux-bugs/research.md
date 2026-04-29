@@ -1,49 +1,61 @@
-# Research: Revisão Visual e Responsiva do Catálogo
+# Research: Catálogo e Painel UX Bugs
 
-## Decision 1: Corrigir o catálogo por revisão de sistema visual, não por ajuste isolado de sobreposição
+## Decision 1: Tratar a spec como hipótese, não como verdade validada
 
-**Rationale**: Sobreposição visual raramente é um problema isolado. Normalmente envolve estrutura, espaçamento, posicionamento, breakpoints, hierarquia e estados. Uma correção pontual pode esconder o sintoma e deixar outros bugs relacionados.
+**Decision**: O plano usa a spec como ponto de partida, mas o escopo técnico foi confirmado por busca no código antes da implementação.
 
-**Alternatives considered**:
-- Ajustar apenas `z-index`: rejeitado porque não garante hierarquia nem responsividade.
-- Corrigir apenas o caso visível reportado: rejeitado porque o pedido exige investigar bugs relacionados ao catálogo.
-
-## Decision 2: Usar a gestão de sistemas como referência interna para menus e filtros
-
-**Rationale**: A plataforma já possui uma referência visual interna para controles de filtragem e gestão. Alinhar o catálogo a essa linguagem reduz inconsistência, facilita aprendizado e evita introduzir um padrão visual paralelo.
+**Rationale**: O mantenedor alertou que a spec foi feita por IA. A inspeção confirmou que o bug visual do catálogo envolve `CatalogoPage`, `FilterDrawer`, `ActiveFiltersChips`, `TableCard` e `SystemTreeSelector`; também revelou impacto potencial no painel pelo uso compartilhado do seletor.
 
 **Alternatives considered**:
-- Criar uma linguagem visual nova para o catálogo: rejeitado porque aumenta divergência entre áreas do produto.
-- Manter filtros atuais e só reposicionar: rejeitado se os estados e espaçamentos continuarem inconsistentes.
+- Seguir a spec literalmente: rejeitado porque perderia o bug compartilhado com painel.
+- Reescrever a spec agora: rejeitado nesta fase; o plano pode registrar o ajuste e tasks posteriores podem reconciliar a spec se necessário.
 
-## Decision 3: Aplicar padrões modernos de descoberta usados por produtos digitais maduros
+## Decision 2: Eliminar risco de sobreposição reduzindo dependência de sticky offsets hardcoded
 
-**Rationale**: Produtos de alta maturidade priorizam hierarquia clara, controles previsíveis, agrupamento lógico, estados visuais legíveis, grid adaptável e baixa fricção. O catálogo deve facilitar escaneabilidade antes de densidade visual.
+**Decision**: A implementação deve revisar a estrutura de `CatalogoPage` para evitar duas faixas sticky com offset manual (`top-[88px]`) competindo com conteúdo, drawer e botão flutuante.
 
-**Alternatives considered**:
-- Aumentar densidade de cards em todas as telas: rejeitado porque piora leitura e responsividade.
-- Ocultar filtros em mobile sem affordance clara: rejeitado porque prejudica descoberta.
-
-## Decision 4: Investigar estados e breakpoints antes de implementar
-
-**Rationale**: O bug relatado pode aparecer apenas em certas larguras, com filtros abertos, estados vazios, cards longos ou combinações de controles. O mapeamento prévio reduz regressões e evita correção incompleta.
+**Rationale**: O catálogo público tem cabeçalho sticky em `top-0` e filtros desktop sticky com `top-[88px]`. Esse tipo de offset é frágil quando o cabeçalho muda de altura, quando há erro de sistemas, zoom de fonte, breakpoints ou telas pequenas.
 
 **Alternatives considered**:
-- Implementar direto a partir de uma captura mental do problema: rejeitado porque não cobre bugs relacionados.
-- Validar só em desktop: rejeitado porque o pedido exige abordagem responsiva completa.
+- Ajustar apenas o número do offset: rejeitado por ser frágil.
+- Remover toda fixação: aceitável se a experiência ficar clara, mas precisa preservar acesso rápido aos filtros.
+- Consolidar cabeçalho e filtros em uma superfície responsiva: preferido se mantiver escaneabilidade sem cobrir resultados.
 
-## Decision 5: Cards e resultados precisam ter limites resilientes para conteúdo variável
+## Decision 3: Usar gestão de sistemas como referência de padrão, não como cópia literal
 
-**Rationale**: Catálogos recebem conteúdo heterogêneo. O layout deve lidar com títulos longos, imagens ausentes, badges, descrições e estados sem invadir áreas vizinhas.
+**Decision**: O catálogo deve adotar a lógica visual da gestão de sistemas: busca compacta, chips/segmentos claros, contagem de resultados e agrupamento denso. Não deve copiar cores administrativas literalmente quando isso piorar a experiência pública.
 
-**Alternatives considered**:
-- Permitir crescimento ilimitado dos cards: rejeitado porque pode quebrar grid e escaneabilidade.
-- Cortar conteúdo sem indicação visual: rejeitado porque pode ocultar informação importante sem clareza.
-
-## Decision 6: Validação final deve combinar inspeção visual, responsividade e Beta
-
-**Rationale**: Build técnico não valida qualidade visual. A aceitação depende de testar desktop, tablet/mobile, menus/filtros, estados e navegação real no Beta em janela anônima.
+**Rationale**: `CatalogToolbar` usa uma área única com busca, ação primária, filtros de tipo e contagem. Essa organização é mais previsível que espalhar filtros em múltiplas zonas sem cabeçalhos consistentes.
 
 **Alternatives considered**:
-- Validar apenas localmente: rejeitado porque não substitui Beta.
-- Validar apenas o caso de sobreposição inicial: rejeitado porque o escopo inclui bugs relacionados e padronização visual.
+- Copiar `CatalogToolbar` inteiro: rejeitado porque a gestão é administrativa e tem ações que não existem no catálogo público.
+- Manter visual atual com pequenos ajustes: rejeitado porque o problema relatado é estrutural, não só cosmético.
+
+## Decision 4: Incluir `SystemTreeSelector` no escopo por impacto cruzado catálogo/painel
+
+**Decision**: A feature deve validar e corrigir o modo `singleSelect` de `SystemTreeSelector`, especialmente o bloco de seleção de variantes.
+
+**Rationale**: O componente é usado no catálogo e no passo de sistema do formulário de mesa. A leitura do código encontrou um trecho de variantes que renderiza opções a partir de `midNodes` e usa texto de edição, apesar de já calcular `variants`. Isso é forte indício de bug relacionado ao painel.
+
+**Alternatives considered**:
+- Deixar painel fora porque a spec fala só de catálogo: rejeitado pelo nome da feature e pela orientação do mantenedor.
+- Criar seletor novo só para catálogo: rejeitado por duplicar comportamento e aumentar risco.
+
+## Decision 5: Preservar contratos atuais de filtros, busca e URLs
+
+**Decision**: Mudanças de UX não devem alterar parâmetros de URL, semântica dos filtros, rotas ou payloads de catálogo.
+
+**Rationale**: `useCatalogFilters`, `useCatalogTables` e `catalogFilters.ts` já mantêm estado via URL. A feature é visual/UX e deve ser reversível sem migração de dados.
+
+**Alternatives considered**:
+- Reestruturar filtros e parâmetros: rejeitado por ampliar escopo e risco sem necessidade.
+
+## Decision 6: Teste obrigatório é build frontend, com testes focados se houver lógica isolável
+
+**Decision**: A validação mínima técnica é `npm --prefix frontend run build`; se a implementação alterar normalizadores ou lógica pura do seletor, adicionar/rodar testes Vitest focados.
+
+**Rationale**: O projeto não tem cobertura específica para catálogo hoje. A feature é majoritariamente visual, mas há lógica de árvore/singleSelect que pode receber teste unitário se for isolada.
+
+**Alternatives considered**:
+- Somente validação manual: rejeitado porque TypeScript/build capturam regressões de props e normalização.
+- Criar suite ampla de UI agora: rejeitado se atrasar a correção; testes devem seguir risco real.

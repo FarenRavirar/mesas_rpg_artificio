@@ -1,7 +1,7 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-04-29T14:20:00-03:00
-**Atualizado por:** sessão 26-04-29_3_exclusao-mesa-sem-popup
+**Última atualização:** 2026-04-29T14:10:00-03:00
+**Atualizado por:** sessão 26-04-29_4_catalogo-painel-ux-bugs
 ---
 
 ## Ambientes
@@ -15,29 +15,45 @@
 
 ## Estado Técnico Atual
 
-**Branch ativa:** `feat/007-exclusao-mesa-sem-popup`
+**Branch ativa:** `feat/008-catalogo-painel-ux-bugs`
 **Último commit base:** `bf1eb29` — ci: corrige lint do workflow de migrations
 
-**Feature ativa:** `specs/007-exclusao-mesa-sem-popup/`
-**Sessão ativa:** `sessoes/26-04-29_3_exclusao-mesa-sem-popup.md`
+**Feature ativa:** `specs/008-catalogo-painel-ux-bugs/`
+**Sessão ativa:** `sessoes/26-04-29_4_catalogo-painel-ux-bugs.md`
+
+**Feature 008 — Catálogo e Painel UX Bugs (29/04/2026):**
+- Sessão dedicada aberta a pedido explícito do mantenedor.
+- Branch `feat/008-catalogo-painel-ux-bugs` criada pelo fluxo equivalente ao hook obrigatório `speckit.git.feature`.
+- `/speckit.specify` retomado para `specs/008-catalogo-painel-ux-bugs/` sem sobrescrever artefatos existentes.
+- `spec.md` e `checklists/requirements.md` validados: sem placeholders de template, sem marcadores `[NEEDS CLARIFICATION]` ativos e sem itens abertos no checklist.
+- `.specify/feature.json` atualizado para apontar a feature 008.
+- Artefatos existentes detectados: `spec.md`, `plan.md`, `tasks.md`, `research.md`, `data-model.md`, `quickstart.md` e `contracts/README.md`.
+- `/speckit.plan` executado após autorização do mantenedor, tratando a spec como hipótese e validando escopo contra o código.
+- Código consultado para planejamento: catálogo público, drawer/chips/cards, gestão de sistemas e seletor de sistemas compartilhado com painel.
+- Achado técnico incorporado: `SystemTreeSelector` afeta catálogo e painel; o bloco de variantes em `singleSelect` deve ser tratado como risco/bug do escopo 008.
+- Artefatos de planejamento atualizados: `plan.md`, `research.md`, `data-model.md`, `quickstart.md`, `contracts/README.md`; `AGENTS.md` aponta o plano ativo para a feature 008.
+- `/speckit.tasks` executado após aprovação do mantenedor: `tasks.md` regenerado com 30 tarefas, caminhos reais, sessão atual e fases independentes por user story.
+- Validação de tarefas: 30/30 tarefas seguem formato obrigatório; zero referências à sessão antiga `26-04-29_2`; zero placeholders de template ou `NEEDS CLARIFICATION`.
+- **Status:** tasks da feature 008 concluídas; aguardando comando do mantenedor para iniciar `/speckit.implement`.
 
 **Feature 007 — Exclusão de Mesa Sem Pop-up (29/04/2026):**
 - `/speckit.plan` concluído para `specs/007-exclusao-mesa-sem-popup/` com `plan.md`, `research.md`, `data-model.md`, `quickstart.md` e contrato de confirmação inline.
-- `/speckit.tasks` concluído: `tasks.md` gerado com 18 tarefas em 6 fases.
+- `/speckit.tasks` concluído: `tasks.md` finalizado com 20/20 tarefas concluídas após BUG-001.
 - `/speckit.implement` aplicado:
   - `InlineDeleteConfirmation` criado para confirmação integrada à página.
   - Painel do mestre, página/preview da mesa e gestão administrativa usam confirmação inline antes do `DELETE`.
   - Handler antigo de exclusão com `confirm`/`prompt`/`alert` removido.
   - Changelog de 29/04/2026 consolidado com a melhoria visível.
-- Validação técnica:
-  - Busca direcionada por pop-ups de exclusão de mesa retornou zero ocorrências.
-  - `npm --prefix frontend run build` concluído com sucesso.
-  - `database/changelogs.json` validado como JSON válido.
 - BUG-001 pós-deploy Beta corrigido:
   - Causa raiz: página/preview da mesa habilitava gestão para `owner || admin`, mas `TableActionPanel` chamava sempre `DELETE /api/v1/gm/tables/:id`.
   - Correção: `TableActionPanel` agora recebe `deleteEndpointScope` e usa `DELETE /api/v1/admin/tables/:id` quando a ação vem de admin.
-  - Validação técnica pós-bugfix: build frontend verde; busca final sem pop-ups de exclusão; changelog JSON válido; tasks 20/20.
-- **Próximo passo:** publicar/deployar o patch para `dev` e validar novamente em janela anônima no Beta.
+- Validação técnica e Beta:
+  - Busca direcionada por pop-ups de exclusão de mesa retornou zero ocorrências.
+  - `npm --prefix frontend run build` concluído com sucesso.
+  - `database/changelogs.json` validado como JSON válido.
+  - Deploy Beta `25121700376` concluído com sucesso em `dev`.
+  - Pós-deploy: frontend `200`, `/api/v1/health` conectado, `/api/v1/tables?limit=1` `200`.
+- **Status:** Feature 007 concluída em Beta; aguardando apenas teste funcional manual em janela anônima pelo mantenedor.
 
 **Progresso da feature 003 (24/04/2026 00:15 BRT):**
 - `/speckit.specify` concluído: `spec.md` gerado com FR-001..FR-012 e SC-001..SC-005
@@ -135,11 +151,20 @@
 
 ## Próxima Ação
 
+**Feature 008 — Catálogo e Painel UX Bugs:**
+1. ✅ **Sessão aberta:** `sessoes/26-04-29_4_catalogo-painel-ux-bugs.md` criada para retomar a feature 008.
+2. ✅ **Spec ativa:** `.specify/feature.json` aponta para `specs/008-catalogo-painel-ux-bugs`.
+3. ✅ **Validação de spec:** `spec.md` e checklist de qualidade estão sem pendências de `/speckit.specify`.
+4. ✅ **Plan concluído:** `/speckit.plan` gerou plano crítico baseado em pesquisa de código, sem considerar a spec como plenamente validada.
+5. ✅ **Tasks concluído:** `tasks.md` regenerado com 30 tarefas, organizado por user story e validado contra o plano revisado.
+6. **Próximo passo SDD:** aguardar comando do mantenedor para iniciar `/speckit.implement`.
+
 **Feature 007 — Exclusão de Mesa Sem Pop-up:**
 1. ✅ **Implementação concluída:** confirmação de exclusão de mesa ocorre dentro da página, sem pop-up, com segunda ação explícita e bloqueio durante processamento.
 2. ✅ **BUG-001 corrigido após deploy Beta:** exclusão administrativa pela página/preview agora usa endpoint admin em vez do endpoint de mestre.
 3. ✅ **Validação técnica concluída:** busca direcionada sem ocorrências, build frontend verde e changelog JSON válido.
-4. **Próximo passo funcional obrigatório:** publicar/deployar o patch para `dev` e testar novamente em janela anônima no Beta (`mesasbeta.artificiorpg.com`).
+4. ✅ **Deploy Beta concluído:** workflow `Deploy Beta` run `25121700376` verde; health público e rota crítica de mesas retornaram sucesso.
+5. **Próximo passo funcional:** mantenedor testar o fluxo em janela anônima no Beta (`mesasbeta.artificiorpg.com`).
 
 **Sessão 26-04-29_2 — Lançamento de itens SDD:**
 1. ✅ **Itens esgotados pelo mantenedor:** sessão encerrada documentalmente em 29/04/2026 13:02 BRT.

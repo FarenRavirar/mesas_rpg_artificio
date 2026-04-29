@@ -1,35 +1,36 @@
-# Implementation Plan: Revisão Visual e Responsiva do Catálogo
+# Implementation Plan: Catálogo e Painel UX Bugs
 
-**Branch**: `008-catalogo-painel-ux-bugs` | **Date**: 2026-04-29 | **Spec**: [spec.md](./spec.md)
-**Input**: Feature specification from `/specs/008-catalogo-painel-ux-bugs/spec.md`
-
-**Note**: Este plano foi revisado como procedimento de IA `/speckit.plan`; nenhum comando shell Spec-Kit foi executado.
+**Branch**: `feat/008-catalogo-painel-ux-bugs` | **Date**: 2026-04-29 | **Spec**: [spec.md](./spec.md)  
+**Input**: Feature specification from `specs/008-catalogo-painel-ux-bugs/spec.md`, revisada criticamente contra código por orientação do mantenedor.
 
 ## Summary
 
-Investigar e corrigir bugs visuais relacionados ao catálogo, com foco no problema de sobreposição de tela, revisão responsiva completa e padronização de menus e filtros com a linguagem visual da gestão de sistemas. A abordagem técnica é mapear primeiro as superfícies do catálogo, comparar o padrão visual existente com a gestão de sistemas e só então aplicar correções incrementais em estrutura, estilos, breakpoints e estados visuais.
+Corrigir a experiência visual do catálogo público, eliminando sobreposição entre cabeçalho, filtros, drawer mobile, cards e estados da página, sem alterar regras de negócio ou endpoints. Como a spec foi gerada por IA, o planejamento parte de validação no código: o escopo inclui `CatalogoPage`, `FilterDrawer`, `ActiveFiltersChips`, `TableCard` e o `SystemTreeSelector` compartilhado com o painel de criação/edição de mesa. A referência visual interna confirmada é a gestão de sistemas (`SystemsAdminView`, `CatalogToolbar`, `CatalogTree`), especialmente a organização compacta de busca, chips de tipo e contagem de resultados.
+
+Achado adicional de código: o `SystemTreeSelector` usado no catálogo e no painel tem lógica suspeita no bloco de variantes em modo `singleSelect`, usando `midNodes` e texto de edição no seletor de variantes. Isso pode explicar bugs relacionados ao painel e deve entrar no escopo da feature 008, apesar de a spec atual focar mais no catálogo público.
 
 ## Technical Context
 
-**Language/Version**: TypeScript estrito no frontend React + Vite  
-**Primary Dependencies**: React, Vite, CSS/estilos existentes do projeto  
-**Storage**: N/A  
-**Testing**: build técnico do frontend e validação funcional/manual em Beta em janela anônima  
-**Target Platform**: Web responsivo em desktop, tablet e mobile  
-**Project Type**: Monorepo web app com frontend e backend separados  
-**Performance Goals**: Catálogo deve permanecer fluido, escaneável e sem sobreposição em navegação e redimensionamento  
-**Constraints**: Mudança mínima, sem alteração de banco, sem mudança de contrato, preservar busca/filtros atuais  
-**Scale/Scope**: Página de catálogo, menus, filtros, cards e estados visuais relacionados
+**Language/Version**: TypeScript estrito, React + Vite no frontend; Node.js 25.9.0 no projeto.  
+**Primary Dependencies**: React, React Router, lucide-react, hooks locais de catálogo (`useCatalogFilters`, `useCatalogTables`) e componentes locais de sistemas.  
+**Storage**: N/A para esta feature; sem alteração de banco de dados.  
+**Testing**: `npm --prefix frontend run build`; testes Vitest focados se forem adicionados para normalizadores ou componentes puros; validação visual manual/browser em desktop, tablet e mobile; validação funcional final em Beta em janela anônima.  
+**Target Platform**: Web responsivo em navegador moderno, com foco em `/catalogo` e fluxo de criação/edição no `/painel`.  
+**Project Type**: Monorepo web app, mudança frontend.  
+**Performance Goals**: manter busca/filtros perceptivelmente imediatos para o usuário; evitar reflow visual brusco ao aplicar filtros, abrir drawer ou trocar seleção de sistema.  
+**Constraints**: não alterar autenticação, permissões, contratos públicos de API, dados de mesa ou migrations; preservar URLs de filtros existentes; todo payload externo que entrar em estado deve passar por normalização tipada se o arquivo for tocado.  
+**Scale/Scope**: uma página pública de catálogo, componentes compartilhados de filtros/cards e um componente compartilhado de seleção de sistemas usado também pelo painel.
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-- **TypeScript estrito**: PASS — mudanças devem preservar tipagem atual.
-- **Sem mudança de schema sem protocolo**: PASS — não há mudança de banco prevista.
-- **Mudança mínima e reversível**: PASS — escopo restrito ao catálogo e seus controles visuais.
-- **UX responsiva e Nielsen**: PASS — revisão deve cobrir visibilidade de estado, consistência, prevenção de erro visual, reconhecimento e flexibilidade.
-- **Validação funcional em Beta**: PASS — obrigatória em janela anônima para desktop, tablet/mobile e estados do catálogo.
+- **Mudança mínima e reversível**: PASS. Escopo limitado ao frontend e aos componentes diretamente envolvidos no catálogo/painel.
+- **Sem decisão de produto inferida**: PASS com cautela. O mantenedor autorizou pesquisar código em caso de dúvida; decisões de produto novas ficam fora do plano.
+- **Normalização de fronteira**: PASS com obrigação. Se `mapTableApiToInitialData.ts` ou payload de catálogo forem tocados, dados vindos da API devem ser tratados como `unknown` e normalizados antes de estado/renderização.
+- **Sem migrations/schema**: PASS. Não há alteração de banco.
+- **Validação Beta**: PASS planejado. Build/testes locais são validação técnica; validação funcional final deve ocorrer em Beta em janela anônima.
+- **Escopo estrito do plan.md §3**: PASS. Arquivos tocáveis listados abaixo; qualquer arquivo fora da lista exige parar e pedir orientação.
 
 ## Project Structure
 
@@ -43,6 +44,7 @@ specs/008-catalogo-painel-ux-bugs/
 ├── data-model.md
 ├── quickstart.md
 ├── contracts/
+│   └── README.md
 └── tasks.md
 ```
 
@@ -51,40 +53,54 @@ specs/008-catalogo-painel-ux-bugs/
 ```text
 frontend/
 ├── src/
-│   ├── pages/           # página do catálogo afetada
-│   ├── components/      # menus, filtros, cards e estados do catálogo
-│   ├── styles/          # estilos globais ou específicos, se aplicável
-│   └── utils/           # apenas se houver utilitário visual já usado pelo catálogo
-└── package.json
+│   ├── pages/
+│   │   ├── CatalogoPage.tsx              # layout, filtros desktop/mobile, estados e grid do catálogo
+│   │   └── PainelMestrePage.tsx          # somente se necessário para validar fluxo de edição
+│   ├── components/
+│   │   ├── FilterDrawer.tsx              # drawer mobile e bloqueio visual durante aplicação
+│   │   ├── ActiveFiltersChips.tsx        # chips ativos e remoção de filtros
+│   │   ├── TableCard.tsx                 # card público e robustez contra conteúdo variável
+│   │   └── SystemTreeSelector.tsx        # seletor compartilhado catálogo/formulário de mesa
+│   ├── components/form-steps/steps/
+│   │   └── StepSystem.tsx                # integração do seletor no painel de mesa
+│   ├── features/create-table/utils/
+│   │   └── mapTableApiToInitialData.ts   # somente se o bug de edição exigir normalização do payload
+│   ├── features/admin/components/
+│   │   ├── CatalogToolbar.tsx            # referência visual de menus/filtros da gestão de sistemas
+│   │   ├── CatalogTree.tsx               # referência de lista/estado vazio
+│   │   └── CatalogTreeNode.tsx           # referência de item selecionável
+│   └── test/
+│       └── [feature tests, se criados]
 ```
 
-**Structure Decision**: A feature deve permanecer no frontend. Backend e banco ficam fora do escopo salvo descoberta documentada de dependência real durante a investigação.
+**Structure Decision**: feature frontend sem backend/database. O catálogo público deve continuar consumindo os hooks e serviços atuais; o painel entra no escopo apenas pelo componente compartilhado de seleção de sistemas e pelo carregamento de edição quando comprovadamente relacionado.
 
-## Phase 0: Research
+## Phase 0 Research
 
-Pesquisa consolidada em [research.md](./research.md):
+Decisões registradas em [research.md](./research.md):
 
-- padrões modernos de catálogo e descoberta usados por produtos digitais maduros;
-- padronização de menus e filtros com referência interna da gestão de sistemas;
-- estratégia de investigação de bugs visuais relacionados antes de patches.
+- tratar a spec como hipótese e validar contra código antes da implementação;
+- reduzir risco de sobreposição removendo dependência de offsets sticky hardcoded ou consolidando a superfície de filtros;
+- usar a gestão de sistemas como referência de densidade e agrupamento, não como cópia visual literal;
+- incluir `SystemTreeSelector` no escopo por ser compartilhado com catálogo e painel;
+- não alterar backend, banco ou API.
 
-## Phase 1: Design & Contracts
+## Phase 1 Design
 
-Design consolidado em:
+Artefatos de design:
 
-- [data-model.md](./data-model.md)
-- [quickstart.md](./quickstart.md)
+- [data-model.md](./data-model.md): estados de UI e entidades de apresentação envolvidas;
+- [contracts/README.md](./contracts/README.md): contrato visual/funcional esperado para catálogo, filtros, cards e seletor de sistemas;
+- [quickstart.md](./quickstart.md): roteiro de validação técnica e manual.
 
-Não há novo contrato público previsto. O diretório `contracts/` documenta ausência de mudança de API.
+## Re-Check Constitution
 
-## Post-Design Constitution Check
-
-- **Investigação antes de patch**: PASS — tasks exigem mapeamento dos bugs visuais relacionados.
-- **Responsivo completo**: PASS — quickstart exige validação em desktop, tablet e mobile.
-- **Padronização visual interna**: PASS — gestão de sistemas é referência obrigatória.
-- **Sem backend/schema**: PASS — plano não altera persistência.
-- **Beta obrigatório**: PASS — validação funcional em Beta está no quickstart e nas tasks.
+- **Escopo técnico fechado**: PASS. Arquivos candidatos estão listados na estrutura do plano.
+- **Sem placeholder**: PASS. Artefatos descrevem decisões e validações executáveis.
+- **Testes**: PASS planejado. `npm --prefix frontend run build` é obrigatório antes de qualquer commit/deploy; testes específicos serão adicionados se houver lógica isolável.
+- **Normalização**: PASS com alerta. `mapTableApiToInitialData.ts` atualmente recebe `any`; se for alterado nesta feature, deve ser corrigido para normalização tipada conforme AGENTS.md.
+- **UX/Nielsen**: PASS planejado. Validação precisa cobrir visibilidade de estado, controle do usuário, consistência, prevenção de erro e responsividade.
 
 ## Complexity Tracking
 
-Sem violações constitucionais identificadas.
+Nenhuma violação constitucional planejada.
