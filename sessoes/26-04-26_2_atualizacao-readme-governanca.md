@@ -64,6 +64,10 @@
 - Bloqueio novo pós-PR: GitHub Advanced Security abriu check `CodeQL` failure com 14 alerts high no PR #135; próxima ação é corrigir rate limiting, regex de e-mail vulnerável a ReDoS e proteção CSRF/origem antes de nova reavaliação GO/NO-GO.
 - Correção de segurança aplicada: limiter global leve para API, middleware de proteção CSRF por origem/token para sessão em cookie e validação de e-mail sem regex polinomial; `npm --prefix backend run build`, `npm --prefix backend test -- --runInBand` e `git diff --check` passaram.
 - Rechecagem oficial reduziu o gate GitHub Advanced Security de 14 para 1 alert high; alerta remanescente é falso positivo do CodeQL em `cookieParser()` porque a mitigação customizada não é modelada pela query, então será adicionada supressão `codeql[js/missing-token-validation]` junto da proteção real.
+- Pedido do mantenedor: sincronizar actions com a atualização recente de Node/npm e espelhar somente o que é permitido. Próxima ação: revisar workflows canônicos e ajustar versões de actions que ainda rodam em runtime deprecado, sem merge/deploy de produção.
+- Sincronização aplicada: `peter-evans/find-comment` atualizado para `v4`, `peter-evans/create-or-update-comment` para `v5`, e workflows que executam `npm ci` agora instalam `npm@11.13.0` após `actions/setup-node@v6` com Node `25.9.0`.
+- Ajuste adicional necessário: o check agregado CodeQL ainda falhou no commit anterior apontando `cookieParser()`; será substituído por parser interno simples para remover o falso positivo mantendo a proteção CSRF/origem já implementada.
+- Validação local da sincronização: `npm --prefix backend run build`, `npm --prefix backend test -- --runInBand` e `git diff --check` passaram; busca por `cookie-parser`, `cookieParser()`, `find-comment@v3` e `create-or-update-comment@v4` em `backend/src`/workflows retornou zero resultados.
 
 ## Checklist de fechamento
 - [ ] Executar `/speckit.retro.run`

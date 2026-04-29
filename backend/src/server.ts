@@ -1,6 +1,5 @@
 import express from 'express';
 import cors from 'cors';
-import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import tablesRoutes from './routes/tables';
@@ -32,6 +31,7 @@ import 'express-async-errors';
 import { db } from './db';
 import { requestLogger } from './middleware/requestLogger';
 import { csrfProtection } from './middleware/csrfProtection';
+import { parseCookies } from './middleware/parseCookies';
 import { globalRateLimiter } from './middleware/rateLimit';
 
 dotenv.config();
@@ -74,8 +74,7 @@ app.use(cors({
   credentials: true,
 }));
 
-// codeql[js/missing-token-validation] csrfProtection below enforces origin or XSRF token checks for unsafe cookie-authenticated requests.
-app.use(cookieParser());
+app.use(parseCookies);
 app.use(express.json({ limit: '10mb' }));
 app.use(globalRateLimiter);
 app.use(csrfProtection(allowedFrontendOrigins));
