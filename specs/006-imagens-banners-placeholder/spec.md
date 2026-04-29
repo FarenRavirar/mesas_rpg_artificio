@@ -75,7 +75,7 @@ Como mantenedor, quero que a escolha entre banner real e placeholder fique em um
 - **FR-008**: O sistema MUST tratar falhas de imagem com fallback compreensível e consistente, sem quebrar o layout da página.
 - **FR-009**: O sistema MUST permitir auditoria de mesas afetadas por links diretos que não foram persistidos corretamente.
 - **FR-010**: O sistema MUST manter compatibilidade visual com mesas existentes durante a transição para a regra centralizada.
-- **FR-011**: Em imagens de perfil, o sistema MUST oferecer uma opção explícita para manter link direto sem reupload, acompanhada de aviso claro sobre risco de quebra futura.
+- **FR-011**: Em imagens inseridas por URL manual, o sistema MUST oferecer uma opção explícita para manter link direto sem reupload, acompanhada de aviso claro sobre risco de quebra futura.
 - **FR-012**: Quando o usuário optar por manter link direto, o sistema MUST preservar essa escolha e não tentar importar a imagem automaticamente para a hospedagem aprovada.
 
 ### Key Entities
@@ -101,4 +101,4 @@ Como mantenedor, quero que a escolha entre banner real e placeholder fique em um
 - A investigação deve cobrir imagens de mesas e imagens relacionadas à exibição pública de mestres, sem alterar regras de autenticação.
 - Dados antigos podem conter URLs diretas externas e precisam ser considerados no diagnóstico.
 - A correção de dados já publicados pode exigir etapa separada de backfill ou rotina de auditoria após o mapeamento técnico.
-- Para imagens de perfil, a experiência padrão deve favorecer reupload/persistência durável, mas usuários avançados podem escolher manter link direto assumindo o risco de indisponibilidade.
+- Para imagens de perfil e banners informados por URL manual, a experiência padrão deve favorecer reupload/persistência durável, mas usuários avançados podem escolher manter link direto assumindo o risco de indisponibilidade.

@@ -55,6 +55,9 @@
 - `.specify/memory/project-state.md` atualizado via procedimento equivalente a `/speckit.status`, registrando a feature ativa, implementação local e validações executadas.
 - Esclarecimento do mantenedor: testes funcionais/manuais do projeto são realizados após deploy do branch `dev` para beta. Portanto, as validações acima são locais/automatizadas; validação real das telas afetadas permanece pendente até deploy beta.
 - Governança permanente atualizada em `AGENTS.md`: validação funcional/manual só conta após deploy de `dev` no Beta; checks locais são pré-deploy e não substituem teste real.
+- Bug encontrado em beta pelo mantenedor: ao inserir imagem com link direto no banner da mesa, a opção `Manter link direto` não aparece. Causa: a opção havia sido implementada em `AvatarUploader`, mas o banner da mesa usa `ImageUploader`.
+- Correção aplicada localmente: `ImageUploader` agora exibe `Manter link direto` e respeita a flag antes de importar URL externa automaticamente.
+- Validação local da correção: `npm --prefix frontend run build` passou; `git diff --check` passou com avisos apenas de LF/CRLF.
 
 ## Checklist de fechamento
 - [ ] Executar `/speckit.retro.run`

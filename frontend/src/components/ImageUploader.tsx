@@ -44,6 +44,7 @@ export function ImageUploader({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isImportingUrl, setIsImportingUrl] = useState(false);
+  const [keepDirectLink, setKeepDirectLink] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [pendingImageUrl, setPendingImageUrl] = useState<string>('');
@@ -161,7 +162,7 @@ export function ImageUploader({
 
   const handleImportManualUrl = async () => {
     const manualUrl = value.trim();
-    if (!manualUrl || isCloudinaryUrl(manualUrl)) return;
+    if (!manualUrl || keepDirectLink || isCloudinaryUrl(manualUrl)) return;
 
     let parsed: URL;
     try {
@@ -266,8 +267,20 @@ export function ImageUploader({
             placeholder="https://res.cloudinary.com/..."
             className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 focus:ring-1 focus:ring-[var(--color-artificio-orange)]/30 transition-all"
           />
+          <label
+            className="mt-2 inline-flex items-center gap-2 text-xs text-white/70"
+            title="Ao ativar esta opção, a imagem será exibida a partir do endereço informado, sem cópia para nossa hospedagem. Se esse link sair do ar ou expirar, a imagem poderá deixar de aparecer."
+          >
+            <input
+              type="checkbox"
+              checked={keepDirectLink}
+              onChange={(event) => setKeepDirectLink(event.target.checked)}
+              className="h-4 w-4 rounded border-white/20 bg-white/5 accent-[var(--color-artificio-orange)]"
+            />
+            <span>Manter link direto</span>
+          </label>
           <p className="text-xs text-white/50">
-            Links externos são importados automaticamente para a hospedagem do Artifício ao sair do campo.
+            Desativado por padrão: links externos são importados para a hospedagem do Artifício ao sair do campo.
           </p>
         </div>
       </div>

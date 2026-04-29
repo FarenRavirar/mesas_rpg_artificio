@@ -75,11 +75,11 @@ Reuploads an authenticated external image URL through the backend to the approve
 - Existing multipart upload must continue working unchanged.
 - Existing saved Cloudinary URLs must not be reuploaded unnecessarily.
 - Existing non-Cloudinary URLs remain displayable until explicit migration/backfill is approved.
-- Profile image URL fields may opt out of reupload when the user explicitly enables `Manter link direto`.
+- Profile image and table banner URL fields may opt out of reupload when the user explicitly enables `Manter link direto`.
 
-## Profile Direct-Link Opt-Out
+## Direct-Link Opt-Out
 
-For profile images, the UI may expose an explicit opt-out from automatic reupload.
+For profile images and table banners, the UI may expose an explicit opt-out from automatic reupload.
 
 **Control label**
 
@@ -93,4 +93,4 @@ For profile images, the UI may expose an explicit opt-out from automatic reuploa
 - Off by default.
 - When off, external URLs should be imported through the backend whenever possible.
 - When on, the submitted URL remains direct and the backend must not reupload it automatically.
-- The choice applies to profile images only unless a later spec explicitly expands it to table banners.
+- The choice applies to profile images and table banners entered through URL fields.

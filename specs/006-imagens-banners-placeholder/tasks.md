@@ -95,6 +95,7 @@
 - [x] T026 Update `database/changelogs.json` if the user-facing change is included in this delivery
 - [x] T027 Update `sessoes/26-04-29_1_imagens-banners-placeholder.md` with validation evidence and remaining rollout notes
 - [ ] T028 After approved push/deploy to `dev`, validate home, catalog, master page, table page and master dashboard in beta using an anonymous browser window
+- [x] T029 Add `Manter link direto` control to table banner URL input in `frontend/src/components/ImageUploader.tsx`
 
 ---
 
@@ -124,4 +125,5 @@
 4. Centralize fallback with T015-T019.
 5. Add profile opt-out with T020-T021.
 6. Run local validation T022-T027.
-7. After approved deploy to `dev`, run beta validation T028.
+7. Add regression fix T029 and redeploy to `dev` after approval.
+8. After approved deploy to `dev`, run beta validation T028.
