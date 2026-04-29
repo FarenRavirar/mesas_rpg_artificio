@@ -813,6 +813,22 @@
   font-size: 0.75rem;
 }
 
+.avatar-direct-link-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.75rem;
+  cursor: help;
+}
+
+.avatar-direct-link-option input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--color-artificio-orange);
+  cursor: pointer;
+}
+
 /* Legacy avatar styles (manter para compatibilidade) */
 .avatar-upload-container {
   display: flex;

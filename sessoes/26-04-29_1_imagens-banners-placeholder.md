@@ -58,6 +58,17 @@
 - Bug encontrado em beta pelo mantenedor: ao inserir imagem com link direto no banner da mesa, a opção `Manter link direto` não aparece. Causa: a opção havia sido implementada em `AvatarUploader`, mas o banner da mesa usa `ImageUploader`.
 - Correção aplicada localmente: `ImageUploader` agora exibe `Manter link direto` e respeita a flag antes de importar URL externa automaticamente.
 - Validação local da correção: `npm --prefix frontend run build` passou; `git diff --check` passou com avisos apenas de LF/CRLF.
+- Bug persistente encontrado em beta: no fluxo `profile_updated {section: 'general'}`, a tela usa inputs próprios em `ProfileEditPage.tsx`, não `AvatarUploader`.
+- Correção aplicada localmente: inputs de URL manual da aba Geral e da aba Mestre em `ProfileEditPage.tsx` agora exibem `Manter link direto`; quando desligado, importam a URL via `/api/v1/upload/url`; quando ligado, preservam o link direto.
+- Correção arquitetural solicitada pelo mantenedor: unificar o fluxo de URL manual/importação/erro/flag em todos os uploads de imagem, em vez de replicar lógica por tela.
+- Implementação local: criado `frontend/src/hooks/useImageUrlImport.ts`; `ImageUploader`, `AvatarUploader` e `ProfileEditPage` passam a usar o mesmo fluxo canônico.
+- Investigação adicional solicitada antes do commit: erro em `/painel` ao editar perfil do mestre com `selling_points` legado em formato não-array.
+- Achado: `EditGmProfileForm.tsx` inicializava o estado com `(profile.selling_points ?? []).map(...)`; quando a API devolve string/objeto legado, a tela quebra antes de abrir o formulário.
+- Ajuste em andamento: normalizar `selling_points` defensivamente no formulário de edição e corrigir hooks de importação de imagem em `ProfileEditPage.tsx` para não ficarem condicionais.
+- Correção aplicada localmente: `EditGmProfileForm.tsx` agora normaliza `selling_points`, `languages`, `specialties` e `closed_group_systems` antes de chamar `.map`, tolerando JSON string legado, lista ou valor inválido.
+- Correção aplicada localmente: hooks de importação de imagem em `ProfileEditPage.tsx` foram movidos para antes dos retornos condicionais, e o campo manual de avatar do mestre passou a ser controlado para o importador ler a URL atual.
+- Validação local após correções adicionais: `npm --prefix frontend run build` passou; `git diff --check` passou com avisos apenas de LF/CRLF.
+- Documentação atualizada: `tasks.md` recebeu a tarefa T032 para o crash do painel; `database/changelogs.json` consolidou a nota de estabilidade no objeto único de 29/04/2026.
 
 ## Checklist de fechamento
 - [ ] Executar `/speckit.retro.run`

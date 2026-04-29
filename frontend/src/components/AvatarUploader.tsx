@@ -1,4 +1,5 @@
 import { useRef, useState, type ChangeEvent } from 'react';
+import { useImageUrlImport } from '../hooks/useImageUrlImport';
 
 interface AvatarUploaderProps {
   label: string;
@@ -30,14 +31,11 @@ export function AvatarUploader({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [isUploading, setIsUploading] = useState(false);
-  const [isImportingUrl, setIsImportingUrl] = useState(false);
-  const [keepDirectLink, setKeepDirectLink] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const cloudName = (import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '').trim();
   const apiBase = (import.meta.env.VITE_API_URL || '').replace(/\/api\/v1$/, '');
   const uploadEndpoint = apiBase + '/api/v1/upload';
-  const urlImportEndpoint = apiBase + '/api/v1/upload/url';
 
   const isCloudinaryConfigured = cloudName.length > 0;
   const previewSource = value.trim() || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="50" fill="%23334"/%3E%3Ccircle cx="50" cy="38" r="18" fill="%23666"/%3E%3Ccircle cx="50" cy="85" r="25" fill="%23666"/%3E%3C/svg%3E';
@@ -52,14 +50,22 @@ export function AvatarUploader({
     onError(true);
   };
 
-  const isCloudinaryUrl = (url: string): boolean => {
-    try {
-      const parsed = new URL(url);
-      return parsed.hostname === 'res.cloudinary.com' || parsed.hostname.endsWith('.cloudinary.com');
-    } catch {
-      return false;
-    }
-  };
+  const {
+    keepDirectLink,
+    setKeepDirectLink,
+    isImportingUrl,
+    importUrlIfNeeded,
+    directLinkTooltip,
+  } = useImageUrlImport({
+    purpose: 'profile_avatar',
+    getUrl: () => value,
+    onImported: (url) => {
+      onChange(url);
+      onError(false);
+      setUploadError(null);
+    },
+    onError: setError,
+  });
 
   const handleFileSelect = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -107,49 +113,6 @@ export function AvatarUploader({
       setError(error instanceof Error ? error.message : 'Falha inesperada no upload.');
     } finally {
       setIsUploading(false);
-    }
-  };
-
-  const handleImportManualUrl = async () => {
-    const manualUrl = value.trim();
-    if (!manualUrl || keepDirectLink || isCloudinaryUrl(manualUrl)) return;
-
-    let parsed: URL;
-    try {
-      parsed = new URL(manualUrl);
-    } catch {
-      setError('Informe uma URL válida para importar a imagem.');
-      return;
-    }
-
-    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
-      setError('Use uma URL HTTP ou HTTPS válida.');
-      return;
-    }
-
-    setIsImportingUrl(true);
-    clearError();
-
-    try {
-      const response = await fetch(urlImportEndpoint, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: manualUrl, purpose: 'profile_avatar' }),
-      });
-
-      const payload = await response.json();
-      if (!response.ok || !payload?.secure_url) {
-        throw new Error(payload?.error || 'Não foi possível importar a imagem desse link.');
-      }
-
-      onChange(payload.secure_url as string);
-      onError(false);
-      setUploadError(null);
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Não foi possível importar a imagem desse link.');
-    } finally {
-      setIsImportingUrl(false);
     }
   };
 
@@ -210,13 +173,13 @@ export function AvatarUploader({
             onChange(event.target.value);
             clearError();
           }}
-          onBlur={handleImportManualUrl}
+          onBlur={importUrlIfNeeded}
           placeholder="https://res.cloudinary.com/..."
           className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 focus:ring-1 focus:ring-[var(--color-artificio-orange)]/30 transition-all"
         />
         <label
           className="mt-2 inline-flex items-center gap-2 text-xs text-white/70"
-          title="Ao ativar esta opção, a imagem será exibida a partir do endereço informado, sem cópia para nossa hospedagem. Se esse link sair do ar ou expirar, a imagem poderá deixar de aparecer."
+          title={directLinkTooltip}
         >
           <input
             type="checkbox"

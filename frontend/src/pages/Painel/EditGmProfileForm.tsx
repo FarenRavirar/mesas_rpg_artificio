@@ -38,13 +38,13 @@ export interface EditableGmProfile {
   bio_long: string | null;
   avatar_url: string | null;
   banner_url: string | null;
-  languages: string[];
-  specialties: string[];
+  languages: string[] | string | null;
+  specialties: string[] | string | null;
   tagline: string | null;
   promo_badge_text: string | null;
-  selling_points?: SellingPointPayload[] | null;
+  selling_points?: SellingPointPayload[] | string | null;
   closed_group_enabled?: boolean | null;
-  closed_group_systems?: string[] | null;
+  closed_group_systems?: string[] | string | null;
   closed_group_description?: string | null;
   closed_group_min_price_cents?: number | null;
 }
@@ -85,6 +85,47 @@ const toCurrencyInputValue = (cents: number | null | undefined): string => {
   return (cents / 100).toFixed(2);
 };
 
+const normalizeSellingPoints = (value: unknown): SellingPointPayload[] => {
+  let parsed = value;
+
+  if (typeof parsed === 'string') {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      return [];
+    }
+  }
+
+  if (!Array.isArray(parsed)) return [];
+
+  return parsed
+    .filter((point): point is Partial<SellingPointPayload> => Boolean(point) && typeof point === 'object')
+    .map((point) => ({
+      icon: typeof point.icon === 'string' ? point.icon : 'sparkles',
+      title: typeof point.title === 'string' ? point.title : '',
+      description: typeof point.description === 'string' ? point.description : '',
+      highlight: typeof point.highlight === 'string' ? point.highlight : null,
+    }))
+    .filter((point) => point.title || point.description || point.highlight);
+};
+
+const normalizeStringArray = (value: unknown): string[] => {
+  let parsed = value;
+
+  if (typeof parsed === 'string') {
+    const rawValue = parsed;
+    try {
+      parsed = JSON.parse(rawValue);
+    } catch {
+      parsed = rawValue.split(',');
+    }
+  }
+
+  if (!Array.isArray(parsed)) return [];
+
+  return parsed.filter((item): item is string => typeof item === 'string').map((item) => item.trim()).filter(Boolean);
+};
+
 export function EditGmProfileForm({ profile, onSuccess, onCancel }: EditGmProfileFormProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,13 +137,13 @@ export function EditGmProfileForm({ profile, onSuccess, onCancel }: EditGmProfil
   const [bannerUrl, setBannerUrl] = useState(profile.banner_url ?? '');
   const [promoBadgeText, setPromoBadgeText] = useState(profile.promo_badge_text ?? '');
 
-  const [languages, setLanguages] = useState<string[]>(profile.languages ?? []);
-  const [specialties, setSpecialties] = useState<string[]>(profile.specialties ?? []);
+  const [languages, setLanguages] = useState<string[]>(normalizeStringArray(profile.languages));
+  const [specialties, setSpecialties] = useState<string[]>(normalizeStringArray(profile.specialties));
   const [languageInput, setLanguageInput] = useState('');
   const [specialtyInput, setSpecialtyInput] = useState('');
 
   const [sellingPoints, setSellingPoints] = useState<SellingPointFormState[]>(
-    (profile.selling_points ?? []).map((point) => ({
+    normalizeSellingPoints(profile.selling_points).map((point) => ({
       icon: point.icon || 'sparkles',
       title: point.title || '',
       description: point.description || '',
@@ -111,7 +152,9 @@ export function EditGmProfileForm({ profile, onSuccess, onCancel }: EditGmProfil
   );
 
   const [closedGroupEnabled, setClosedGroupEnabled] = useState(Boolean(profile.closed_group_enabled));
-  const [closedGroupSystems, setClosedGroupSystems] = useState<string[]>(profile.closed_group_systems ?? []);
+  const [closedGroupSystems, setClosedGroupSystems] = useState<string[]>(
+    normalizeStringArray(profile.closed_group_systems)
+  );
   const [closedGroupDescription, setClosedGroupDescription] = useState(profile.closed_group_description ?? '');
   const [closedGroupMinPriceReais, setClosedGroupMinPriceReais] = useState(
     toCurrencyInputValue(profile.closed_group_min_price_cents)
