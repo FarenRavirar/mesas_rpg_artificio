@@ -104,54 +104,6 @@ export async function handleStatus(id: string, status: string): Promise<void> {
 }
 
 /**
- * Handler para deletar mesa com confirmação reforçada
- */
-export async function handleDelete(id: string, title: string): Promise<void> {
-  // Primeira confirmação: aviso sobre irreversibilidade
-  const confirmed = confirm(
-    '⚠️ ATENÇÃO: Excluir permanentemente?\n\n' +
-    'Esta ação NÃO pode ser desfeita.\n' +
-    'Todos os dados da mesa serão perdidos.\n\n' +
-    'Se você quer apenas pausar a mesa, use "Desativar" ao invés de excluir.'
-  );
-  
-  if (!confirmed) return;
-
-  // Segunda confirmação: digitação do nome da mesa
-  const userInput = prompt(
-    `Para confirmar a exclusão PERMANENTE, digite o nome da mesa:\n\n"${title}"`
-  );
-
-  if (userInput === null) return; // Usuário cancelou
-
-  if (userInput.trim() !== title.trim()) {
-    alert('❌ Nome incorreto. Exclusão cancelada por segurança.');
-    return;
-  }
-
-  try {
-    const res = await fetch(`/api/v1/gm/tables/${id}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include', // Usa cookie HTTP-only ao invés de Bearer token
-    });
-
-    if (!res.ok) {
-      const error = await res.json();
-      alert(error.error || 'Erro ao excluir mesa.');
-      return;
-    }
-
-    alert('✅ Mesa excluída com sucesso.');
-    window.location.href = '/painel';
-  } catch (error) {
-    alert('Erro ao excluir mesa. Tente novamente.');
-  }
-}
-
-/**
  * Handler para editar mesa
  * Navega para /painel?edit=<id> — rota tratada por PainelMestrePage via searchParams
  */

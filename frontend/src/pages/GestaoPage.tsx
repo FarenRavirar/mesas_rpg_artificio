@@ -6,9 +6,9 @@ import { ScenariosAdminView } from './ScenariosAdminView';
 import { PlatformsPage } from '../modules/admin/platforms/PlatformsPage';
 import { ActivityPanel } from '../modules/admin/activity/components/ActivityPanel';
 import { ScenarioEditModal } from '../components/ScenarioEditModal';
-import { Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { HydrationAdminPanel } from '../modules/admin/hydration/HydrationAdminPanel';
+import { InlineDeleteConfirmation } from '../components/InlineDeleteConfirmation';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -37,6 +37,8 @@ export const GestaoPage = () => {
   const [scenarioEditModal, setScenarioEditModal] = useState<any>(null);
   const [allTables, setAllTables] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [deleteConfirmTableId, setDeleteConfirmTableId] = useState<string | null>(null);
+  const [deletingTableId, setDeletingTableId] = useState<string | null>(null);
 
   const [approvingSuggestionId, setApprovingSuggestionId] = useState<string | null>(null);
   const [rejectingSuggestionId, setRejectingSuggestionId] = useState<string | null>(null);
@@ -164,10 +166,10 @@ export const GestaoPage = () => {
     }
   };
 
-  const handleDeleteTable = async (id: string, title: string) => {
+  const handleDeleteTable = async (id: string) => {
     if (!isAuthenticated) return;
-    if (!confirm(`Deletar mesa "${title}"? Esta ação não pode ser desfeita.`)) return;
 
+    setDeletingTableId(id);
     try {
       // CORREÇÃO DT-013: Rota correta é /api/v1/admin/tables/:id
       const response = await fetch(`${API_BASE}/api/v1/admin/tables/${id}`, {
@@ -177,6 +179,7 @@ export const GestaoPage = () => {
 
       if (response.ok) {
         toast.success('Mesa deletada!');
+        setDeleteConfirmTableId(null);
         fetchAllTables();
       } else {
         // CORREÇÃO: Tratamento robusto de erro (pode retornar HTML em vez de JSON)
@@ -201,6 +204,8 @@ export const GestaoPage = () => {
     } catch (error) {
       console.error('[GestaoPage] Erro ao deletar mesa:', error);
       toast.error('Erro ao deletar mesa');
+    } finally {
+      setDeletingTableId(null);
     }
   };
 
@@ -378,7 +383,8 @@ export const GestaoPage = () => {
                 ) : (
                   <div className="space-y-3">
                     {filteredTables.map((table) => (
-                      <div key={table.id} className="bg-white/5 border border-white/10 rounded-lg p-4 flex justify-between items-center">
+                      <div key={table.id} className="bg-white/5 border border-white/10 rounded-lg p-4">
+                        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                         <div>
                           <h3 className="text-white font-semibold">{table.title}</h3>
                           <p className="text-white/60 text-sm mt-1">
@@ -418,12 +424,18 @@ export const GestaoPage = () => {
                           >
                             {table.status === 'active' ? 'Cancelar' : 'Ativar'}
                           </button>
-                          <button
-                            onClick={() => handleDeleteTable(table.id, table.title)}
-                            className="p-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4 text-white" />
-                          </button>
+                          <InlineDeleteConfirmation
+                            title={table.title}
+                            isOpen={deleteConfirmTableId === table.id}
+                            onOpen={() => setDeleteConfirmTableId(table.id)}
+                            onCancel={() => setDeleteConfirmTableId(null)}
+                            onConfirm={() => handleDeleteTable(table.id)}
+                            isProcessing={deletingTableId === table.id}
+                            triggerLabel=""
+                            className="min-w-10"
+                            compact
+                          />
+                        </div>
                         </div>
                       </div>
                     ))}

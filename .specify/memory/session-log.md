@@ -1,5 +1,15 @@
 # Session Log
 
+## 2026-04-29T13:55:00-03:00 — exclusao-mesa-sem-popup
+
+**Tipo:** Implementação SDD
+**Feature:** `specs/007-exclusao-mesa-sem-popup/`
+**Tasks concluídas:** 18/18
+**Decisões arquiteturais:** confirmação de exclusão centralizada em componente inline reutilizável; endpoints e permissões existentes preservados; feedback por toast mantido como padrão local de página.
+**Evidências principais:** busca direcionada por pop-ups de exclusão de mesa retornou zero ocorrências; `npm --prefix frontend run build` passou; `database/changelogs.json` validado com `ConvertFrom-Json`.
+**Risco residual:** validação funcional/manual ainda depende de deploy do branch `dev` para Beta e teste em janela anônima.
+**Sessão mantida aberta em:** `sessoes/26-04-29_3_exclusao-mesa-sem-popup.md`
+
 ## 2026-04-29T11:32:00-03:00 — imagens-banners-placeholder
 
 **Tipo:** Retrospectiva e fechamento SDD

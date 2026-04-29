@@ -1,7 +1,7 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-04-29T11:32:00-03:00
-**Atualizado por:** sessão 26-04-29_1_imagens-banners-placeholder
+**Última atualização:** 2026-04-29T13:55:00-03:00
+**Atualizado por:** sessão 26-04-29_3_exclusao-mesa-sem-popup
 ---
 
 ## Ambientes
@@ -15,11 +15,25 @@
 
 ## Estado Técnico Atual
 
-**Branch ativa:** `006-imagens-banners-placeholder`
+**Branch ativa:** `feat/007-exclusao-mesa-sem-popup`
 **Último commit base:** `bf1eb29` — ci: corrige lint do workflow de migrations
 
-**Feature ativa:** `specs/006-imagens-banners-placeholder/`
-**Sessão ativa:** `sessoes/26-04-29_1_imagens-banners-placeholder.md`
+**Feature ativa:** `specs/007-exclusao-mesa-sem-popup/`
+**Sessão ativa:** `sessoes/26-04-29_3_exclusao-mesa-sem-popup.md`
+
+**Feature 007 — Exclusão de Mesa Sem Pop-up (29/04/2026):**
+- `/speckit.plan` concluído para `specs/007-exclusao-mesa-sem-popup/` com `plan.md`, `research.md`, `data-model.md`, `quickstart.md` e contrato de confirmação inline.
+- `/speckit.tasks` concluído: `tasks.md` gerado com 18 tarefas em 6 fases.
+- `/speckit.implement` aplicado:
+  - `InlineDeleteConfirmation` criado para confirmação integrada à página.
+  - Painel do mestre, página/preview da mesa e gestão administrativa usam confirmação inline antes do `DELETE`.
+  - Handler antigo de exclusão com `confirm`/`prompt`/`alert` removido.
+  - Changelog de 29/04/2026 consolidado com a melhoria visível.
+- Validação técnica:
+  - Busca direcionada por pop-ups de exclusão de mesa retornou zero ocorrências.
+  - `npm --prefix frontend run build` concluído com sucesso.
+  - `database/changelogs.json` validado como JSON válido.
+- **Próximo passo:** publicar/deployar para `dev` e validar em janela anônima no Beta.
 
 **Progresso da feature 003 (24/04/2026 00:15 BRT):**
 - `/speckit.specify` concluído: `spec.md` gerado com FR-001..FR-012 e SC-001..SC-005
@@ -116,6 +130,11 @@
 ---
 
 ## Próxima Ação
+
+**Feature 007 — Exclusão de Mesa Sem Pop-up:**
+1. ✅ **Implementação local concluída:** confirmação de exclusão de mesa agora ocorre dentro da página, sem pop-up, com segunda ação explícita e bloqueio durante processamento.
+2. ✅ **Validação técnica concluída:** busca direcionada sem ocorrências e build frontend verde.
+3. **Próximo passo funcional obrigatório:** publicar/deployar para `dev` e testar em janela anônima no Beta (`mesasbeta.artificiorpg.com`).
 
 **Sessão 26-04-29_2 — Lançamento de itens SDD:**
 1. ✅ **Itens esgotados pelo mantenedor:** sessão encerrada documentalmente em 29/04/2026 13:02 BRT.
