@@ -1,5 +1,16 @@
 # Session Log
 
+## 2026-04-29T14:20:00-03:00 — exclusao-mesa-sem-popup BUG-001
+
+**Tipo:** Bugfix SDD pós-deploy Beta
+**Feature:** `specs/007-exclusao-mesa-sem-popup/`
+**Bug:** `specs/007-exclusao-mesa-sem-popup/bugs/BUG-001.md`
+**Tasks concluídas:** 20/20
+**Causa raiz:** `MesaPage` habilitava gestão para owner ou admin, mas `TableActionPanel` usava sempre `DELETE /api/v1/gm/tables/:id`; para admin em mesa de outro mestre, o backend retornava `404 Mesa não encontrada`.
+**Correção:** `TableActionPanel` recebeu `deleteEndpointScope`; `MesaPage` passa `admin` quando `user.role === 'admin'`; rota administrativa usa `DELETE /api/v1/admin/tables/:id` e redireciona para `/gestao`.
+**Evidências principais:** `npm --prefix frontend run build` passou; busca final por pop-ups de exclusão retornou zero ocorrências; `database/changelogs.json` validado com `ConvertFrom-Json`.
+**Risco residual:** validação funcional/manual ainda depende de novo deploy do patch para Beta e teste em janela anônima.
+
 ## 2026-04-29T13:55:00-03:00 — exclusao-mesa-sem-popup
 
 **Tipo:** Implementação SDD

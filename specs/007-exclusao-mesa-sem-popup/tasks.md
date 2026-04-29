@@ -21,7 +21,7 @@
 - [x] T004 [US1] Integrar `InlineDeleteConfirmation` ao card do painel em `frontend/src/components/TableCardDashboard.tsx`
 - [x] T005 [US1] Atualizar o fluxo de exclusão do painel em `frontend/src/pages/PainelMestrePage.tsx`
 - [x] T006 [US1] Integrar confirmação inline ao fluxo administrativo de mesas em `frontend/src/pages/GestaoPage.tsx`
-- [x] T007 [US1] Integrar confirmação inline à página/preview da mesa em `frontend/src/features/table/components/TableActionPanel.tsx`
+- [x] T007 [US1] ⚠️ Reopened (BUG-001) Integrar confirmação inline à página/preview da mesa em `frontend/src/features/table/components/TableActionPanel.tsx`, selecionando endpoint GM/admin conforme contexto de gestão
 
 ## Phase 4: User Story 2 - Evitar exclusão acidental (P1)
 
@@ -41,6 +41,10 @@
 
 - [x] T011 [US3] Ajustar microcopy e estados do componente em `frontend/src/components/InlineDeleteConfirmation.tsx`
 - [x] T012 [US3] Garantir mensagens de sucesso/erro sem `alert` em `frontend/src/pages/PainelMestrePage.tsx`, `frontend/src/pages/GestaoPage.tsx` e `frontend/src/features/table/components/TableActionPanel.tsx`
+- [x] T019 [US1] Corrigir `MesaPage` para passar escopo de exclusão admin ao `TableActionPanel` quando `user.role === 'admin'`
+- [x] T020 [US1] Validar build e busca final após BUG-001
+
+**Bugfix**: 2026-04-29 — BUG-001 Updated from bugfix patch.
 
 ## Phase 6: Validation & Documentation
 
@@ -56,6 +60,7 @@
 - Phase 1 before all phases.
 - T003 before T004-T009.
 - US1 before US2 validation tasks.
+- T019-T020 after BUG-001 patch in T007.
 - US3 after US1/US2 integration.
 - Validation after implementation.
 
