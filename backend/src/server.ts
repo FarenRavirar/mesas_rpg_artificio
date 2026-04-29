@@ -74,6 +74,7 @@ app.use(cors({
   credentials: true,
 }));
 
+// codeql[js/missing-token-validation] csrfProtection below enforces origin or XSRF token checks for unsafe cookie-authenticated requests.
 app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(globalRateLimiter);
