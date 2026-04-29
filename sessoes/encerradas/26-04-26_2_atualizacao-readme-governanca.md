@@ -68,13 +68,25 @@
 - Sincronização aplicada: `peter-evans/find-comment` atualizado para `v4`, `peter-evans/create-or-update-comment` para `v5`, e workflows que executam `npm ci` agora instalam `npm@11.13.0` após `actions/setup-node@v6` com Node `25.9.0`.
 - Ajuste adicional necessário: o check agregado CodeQL ainda falhou no commit anterior apontando `cookieParser()`; será substituído por parser interno simples para remover o falso positivo mantendo a proteção CSRF/origem já implementada.
 - Validação local da sincronização: `npm --prefix backend run build`, `npm --prefix backend test -- --runInBand` e `git diff --check` passaram; busca por `cookie-parser`, `cookieParser()`, `find-comment@v3` e `create-or-update-comment@v4` em `backend/src`/workflows retornou zero resultados.
+- Autorização explícita do mantenedor em 29/04/2026: realizar o merge do PR #135 (`dev -> main`) apesar da regra operacional anterior reservar merge ao responsável. Escopo autorizado: merge do PR; não inclui deploy, promoção, backup, restart ou workflow manual de produção.
+- Merge executado: PR #135 fechado como `MERGED` em `main`, merge commit `e1549a8`; `origin/dev=eecb22f`, divergência pós-merge `origin/main...origin/dev = 6 0`, portanto `dev` não está à frente de `main`.
+- Revalidação pós-merge: `git diff --check origin/main` limpo; busca em docs ativos por runbooks legados retornou zero; preflight local read-only retornou `# :white_check_mark: GO`; endpoints críticos de beta e produção responderam `200`; containers principais estão running/healthy e logs recentes filtrados sem `error|exception|fatal`.
+- Autorização explícita do mantenedor em 29/04/2026: executar promoção canônica via `promote-to-prod.yml` em `main` usando versão `v1.2.3`. Escopo autorizado: workflow canônico de promoção; monitoramento e validação read-only pós-deploy.
+- Promoção canônica executada: run `25105141441` concluído com sucesso em `main` para `v1.2.3` (`lint`, `typecheck`, `enforce-dir`, `governance_gate`, `deploy` e `release` verdes).
+- Validação pós-deploy: produção respondeu `200` para raiz, health, tables e systems; OAuth retornou `302` para Google; containers `mesas-app`, `mesas-api`, `mesas-db` healthy e `mesas-cron` running; logs recentes sem `error|exception|fatal`; migrations em disco e banco alinhadas.
+- Observação de release: tag `v1.2.3` aponta para `eecb22f` (`dev`/PR head), cuja árvore é idêntica ao merge commit `e1549a8`; produção está em `origin/main`/`e1549a8`, sem diferença de conteúdo.
 
 ## Checklist de fechamento
-- [ ] Executar `/speckit.retro.run`
-- [ ] Validar README atualizado contra AGENTS.md/constitution.md
-- [ ] Atualizar `.specify/memory/project-state.md` via `/speckit.status`
-- [ ] Mover sessão para `encerradas/` (quando autorizado)
-- [ ] Atualizar `sessoes/index.md`
+- [x] Executar `/speckit.retro.run`
+- [x] Validar README atualizado contra AGENTS.md/constitution.md
+- [x] Atualizar `.specify/memory/project-state.md` via `/speckit.status`
+- [x] Mover sessão para `encerradas/` (quando autorizado)
+- [x] Atualizar `sessoes/index.md`
+
+## Fechamento em 29/04/2026
+- Autorização explícita do mantenedor: fechar esta sessão anterior e iniciar uma nova sessão exclusiva para investigação/refatoração de imagens, banners e placeholders.
+- Encerramento documental: sessão marcada como encerrada por solicitação direta do mantenedor; a nova frente não será misturada com este histórico.
+- Próxima sessão definida: `26-04-29_1_imagens-banners-placeholder.md`.
 
 ## Arquivos que serão modificados
 - `README.md`

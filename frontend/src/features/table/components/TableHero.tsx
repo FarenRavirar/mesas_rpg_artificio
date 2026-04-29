@@ -2,7 +2,7 @@ import type { TableViewModel, TableHeroVariant } from '../types/tableView.types'
 import { getTableBadges, getBadgeClasses } from '../../../utils/tableBadges';
 import { getButtonStyle, handleCTA } from '../utils/uiHelpers';
 import { SystemBadge } from '../../../components/SystemBadge';
-import bannerPlaceholder from '../../../assets/banner_placeholder.webp';
+import { applyTableImageFallback, resolveTableImageSource } from '../../../utils/tableImage';
 
 interface TableHeroProps {
   vm: TableViewModel;
@@ -31,16 +31,11 @@ export function TableHero({ vm, variant = 'full', showOverlay = true }: TableHer
     <div className="relative rounded-2xl overflow-hidden">
       {/* Cover Image */}
       <img 
-        src={vm.coverUrl || bannerPlaceholder}
+        src={resolveTableImageSource(vm.coverUrl)}
         alt={vm.title}
         className="w-full aspect-[1200/650] object-cover"
         style={cropStyle}
-        onError={(event) => {
-          const img = event.currentTarget;
-          if (img.dataset.fallbackApplied === 'true') return;
-          img.dataset.fallbackApplied = 'true';
-          img.src = bannerPlaceholder;
-        }}
+        onError={applyTableImageFallback}
       />
       
       {/* Gradient Overlay - Condicional */}

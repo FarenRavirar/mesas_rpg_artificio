@@ -43,6 +43,7 @@ export function ImageUploader({
 
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isImportingUrl, setIsImportingUrl] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [pendingImageUrl, setPendingImageUrl] = useState<string>('');
@@ -53,7 +54,9 @@ export function ImageUploader({
   } | null>(initialCropData ? { crop: initialCropData as unknown as PixelCrop, originalWidth: 0, originalHeight: 0 } : null);
 
   const cloudName = (import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '').trim();
-  const uploadEndpoint = (import.meta.env.VITE_API_URL || '').replace(/\/api\/v1$/, '') + '/api/v1/upload';
+  const apiBase = (import.meta.env.VITE_API_URL || '').replace(/\/api\/v1$/, '');
+  const uploadEndpoint = apiBase + '/api/v1/upload';
+  const urlImportEndpoint = apiBase + '/api/v1/upload/url';
 
   const isCloudinaryConfigured = cloudName.length > 0;
   const previewSource = value.trim() || bannerPlaceholder;
@@ -66,6 +69,15 @@ export function ImageUploader({
   const setError = (message: string) => {
     setUploadError(message);
     onError(true);
+  };
+
+  const isCloudinaryUrl = (url: string): boolean => {
+    try {
+      const parsed = new URL(url);
+      return parsed.hostname === 'res.cloudinary.com' || parsed.hostname.endsWith('.cloudinary.com');
+    } catch {
+      return false;
+    }
   };
 
   const handleFileSelect = (event: ChangeEvent<HTMLInputElement>) => {
@@ -147,6 +159,49 @@ export function ImageUploader({
     }
   };
 
+  const handleImportManualUrl = async () => {
+    const manualUrl = value.trim();
+    if (!manualUrl || isCloudinaryUrl(manualUrl)) return;
+
+    let parsed: URL;
+    try {
+      parsed = new URL(manualUrl);
+    } catch {
+      setError('Informe uma URL válida para importar a imagem.');
+      return;
+    }
+
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+      setError('Use uma URL HTTP ou HTTPS válida.');
+      return;
+    }
+
+    setIsImportingUrl(true);
+    clearError();
+
+    try {
+      const response = await fetch(urlImportEndpoint, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: manualUrl, purpose: 'table_banner' }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok || !payload?.secure_url) {
+        throw new Error(payload?.error || 'Não foi possível importar a imagem desse link.');
+      }
+
+      onChange(payload.secure_url as string);
+      onError(false);
+      setUploadError(null);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Não foi possível importar a imagem desse link.');
+    } finally {
+      setIsImportingUrl(false);
+    }
+  };
+
   const handleCancelCrop = () => {
     setShowEditor(false);
     if (pendingImageUrl) {
@@ -178,7 +233,7 @@ export function ImageUploader({
             id={`${idPrefix}-select-file`}
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
+            disabled={isUploading || isImportingUrl}
             className="px-4 py-2 rounded-lg bg-[var(--color-artificio-orange)] hover:bg-[var(--color-artificio-orange-hover)] disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors"
           >
             {isUploading ? 'Enviando imagem...' : 'Selecionar imagem'}
@@ -207,9 +262,13 @@ export function ImageUploader({
               onChange(event.target.value);
               clearError();
             }}
+            onBlur={handleImportManualUrl}
             placeholder="https://res.cloudinary.com/..."
             className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 focus:ring-1 focus:ring-[var(--color-artificio-orange)]/30 transition-all"
           />
+          <p className="text-xs text-white/50">
+            Links externos são importados automaticamente para a hospedagem do Artifício ao sair do campo.
+          </p>
         </div>
       </div>
 
@@ -230,6 +289,11 @@ export function ImageUploader({
           <span className="text-xs text-white/70">
             {value ? 'Banner personalizado em uso' : 'Banner padrão em uso'}
           </span>
+          {isImportingUrl && (
+            <span className="text-xs text-amber-200">
+              Importando link...
+            </span>
+          )}
           {value ? (
             <button
               id={`${idPrefix}-remove-image`}

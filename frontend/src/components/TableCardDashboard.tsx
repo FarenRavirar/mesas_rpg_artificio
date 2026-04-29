@@ -1,7 +1,7 @@
 import { getSlotsVisualState } from '../utils/slots';
 import { SystemBadge } from './SystemBadge';
 import { CertificationBadges } from './CertificationBadges';
-import bannerPlaceholder from '../assets/banner_placeholder.webp';
+import { applyTableImageFallback, resolveTableImageSource } from '../utils/tableImage';
 
 interface TableMetrics {
   views: number;
@@ -82,15 +82,10 @@ export function TableCardDashboard({
         }`}
       >
         <img
-          src={table.image_url || bannerPlaceholder}
+          src={resolveTableImageSource(table.image_url)}
           alt={table.title}
           className="w-full h-full object-cover"
-          onError={(event) => {
-            const img = event.currentTarget;
-            if (img.dataset.fallbackApplied === 'true') return;
-            img.dataset.fallbackApplied = 'true';
-            img.src = bannerPlaceholder;
-          }}
+          onError={applyTableImageFallback}
         />
 
         <div className="absolute top-2 left-2 flex flex-wrap gap-1.5 z-10">

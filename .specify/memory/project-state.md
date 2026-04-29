@@ -1,7 +1,7 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-04-28T18:21:21-03:00
-**Atualizado por:** sessão 26-04-28_1_fix-publicacao-mesa-opcao
+**Última atualização:** 2026-04-29T10:25:00-03:00
+**Atualizado por:** sessão 26-04-29_1_imagens-banners-placeholder
 ---
 
 ## Ambientes
@@ -15,11 +15,11 @@
 
 ## Estado Técnico Atual
 
-**Branch ativa:** `005-runtime-workflows`
-**Último commit:** `79ca32a` — fix(create-table): normaliza price_type para enum backend
+**Branch ativa:** `006-imagens-banners-placeholder`
+**Último commit base:** `bf1eb29` — ci: corrige lint do workflow de migrations
 
-**Feature ativa:** `specs/005-runtime-workflows/`
-**Sessão ativa:** `sessoes/26-04-28_1_fix-publicacao-mesa-opcao.md`
+**Feature ativa:** `specs/006-imagens-banners-placeholder/`
+**Sessão ativa:** `sessoes/26-04-29_1_imagens-banners-placeholder.md`
 
 **Progresso da feature 003 (24/04/2026 00:15 BRT):**
 - `/speckit.specify` concluído: `spec.md` gerado com FR-001..FR-012 e SC-001..SC-005
@@ -117,6 +117,13 @@
 
 ## Próxima Ação
 
+**Investigação imagens, banners e placeholders:**
+1. ✅ **Sessão aberta:** `sessoes/26-04-29_1_imagens-banners-placeholder.md`.
+2. ✅ **SDD executado:** `/speckit.specify`, `/speckit.plan` e `/speckit.tasks` concluídos em `specs/006-imagens-banners-placeholder/`.
+3. ✅ **Implementação aplicada localmente:** importação backend de URLs externas para Cloudinary; correção de alias `banner_url` no perfil público do mestre; fallback de banner centralizado no frontend; opção `Manter link direto` adicionada ao perfil.
+4. ✅ **Validação local:** backend build, backend tests, frontend build e `git diff --check` passaram.
+5. **Próximo passo:** commit/push controlado para `dev`, deploy beta e revisão do mantenedor em janela anônima nas telas afetadas. Testes funcionais/manuais só contam após deploy em `dev`.
+
 **Bugfix UX (Covil/Placeholders/PriceType):**
 1. ✅ **Concluído:** Diagnóstico, patch, implementação, verify e validação global do BUG-003 em beta.
 2. **Próximo passo:** Encerrar formalmente a sessão com `/speckit.status` e `/speckit.retro.run`.
@@ -125,8 +132,9 @@
 1. ✅ **US1 concluída:** `mesas-cron` corrigido para executar scripts compilados (`node dist/scripts/*.js`) em produção; container recriado e validado `Up` por mais de 30 minutos, sem `ts-node: not found`.
 2. ✅ **US2 concluída:** Node.js da VM atualizado para `v25.9.0`; npm global da VM atualizado para `11.13.0`; serviços principais continuam saudáveis.
 3. ✅ **US3 concluída:** workflows atualizados para `actions/checkout@v5`, `actions/setup-node@v6` e `node-version: '25.9.0'`; Dockerfiles atualizados para `node:25.9.0-alpine` com npm `11.13.0`.
-4. **Estado operacional transitório:** `/opt/mesas/backend/package.json` foi atualizado diretamente na VM para validar o cron antes do commit/deploy formal; reconciliar via commit/deploy da branch antes de considerar o estado remoto limpo.
-5. **Próximo passo:** finalizar artefatos SDD da feature 005, busca final e preparar commit apenas quando o mantenedor autorizar a etapa de teste/commit.
+4. ✅ **Lint de workflow concluído:** `_enforce-migration-dir.yml` corrigido para remover `SC2086`; Deploy Beta `25080459429` concluiu verde sem annotation `actionlint` relacionada ao aviso.
+5. ✅ **Fechamento SDD concluído:** `pr-description.md`, `tasks.md`, `project-state.md`, `session-log.md` e índice de sessões atualizados; sessão movida para `sessoes/encerradas/`.
+6. **Próximo passo:** se aprovado, promover `dev` para `main` por PR/fluxo controlado; não há próxima ação técnica pendente desta feature em `dev`.
 
 **Feature 003 — Auditoria de Workflows GitHub Actions:**
 1. ✅ **Concluído:** A auditoria dos workflows (Feature 003) alcançou 100% de integridade com a erradicação do vazamento documental (Phase 7 concluída).

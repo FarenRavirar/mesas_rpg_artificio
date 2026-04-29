@@ -1,6 +1,6 @@
 # Índice de Sessões
 
-Última atualização: 24/04/2026 18:15 BRT
+Última atualização: 29/04/2026 09:00 BRT
 
 ---
 
@@ -208,6 +208,14 @@
 
 ---
 
+## 26/04/2026 (1 sessão)
+
+| # | Arquivo |
+|---|---|
+| 2 | `encerradas/26-04-26_2_atualizacao-readme-governanca.md` |
+
+---
+
 ## 28/04/2026 (1 sessão)
 
 | # | Arquivo |
@@ -216,9 +224,17 @@
 
 ---
 
+## 29/04/2026 (1 sessão)
+
+| # | Arquivo |
+|---|---|
+| 1 | `26-04-29_1_imagens-banners-placeholder.md` |
+
+---
+
 ## Sessão Mais Recente
 
-`encerradas/26-04-28_1_fix-publicacao-mesa-opcao.md`
+`26-04-29_1_imagens-banners-placeholder.md`
 
 ---
 
@@ -234,4 +250,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-04-28_2_*`
+**Próxima sessão:** `26-04-29_2_*`

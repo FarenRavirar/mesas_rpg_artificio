@@ -7,7 +7,7 @@ import { getSlotsVisualState } from '../utils/slots';
 import { SlotsIndicator } from './SlotsIndicator';
 import { SystemBadge } from './SystemBadge';
 import { CertificationBadges } from './CertificationBadges';
-import bannerPlaceholder from '../assets/banner_placeholder.webp';
+import { applyTableImageFallback, resolveTableImageSource } from '../utils/tableImage';
 
 const modalityLabels: Record<string, string> = {
   online: 'Online',
@@ -96,15 +96,10 @@ export function TableCardComponent({ table }: { table: TableCard }) {
       {/* BLOCO 1: HEADER (Imagem + Badges críticos) */}
       <div className="aspect-[16/10] w-full relative overflow-hidden">
         <img
-          src={table.cover_url || bannerPlaceholder}
+          src={resolveTableImageSource(table.cover_url)}
           alt={table.title}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          onError={(event) => {
-            const img = event.currentTarget;
-            if (img.dataset.fallbackApplied === 'true') return;
-            img.dataset.fallbackApplied = 'true';
-            img.src = bannerPlaceholder;
-          }}
+          onError={applyTableImageFallback}
         />
 
         {/* Badges críticos apenas */}

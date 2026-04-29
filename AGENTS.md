@@ -307,6 +307,7 @@ Linguagem 100% leiga. Proibido: `sidebar vertical`, `migration`, `refactor`, `pl
 - **Compromissos inegociáveis:** gratuidade, sem anúncios, sem coleta desnecessária de dados.
 - **UX:** toda mudança de interface valida contra as 10 Heurísticas de Nielsen antes do merge.
 - **Testes de interface:** usuário sempre testa em janela anônima. Nunca perguntar sobre cache de browser ou sugerir limpeza de cache.
+- **Validação funcional/manual:** só é considerada válida após deploy do branch `dev` no ambiente Beta (`mesasbeta.artificiorpg.com`). Build, testes automatizados e checks locais são validações técnicas pré-deploy, mas não substituem teste funcional em Beta. Ao finalizar implementação que afete UI/fluxos reais, registrar como próximo passo: push/deploy para `dev` e teste do usuário em janela anônima no Beta.
 
 ---
 
@@ -472,5 +473,5 @@ Próximos Passos  — próximos passos objetivos e imediatos
 Toda comunicação em **português**. Nomes de arquivos, comandos, funções e identificadores de código permanecem no formato original.
 
 <!-- SPECKIT START -->
-Current active plan: `specs/005-runtime-workflows/plan.md`.
+Current active plan: `specs/006-imagens-banners-placeholder/plan.md`.
 <!-- SPECKIT END -->

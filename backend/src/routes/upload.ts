@@ -1,6 +1,6 @@
 import express from 'express';
 import multer from 'multer';
-import { uploadImageToCloudinary } from '../services/cloudinary';
+import { uploadImageToCloudinary, uploadRemoteImageToCloudinary } from '../services/cloudinary';
 import { authMiddleware } from '../middleware/auth';
 
 const router = express.Router();
@@ -52,6 +52,35 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req, res) =
     }
 
     res.status(500).json({ error: 'Falha ao processar imagem' });
+  }
+});
+
+router.post('/upload/url', authMiddleware, async (req, res) => {
+  try {
+    const url = typeof req.body?.url === 'string' ? req.body.url.trim() : '';
+    const purpose = typeof req.body?.purpose === 'string' ? req.body.purpose : 'table_banner';
+
+    if (!url) {
+      res.status(400).json({ error: 'Informe a URL da imagem.' });
+      return;
+    }
+
+    if (!['table_banner', 'profile_avatar', 'profile_banner'].includes(purpose)) {
+      res.status(400).json({ error: 'Finalidade de imagem inválida.' });
+      return;
+    }
+
+    const result = await uploadRemoteImageToCloudinary(url);
+
+    res.json({
+      secure_url: result.secure_url,
+      public_id: result.public_id,
+    });
+  } catch (error: any) {
+    console.error('[upload:url] Erro ao importar imagem:', error?.message || error);
+    res.status(400).json({
+      error: error?.message || 'Não foi possível importar a imagem desse link.',
+    });
   }
 });
 

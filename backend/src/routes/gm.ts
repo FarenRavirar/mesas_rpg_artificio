@@ -162,7 +162,7 @@ router.get('/:slug', publicRateLimiter, optionalAuth, async (req: Request, res: 
         't.slug',
         't.title',
         't.description',
-        't.cover_url',
+        sql<string | null>`t.banner_url`.as('cover_url'),
         't.status',
         't.type',
         't.audience',
