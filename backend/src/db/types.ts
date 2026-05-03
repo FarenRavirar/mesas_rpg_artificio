@@ -510,6 +510,71 @@ export type VttPlatformSuggestion = Selectable<VttPlatformSuggestionsTable>;
 export type NewVttPlatformSuggestion = Insertable<VttPlatformSuggestionsTable>;
 export type VttPlatformSuggestionUpdate = Updateable<VttPlatformSuggestionsTable>;
 
+// Migration 115: Pipeline de importação Discord/Covil
+export type DiscordImportSourceKind = 'discord_bot' | 'discord_chat_exporter_json';
+export type DiscordImportMessageStatus = 'pending' | 'parsed' | 'needs_review' | 'synced' | 'ignored' | 'error';
+export type DiscordImportDraftStatus = 'draft' | 'ready' | 'needs_review' | 'synced' | 'rejected';
+
+export interface DiscordImportSourcesTable {
+  id: Generated<string>;
+  guild_id: string;
+  channel_id: string;
+  channel_name: string | null;
+  enabled: Generated<boolean>;
+  auto_sync_enabled: Generated<boolean>;
+  last_message_id: string | null;
+  last_synced_at: Date | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export type DiscordImportSource = Selectable<DiscordImportSourcesTable>;
+export type NewDiscordImportSource = Insertable<DiscordImportSourcesTable>;
+export type DiscordImportSourceUpdate = Updateable<DiscordImportSourcesTable>;
+
+export interface DiscordImportMessagesTable {
+  id: Generated<string>;
+  source_id: string;
+  discord_message_id: string;
+  discord_channel_id: string;
+  discord_guild_id: string;
+  discord_author_id: string | null;
+  discord_author_name: string | null;
+  discord_message_url: string | null;
+  content_raw: string;
+  attachments: Generated<unknown[]>;
+  embeds: Generated<unknown[]>;
+  message_created_at: Date | null;
+  message_edited_at: Date | null;
+  content_hash: string;
+  source_kind: Generated<DiscordImportSourceKind>;
+  status: Generated<DiscordImportMessageStatus>;
+  parse_error: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export type DiscordImportMessage = Selectable<DiscordImportMessagesTable>;
+export type NewDiscordImportMessage = Insertable<DiscordImportMessagesTable>;
+export type DiscordImportMessageUpdate = Updateable<DiscordImportMessagesTable>;
+
+export interface DiscordImportTableDraftsTable {
+  id: Generated<string>;
+  discord_message_id: string;
+  table_id: string | null;
+  parsed_payload: unknown;
+  normalized_payload: unknown | null;
+  confidence: number | null;
+  status: Generated<DiscordImportDraftStatus>;
+  review_notes: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export type DiscordImportTableDraft = Selectable<DiscordImportTableDraftsTable>;
+export type NewDiscordImportTableDraft = Insertable<DiscordImportTableDraftsTable>;
+export type DiscordImportTableDraftUpdate = Updateable<DiscordImportTableDraftsTable>;
+
 export interface Database {
   users: UsersTable;
   auth_providers: AuthProvidersTable;
@@ -553,6 +618,11 @@ export interface Database {
 
   // Migration 17: Sistema de Changelog/Atualizações
   update_log: UpdateLogTable;
+
+  // Migration 115: Pipeline de importação Discord/Covil
+  discord_import_sources: DiscordImportSourcesTable;
+  discord_import_messages: DiscordImportMessagesTable;
+  discord_import_table_drafts: DiscordImportTableDraftsTable;
 }
 
 // Migration 16: Métricas de engajamento de mesas
