@@ -575,6 +575,20 @@ export type DiscordImportTableDraft = Selectable<DiscordImportTableDraftsTable>;
 export type NewDiscordImportTableDraft = Insertable<DiscordImportTableDraftsTable>;
 export type DiscordImportTableDraftUpdate = Updateable<DiscordImportTableDraftsTable>;
 
+// Migration 116: Configuracoes cifradas do modulo Discord
+export interface DiscordSettingsTable {
+  id: Generated<string>;
+  guild_id: string | null;
+  key: string;
+  value: string;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export type DiscordSetting = Selectable<DiscordSettingsTable>;
+export type NewDiscordSetting = Insertable<DiscordSettingsTable>;
+export type DiscordSettingUpdate = Updateable<DiscordSettingsTable>;
+
 export interface Database {
   users: UsersTable;
   auth_providers: AuthProvidersTable;
@@ -623,6 +637,9 @@ export interface Database {
   discord_import_sources: DiscordImportSourcesTable;
   discord_import_messages: DiscordImportMessagesTable;
   discord_import_table_drafts: DiscordImportTableDraftsTable;
+
+  // Migration 116: Configuracoes cifradas do modulo Discord
+  discord_settings: DiscordSettingsTable;
 }
 
 // Migration 16: Métricas de engajamento de mesas

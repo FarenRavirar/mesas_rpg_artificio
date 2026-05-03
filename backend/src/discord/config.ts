@@ -1,3 +1,6 @@
+import { db } from '../db';
+import { decryptDiscordSetting } from './settingsCrypto';
+
 /**
  * Configurações do módulo Discord.
  * Todas as vars são lidas sob demanda (lazy) — ausência não bloqueia boot da API.
@@ -41,3 +44,26 @@ export const discordConfig = {
     return token;
   },
 };
+
+export async function getDiscordBotToken(): Promise<string | undefined> {
+  const setting = await db
+    .selectFrom('discord_settings')
+    .select('value')
+    .where('guild_id', 'is', null)
+    .where('key', '=', 'bot_token')
+    .executeTakeFirst();
+
+  if (setting) {
+    return decryptDiscordSetting(setting.value);
+  }
+
+  return discordConfig.botToken;
+}
+
+export async function requireDiscordBotToken(): Promise<string> {
+  const token = await getDiscordBotToken();
+  if (!token?.trim()) {
+    throw new Error('DISCORD_BOT_TOKEN não configurado.');
+  }
+  return token;
+}

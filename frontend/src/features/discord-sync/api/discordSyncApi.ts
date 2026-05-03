@@ -2,11 +2,14 @@ import type {
   DiscordSource,
   DiscordMessage,
   DiscordDraft,
+  DiscordSettings,
+  DiscordBotTokenSettings,
   DiscordImportMessageStatus,
   DiscordImportDraftStatus,
   IngestResult,
   SyncReadyResult,
 } from '../types';
+import { z } from 'zod';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 const BASE = `${API_BASE}/api/v1/admin/discord-sync`;
@@ -17,12 +20,48 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     ...options,
   });
+  if (res.status === 204) return undefined as T;
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
   return data.data as T;
 }
 
+const discordBotTokenSettingsSchema = z.object({
+  is_set: z.boolean(),
+  preview: z.string().nullable(),
+  updated_at: z.string().nullable(),
+});
+
+const discordSettingsSchema = z.object({
+  bot_token: discordBotTokenSettingsSchema,
+});
+
+function parseDiscordSettings(value: unknown): DiscordSettings {
+  const parsed = discordSettingsSchema.safeParse(value);
+  if (!parsed.success) {
+    return { bot_token: { is_set: false, preview: null, updated_at: null } };
+  }
+  return parsed.data;
+}
+
+function parseDiscordBotTokenSettings(value: unknown): DiscordBotTokenSettings {
+  const parsed = discordBotTokenSettingsSchema.safeParse(value);
+  if (!parsed.success) {
+    return { is_set: false, preview: null, updated_at: null };
+  }
+  return parsed.data;
+}
+
 export const discordSyncApi = {
+  getDiscordSettings: async () =>
+    parseDiscordSettings(await apiFetch<unknown>('/settings')),
+
+  saveDiscordBotToken: async (body: { token: string }) =>
+    parseDiscordBotTokenSettings(await apiFetch<unknown>('/settings/bot-token', { method: 'PUT', body: JSON.stringify(body) })),
+
+  deleteDiscordBotToken: () =>
+    apiFetch<void>('/settings/bot-token', { method: 'DELETE' }),
+
   getSources: () =>
     apiFetch<DiscordSource[]>('/sources'),
 

@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { db } from '../db';
 import type { DiscordImportSourceKind } from './types';
+import { requireDiscordBotToken } from './config';
 
 interface DiscordApiMessage {
   id: string;
@@ -48,7 +49,7 @@ export async function ingestMessages(params: {
   sourceId: string;
   channelId: string;
   guildId: string;
-  botToken: string;
+  botToken?: string;
   limit?: number;
   beforeMessageId?: string;
   afterMessageId?: string;
@@ -65,7 +66,8 @@ export async function ingestMessages(params: {
     sourceKind = 'discord_bot',
   } = params;
 
-  const trimmedToken = botToken.trim();
+  const resolvedToken = botToken ?? await requireDiscordBotToken();
+  const trimmedToken = resolvedToken.trim();
   if (!trimmedToken) throw new Error('DISCORD_BOT_TOKEN não pode ser vazio.');
 
   const url = new URL(`https://discord.com/api/v10/channels/${channelId}/messages`);

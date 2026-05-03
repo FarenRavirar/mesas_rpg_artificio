@@ -474,5 +474,5 @@ Próximos Passos  — próximos passos objetivos e imediatos
 Toda comunicação em **português**. Nomes de arquivos, comandos, funções e identificadores de código permanecem no formato original.
 
 <!-- SPECKIT START -->
-Current active plan: `specs/012-discord-covil-sync/plan.md`.
+Current active plan: `specs/013-discord-settings-config/plan.md`.
 <!-- SPECKIT END -->
