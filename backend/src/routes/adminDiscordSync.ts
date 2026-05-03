@@ -173,11 +173,14 @@ router.post('/fetch', authMiddleware, async (req: Request, res: Response) => {
       beforeMessageId: before_message_id,
     });
 
-    await db
-      .updateTable('discord_import_sources')
-      .set({ last_synced_at: new Date(), updated_at: new Date() })
-      .where('id', '=', source_id)
-      .execute();
+    // Atualiza last_synced_at apenas se a chamada ao Discord foi concluida com sucesso
+    if (result.inserted > 0 || result.updated > 0 || result.total === 0) {
+      await db
+        .updateTable('discord_import_sources')
+        .set({ last_synced_at: new Date(), updated_at: new Date() })
+        .where('id', '=', source_id)
+        .execute();
+    }
 
     return res.json({ data: result });
   } catch (error: unknown) {
@@ -202,7 +205,10 @@ router.get('/messages', authMiddleware, async (req: Request, res: Response) => {
       .offset(Number(offset) || 0);
 
     if (source_id) query = query.where('source_id', '=', source_id);
-    if (status) query = query.where('status', '=', status as DiscordImportMessageStatus);
+    const validMessageStatuses: DiscordImportMessageStatus[] = ['pending', 'parsed', 'needs_review', 'synced', 'ignored', 'error'];
+    if (status && validMessageStatuses.includes(status as DiscordImportMessageStatus)) {
+      query = query.where('status', '=', status as DiscordImportMessageStatus);
+    }
 
     const messages = await query.execute();
     return res.json({ data: messages });
@@ -227,7 +233,10 @@ router.get('/drafts', authMiddleware, async (req: Request, res: Response) => {
       .limit(Math.min(Number(limit) || 50, 100))
       .offset(Number(offset) || 0);
 
-    if (status) query = query.where('status', '=', status as DiscordImportDraftStatus);
+    const validDraftStatuses: DiscordImportDraftStatus[] = ['draft', 'ready', 'needs_review', 'synced', 'rejected'];
+    if (status && validDraftStatuses.includes(status as DiscordImportDraftStatus)) {
+      query = query.where('status', '=', status as DiscordImportDraftStatus);
+    }
 
     const drafts = await query.execute();
     return res.json({ data: drafts });
