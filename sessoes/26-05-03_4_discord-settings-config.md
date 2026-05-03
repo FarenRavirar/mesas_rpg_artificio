@@ -154,3 +154,4 @@ Sessao concluida quando a Feature 013 tiver plan, tasks, implementacao, builds b
 - [x] Builds obrigatorios executados.
 - [x] PR aberto para `dev`: https://github.com/FarenRavirar/mesas_rpg_artificio/pull/142
 - [x] `/speckit.retro.run` executado.
+- [x] Atualizar `AGENTS.md` para permitir merge de PR pelo agente quando houver autorizacao explicita do mantenedor.
