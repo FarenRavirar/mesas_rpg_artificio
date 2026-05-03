@@ -19,8 +19,9 @@ Esta feature começa como investigação do contrato existente. Nenhum novo endp
 
 ### Notificações
 
-- Se Notificações for canal obrigatório, nova sugestão deve gerar alerta visível para admin autorizado.
-- Se Notificações não for canal obrigatório, a gestão deve ser documentada como canal oficial.
+- Toda sugestão criada por usuário deve gerar alerta visível para admin autorizado.
+- O alerta deve ser criado junto com o registro da sugestão, sem deixar sugestão registrada sem aviso administrativo.
+- Sugestões cobertas: sistemas, cenários e plataformas VTT.
 
 ## Contract Risks to Verify
 

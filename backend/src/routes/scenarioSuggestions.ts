@@ -65,21 +65,47 @@ router.post('/', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Você já possui 5 sugestões pendentes. Aguarde a revisão.' });
     }
 
-    const newSuggestion = await db
-      .insertInto('scenario_suggestions')
-      .values({
-        user_id: userId,
-        name: name.trim(),
-        name_pt: typeof name_pt === 'string' && name_pt.trim().length > 0 ? name_pt.trim() : null,
-        description: typeof description === 'string' && description.trim().length > 0 ? description.trim() : null,
-        status: 'pending',
-      })
-      .returningAll()
-      .executeTakeFirst();
+    const userName = await resolveActorName(userId);
+    const admins = await db
+      .selectFrom('users')
+      .select('id')
+      .where('role', '=', 'admin')
+      .execute();
+
+    const newSuggestion = await db.transaction().execute(async (trx) => {
+      const created = await trx
+        .insertInto('scenario_suggestions')
+        .values({
+          user_id: userId,
+          name: name.trim(),
+          name_pt: typeof name_pt === 'string' && name_pt.trim().length > 0 ? name_pt.trim() : null,
+          description: typeof description === 'string' && description.trim().length > 0 ? description.trim() : null,
+          status: 'pending',
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      if (admins.length > 0) {
+        await trx
+          .insertInto('notifications')
+          .values(admins.map((admin) => ({
+            user_id: admin.id,
+            type: 'system',
+            title: 'Nova sugestão de cenário',
+            message: `${userName} sugeriu "${created.name}" para o catálogo.`,
+            action_url: '/gestao',
+            metadata: JSON.stringify({
+              suggestion_id: created.id,
+              suggestion_kind: 'scenario',
+            }),
+          })))
+          .execute();
+      }
+
+      return created;
+    });
 
     if (newSuggestion) {
-      const userName = await resolveActorName(userId);
-
       void logActivity({
         actorId: userId,
         actorRole: req.user?.role,

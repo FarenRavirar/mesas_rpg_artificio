@@ -48,7 +48,7 @@
 
 ## Notificação Administrativa
 
-**Purpose**: Alerta para admins sobre nova sugestão de sistema, se o canal for obrigatório.
+**Purpose**: Alerta para admins sobre nova sugestão criada por usuário.
 
 **Key Attributes**:
 - `id`: identificador da notificação.
@@ -59,7 +59,7 @@
 - `createdAt`: data de criação.
 
 **Validation Rules**:
-- Deve ser criada apenas se Notificações for canal obrigatório.
+- Deve ser criada para toda sugestão criada por usuário.
 - Deve ser visível para admins autorizados.
 - Não deve duplicar alertas sem necessidade.
 
@@ -92,8 +92,8 @@
 ### Envio até notificação
 
 1. Sugestão é registrada.
-2. Sistema decide se Notificações é canal obrigatório.
-3. Notificação administrativa é criada, se aplicável.
+2. Sistema cria notificação administrativa como parte do fluxo obrigatório.
+3. Notificação administrativa aponta para a gestão.
 4. Admin acessa Notificações.
 5. Admin identifica sugestão nova.
 

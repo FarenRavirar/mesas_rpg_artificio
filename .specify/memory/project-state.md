@@ -1,7 +1,7 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-05-01T00:00:00-03:00
-**Atualizado por:** sessão 26-05-01_1_editor-rico-textareas
+**Última atualização:** 2026-05-03T07:39:56-03:00
+**Atualizado por:** sessão 26-05-03_1_verificacao-sugestoes-sistemas-admin
 ---
 
 ## Ambientes
@@ -16,10 +16,23 @@
 ## Estado Técnico Atual
 
 **Branch ativa:** `dev`
-**Último commit base:** `8fc37ed` — fix: refina cards e badges do catalogo
+**Último commit base:** `126e120` — feat: consolidar ajustes do editor rico e governanca SDD
 
-**Feature ativa:** `specs/009-editor-rico-textareas/`
-**Sessão ativa:** `sessoes/26-05-01_1_editor-rico-textareas.md`
+**Feature ativa:** `specs/011-verificacao-sugestoes-sistemas-admin/`
+**Sessão ativa:** `sessoes/26-05-03_1_verificacao-sugestoes-sistemas-admin.md`
+
+**Feature 011 — Verificação de Sugestões e Notificações Admin (03/05/2026):**
+- Sessão nova aberta a pedido explícito do mantenedor, sem branch dedicada; trabalho direto em `dev`.
+- `.specify/feature.json` e `AGENTS.md` atualizados para apontar `specs/011-verificacao-sugestoes-sistemas-admin`.
+- Decisão de produto incorporada: toda sugestão criada por usuário deve gerar notificação para administradores.
+- Implementação aplicada:
+  - `backend/src/routes/systemSuggestions.ts`: sugestões de sistemas criam notificação admin na mesma transação.
+  - `backend/src/routes/scenarioSuggestions.ts`: sugestões de cenários criam notificação admin na mesma transação.
+  - `backend/src/routes/vttPlatforms.ts`: sugestões de plataformas VTT criam notificação admin na mesma transação.
+  - `frontend/src/components/SystemSuggestionModal.tsx`: confirmação de envio após sucesso real do POST.
+- Documentação atualizada: `spec.md`, `plan.md`, `research.md`, `data-model.md`, `quickstart.md`, `contracts/README.md`, `tasks.md`, `flow-map.md` e `database/changelogs.json`.
+- Validação técnica: `npm --prefix backend run build` GREEN; `npm --prefix frontend run build` GREEN.
+- **Status:** pronto para commit e deploy em `dev`; validação funcional em Beta após deploy.
 
 **Feature 009 — Editor Rico em Textareas (01/05/2026):**
 - Sessão `26-05-01_1_editor-rico-textareas` aberta a pedido explícito do mantenedor.

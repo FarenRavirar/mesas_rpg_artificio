@@ -1,13 +1,13 @@
 # Implementation Plan: Verificação de Sugestões de Sistemas no Admin
 
-**Branch**: `011-verificacao-sugestoes-sistemas-admin` | **Date**: 2026-04-29 | **Spec**: [spec.md](./spec.md)
+**Branch**: `dev` (sem branch dedicada, por autorização do mantenedor em 2026-05-03) | **Date**: 2026-04-29 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/011-verificacao-sugestoes-sistemas-admin/spec.md`
 
 **Note**: Este plano foi gerado como procedimento de IA `/speckit.plan`; nenhum comando shell Spec-Kit foi executado.
 
 ## Summary
 
-Verificar ponta a ponta se sugestões de sistemas são enviadas, registradas e disponibilizadas para administradores, seja pela gestão de sistemas, seja pela ferramenta de Notificações. A abordagem técnica começa com mapeamento de fluxo e superfícies existentes, identifica a camada de falha se houver, define o canal administrativo oficial e só então propõe correções mínimas.
+Verificar ponta a ponta se sugestões criadas por usuários são enviadas, registradas e disponibilizadas para administradores. A decisão de produto de 2026-05-03 tornou Notificações canal obrigatório para toda sugestão criada por usuário; a gestão administrativa permanece como superfície de consulta e tratamento.
 
 ## Technical Context
 
@@ -19,7 +19,7 @@ Verificar ponta a ponta se sugestões de sistemas são enviadas, registradas e d
 **Project Type**: Monorepo web app com frontend/backend/database separados  
 **Performance Goals**: N/A  
 **Constraints**: preservar permissões administrativas, não criar canal paralelo sem decisão, não confirmar falso sucesso ao usuário  
-**Scale/Scope**: Fluxo de sugestão de sistemas, gestão administrativa e Notificações relacionadas
+**Scale/Scope**: Fluxos de sugestão de sistemas, cenários e plataformas VTT, gestão administrativa e Notificações relacionadas
 
 ## Constitution Check
 
@@ -92,7 +92,7 @@ Contratos podem precisar ser documentados após mapeamento das rotas existentes.
 
 - **Fluxo mapeado antes de patch**: PASS — tasks exigem inventário de telas, rotas, persistência e permissões.
 - **Admin autorizado**: PASS — quickstart exige validação com admin.
-- **Notificações definidas**: PASS — tasks exigem decisão de canal.
+- **Notificações definidas**: PASS — Notificações são obrigatórias para toda sugestão criada por usuário.
 - **Beta obrigatório**: PASS — quickstart exige envio real no Beta.
 
 ## Complexity Tracking

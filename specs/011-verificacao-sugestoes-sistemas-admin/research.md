@@ -8,13 +8,13 @@
 - Ajustar diretamente a tela de gestão: rejeitado porque a sugestão pode nem estar sendo persistida.
 - Criar notificação imediatamente: rejeitado porque pode mascarar falha na gestão ou duplicar canais.
 
-## Decision 2: Definir canal administrativo oficial
+## Decision 2: Notificações são canal obrigatório para sugestões
 
-**Rationale**: O admin pode acompanhar sugestões pela gestão ou por Notificações. O produto precisa definir se Notificações é obrigatória ou se a gestão deve sinalizar pendências com clareza suficiente.
+**Rationale**: Decisão do mantenedor em 2026-05-03: toda e qualquer sugestão criada por usuário precisa gerar notificação para o admin. A gestão continua sendo canal de tratamento, mas não substitui o alerta.
 
 **Alternatives considered**:
-- Exigir os dois canais sem análise: rejeitado porque pode gerar ruído operacional.
-- Não definir canal: rejeitado porque mantém incerteza para o admin.
+- Usar apenas gestão administrativa: rejeitado porque depende de busca manual.
+- Notificar apenas sugestões de sistemas: rejeitado porque cenários e plataformas VTT também são sugestões criadas por usuários.
 
 ## Decision 3: Classificar falhas por camada
 

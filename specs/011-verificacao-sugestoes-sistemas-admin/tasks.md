@@ -14,8 +14,8 @@
 
 **Purpose**: Mapear o fluxo existente antes de corrigir.
 
-- [ ] T001 Identificar telas/componentes de envio de sugestão de sistemas em `frontend/src/` e registrar caminhos na sessão `sessoes/26-04-29_2_lancamento-itens-sdd.md`
-- [ ] T002 Identificar rotas/serviços backend responsáveis por receber sugestão de sistemas em `backend/src/` e registrar caminhos na sessão `sessoes/26-04-29_2_lancamento-itens-sdd.md`
+- [ ] T001 Identificar telas/componentes de envio de sugestão de sistemas em `frontend/src/` e registrar caminhos na sessão `sessoes/26-05-03_1_verificacao-sugestoes-sistemas-admin.md`
+- [ ] T002 Identificar rotas/serviços backend responsáveis por receber sugestão de sistemas em `backend/src/` e registrar caminhos na sessão `sessoes/26-05-03_1_verificacao-sugestoes-sistemas-admin.md`
 - [ ] T003 Identificar persistência/tabelas/repositorios de sugestões de sistemas em `backend/src/` e `database/`, registrando caminhos na sessão
 - [ ] T004 Identificar tela administrativa de gestão de sistemas/sugestões em `frontend/src/` e registrar caminhos na sessão
 - [ ] T005 Identificar ferramenta de Notificações e integração com notificações administrativas em `frontend/src/` e `backend/src/`
@@ -25,13 +25,13 @@
 
 ## Phase 2: Foundational (Channel Decision & Failure Classification)
 
-**Purpose**: Definir canal administrativo e critérios de falha antes de patches.
+**Purpose**: Registrar canal administrativo obrigatório e critérios de falha antes de patches.
 
 **⚠️ CRITICAL**: Nenhuma correção técnica deve iniciar antes desta fase estar concluída.
 
-- [ ] T007 Definir em `specs/011-verificacao-sugestoes-sistemas-admin/flow-map.md` se o canal obrigatório será gestão, Notificações ou ambos
+- [x] T007 Definir em `specs/011-verificacao-sugestoes-sistemas-admin/flow-map.md` que Notificações é canal obrigatório e gestão é canal de tratamento
 - [ ] T008 Classificar em `specs/011-verificacao-sugestoes-sistemas-admin/flow-map.md` possíveis falhas por camada: frontend, backend, persistência, permissão, integração ou notificação
-- [ ] T009 Registrar na sessão `sessoes/26-04-29_2_lancamento-itens-sdd.md` os arquivos que serão modificados se a verificação encontrar falha
+- [ ] T009 Registrar na sessão `sessoes/26-05-03_1_verificacao-sugestoes-sistemas-admin.md` os arquivos que serão modificados se a verificação encontrar falha
 
 **Checkpoint**: Fluxo mapeado e canal administrativo definido.
 
@@ -47,7 +47,7 @@
 
 - [ ] T010 [US1] Validar fluxo de envio no frontend identificado em `frontend/src/` para confirmar que sucesso só é exibido após registro real
 - [ ] T011 [US1] Validar rota/serviço backend identificado em `backend/src/` para confirmar persistência da sugestão
-- [ ] T012 [US1] Registrar evidência do envio real no Beta em `sessoes/26-04-29_2_lancamento-itens-sdd.md`
+- [ ] T012 [US1] Registrar evidência do envio real no Beta em `sessoes/26-05-03_1_verificacao-sugestoes-sistemas-admin.md`
 - [ ] T013 [US1] Se houver falha no envio/persistência, registrar severidade, camada e correção proposta em `specs/011-verificacao-sugestoes-sistemas-admin/flow-map.md`
 
 **Checkpoint**: Envio confirmado ou falha classificada.
@@ -65,7 +65,7 @@
 - [ ] T014 [US2] Validar listagem/filtros da gestão administrativa identificada em `frontend/src/`
 - [ ] T015 [US2] Validar rota/serviço admin identificado em `backend/src/` para consultar sugestões pendentes
 - [ ] T016 [US2] Validar permissões administrativas do fluxo sem expor sugestões para usuários não autorizados
-- [ ] T017 [US2] Registrar evidência de visualização admin no Beta em `sessoes/26-04-29_2_lancamento-itens-sdd.md`
+- [ ] T017 [US2] Registrar evidência de visualização admin no Beta em `sessoes/26-05-03_1_verificacao-sugestoes-sistemas-admin.md`
 - [ ] T018 [US2] Se houver falha na gestão, registrar severidade, camada e correção proposta em `specs/011-verificacao-sugestoes-sistemas-admin/flow-map.md`
 
 **Checkpoint**: Admin visualiza sugestões pela gestão ou falha classificada.
@@ -81,9 +81,9 @@
 ### Implementation for User Story 3
 
 - [ ] T019 [US3] Validar fluxo de criação/listagem de Notificações identificado em `frontend/src/` e `backend/src/`
-- [ ] T020 [US3] Se Notificações for canal obrigatório, validar criação de alerta para admin autorizado
-- [ ] T021 [US3] Se Notificações não for canal obrigatório, registrar em `specs/011-verificacao-sugestoes-sistemas-admin/flow-map.md` que gestão é canal oficial e como ela sinaliza pendências
-- [ ] T022 [US3] Registrar evidência da decisão e validação em `sessoes/26-04-29_2_lancamento-itens-sdd.md`
+- [x] T020 [US3] Se Notificações for canal obrigatório, validar criação de alerta para admin autorizado
+- [x] T021 [US3] Registrar em `specs/011-verificacao-sugestoes-sistemas-admin/flow-map.md` que gestão é canal de tratamento e Notificações é canal de alerta obrigatório
+- [ ] T022 [US3] Registrar evidência da decisão e validação em `sessoes/26-05-03_1_verificacao-sugestoes-sistemas-admin.md`
 
 **Checkpoint**: Canal administrativo sem ambiguidade.
 
@@ -112,7 +112,7 @@
 - [ ] T026 Executar `npm --prefix frontend run build` se houver mudança no frontend e registrar saída na sessão
 - [ ] T027 Executar validação técnica do backend se houver mudança no backend e registrar saída na sessão
 - [ ] T028 Validar `quickstart.md` no Beta em janela anônima/fluxo real e registrar resultado na sessão
-- [ ] T029 Atualizar `database/changelogs.json` se a correção alterar experiência visível de usuários/admins
+- [x] T029 Atualizar `database/changelogs.json` se a correção alterar experiência visível de usuários/admins
 
 ---
 

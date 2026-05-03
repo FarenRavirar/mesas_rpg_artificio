@@ -1,9 +1,11 @@
 # Feature Specification: Verificação de Sugestões de Sistemas no Admin
 
-**Feature Branch**: `011-verificacao-sugestoes-sistemas-admin`  
+**Feature Branch**: `dev` (sem branch dedicada, por autorização do mantenedor em 2026-05-03)  
 **Created**: 2026-04-29  
 **Status**: Draft  
 **Input**: User description: "Verificar se o sistema de sugestão de sistemas está realmente funcionando e está chegando no admin, seja proativamente pelo admin na parte da gestão onde mostra as sugestões ou com a ferramenta de notificação que tem em 'Notificações'."
+
+**Decision 2026-05-03**: Toda sugestão criada por usuário deve gerar notificação para administradores autorizados, sem depender apenas da consulta manual na gestão.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -89,9 +91,9 @@ Como mantenedor, quero mapear o fluxo completo da sugestão até o admin, para s
 - **FR-001**: O fluxo de sugestão de sistemas MUST ser mapeado ponta a ponta antes de qualquer correção técnica.
 - **FR-002**: A investigação MUST identificar onde a sugestão é enviada, validada, persistida, listada para admin e notificada, se aplicável.
 - **FR-003**: O sistema MUST permitir verificar se uma sugestão enviada chega à gestão administrativa.
-- **FR-004**: O sistema MUST definir se Notificações é canal obrigatório para sugestões de sistemas ou se a gestão administrativa é o canal oficial.
-- **FR-005**: Se Notificações for canal obrigatório, novas sugestões MUST gerar notificação visível para admins autorizados.
-- **FR-006**: Se a gestão for o canal oficial, ela MUST sinalizar sugestões pendentes de forma clara para o admin.
+- **FR-004**: Notificações MUST ser canal obrigatório para toda sugestão criada por usuário, incluindo sistemas, cenários e plataformas VTT.
+- **FR-005**: Novas sugestões MUST gerar notificação visível para admins autorizados.
+- **FR-006**: A gestão administrativa MUST continuar permitindo consultar e tratar sugestões pendentes.
 - **FR-007**: Falhas encontradas MUST ser classificadas por camada: frontend, backend, persistência, permissão, integração ou notificação.
 - **FR-008**: A validação MUST cobrir envio real de sugestão e consulta real pelo admin no Beta.
 - **FR-009**: O fluxo MUST preservar permissões administrativas existentes.
@@ -110,7 +112,7 @@ Como mantenedor, quero mapear o fluxo completo da sugestão até o admin, para s
 ### Measurable Outcomes
 
 - **SC-001**: O fluxo ponta a ponta de sugestão de sistemas está documentado com todas as etapas e arquivos/rotas afetados.
-- **SC-002**: Uma sugestão enviada no Beta aparece para admin na gestão ou gera notificação administrativa conforme canal definido.
+- **SC-002**: Uma sugestão enviada no Beta aparece para admin na gestão e gera notificação administrativa.
 - **SC-003**: 100% das falhas encontradas no fluxo são classificadas com severidade e camada responsável.
 - **SC-004**: O admin consegue identificar sugestões pendentes sem depender de inspeção técnica.
 - **SC-005**: O usuário não recebe confirmação falsa de sucesso quando a sugestão não chega ao sistema.

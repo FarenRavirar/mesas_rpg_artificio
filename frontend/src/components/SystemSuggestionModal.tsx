@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { X } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -123,6 +124,7 @@ export const SystemSuggestionModal = ({ isOpen, onClose, onSuccess }: SystemSugg
       setDescription('');
       setParentId('');
       setSuggestionType('system');
+      toast.success('Sugestão enviada para análise da administração.');
       onSuccess?.();
       onClose();
     } catch (err) {

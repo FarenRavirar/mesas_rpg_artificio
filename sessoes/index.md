@@ -1,6 +1,6 @@
 # Índice de Sessões
 
-Última atualização: 01/05/2026 BRT
+Última atualização: 03/05/2026 BRT
 
 ---
 
@@ -245,9 +245,17 @@
 
 ---
 
+## 03/05/2026 (1 sessão)
+
+| # | Arquivo |
+|---|---|
+| 1 | `26-05-03_1_verificacao-sugestoes-sistemas-admin.md` |
+
+---
+
 ## Sessão Mais Recente
 
-`26-05-01_1_editor-rico-textareas.md`
+`26-05-03_1_verificacao-sugestoes-sistemas-admin.md`
 
 ---
 
@@ -263,4 +271,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-04-29_5_*`
+**Próxima sessão:** `26-05-03_2_*`

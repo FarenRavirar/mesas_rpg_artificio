@@ -2,14 +2,14 @@
 
 ## Objetivo
 
-Validar se sugestões de sistemas são enviadas, registradas e chegam ao admin pela gestão de sistemas ou pela ferramenta de Notificações.
+Validar se sugestões criadas por usuários são enviadas, registradas e chegam ao admin pela gestão e pela ferramenta de Notificações.
 
 ## Pré-condições
 
 - Fluxo de sugestão mapeado.
 - Usuário capaz de enviar sugestão no Beta.
 - Admin autorizado disponível para consulta.
-- Canal administrativo definido: gestão, Notificações ou ambos.
+- Canal administrativo definido: gestão para tratamento e Notificações para alerta obrigatório.
 
 ## Cenário 1: Envio de sugestão
 
@@ -32,10 +32,10 @@ Validar se sugestões de sistemas são enviadas, registradas e chegam ao admin p
 ## Cenário 3: Notificações
 
 1. Após enviar sugestão, acessar a ferramenta de Notificações como admin.
-2. Verificar se há alerta correspondente, caso Notificações seja canal obrigatório.
-3. Se não houver alerta, confirmar que a gestão administrativa é o canal oficial e sinaliza pendências de modo suficiente.
+2. Verificar se há alerta correspondente.
+3. Repetir para sugestões de sistema, cenário e plataforma VTT quando possível.
 
-**Resultado esperado**: canal administrativo definido funciona sem ambiguidade.
+**Resultado esperado**: toda sugestão criada por usuário gera notificação para admin.
 
 ## Cenário 4: Falha parcial
 
