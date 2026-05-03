@@ -155,3 +155,45 @@ Sessao concluida quando a Feature 013 tiver plan, tasks, implementacao, builds b
 - [x] PR aberto para `dev`: https://github.com/FarenRavirar/mesas_rpg_artificio/pull/142
 - [x] `/speckit.retro.run` executado.
 - [x] Atualizar `AGENTS.md` para permitir merge de PR pelo agente quando houver autorizacao explicita do mantenedor.
+- [x] Retomada pos-merge em `dev`: Feature 013 confirmada como mergeada no PR #142, Deploy Beta verde, builds backend/frontend verdes em nova execucao local.
+- [x] Criar documento temporario em `testes/` com passos para criar/configurar bot Discord ate obter o token.
+- [x] Feature 014 iniciada a pedido do mantenedor: automatizar descoberta de servidores/canais Discord no painel, evitando cadastro manual rigido de IDs.
+- [x] Executar `/speckit.specify` para `specs/014-discord-channel-discovery/`.
+- [x] Executar `/speckit.plan`, `/speckit.tasks` e `/speckit.implement` para discovery.
+- [x] T001-T018 da Feature 014 concluidas: spec/plan/tasks, discovery backend, rotas admin, parsers frontend, seletores de servidor/canal, modo manual avancado, mapa de API e pr-description.
+- [x] T019 concluida. Evidencia:
+  - Estado: NOT STARTED -> GREEN
+  - Comando: `npm --prefix backend run build`
+  - Output literal:
+    ```text
+    > backend@1.0.0 build
+    > tsc
+    ```
+- [x] T020 concluida. Evidencia:
+  - Estado: NOT STARTED -> GREEN
+  - Comando: `npm --prefix frontend run build`
+  - Output literal:
+    ```text
+    > frontend_temp@0.0.0 build
+    > tsc -b && vite build
+
+    vite v8.0.3 building client environment for production...
+    transforming...✓ 2152 modules transformed.
+    rendering chunks...
+    computing gzip size...
+    dist/index.html                                     1.91 kB │ gzip:   0.71 kB
+    dist/assets/banner_placeholder-yIcJpBb9.webp       25.98 kB
+    dist/assets/vendor-react-W1ZBun6d.css              29.75 kB │ gzip:  11.52 kB
+    dist/assets/index-DKSdFCt3.css                    148.34 kB │ gzip:  22.45 kB
+    dist/assets/rolldown-runtime-Dw2cE7zH.js            0.68 kB │ gzip:   0.41 kB
+    dist/assets/mapTableApiToInitialData-BetHjCM2.js    2.34 kB │ gzip:   0.96 kB
+    dist/assets/vendor-react-DwK20lzO.js              347.12 kB │ gzip: 109.37 kB
+    dist/assets/index-fzPCUiG0.js                     663.77 kB │ gzip: 178.30 kB
+
+    ✓ built in 727ms
+    [plugin builtin:vite-reporter]
+    (!) Some chunks are larger than 500 kB after minification.
+    ```
+- [x] T021 concluida. Busca de seguranca:
+  - Comando: `rg -n "console\\.(log|error).*token|plaintext|DISCORD_BOT_TOKEN|Authorization: \`Bot|botToken|token" backend/src/discord/discovery.ts backend/src/routes/adminDiscordSync.ts frontend/src/features/discord-sync --glob "*.ts" --glob "*.tsx"`
+  - Resultado: zero ocorrencias de `console.log`/`console.error` com token; ocorrencias restantes sao schema/helper, mensagens de configuracao, uso interno de `Authorization: Bot <token>` para chamar Discord, variaveis internas do formulario de token e texto de UI.

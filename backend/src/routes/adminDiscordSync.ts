@@ -4,7 +4,7 @@ import { db } from '../db';
 import type { NewDiscordSetting } from '../db/types';
 import { authMiddleware } from '../middleware/auth';
 import type { DiscordImportMessageStatus, DiscordImportDraftStatus } from '../discord';
-import { ingestMessages, syncDiscordDraftToTable } from '../discord';
+import { DiscordDiscoveryError, discoverDiscordChannels, discoverDiscordGuilds, ingestMessages, syncDiscordDraftToTable } from '../discord';
 import { encryptDiscordSetting, decryptDiscordSetting, DiscordSettingsSecretUnavailableError } from '../discord/settingsCrypto';
 
 const router = Router();
@@ -45,6 +45,10 @@ const fetchSchema = z.object({
   before_message_id: z.string().optional(),
 });
 
+const snowflakeParamSchema = z.object({
+  guildId: z.string().regex(/^\d{5,30}$/, 'Servidor Discord inválido.'),
+});
+
 const botTokenSchema = z.object({
   token: z.string().trim().min(50, 'Token deve ter pelo menos 50 caracteres.').regex(/^\S+$/, 'Token não pode conter espaços.'),
 });
@@ -59,6 +63,20 @@ function sendSettingsError(res: Response, error: unknown, fallbackMessage: strin
   }
   console.error(fallbackMessage, error);
   return res.status(500).json({ error: 'Erro ao acessar configurações do Discord.' });
+}
+
+function sendDiscordDiscoveryError(res: Response, error: unknown, fallbackMessage: string): Response {
+  if (error instanceof DiscordSettingsSecretUnavailableError) {
+    return res.status(503).json({ error: error.message });
+  }
+  if (error instanceof DiscordDiscoveryError) {
+    return res.status(error.statusCode).json({ error: error.message });
+  }
+  if (error instanceof Error && error.message.includes('DISCORD_BOT_TOKEN não configurado')) {
+    return res.status(422).json({ error: 'Configure o token do bot antes de descobrir servidores e canais.' });
+  }
+  console.error(fallbackMessage, error);
+  return res.status(502).json({ error: 'Não foi possível consultar o Discord agora. Tente novamente em instantes.' });
 }
 
 // ─── Configuracoes ───────────────────────────────────────────────────────────
@@ -153,6 +171,35 @@ router.delete('/settings/bot-token', authMiddleware, async (req: Request, res: R
     return res.status(204).send();
   } catch (error: unknown) {
     return sendSettingsError(res, error, '[DELETE /admin/discord-sync/settings/bot-token]');
+  }
+});
+
+// ─── Descoberta de servidores/canais ─────────────────────────────────────────
+
+// GET /discovery/guilds
+router.get('/discovery/guilds', authMiddleware, async (req: Request, res: Response) => {
+  if (!isAdmin(req, res)) return;
+  try {
+    const guilds = await discoverDiscordGuilds();
+    return res.json({ data: guilds });
+  } catch (error: unknown) {
+    return sendDiscordDiscoveryError(res, error, '[GET /admin/discord-sync/discovery/guilds]');
+  }
+});
+
+// GET /discovery/guilds/:guildId/channels
+router.get('/discovery/guilds/:guildId/channels', authMiddleware, async (req: Request, res: Response) => {
+  if (!isAdmin(req, res)) return;
+  const parsed = snowflakeParamSchema.safeParse(req.params);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Servidor Discord inválido.', details: parsed.error.flatten() });
+  }
+
+  try {
+    const channels = await discoverDiscordChannels(parsed.data.guildId);
+    return res.json({ data: channels });
+  } catch (error: unknown) {
+    return sendDiscordDiscoveryError(res, error, '[GET /admin/discord-sync/discovery/guilds/:guildId/channels]');
   }
 });
 

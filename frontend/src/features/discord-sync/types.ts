@@ -15,6 +15,23 @@ export interface DiscordSource {
   updated_at: string;
 }
 
+export interface DiscordDiscoveredGuild {
+  id: string;
+  name: string;
+  icon: string | null;
+  approximate_member_count: number | null;
+}
+
+export interface DiscordDiscoveredChannel {
+  id: string;
+  guild_id: string;
+  name: string;
+  type: number;
+  position: number | null;
+  parent_id: string | null;
+  parent_name: string | null;
+}
+
 export interface DiscordMessage {
   id: string;
   source_id: string;

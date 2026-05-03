@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import type { DiscordSource } from '../types';
+import type { DiscordDiscoveredChannel, DiscordDiscoveredGuild, DiscordSource } from '../types';
 import { discordSyncApi } from '../api/discordSyncApi';
 
 interface Props {
@@ -21,11 +21,101 @@ const emptyForm: NewSourceForm = { guild_id: '', channel_id: '', channel_name: '
 export function DiscordSourceList({ sources, onRefresh, onFetchMessages, fetchingSourceId }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<NewSourceForm>(emptyForm);
+  const [guilds, setGuilds] = useState<DiscordDiscoveredGuild[]>([]);
+  const [channels, setChannels] = useState<DiscordDiscoveredChannel[]>([]);
+  const [selectedGuildId, setSelectedGuildId] = useState('');
+  const [selectedChannelId, setSelectedChannelId] = useState('');
+  const [loadingGuilds, setLoadingGuilds] = useState(false);
+  const [loadingChannels, setLoadingChannels] = useState(false);
+  const [discoveryError, setDiscoveryError] = useState<string | null>(null);
+  const [manualMode, setManualMode] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-  const handleCreate = async () => {
+  const resetForm = () => {
+    setForm(emptyForm);
+    setSelectedGuildId('');
+    setSelectedChannelId('');
+    setChannels([]);
+    setDiscoveryError(null);
+    setManualMode(false);
+  };
+
+  const loadGuilds = async () => {
+    setLoadingGuilds(true);
+    setDiscoveryError(null);
+    try {
+      const discoveredGuilds = await discordSyncApi.discoverGuilds();
+      setGuilds(discoveredGuilds);
+      if (discoveredGuilds.length === 0) {
+        setDiscoveryError('Nenhum servidor encontrado. Convide o bot para o servidor Discord e tente novamente.');
+      }
+    } catch (err) {
+      setGuilds([]);
+      setDiscoveryError(err instanceof Error ? err.message : 'Erro ao descobrir servidores.');
+    } finally {
+      setLoadingGuilds(false);
+    }
+  };
+
+  const openForm = () => {
+    setShowForm(true);
+    if (guilds.length === 0 && !loadingGuilds) {
+      loadGuilds();
+    }
+  };
+
+  const closeForm = () => {
+    setShowForm(false);
+    resetForm();
+  };
+
+  const handleSelectGuild = async (guildId: string) => {
+    setSelectedGuildId(guildId);
+    setSelectedChannelId('');
+    setChannels([]);
+    setDiscoveryError(null);
+    if (!guildId) return;
+
+    setLoadingChannels(true);
+    try {
+      const discoveredChannels = await discordSyncApi.discoverChannels(guildId);
+      setChannels(discoveredChannels);
+      if (discoveredChannels.length === 0) {
+        setDiscoveryError('Nenhum canal textual encontrado. Revise permissões do bot no servidor e nos canais.');
+      }
+    } catch (err) {
+      setDiscoveryError(err instanceof Error ? err.message : 'Erro ao descobrir canais.');
+    } finally {
+      setLoadingChannels(false);
+    }
+  };
+
+  const handleCreateDiscovered = async () => {
+    const channel = channels.find((item) => item.id === selectedChannelId);
+    if (!selectedGuildId || !channel) {
+      toast.error('Selecione um servidor e um canal.');
+      return;
+    }
+    setSaving(true);
+    try {
+      await discordSyncApi.createSource({
+        guild_id: selectedGuildId,
+        channel_id: channel.id,
+        channel_name: channel.name,
+      });
+      toast.success('Canal cadastrado.');
+      closeForm();
+      onRefresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao cadastrar canal.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCreateManual = async () => {
     if (!form.guild_id.trim() || !form.channel_id.trim()) {
       toast.error('Guild ID e Channel ID são obrigatórios.');
       return;
@@ -38,8 +128,7 @@ export function DiscordSourceList({ sources, onRefresh, onFetchMessages, fetchin
         channel_name: form.channel_name.trim() || undefined,
       });
       toast.success('Canal cadastrado.');
-      setForm(emptyForm);
-      setShowForm(false);
+      closeForm();
       onRefresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao cadastrar canal.');
@@ -77,7 +166,7 @@ export function DiscordSourceList({ sources, onRefresh, onFetchMessages, fetchin
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-white font-semibold">Canais monitorados</h3>
         <button
-          onClick={() => setShowForm(v => !v)}
+          onClick={() => (showForm ? closeForm() : openForm())}
           className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors"
         >
           + Adicionar canal
@@ -86,35 +175,88 @@ export function DiscordSourceList({ sources, onRefresh, onFetchMessages, fetchin
 
       {showForm && (
         <div className="bg-white/5 border border-white/10 rounded-lg p-4 mb-4 space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <input
-              placeholder="Guild ID *"
-              value={form.guild_id}
-              onChange={e => setForm(f => ({ ...f, guild_id: e.target.value }))}
-              className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 text-sm"
-            />
-            <input
-              placeholder="Channel ID *"
-              value={form.channel_id}
-              onChange={e => setForm(f => ({ ...f, channel_id: e.target.value }))}
-              className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 text-sm"
-            />
-            <input
-              placeholder="Nome do canal (opcional)"
-              value={form.channel_name}
-              onChange={e => setForm(f => ({ ...f, channel_name: e.target.value }))}
-              className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 text-sm"
-            />
-          </div>
+          {!manualMode && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <label className="flex flex-col gap-1 text-xs text-white/50">
+                  Servidor
+                  <select
+                    value={selectedGuildId}
+                    onChange={e => handleSelectGuild(e.target.value)}
+                    disabled={loadingGuilds}
+                    className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm disabled:opacity-50"
+                  >
+                    <option value="">{loadingGuilds ? 'Carregando servidores...' : 'Selecione um servidor'}</option>
+                    {guilds.map(guild => (
+                      <option key={guild.id} value={guild.id}>
+                        {guild.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1 text-xs text-white/50">
+                  Canal
+                  <select
+                    value={selectedChannelId}
+                    onChange={e => setSelectedChannelId(e.target.value)}
+                    disabled={!selectedGuildId || loadingChannels}
+                    className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm disabled:opacity-50"
+                  >
+                    <option value="">{loadingChannels ? 'Carregando canais...' : 'Selecione um canal'}</option>
+                    {channels.map(channel => (
+                      <option key={channel.id} value={channel.id}>
+                        {channel.parent_name ? `${channel.parent_name} / #${channel.name}` : `#${channel.name}`}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              {discoveryError && (
+                <p className="text-yellow-300 bg-yellow-900/20 border border-yellow-700/40 rounded-lg px-3 py-2 text-sm">
+                  {discoveryError}
+                </p>
+              )}
+            </div>
+          )}
+
+          {manualMode && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <input
+                placeholder="Guild ID *"
+                value={form.guild_id}
+                onChange={e => setForm(f => ({ ...f, guild_id: e.target.value }))}
+                className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 text-sm"
+              />
+              <input
+                placeholder="Channel ID *"
+                value={form.channel_id}
+                onChange={e => setForm(f => ({ ...f, channel_id: e.target.value }))}
+                className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 text-sm"
+              />
+              <input
+                placeholder="Nome do canal (opcional)"
+                value={form.channel_name}
+                onChange={e => setForm(f => ({ ...f, channel_name: e.target.value }))}
+                className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 text-sm"
+              />
+            </div>
+          )}
+
           <div className="flex gap-2 justify-end">
             <button
-              onClick={() => { setShowForm(false); setForm(emptyForm); }}
+              onClick={() => setManualMode(v => !v)}
+              className="px-3 py-1 bg-white/5 hover:bg-white/10 text-white/70 text-sm rounded-lg transition-colors"
+            >
+              {manualMode ? 'Usar descoberta' : 'Modo avançado'}
+            </button>
+            <button
+              onClick={closeForm}
               className="px-3 py-1 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg transition-colors"
             >
               Cancelar
             </button>
             <button
-              onClick={handleCreate}
+              onClick={manualMode ? handleCreateManual : handleCreateDiscovered}
               disabled={saving}
               className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
             >

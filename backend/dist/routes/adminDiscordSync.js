@@ -37,6 +37,9 @@ const fetchSchema = zod_1.z.object({
     limit: zod_1.z.coerce.number().int().min(1).max(100).default(50),
     before_message_id: zod_1.z.string().optional(),
 });
+const snowflakeParamSchema = zod_1.z.object({
+    guildId: zod_1.z.string().regex(/^\d{5,30}$/, 'Servidor Discord inválido.'),
+});
 const botTokenSchema = zod_1.z.object({
     token: zod_1.z.string().trim().min(50, 'Token deve ter pelo menos 50 caracteres.').regex(/^\S+$/, 'Token não pode conter espaços.'),
 });
@@ -49,6 +52,19 @@ function sendSettingsError(res, error, fallbackMessage) {
     }
     console.error(fallbackMessage, error);
     return res.status(500).json({ error: 'Erro ao acessar configurações do Discord.' });
+}
+function sendDiscordDiscoveryError(res, error, fallbackMessage) {
+    if (error instanceof settingsCrypto_1.DiscordSettingsSecretUnavailableError) {
+        return res.status(503).json({ error: error.message });
+    }
+    if (error instanceof discord_1.DiscordDiscoveryError) {
+        return res.status(error.statusCode).json({ error: error.message });
+    }
+    if (error instanceof Error && error.message.includes('DISCORD_BOT_TOKEN não configurado')) {
+        return res.status(422).json({ error: 'Configure o token do bot antes de descobrir servidores e canais.' });
+    }
+    console.error(fallbackMessage, error);
+    return res.status(502).json({ error: 'Não foi possível consultar o Discord agora. Tente novamente em instantes.' });
 }
 // ─── Configuracoes ───────────────────────────────────────────────────────────
 // GET /settings
@@ -140,6 +156,35 @@ router.delete('/settings/bot-token', auth_1.authMiddleware, async (req, res) => 
     }
     catch (error) {
         return sendSettingsError(res, error, '[DELETE /admin/discord-sync/settings/bot-token]');
+    }
+});
+// ─── Descoberta de servidores/canais ─────────────────────────────────────────
+// GET /discovery/guilds
+router.get('/discovery/guilds', auth_1.authMiddleware, async (req, res) => {
+    if (!isAdmin(req, res))
+        return;
+    try {
+        const guilds = await (0, discord_1.discoverDiscordGuilds)();
+        return res.json({ data: guilds });
+    }
+    catch (error) {
+        return sendDiscordDiscoveryError(res, error, '[GET /admin/discord-sync/discovery/guilds]');
+    }
+});
+// GET /discovery/guilds/:guildId/channels
+router.get('/discovery/guilds/:guildId/channels', auth_1.authMiddleware, async (req, res) => {
+    if (!isAdmin(req, res))
+        return;
+    const parsed = snowflakeParamSchema.safeParse(req.params);
+    if (!parsed.success) {
+        return res.status(400).json({ error: 'Servidor Discord inválido.', details: parsed.error.flatten() });
+    }
+    try {
+        const channels = await (0, discord_1.discoverDiscordChannels)(parsed.data.guildId);
+        return res.json({ data: channels });
+    }
+    catch (error) {
+        return sendDiscordDiscoveryError(res, error, '[GET /admin/discord-sync/discovery/guilds/:guildId/channels]');
     }
 });
 // ─── Fontes (canais autorizados) ─────────────────────────────────────────────

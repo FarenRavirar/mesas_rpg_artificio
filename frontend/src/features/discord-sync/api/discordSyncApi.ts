@@ -1,5 +1,7 @@
 import type {
   DiscordSource,
+  DiscordDiscoveredGuild,
+  DiscordDiscoveredChannel,
   DiscordMessage,
   DiscordDraft,
   DiscordSettings,
@@ -36,6 +38,23 @@ const discordSettingsSchema = z.object({
   bot_token: discordBotTokenSettingsSchema,
 });
 
+const discordDiscoveredGuildSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  icon: z.string().nullable(),
+  approximate_member_count: z.number().nullable(),
+});
+
+const discordDiscoveredChannelSchema = z.object({
+  id: z.string(),
+  guild_id: z.string(),
+  name: z.string(),
+  type: z.number(),
+  position: z.number().nullable(),
+  parent_id: z.string().nullable(),
+  parent_name: z.string().nullable(),
+});
+
 function parseDiscordSettings(value: unknown): DiscordSettings {
   const parsed = discordSettingsSchema.safeParse(value);
   if (!parsed.success) {
@@ -52,6 +71,16 @@ function parseDiscordBotTokenSettings(value: unknown): DiscordBotTokenSettings {
   return parsed.data;
 }
 
+function parseDiscordDiscoveredGuilds(value: unknown): DiscordDiscoveredGuild[] {
+  const parsed = z.array(discordDiscoveredGuildSchema).safeParse(value);
+  return parsed.success ? parsed.data : [];
+}
+
+function parseDiscordDiscoveredChannels(value: unknown): DiscordDiscoveredChannel[] {
+  const parsed = z.array(discordDiscoveredChannelSchema).safeParse(value);
+  return parsed.success ? parsed.data : [];
+}
+
 export const discordSyncApi = {
   getDiscordSettings: async () =>
     parseDiscordSettings(await apiFetch<unknown>('/settings')),
@@ -61,6 +90,12 @@ export const discordSyncApi = {
 
   deleteDiscordBotToken: () =>
     apiFetch<void>('/settings/bot-token', { method: 'DELETE' }),
+
+  discoverGuilds: async () =>
+    parseDiscordDiscoveredGuilds(await apiFetch<unknown>('/discovery/guilds')),
+
+  discoverChannels: async (guildId: string) =>
+    parseDiscordDiscoveredChannels(await apiFetch<unknown>(`/discovery/guilds/${guildId}/channels`)),
 
   getSources: () =>
     apiFetch<DiscordSource[]>('/sources'),

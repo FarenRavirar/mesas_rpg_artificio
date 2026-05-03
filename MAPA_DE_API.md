@@ -182,6 +182,8 @@
 | **GET** | `/admin/discord-sync/settings` | 🔧 Impl. | DiscordSettingsPanel.tsx — status mascarado do token do bot |
 | **PUT** | `/admin/discord-sync/settings/bot-token` | 🔧 Impl. | DiscordSettingsPanel.tsx — salva token cifrado |
 | **DELETE** | `/admin/discord-sync/settings/bot-token` | 🔧 Impl. | DiscordSettingsPanel.tsx — remove token salvo |
+| **GET** | `/admin/discord-sync/discovery/guilds` | 🔧 Impl. | DiscordSourceList.tsx — lista servidores acessíveis ao bot |
+| **GET** | `/admin/discord-sync/discovery/guilds/:guildId/channels` | 🔧 Impl. | DiscordSourceList.tsx — lista canais textuais/announcement do servidor |
 | **GET** | `/admin/discord-sync/sources` | 🔧 Impl. | DiscordSourceList.tsx |
 | **POST** | `/admin/discord-sync/sources` | 🔧 Impl. | DiscordSourceList.tsx |
 | **PATCH** | `/admin/discord-sync/sources/:id` | 🔧 Impl. | DiscordSourceList.tsx |
