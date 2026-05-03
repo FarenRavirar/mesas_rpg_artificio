@@ -25,7 +25,7 @@ export function DiscordDraftPreview({ draft, onUpdate, onClose }: Props) {
     setSyncing(true);
     try {
       const result = await discordSyncApi.syncDraft(draft.id);
-      toast.success(`Mesa ${result.action === 'created' ? 'criada' : 'atualizada'}: ${result.table_id}`);
+      toast.success(`Mesa ${result.created ? 'criada' : 'atualizada'}: ${result.tableId}`);
       const updated = await discordSyncApi.getDraft(draft.id);
       onUpdate(updated);
     } catch (err) {

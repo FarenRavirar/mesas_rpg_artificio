@@ -62,7 +62,7 @@ export const discordSyncApi = {
     apiFetch<DiscordDraft>(`/drafts/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
 
   syncDraft: (id: string) =>
-    apiFetch<{ table_id: string; action: string }>(`/drafts/${id}/sync`, { method: 'POST' }),
+    apiFetch<{ tableId: string; created: boolean }>(`/drafts/${id}/sync`, { method: 'POST' }),
 
   reparseDraft: (id: string) =>
     apiFetch<DiscordDraft>(`/drafts/${id}/reparse`, { method: 'POST' }),
