@@ -16,6 +16,7 @@ export interface IngestResult {
   inserted: number;
   updated: number;
   total: number;
+  newestMessageId: string | null;
 }
 
 type InsertRow = {
@@ -50,6 +51,7 @@ export async function ingestMessages(params: {
   botToken: string;
   limit?: number;
   beforeMessageId?: string;
+  afterMessageId?: string;
   sourceKind?: DiscordImportSourceKind;
 }): Promise<IngestResult> {
   const {
@@ -59,6 +61,7 @@ export async function ingestMessages(params: {
     botToken,
     limit = 50,
     beforeMessageId,
+    afterMessageId,
     sourceKind = 'discord_bot',
   } = params;
 
@@ -68,6 +71,7 @@ export async function ingestMessages(params: {
   const url = new URL(`https://discord.com/api/v10/channels/${channelId}/messages`);
   url.searchParams.set('limit', String(Math.min(limit, 100)));
   if (beforeMessageId) url.searchParams.set('before', beforeMessageId);
+  if (afterMessageId) url.searchParams.set('after', afterMessageId);
 
   const res = await fetch(url.toString(), {
     headers: { Authorization: `Bot ${trimmedToken}` },
@@ -81,15 +85,25 @@ export async function ingestMessages(params: {
 
   const messages = (await res.json()) as DiscordApiMessage[];
 
-  if (messages.length === 0) return { inserted: 0, updated: 0, total: 0 };
+  // Discord retorna mensagens em ordem decrescente de ID (mais recente primeiro)
+  const newestMessageId = messages[0]?.id ?? null;
+
+  if (messages.length === 0) return { inserted: 0, updated: 0, total: 0, newestMessageId: null };
 
   // Computa hashes e URLs de todos os mensagens antes de tocar o banco
   const msgData = messages.map((msg) => {
     const contentRaw = msg.content ?? '';
+    // Hash cobre content + embeds + attachments para detectar edicoes que so alteram midia
+    const contentHash = crypto
+      .createHash('sha256')
+      .update(contentRaw)
+      .update(JSON.stringify(msg.embeds ?? []))
+      .update(JSON.stringify(msg.attachments ?? []))
+      .digest('hex');
     return {
       msg,
       contentRaw,
-      contentHash: crypto.createHash('sha256').update(contentRaw).digest('hex'),
+      contentHash,
       messageUrl: `https://discord.com/channels/${guildId}/${channelId}/${msg.id}`,
     };
   });
@@ -150,5 +164,5 @@ export async function ingestMessages(params: {
       .execute();
   }
 
-  return { inserted: toInsert.length, updated: toUpdate.length, total: messages.length };
+  return { inserted: toInsert.length, updated: toUpdate.length, total: messages.length, newestMessageId };
 }

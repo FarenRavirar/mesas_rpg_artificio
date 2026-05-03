@@ -31,17 +31,23 @@ async function main() {
         channelId: source.channel_id,
         guildId: source.guild_id,
         botToken,
-        beforeMessageId: source.last_message_id ?? undefined,
+        // after= busca mensagens mais recentes que o ultimo cursor salvo
+        afterMessageId: source.last_message_id ?? undefined,
       });
 
       await db
         .updateTable('discord_import_sources')
-        .set({ last_synced_at: new Date(), updated_at: new Date() })
+        .set({
+          last_synced_at: new Date(),
+          updated_at: new Date(),
+          // Avanca o cursor para o ID mais recente desta execucao
+          ...(result.newestMessageId ? { last_message_id: result.newestMessageId } : {}),
+        })
         .where('id', '=', source.id)
         .execute();
 
       console.log(
-        `[syncDiscordChannels] ${source.channel_id}: +${result.inserted} inseridas, ${result.updated} atualizadas`
+        `[syncDiscordChannels] ${source.channel_id}: +${result.inserted} inseridas, ${result.updated} atualizadas, cursor=${result.newestMessageId ?? 'sem novas'}`
       );
     } catch (err: unknown) {
       console.error(
