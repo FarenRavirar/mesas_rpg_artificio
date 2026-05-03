@@ -4,6 +4,7 @@ import type { DiscordSource, DiscordMessage, DiscordImportMessageStatus } from '
 import { discordSyncApi } from '../api/discordSyncApi';
 import { DiscordSourceList } from './DiscordSourceList';
 import { DiscordDraftReviewTable } from './DiscordDraftReviewTable';
+import { DiscordSettingsPanel } from './DiscordSettingsPanel';
 
 const MESSAGE_STATUS_LABELS: Record<DiscordImportMessageStatus, string> = {
   pending: 'Pendente',
@@ -23,10 +24,10 @@ const MESSAGE_STATUS_COLORS: Record<DiscordImportMessageStatus, string> = {
   error: 'bg-red-700/40 text-red-300',
 };
 
-type PanelTab = 'fontes' | 'mensagens' | 'drafts';
+type PanelTab = 'configuracao' | 'fontes' | 'mensagens' | 'drafts';
 
 export function DiscordSyncPanel() {
-  const [tab, setTab] = useState<PanelTab>('fontes');
+  const [tab, setTab] = useState<PanelTab>('configuracao');
   const [sources, setSources] = useState<DiscordSource[]>([]);
   const [messages, setMessages] = useState<DiscordMessage[]>([]);
   const [loadingSources, setLoadingSources] = useState(false);
@@ -97,10 +98,15 @@ export function DiscordSyncPanel() {
       </div>
 
       <div className="flex gap-2 mb-6">
+        <button className={tabClass('configuracao')} onClick={() => setTab('configuracao')}>Configuração</button>
         <button className={tabClass('fontes')} onClick={() => setTab('fontes')}>Fontes</button>
         <button className={tabClass('mensagens')} onClick={() => setTab('mensagens')}>Mensagens</button>
         <button className={tabClass('drafts')} onClick={() => setTab('drafts')}>Drafts</button>
       </div>
+
+      {tab === 'configuracao' && (
+        <DiscordSettingsPanel />
+      )}
 
       {tab === 'fontes' && (
         <div>

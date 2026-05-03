@@ -1,7 +1,7 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-05-03T18:00:00-03:00
-**Atualizado por:** sessão 26-05-03_3_discord-covil-sync
+**Última atualização:** 2026-05-03T16:36:45-03:00
+**Atualizado por:** sessão 26-05-03_4_discord-settings-config
 ---
 
 ## Ambientes
@@ -15,8 +15,8 @@
 
 ## Estado Técnico Atual
 
-**Branch ativa:** `dev` — limpa, zero uncommitted changes
-**Último commit:** `0d10601` — atualização da documentação de sessões e outros
+**Branch ativa:** `feat/013-discord-settings-config` — PR draft #142 aberto para `dev`
+**Último commit base:** `0d10601` — atualização da documentação de sessões e outros
 
 **Feature ativa:** `specs/013-discord-settings-config/`
 **Sessão encerrada:** `sessoes/26-05-03_3_discord-covil-sync.md`
@@ -31,12 +31,12 @@
 - **Status:** mergeado e deployado em Beta. Bloqueado para teste por falta de `DISCORD_BOT_TOKEN` no Beta.
 
 **Feature 013 — Discord Settings Config:**
-- Spec criada: `specs/013-discord-settings-config/spec.md`.
-- Tabela `discord_settings` com `guild_id` (NULL=global) + `key` + `value` (AES-256-GCM).
-- API: GET retorna apenas `{ is_set, preview }`; PUT salva token criptografado; DELETE remove.
-- Frontend: `DiscordSettingsPanel` como primeira aba em `DiscordSyncPanel`.
-- Fallback: DB → `process.env.DISCORD_BOT_TOKEN`.
-- **Status:** spec criada; aguarda `/speckit.plan` + implementação.
+- Spec, plan, research, data-model, contracts, quickstart, tasks e pr-description criados.
+- Migration 116 criada: `discord_settings` com `guild_id` (NULL=global), `key`, `value` cifrado, constraint por guild e índice único parcial para registro global.
+- Backend implementado: AES-256-GCM via `node:crypto`, chave derivada de `JWT_SECRET`, rotas GET/PUT/DELETE de settings e fallback DB → `process.env.DISCORD_BOT_TOKEN` na ingestão.
+- Frontend implementado: `DiscordSettingsPanel` como primeira aba em `DiscordSyncPanel`, salvar token, status mascarado e remoção com confirmação inline.
+- Validação técnica: `npm --prefix backend run build` GREEN; `npm --prefix frontend run build` GREEN.
+- **Status:** PR draft #142 aberto para `dev`; aguarda checks/review e deploy Beta após merge.
 
 **Feature 010 — Refatoração do Changelog (03/05/2026):**
 - Sessão nova aberta a pedido explícito do mantenedor, sem branch dedicada; trabalho direto em `dev`.
@@ -207,9 +207,10 @@
 ## Próxima Ação
 
 **Feature 013 — Discord Settings Config:**
-1. ✅ **Spec criada:** `specs/013-discord-settings-config/spec.md` com tabela `discord_settings` e API de token criptografado.
-2. **Próximo passo:** `/speckit.plan` → `/speckit.tasks` → implementação.
-3. **Critério de desbloqueio:** Feature 013 configura `DISCORD_BOT_TOKEN` via frontend, desbloqueando teste funcional do painel Discord Sync no Beta.
+1. ✅ **Spec/plan/tasks/implement concluídos:** `specs/013-discord-settings-config/` com implementação backend/frontend local.
+2. ✅ **Validação técnica:** builds backend e frontend verdes.
+3. **Próximo passo:** acompanhar checks do PR #142 e revisar feedback.
+4. **Critério de desbloqueio:** após merge/deploy em Beta, admin salva token via frontend e desbloqueia teste funcional do painel Discord Sync.
 
 **Feature 012 — Pipeline Discord Covil Sync:**
 1. ✅ **Mergeado e deployado:** PR #141 em `dev`; Beta com migration_115 aplicada.

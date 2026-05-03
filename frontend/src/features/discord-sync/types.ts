@@ -60,3 +60,13 @@ export interface SyncReadyResult {
   failed: number;
   errors: string[];
 }
+
+export interface DiscordBotTokenSettings {
+  is_set: boolean;
+  preview: string | null;
+  updated_at: string | null;
+}
+
+export interface DiscordSettings {
+  bot_token: DiscordBotTokenSettings;
+}

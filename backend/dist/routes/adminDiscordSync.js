@@ -5,6 +5,7 @@ const zod_1 = require("zod");
 const db_1 = require("../db");
 const auth_1 = require("../middleware/auth");
 const discord_1 = require("../discord");
+const settingsCrypto_1 = require("../discord/settingsCrypto");
 const router = (0, express_1.Router)();
 function isAdmin(req, res) {
     if (req.user?.role !== 'admin') {
@@ -35,6 +36,111 @@ const fetchSchema = zod_1.z.object({
     source_id: zod_1.z.string().uuid(),
     limit: zod_1.z.coerce.number().int().min(1).max(100).default(50),
     before_message_id: zod_1.z.string().optional(),
+});
+const botTokenSchema = zod_1.z.object({
+    token: zod_1.z.string().trim().min(50, 'Token deve ter pelo menos 50 caracteres.').regex(/^\S+$/, 'Token não pode conter espaços.'),
+});
+function maskToken(token) {
+    return `${token.slice(0, 4)}...${token.slice(-4)}`;
+}
+function sendSettingsError(res, error, fallbackMessage) {
+    if (error instanceof settingsCrypto_1.DiscordSettingsSecretUnavailableError) {
+        return res.status(503).json({ error: error.message });
+    }
+    console.error(fallbackMessage, error);
+    return res.status(500).json({ error: 'Erro ao acessar configurações do Discord.' });
+}
+// ─── Configuracoes ───────────────────────────────────────────────────────────
+// GET /settings
+router.get('/settings', auth_1.authMiddleware, async (req, res) => {
+    if (!isAdmin(req, res))
+        return;
+    try {
+        const setting = await db_1.db
+            .selectFrom('discord_settings')
+            .select(['value', 'updated_at'])
+            .where('guild_id', 'is', null)
+            .where('key', '=', 'bot_token')
+            .executeTakeFirst();
+        if (!setting) {
+            return res.json({ data: { bot_token: { is_set: false, preview: null, updated_at: null } } });
+        }
+        const token = (0, settingsCrypto_1.decryptDiscordSetting)(setting.value);
+        return res.json({
+            data: {
+                bot_token: {
+                    is_set: true,
+                    preview: maskToken(token),
+                    updated_at: setting.updated_at,
+                },
+            },
+        });
+    }
+    catch (error) {
+        return sendSettingsError(res, error, '[GET /admin/discord-sync/settings]');
+    }
+});
+// PUT /settings/bot-token
+router.put('/settings/bot-token', auth_1.authMiddleware, async (req, res) => {
+    if (!isAdmin(req, res))
+        return;
+    const parsed = botTokenSchema.safeParse(req.body);
+    if (!parsed.success) {
+        return res.status(400).json({ error: 'Token inválido.', details: parsed.error.flatten() });
+    }
+    try {
+        const encryptedValue = (0, settingsCrypto_1.encryptDiscordSetting)(parsed.data.token);
+        const existing = await db_1.db
+            .selectFrom('discord_settings')
+            .select('id')
+            .where('guild_id', 'is', null)
+            .where('key', '=', 'bot_token')
+            .executeTakeFirst();
+        const now = new Date();
+        const setting = existing
+            ? await db_1.db
+                .updateTable('discord_settings')
+                .set({ value: encryptedValue, updated_at: now })
+                .where('id', '=', existing.id)
+                .returning(['updated_at'])
+                .executeTakeFirstOrThrow()
+            : await db_1.db
+                .insertInto('discord_settings')
+                .values({
+                guild_id: null,
+                key: 'bot_token',
+                value: encryptedValue,
+                updated_at: now,
+            })
+                .returning(['updated_at'])
+                .executeTakeFirstOrThrow();
+        return res.json({
+            data: {
+                is_set: true,
+                preview: maskToken(parsed.data.token),
+                updated_at: setting.updated_at,
+            },
+        });
+    }
+    catch (error) {
+        return sendSettingsError(res, error, '[PUT /admin/discord-sync/settings/bot-token]');
+    }
+});
+// DELETE /settings/bot-token
+router.delete('/settings/bot-token', auth_1.authMiddleware, async (req, res) => {
+    if (!isAdmin(req, res))
+        return;
+    try {
+        await db_1.db
+            .deleteFrom('discord_settings')
+            .where('guild_id', 'is', null)
+            .where('key', '=', 'bot_token')
+            .execute();
+        return res.status(204).send();
+    }
+    catch (error) {
+        return sendSettingsError(res, error, '[DELETE /admin/discord-sync/settings/bot-token]');
+    }
 });
 // ─── Fontes (canais autorizados) ─────────────────────────────────────────────
 // GET /sources
@@ -141,10 +247,6 @@ router.post('/fetch', auth_1.authMiddleware, async (req, res) => {
     if (!parsed.success) {
         return res.status(400).json({ error: 'Dados inválidos.', details: parsed.error.flatten() });
     }
-    const botToken = process.env.DISCORD_BOT_TOKEN;
-    if (!botToken) {
-        return res.status(422).json({ error: 'DISCORD_BOT_TOKEN não configurado.' });
-    }
     const { source_id, limit, before_message_id } = parsed.data;
     try {
         const source = await db_1.db
@@ -160,7 +262,6 @@ router.post('/fetch', auth_1.authMiddleware, async (req, res) => {
             sourceId: source_id,
             channelId: source.channel_id,
             guildId: source.guild_id,
-            botToken,
             limit,
             beforeMessageId: before_message_id,
         });
@@ -175,6 +276,12 @@ router.post('/fetch', auth_1.authMiddleware, async (req, res) => {
         return res.json({ data: result });
     }
     catch (error) {
+        if (error instanceof settingsCrypto_1.DiscordSettingsSecretUnavailableError) {
+            return res.status(503).json({ error: error.message });
+        }
+        if (error instanceof Error && error.message.includes('DISCORD_BOT_TOKEN não configurado')) {
+            return res.status(422).json({ error: error.message });
+        }
         console.error('[POST /admin/discord-sync/fetch]', error);
         return res.status(500).json({ error: 'Erro ao buscar mensagens.' });
     }

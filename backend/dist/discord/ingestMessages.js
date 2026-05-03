@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ingestMessages = ingestMessages;
 const node_crypto_1 = __importDefault(require("node:crypto"));
 const db_1 = require("../db");
+const config_1 = require("./config");
 /**
  * Busca mensagens de um canal via REST API Discord e salva em discord_import_messages.
  * Idempotente: mensagens existentes so sao atualizadas se o content_hash mudou.
@@ -13,7 +14,8 @@ const db_1 = require("../db");
  */
 async function ingestMessages(params) {
     const { sourceId, channelId, guildId, botToken, limit = 50, beforeMessageId, afterMessageId, sourceKind = 'discord_bot', } = params;
-    const trimmedToken = botToken.trim();
+    const resolvedToken = botToken ?? await (0, config_1.requireDiscordBotToken)();
+    const trimmedToken = resolvedToken.trim();
     if (!trimmedToken)
         throw new Error('DISCORD_BOT_TOKEN não pode ser vazio.');
     const url = new URL(`https://discord.com/api/v10/channels/${channelId}/messages`);

@@ -233,7 +233,7 @@ Posso prosseguir?
 | Abrir PR para dev | Automático |
 | `git push origin dev` | Exige autorização explícita |
 | `git push origin main` | Exige autorização explícita |
-| Merge de PR | Exclusivo do responsável — nunca pelo agente |
+| Merge de PR | Exclusivo do responsável por padrão; caso o mantenedor autorize explicitamente, o agente pode executar o merge |
 
 ### Proibição absoluta — checkout entre branches
 
@@ -474,5 +474,5 @@ Próximos Passos  — próximos passos objetivos e imediatos
 Toda comunicação em **português**. Nomes de arquivos, comandos, funções e identificadores de código permanecem no formato original.
 
 <!-- SPECKIT START -->
-Current active plan: `specs/012-discord-covil-sync/plan.md`.
+Current active plan: `specs/013-discord-settings-config/plan.md`.
 <!-- SPECKIT END -->

@@ -179,6 +179,9 @@
 
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
 |---|---|---|---|
+| **GET** | `/admin/discord-sync/settings` | 🔧 Impl. | DiscordSettingsPanel.tsx — status mascarado do token do bot |
+| **PUT** | `/admin/discord-sync/settings/bot-token` | 🔧 Impl. | DiscordSettingsPanel.tsx — salva token cifrado |
+| **DELETE** | `/admin/discord-sync/settings/bot-token` | 🔧 Impl. | DiscordSettingsPanel.tsx — remove token salvo |
 | **GET** | `/admin/discord-sync/sources` | 🔧 Impl. | DiscordSourceList.tsx |
 | **POST** | `/admin/discord-sync/sources` | 🔧 Impl. | DiscordSourceList.tsx |
 | **PATCH** | `/admin/discord-sync/sources/:id` | 🔧 Impl. | DiscordSourceList.tsx |
@@ -417,4 +420,3 @@
 5. Retorna HTML completo com meta tags personalizadas
 
 **Referência:** Ver `.specify/arquiteture.md` §17 para detalhes completos da implementação.
-

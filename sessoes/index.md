@@ -252,12 +252,13 @@
 | 1 | `encerradas/26-05-03_1_verificacao-sugestoes-sistemas-admin.md` |
 | 2 | `encerradas/26-05-03_2_refatoracao-changelog.md` |
 | 3 | `encerradas/26-05-03_3_discord-covil-sync.md` |
+| 4 | `26-05-03_4_discord-settings-config.md` |
 
 ---
 
 ## Sessão Mais Recente
 
-`encerradas/26-05-03_3_discord-covil-sync.md`
+`26-05-03_4_discord-settings-config.md`
 
 ---
 

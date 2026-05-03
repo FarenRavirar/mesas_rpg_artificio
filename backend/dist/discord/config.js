@@ -1,6 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.discordConfig = void 0;
+exports.getDiscordBotToken = getDiscordBotToken;
+exports.requireDiscordBotToken = requireDiscordBotToken;
+const db_1 = require("../db");
+const settingsCrypto_1 = require("./settingsCrypto");
 /**
  * Configurações do módulo Discord.
  * Todas as vars são lidas sob demanda (lazy) — ausência não bloqueia boot da API.
@@ -38,3 +42,22 @@ exports.discordConfig = {
         return token;
     },
 };
+async function getDiscordBotToken() {
+    const setting = await db_1.db
+        .selectFrom('discord_settings')
+        .select('value')
+        .where('guild_id', 'is', null)
+        .where('key', '=', 'bot_token')
+        .executeTakeFirst();
+    if (setting) {
+        return (0, settingsCrypto_1.decryptDiscordSetting)(setting.value);
+    }
+    return exports.discordConfig.botToken;
+}
+async function requireDiscordBotToken() {
+    const token = await getDiscordBotToken();
+    if (!token?.trim()) {
+        throw new Error('DISCORD_BOT_TOKEN não configurado.');
+    }
+    return token;
+}
