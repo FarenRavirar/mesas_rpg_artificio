@@ -29,6 +29,7 @@ const communicationPlatforms_1 = __importDefault(require("./routes/communication
 const changelog_1 = __importDefault(require("./routes/changelog"));
 const adminTables_1 = __importDefault(require("./routes/adminTables"));
 const adminHydration_1 = __importDefault(require("./routes/adminHydration"));
+const adminDiscordSync_1 = __importDefault(require("./routes/adminDiscordSync"));
 const activityLog_1 = __importDefault(require("./routes/activityLog"));
 const upload_1 = __importDefault(require("./routes/upload"));
 const og_1 = __importDefault(require("./routes/og"));
@@ -108,6 +109,7 @@ app.use('/api/v1/scenario-suggestions', scenarioSuggestions_1.default);
 app.use('/api/v1/notifications', notifications_1.default);
 app.use('/api/v1/admin', adminTables_1.default);
 app.use('/api/v1/admin', adminHydration_1.default);
+app.use('/api/v1/admin/discord-sync', adminDiscordSync_1.default);
 app.use('/api/v1/admin', systemSuggestionsAdmin_1.default);
 app.use('/api/v1/admin', scenarioSuggestionsAdmin_1.default);
 app.use('/api/v1/admin', activityLog_1.default);

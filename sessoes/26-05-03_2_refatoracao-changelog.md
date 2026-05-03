@@ -86,3 +86,7 @@
 - Changelog sem duplicidade de data publicada e sem termos proibidos.
 - `database/changelogs.json` permanece JSON valido.
 - Documentacao relacionada atualizada com evidencia da execucao.
+
+- 2026-05-03: Mantenedor autorizou realizar a ação pendente após confirmação de que a branch atual é `dev`; próximo passo técnico é verificar status e executar `git push origin dev` se houver commits locais a publicar.
+
+- 2026-05-03: Mantenedor pediu nova verificação entre worktree `.claude/worktrees/stoic-sinoussi-cda86c` e branch `dev`; plano imediato é comparar branch/status/commits antes de qualquer merge.
