@@ -57,21 +57,47 @@ router.post('/', async (req, res) => {
         if (pendingCount && Number(pendingCount.count) >= 5) {
             return res.status(400).json({ error: 'Você já possui 5 sugestões pendentes. Aguarde a revisão.' });
         }
-        const newSuggestion = await db_1.db
-            .insertInto('system_suggestions')
-            .values({
-            user_id: userId,
-            name: name.trim(),
-            name_pt: typeof name_pt === 'string' && name_pt.trim().length > 0 ? name_pt.trim() : null,
-            description: description?.trim() || null,
-            parent_id: parent_id?.trim() || null,
-            node_type: suggestion_type,
-            status: 'pending',
-        })
-            .returningAll()
-            .executeTakeFirst();
+        const userName = await resolveActorName(userId);
+        const admins = await db_1.db
+            .selectFrom('users')
+            .select('id')
+            .where('role', '=', 'admin')
+            .execute();
+        const newSuggestion = await db_1.db.transaction().execute(async (trx) => {
+            const created = await trx
+                .insertInto('system_suggestions')
+                .values({
+                user_id: userId,
+                name: name.trim(),
+                name_pt: typeof name_pt === 'string' && name_pt.trim().length > 0 ? name_pt.trim() : null,
+                description: description?.trim() || null,
+                parent_id: parent_id?.trim() || null,
+                node_type: suggestion_type,
+                status: 'pending',
+            })
+                .returningAll()
+                .executeTakeFirstOrThrow();
+            if (admins.length > 0) {
+                await trx
+                    .insertInto('notifications')
+                    .values(admins.map((admin) => ({
+                    user_id: admin.id,
+                    type: 'system',
+                    title: 'Nova sugestão de sistema',
+                    message: `${userName} sugeriu "${created.name}" para o catálogo.`,
+                    action_url: '/gestao',
+                    metadata: JSON.stringify({
+                        suggestion_id: created.id,
+                        suggestion_kind: 'system',
+                        node_type: created.node_type,
+                        parent_id: created.parent_id,
+                    }),
+                })))
+                    .execute();
+            }
+            return created;
+        });
         if (newSuggestion) {
-            const userName = await resolveActorName(userId);
             void (0, activityLogger_1.logActivity)({
                 actorId: userId,
                 actorRole: req.user?.role,

@@ -5,7 +5,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
-const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const auth_1 = __importDefault(require("./routes/auth"));
 const tables_1 = __importDefault(require("./routes/tables"));
@@ -29,12 +28,16 @@ const vttPlatforms_1 = __importDefault(require("./routes/vttPlatforms"));
 const communicationPlatforms_1 = __importDefault(require("./routes/communicationPlatforms"));
 const changelog_1 = __importDefault(require("./routes/changelog"));
 const adminTables_1 = __importDefault(require("./routes/adminTables"));
+const adminHydration_1 = __importDefault(require("./routes/adminHydration"));
 const activityLog_1 = __importDefault(require("./routes/activityLog"));
 const upload_1 = __importDefault(require("./routes/upload"));
 const og_1 = __importDefault(require("./routes/og"));
 require("express-async-errors");
 const db_1 = require("./db");
 const requestLogger_1 = require("./middleware/requestLogger");
+const csrfProtection_1 = require("./middleware/csrfProtection");
+const parseCookies_1 = require("./middleware/parseCookies");
+const rateLimit_1 = require("./middleware/rateLimit");
 dotenv_1.default.config();
 const requiredEnv = ['FRONTEND_URL', 'JWT_SECRET', 'DATABASE_URL'];
 for (const envName of requiredEnv) {
@@ -66,8 +69,10 @@ app.use((0, cors_1.default)({
     },
     credentials: true,
 }));
-app.use((0, cookie_parser_1.default)());
+app.use(parseCookies_1.parseCookies);
 app.use(express_1.default.json({ limit: '10mb' }));
+app.use(rateLimit_1.globalRateLimiter);
+app.use((0, csrfProtection_1.csrfProtection)(allowedFrontendOrigins));
 // Middleware de logging de todas as requisições
 app.use(requestLogger_1.requestLogger);
 app.get('/api/v1/health', async (req, res) => {
@@ -102,6 +107,7 @@ app.use('/api/v1/system-suggestions', systemSuggestions_1.default);
 app.use('/api/v1/scenario-suggestions', scenarioSuggestions_1.default);
 app.use('/api/v1/notifications', notifications_1.default);
 app.use('/api/v1/admin', adminTables_1.default);
+app.use('/api/v1/admin', adminHydration_1.default);
 app.use('/api/v1/admin', systemSuggestionsAdmin_1.default);
 app.use('/api/v1/admin', scenarioSuggestionsAdmin_1.default);
 app.use('/api/v1/admin', activityLog_1.default);

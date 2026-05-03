@@ -1,6 +1,6 @@
 # Implementation Plan: Refatoração do Changelog
 
-**Branch**: `010-refatoracao-changelog` | **Date**: 2026-04-29 | **Spec**: [spec.md](./spec.md)
+**Branch**: `dev` (sem branch dedicada, por autorizacao explicita do mantenedor) | **Date**: 2026-04-29 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/010-refatoracao-changelog/spec.md`
 
 **Note**: Este plano foi gerado como procedimento de IA `/speckit.plan`; nenhum comando shell Spec-Kit foi executado.

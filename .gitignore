@@ -46,8 +46,8 @@ docs/Reformulacao_mestre_v-final.md
 prompt_claude.md
 /testes
 bats_full_output.txt
-specify_help.txt
-/sessoes
+specify_help.txts
 /.specify/extensions/verify-tasks
 /.specify/features
 /.specify/extensions/.cache
+/.claude

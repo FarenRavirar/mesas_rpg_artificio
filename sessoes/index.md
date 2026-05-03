@@ -241,21 +241,22 @@
 
 | # | Arquivo |
 |---|---|
-| 1 | `26-05-01_1_editor-rico-textareas.md` |
+| 1 | `encerradas/26-05-01_1_editor-rico-textareas.md` |
 
 ---
 
-## 03/05/2026 (1 sessão)
+## 03/05/2026 (2 sessões)
 
 | # | Arquivo |
 |---|---|
-| 1 | `26-05-03_1_verificacao-sugestoes-sistemas-admin.md` |
+| 1 | `encerradas/26-05-03_1_verificacao-sugestoes-sistemas-admin.md` |
+| 2 | `26-05-03_2_refatoracao-changelog.md` |
 
 ---
 
 ## Sessão Mais Recente
 
-`26-05-03_1_verificacao-sugestoes-sistemas-admin.md`
+`26-05-03_2_refatoracao-changelog.md`
 
 ---
 
@@ -271,4 +272,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-05-03_2_*`
+**Próxima sessão:** `26-05-03_3_*`

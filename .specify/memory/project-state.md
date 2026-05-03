@@ -1,7 +1,7 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-05-03T07:39:56-03:00
-**Atualizado por:** sessão 26-05-03_1_verificacao-sugestoes-sistemas-admin
+**Última atualização:** 2026-05-03T07:58:53-03:00
+**Atualizado por:** sessão 26-05-03_2_refatoracao-changelog
 ---
 
 ## Ambientes
@@ -16,10 +16,21 @@
 ## Estado Técnico Atual
 
 **Branch ativa:** `dev`
-**Último commit base:** `126e120` — feat: consolidar ajustes do editor rico e governanca SDD
+**Último commit base:** `faf1921` — feat: notificar admins sobre sugestoes
 
-**Feature ativa:** `specs/011-verificacao-sugestoes-sistemas-admin/`
-**Sessão ativa:** `sessoes/26-05-03_1_verificacao-sugestoes-sistemas-admin.md`
+**Feature ativa:** `specs/010-refatoracao-changelog/`
+**Sessão ativa:** `sessoes/26-05-03_2_refatoracao-changelog.md`
+
+**Feature 010 — Refatoração do Changelog (03/05/2026):**
+- Sessão nova aberta a pedido explícito do mantenedor, sem branch dedicada; trabalho direto em `dev`.
+- Sessões `26-05-03_1_verificacao-sugestoes-sistemas-admin.md` e `26-05-01_1_editor-rico-textareas.md` encerradas e movidas para `sessoes/encerradas/`.
+- `.specify/feature.json` e `AGENTS.md` atualizados para apontar `specs/010-refatoracao-changelog`.
+- Spec tratado como hipótese: inventário real de `database/changelogs.json` encontrou 11 entradas totais/publicadas e zero datas duplicadas.
+- `specs/010-refatoracao-changelog/changelog-inventory.md` criado com decisões por entrada, grupos por data e evidências.
+- `database/changelogs.json` revisado editorialmente em 4 entradas (03/05, 29/04, 18/04 e 08/04), sem remover ou despublicar histórico.
+- `tasks.md` atualizado: referências de sessão antiga corrigidas e T001-T021 concluídas.
+- Validação: JSON válido; busca final sem `sidebar vertical`, `migration`, `refactor`, `placeholder`, `performance`, `otimizados`, `Q1`, `Q4`, `administrativa`, `arvore administrativa`, `admin`; zero datas publicadas duplicadas.
+- **Status:** Spec 010 executado localmente; pronto para revisão/commit quando solicitado.
 
 **Feature 011 — Verificação de Sugestões e Notificações Admin (03/05/2026):**
 - Sessão nova aberta a pedido explícito do mantenedor, sem branch dedicada; trabalho direto em `dev`.
