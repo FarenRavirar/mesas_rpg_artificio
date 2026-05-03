@@ -1,7 +1,7 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-05-03T07:58:53-03:00
-**Atualizado por:** sessão 26-05-03_2_refatoracao-changelog
+**Última atualização:** 2026-05-03T18:00:00-03:00
+**Atualizado por:** sessão 26-05-03_3_discord-covil-sync
 ---
 
 ## Ambientes
@@ -15,19 +15,28 @@
 
 ## Estado Técnico Atual
 
-**Branch ativa:** `dev` (branch `feat/012-discord-covil-sync` a criar ao iniciar implementacao)
-**Último commit base:** `3df0fff` — fix: ajusta importacao segura de url
+**Branch ativa:** `dev` — limpa, zero uncommitted changes
+**Último commit:** `0d10601` — atualização da documentação de sessões e outros
 
-**Feature ativa:** `specs/012-discord-covil-sync/`
-**Sessão ativa:** `sessoes/26-05-03_3_discord-covil-sync.md`
+**Feature ativa:** `specs/013-discord-settings-config/`
+**Sessão encerrada:** `sessoes/26-05-03_3_discord-covil-sync.md`
 
 **Feature 012 — Pipeline Discord Covil Sync (03/05/2026):**
-- Sessao nova aberta a pedido explícito do mantenedor.
-- Decisao de arquitetura aprovada: pipeline de 3 camadas (ingestao → staging → sync para `tables`).
-- `origin = 'imported'`, `is_covil = true`; sem criar novo valor de enum neste ciclo.
-- Migration 115 planejada: 3 novas tabelas (`discord_import_sources`, `discord_import_messages`, `discord_import_table_drafts`).
-- 29 tasks criadas em 7 fases (Fases 0–6 implementaveis; Fase 7 bot/automacao posterior).
-- **Status:** artefatos SDD criados; aguardando comando do mantenedor para iniciar implementacao.
+- T001–T017 implementados e mergeados via PR #141.
+- Migration 115 aplicada em Beta: `discord_import_sources`, `discord_import_messages`, `discord_import_table_drafts`.
+- Painel "Discord Sync" disponível em `/gestao` (admin only).
+- Correções pós-revisão: N+1 queries, hash incompleto, cursor não persistido, SQL injection em filtros, URL sanitization, deduplicação de contatos, tipo de retorno frontend.
+- `backend/dist/` rastreado pelo git; `/.claire` adicionado ao `.gitignore`.
+- Branches limpas: apenas `dev` e `main` locais e remotas.
+- **Status:** mergeado e deployado em Beta. Bloqueado para teste por falta de `DISCORD_BOT_TOKEN` no Beta.
+
+**Feature 013 — Discord Settings Config:**
+- Spec criada: `specs/013-discord-settings-config/spec.md`.
+- Tabela `discord_settings` com `guild_id` (NULL=global) + `key` + `value` (AES-256-GCM).
+- API: GET retorna apenas `{ is_set, preview }`; PUT salva token criptografado; DELETE remove.
+- Frontend: `DiscordSettingsPanel` como primeira aba em `DiscordSyncPanel`.
+- Fallback: DB → `process.env.DISCORD_BOT_TOKEN`.
+- **Status:** spec criada; aguarda `/speckit.plan` + implementação.
 
 **Feature 010 — Refatoração do Changelog (03/05/2026):**
 - Sessão nova aberta a pedido explícito do mantenedor, sem branch dedicada; trabalho direto em `dev`.
@@ -154,8 +163,8 @@
 
 ## Migrations
 
-**Total em disco:** 46 migrations (`database/migration_*.sql`)  
-**Status de drift:** Zerado em beta e produção (46 migrations aplicadas)
+**Total em disco:** 47 migrations (`database/migration_*.sql`)  
+**Status de drift:** Beta: 47 aplicadas (migration_115 via feature 012). Produção: 46 aplicadas (migration_115 pendente).
 
 **Migrations especiais:**
 - `migration_105` — reclassificada para `manual-risk` (contém `DROP CONSTRAINT`)
@@ -196,6 +205,19 @@
 ---
 
 ## Próxima Ação
+
+**Feature 013 — Discord Settings Config:**
+1. ✅ **Spec criada:** `specs/013-discord-settings-config/spec.md` com tabela `discord_settings` e API de token criptografado.
+2. **Próximo passo:** `/speckit.plan` → `/speckit.tasks` → implementação.
+3. **Critério de desbloqueio:** Feature 013 configura `DISCORD_BOT_TOKEN` via frontend, desbloqueando teste funcional do painel Discord Sync no Beta.
+
+**Feature 012 — Pipeline Discord Covil Sync:**
+1. ✅ **Mergeado e deployado:** PR #141 em `dev`; Beta com migration_115 aplicada.
+2. ✅ **Painel disponível:** `/gestao` → aba "Discord Sync" (admin only).
+3. **Bloqueador:** `DISCORD_BOT_TOKEN` não configurado no Beta. Feature 013 resolve.
+4. **Parser pendente (T018–T021):** `parseDiscordAnnouncement.ts` + `normalizeDiscordTableDraft.ts` aguardam fixtures reais de anúncios do Covil do Lich.
+
+---
 
 **Feature 008 — Catálogo e Painel UX Bugs:**
 1. ✅ **Sessão aberta:** `sessoes/26-04-29_4_catalogo-painel-ux-bugs.md` criada para retomar a feature 008.

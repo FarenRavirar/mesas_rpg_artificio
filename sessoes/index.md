@@ -1,6 +1,6 @@
 # Índice de Sessões
 
-Última atualização: 03/05/2026 BRT
+Última atualização: 03/05/2026 18:00 BRT
 
 ---
 
@@ -250,14 +250,14 @@
 | # | Arquivo |
 |---|---|
 | 1 | `encerradas/26-05-03_1_verificacao-sugestoes-sistemas-admin.md` |
-| 2 | `26-05-03_2_refatoracao-changelog.md` |
-| 3 | `26-05-03_3_discord-covil-sync.md` |
+| 2 | `encerradas/26-05-03_2_refatoracao-changelog.md` |
+| 3 | `encerradas/26-05-03_3_discord-covil-sync.md` |
 
 ---
 
 ## Sessão Mais Recente
 
-`26-05-03_3_discord-covil-sync.md`
+`encerradas/26-05-03_3_discord-covil-sync.md`
 
 ---
 
@@ -273,4 +273,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-05-03_3_*`
+**Próxima sessão:** `26-05-03_4_*` ou nova data
