@@ -1,0 +1,154 @@
+import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
+import type { DiscordDraft, DiscordImportDraftStatus } from '../types';
+import { discordSyncApi } from '../api/discordSyncApi';
+import { DiscordDraftPreview } from './DiscordDraftPreview';
+
+const DRAFT_STATUS_LABELS: Record<DiscordImportDraftStatus, string> = {
+  draft: 'Rascunho',
+  ready: 'Pronto',
+  needs_review: 'Revisar',
+  synced: 'Sincronizado',
+  rejected: 'Rejeitado',
+};
+
+const DRAFT_STATUS_COLORS: Record<DiscordImportDraftStatus, string> = {
+  draft: 'bg-white/10 text-white/50',
+  ready: 'bg-green-700/40 text-green-300',
+  needs_review: 'bg-orange-700/40 text-orange-300',
+  synced: 'bg-blue-700/40 text-blue-300',
+  rejected: 'bg-red-700/40 text-red-300',
+};
+
+export function DiscordDraftReviewTable() {
+  const [drafts, setDrafts] = useState<DiscordDraft[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<DiscordImportDraftStatus | ''>('');
+  const [selectedDraft, setSelectedDraft] = useState<DiscordDraft | null>(null);
+  const [syncingAll, setSyncingAll] = useState(false);
+
+  const loadDrafts = async () => {
+    setLoading(true);
+    try {
+      const data = await discordSyncApi.getDrafts({
+        status: statusFilter || undefined,
+        limit: 100,
+      });
+      setDrafts(Array.isArray(data) ? data : []);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao carregar drafts.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDrafts();
+  }, [statusFilter]);
+
+  const handleSyncReady = async () => {
+    if (!confirm('Sincronizar todos os drafts com status "pronto" como mesas reais?')) return;
+    setSyncingAll(true);
+    try {
+      const result = await discordSyncApi.syncReady();
+      toast.success(`${result.synced} sincronizadas, ${result.failed} falhas.`);
+      if (result.errors.length > 0) {
+        console.warn('[DiscordDraftReviewTable] erros de sync:', result.errors);
+      }
+      loadDrafts();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao sincronizar em lote.');
+    } finally {
+      setSyncingAll(false);
+    }
+  };
+
+  const handleDraftUpdate = (updated: DiscordDraft) => {
+    setDrafts(prev => prev.map(d => (d.id === updated.id ? updated : d)));
+    setSelectedDraft(updated);
+  };
+
+  const readyCount = drafts.filter(d => d.status === 'ready').length;
+
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-4 flex-wrap">
+        <select
+          value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value as DiscordImportDraftStatus | '')}
+          className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm"
+        >
+          <option value="">Todos os status</option>
+          {(Object.keys(DRAFT_STATUS_LABELS) as DiscordImportDraftStatus[]).map(s => (
+            <option key={s} value={s}>{DRAFT_STATUS_LABELS[s]}</option>
+          ))}
+        </select>
+
+        <button
+          onClick={loadDrafts}
+          className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg transition-colors"
+        >
+          Recarregar
+        </button>
+
+        {readyCount > 0 && (
+          <button
+            onClick={handleSyncReady}
+            disabled={syncingAll}
+            className="ml-auto px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+          >
+            {syncingAll ? 'Sincronizando...' : `Sincronizar todos prontos (${readyCount})`}
+          </button>
+        )}
+      </div>
+
+      {loading ? (
+        <p className="text-white/40 text-sm py-4 text-center">Carregando...</p>
+      ) : drafts.length === 0 ? (
+        <p className="text-white/40 text-sm py-4 text-center">Nenhum draft encontrado.</p>
+      ) : (
+        <div className="space-y-2">
+          {drafts.map(draft => {
+            const table = draft.normalized_payload?.table as Record<string, unknown> | undefined
+              ?? draft.parsed_payload?.table as Record<string, unknown> | undefined;
+            const title = typeof table?.title === 'string' ? table.title : '—';
+            const system = typeof table?.system_name === 'string' ? table.system_name : null;
+
+            return (
+              <div
+                key={draft.id}
+                className="bg-white/5 border border-white/10 rounded-lg px-4 py-3 flex items-center gap-3 cursor-pointer hover:bg-white/[0.08] transition-colors"
+                onClick={() => setSelectedDraft(draft)}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className={`px-2 py-0.5 text-xs rounded-full ${DRAFT_STATUS_COLORS[draft.status]}`}>
+                      {DRAFT_STATUS_LABELS[draft.status]}
+                    </span>
+                    {draft.confidence != null && (
+                      <span className="text-white/30 text-xs">{(draft.confidence * 100).toFixed(0)}%</span>
+                    )}
+                  </div>
+                  <p className="text-white font-medium text-sm truncate">{title}</p>
+                  {system && <p className="text-white/40 text-xs">{system}</p>}
+                </div>
+                <div className="text-white/30 text-xs shrink-0 text-right">
+                  <p>{new Date(draft.created_at).toLocaleDateString('pt-BR')}</p>
+                  {draft.table_id && <p className="text-blue-400/60">mesa vinculada</p>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {selectedDraft && (
+        <DiscordDraftPreview
+          draft={selectedDraft}
+          onUpdate={handleDraftUpdate}
+          onClose={() => setSelectedDraft(null)}
+        />
+      )}
+    </div>
+  );
+}
