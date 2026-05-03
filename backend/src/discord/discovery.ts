@@ -68,16 +68,28 @@ function mapDiscordStatus(status: number): DiscordDiscoveryError {
 
 async function discordGetUnknown(path: string): Promise<unknown> {
   const token = await requireDiscordBotToken();
-  const res = await fetch(`${DISCORD_API_BASE}${path}`, {
-    headers: { Authorization: `Bot ${token.trim()}` },
-    signal: AbortSignal.timeout(10_000),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10_000);
 
-  if (!res.ok) {
-    throw mapDiscordStatus(res.status);
+  try {
+    const res = await fetch(`${DISCORD_API_BASE}${path}`, {
+      headers: { Authorization: `Bot ${token.trim()}` },
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      throw mapDiscordStatus(res.status);
+    }
+
+    return res.json() as Promise<unknown>;
+  } catch (error: unknown) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new DiscordDiscoveryError('Discord demorou demais para responder. Tente novamente em instantes.', 502);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  return res.json() as Promise<unknown>;
 }
 
 export async function discoverDiscordGuilds(): Promise<DiscordDiscoveredGuild[]> {

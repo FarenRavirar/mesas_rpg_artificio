@@ -197,3 +197,13 @@ Sessao concluida quando a Feature 013 tiver plan, tasks, implementacao, builds b
 - [x] T021 concluida. Busca de seguranca:
   - Comando: `rg -n "console\\.(log|error).*token|plaintext|DISCORD_BOT_TOKEN|Authorization: \`Bot|botToken|token" backend/src/discord/discovery.ts backend/src/routes/adminDiscordSync.ts frontend/src/features/discord-sync --glob "*.ts" --glob "*.tsx"`
   - Resultado: zero ocorrencias de `console.log`/`console.error` com token; ocorrencias restantes sao schema/helper, mensagens de configuracao, uso interno de `Authorization: Bot <token>` para chamar Discord, variaveis internas do formulario de token e texto de UI.
+- [x] Review PR #143: substituir `AbortSignal.timeout` por `AbortController` manual com limpeza de timeout em `backend/src/discord/discovery.ts`.
+  - Estado: NOT STARTED -> GREEN
+  - Comando: `npm --prefix backend run build`
+  - Output literal:
+    ```text
+    > backend@1.0.0 build
+    > tsc
+    ```
+  - Busca: `rg -n "AbortSignal\\.timeout" backend/src/discord/discovery.ts backend/dist/discord/discovery.js`
+  - Resultado: zero ocorrencias.
