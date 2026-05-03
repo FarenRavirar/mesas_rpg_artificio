@@ -1,7 +1,7 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-04-29T14:10:00-03:00
-**Atualizado por:** sessão 26-04-29_4_catalogo-painel-ux-bugs
+**Última atualização:** 2026-05-01T00:00:00-03:00
+**Atualizado por:** sessão 26-05-01_1_editor-rico-textareas
 ---
 
 ## Ambientes
@@ -15,11 +15,19 @@
 
 ## Estado Técnico Atual
 
-**Branch ativa:** `feat/008-catalogo-painel-ux-bugs`
-**Último commit base:** `bf1eb29` — ci: corrige lint do workflow de migrations
+**Branch ativa:** `dev`
+**Último commit base:** `8fc37ed` — fix: refina cards e badges do catalogo
 
-**Feature ativa:** `specs/008-catalogo-painel-ux-bugs/`
-**Sessão ativa:** `sessoes/26-04-29_4_catalogo-painel-ux-bugs.md`
+**Feature ativa:** `specs/009-editor-rico-textareas/`
+**Sessão ativa:** `sessoes/26-05-01_1_editor-rico-textareas.md`
+
+**Feature 009 — Editor Rico em Textareas (01/05/2026):**
+- Sessão `26-05-01_1_editor-rico-textareas` aberta a pedido explícito do mantenedor.
+- Sem branch dedicada — autorizado pelo mantenedor; trabalho direto em `dev`.
+- `/speckit.specify` executado: `spec.md` validado (checklist 15/15 itens ✅); `.specify/feature.json` atualizado para `specs/009-editor-rico-textareas`.
+- `/speckit.plan` executado com pesquisa real do código: `MarkdownEditor` (react-markdown-editor-lite v1.4.2) confirmado como editor canônico pelo mantenedor; 10 `<textarea>` nus e 5 campos com `RichTextArea` inventariados; `research.md` e `plan.md` atualizados.
+- `/speckit.tasks` executado: `tasks.md` regenerado com 22 tasks, caminhos reais, sessão correta; `AGENTS.md` aponta plano ativo para feature 009.
+- **Status:** Spec kit concluído; aguardando comando do mantenedor para iniciar `/speckit.implement`.
 
 **Feature 008 — Catálogo e Painel UX Bugs (29/04/2026):**
 - Sessão dedicada aberta a pedido explícito do mantenedor.
@@ -34,7 +42,13 @@
 - Artefatos de planejamento atualizados: `plan.md`, `research.md`, `data-model.md`, `quickstart.md`, `contracts/README.md`; `AGENTS.md` aponta o plano ativo para a feature 008.
 - `/speckit.tasks` executado após aprovação do mantenedor: `tasks.md` regenerado com 30 tarefas, caminhos reais, sessão atual e fases independentes por user story.
 - Validação de tarefas: 30/30 tarefas seguem formato obrigatório; zero referências à sessão antiga `26-04-29_2`; zero placeholders de template ou `NEEDS CLARIFICATION`.
-- **Status:** tasks da feature 008 concluídas; aguardando comando do mantenedor para iniciar `/speckit.implement`.
+- Implementação aplicada e publicada no Beta:
+  - Rebase interrompido em `dev` corrigido após conflito em `TableCard.tsx` e `CatalogoPage.tsx`.
+  - Commit local preservado/reaplicado sobre `origin/dev` como `8fc37ed fix: refina cards e badges do catalogo`.
+  - `git push origin dev` concluído com sucesso.
+  - Deploy Beta `25124747594` concluído com sucesso para `8fc37ed`: lint, enforce-dir, validate, migrate, deploy-app e smoke passaram.
+  - Topo/filtros do catálogo aprovados pelo mantenedor; cards ajustados para evitar título, vagas e preço comprimidos.
+- **Status:** Feature 008 publicada em Beta; aguardando teste funcional manual do mantenedor em janela anônima no Beta.
 
 **Feature 007 — Exclusão de Mesa Sem Pop-up (29/04/2026):**
 - `/speckit.plan` concluído para `specs/007-exclusao-mesa-sem-popup/` com `plan.md`, `research.md`, `data-model.md`, `quickstart.md` e contrato de confirmação inline.

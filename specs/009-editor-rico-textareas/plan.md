@@ -1,36 +1,36 @@
 # Implementation Plan: Editor Rico em Textareas
 
-**Branch**: `009-editor-rico-textareas` | **Date**: 2026-04-29 | **Spec**: [spec.md](./spec.md)
+**Branch**: `dev` (sem branch dedicada, autorizado pelo mantenedor) | **Date**: 2026-05-01 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/009-editor-rico-textareas/spec.md`
-
-**Note**: Este plano foi gerado como procedimento de IA `/speckit.plan`; nenhum comando shell Spec-Kit foi executado.
 
 ## Summary
 
-Mapear todos os pontos do frontend onde usuários inserem texto por `textarea`, classificar cada ocorrência e substituir por editor rico apenas os campos elegíveis, usando como referência a ferramenta já existente em Descrição da Mesa. A abordagem técnica exige inventário antes de patch, preservação de validações existentes, compatibilidade com conteúdo legado e validação responsiva.
+Mapear todos os pontos do frontend onde usuários inserem texto por `textarea` ou `RichTextArea`, classificar cada ocorrência e substituir por `MarkdownEditor` apenas os campos elegíveis. O componente canônico é `frontend/src/components/MarkdownEditor.tsx` (react-markdown-editor-lite v1.4.2 + markdown-it v14.1.1), confirmado pelo mantenedor. Campos que já usam `RichTextArea` também são candidatos à substituição. A abordagem exige inventário e classificação antes de qualquer patch, preservação de validações existentes, compatibilidade com conteúdo legado e validação responsiva.
 
 ## Technical Context
 
-**Language/Version**: TypeScript estrito no frontend React + Vite  
-**Primary Dependencies**: React, Vite, editor rico já usado em Descrição da Mesa  
-**Storage**: Sem mudança prevista; conteúdo existente deve permanecer compatível  
-**Testing**: build técnico do frontend e validação funcional/manual em Beta em janela anônima quando afetar fluxos reais  
-**Target Platform**: Web responsivo em desktop e mobile  
-**Project Type**: Monorepo web app com frontend e backend separados  
-**Performance Goals**: Editor deve carregar e operar sem degradar formulários afetados  
-**Constraints**: Mapeamento completo antes de substituição, preservar validações e limites, mudança mínima por campo  
-**Scale/Scope**: Todos os usos de `textarea` no frontend, com substituição apenas dos elegíveis
+**Language/Version**: TypeScript estrito — frontend React + Vite (Node.js 25.9.0)
+**Editor canônico**: `frontend/src/components/MarkdownEditor.tsx` — usa `react-markdown-editor-lite` v1.4.2 e `markdown-it` v14.1.1 (já instalados)
+**Editor atual em Descrição da Mesa**: `RichTextArea` (custom, limitado) — candidato a substituição
+**Primary Dependencies**: `react-markdown-editor-lite`, `markdown-it`, `@types/markdown-it` — todos presentes em `frontend/package.json`
+**Storage**: Sem mudança prevista; conteúdo existente (string) permanece compatível — `MarkdownEditor` aceita e emite `string`
+**Testing**: `npm --prefix frontend run build` + validação funcional/manual em Beta em janela anônima quando afetar fluxos reais
+**Target Platform**: Web responsivo em desktop e mobile
+**Project Type**: Monorepo web app com frontend e backend separados
+**Performance Goals**: Editor deve carregar e operar sem degradar formulários afetados
+**Constraints**: Inventário completo antes de substituição, preservar validações e limites, mudança mínima por campo
+**Scale/Scope**: 10 `<textarea>` nus + 5 campos com `RichTextArea` — todos devem ser inventariados; substituição apenas dos elegíveis
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-- **TypeScript estrito**: PASS — componentes e props devem permanecer tipados.
-- **Normalização de dados de fronteira**: PASS — conteúdo legado deve ser tratado sem assumir formato novo não validado.
-- **Sem mudança de schema sem protocolo**: PASS — não há migration prevista.
-- **Mudança mínima e reversível**: PASS — cada substituição deve ser rastreável por campo.
-- **UX responsiva**: PASS — editor deve funcionar em desktop e mobile.
-- **Validação funcional em Beta**: PASS — obrigatória quando fluxos reais forem afetados.
+- **TypeScript estrito**: PASS — `MarkdownEditor` já está tipado; props de integração são `value: string` e `onChange: (text: string) => void`.
+- **Normalização de dados de fronteira**: PASS — conteúdo legado (texto puro) é string válida para `MarkdownEditor` sem conversão.
+- **Sem mudança de schema sem protocolo**: PASS — não há migration prevista; campos continuam armazenando `string`.
+- **Mudança mínima e reversível**: PASS — cada substituição é pontual por campo; `RichTextArea` e `MarkdownEditor` têm interface compatível.
+- **UX responsiva**: ATENÇÃO — `react-markdown-editor-lite` tem toolbar que pode quebrar em mobile; validação obrigatória por formulário alterado.
+- **Validação funcional em Beta**: PASS — obrigatória quando fluxos reais forem afetados (criação/edição de mesa, perfil, painel).
 
 ## Project Structure
 
@@ -44,33 +44,43 @@ specs/009-editor-rico-textareas/
 ├── data-model.md
 ├── quickstart.md
 ├── contracts/
+├── checklists/
+│   └── requirements.md
 └── tasks.md
 ```
 
-### Source Code (repository root)
+### Source Code (arquivos afetados identificados)
 
 ```text
-frontend/
-├── src/
-│   ├── components/      # editor rico existente, inputs e formulários
-│   ├── pages/           # páginas com formulários contendo textareas
-│   ├── features/        # módulos de domínio com campos longos
-│   ├── hooks/           # hooks de formulário, se aplicável
-│   ├── types/           # tipos de conteúdo e props do editor
-│   └── utils/           # normalização/conversão se necessária
-└── package.json
+frontend/src/
+├── components/
+│   ├── MarkdownEditor.tsx              ← editor canônico (já existe, não tocar)
+│   ├── RichTextArea.tsx                ← editor legado (candidato a desuso após substituição)
+│   ├── form-steps/steps/
+│   │   ├── StepBasic.tsx               ← description (RichTextArea → MarkdownEditor?)
+│   │   └── StepFinal.tsx               ← billing_text, ddal_rules_notes (textarea nu)
+│   │                                      rules_notes, synopsis, style_text,
+│   │                                      technical_requirements (RichTextArea)
+│   ├── SessionRepeater.tsx             ← notes (textarea nu)
+│   ├── SystemSuggestionModal.tsx       ← description (textarea nu)
+│   ├── ScenarioSuggestionModal.tsx     ← description (textarea nu)
+│   └── mestre/
+│       └── MestreContactForm.tsx       ← message (textarea nu)
+└── pages/
+    ├── ProfileEditPage.tsx             ← bio, bio_long (textarea nu)
+    ├── PainelMestrePage.tsx            ← gm-bio (textarea nu)
+    └── OnboardingPage.tsx              ← onboarding-bio (textarea nu)
 ```
-
-**Structure Decision**: A feature deve reaproveitar o editor existente de Descrição da Mesa. Criar editor paralelo é fora de escopo salvo justificativa documentada.
 
 ## Phase 0: Research
 
 Pesquisa consolidada em [research.md](./research.md):
 
-- inventário obrigatório de `textarea` antes da substituição;
-- critérios de elegibilidade para editor rico;
-- compatibilidade com conteúdo legado e validações existentes;
-- responsividade e UX do editor em múltiplos formulários.
+- `MarkdownEditor` identificado como componente canônico (react-markdown-editor-lite, já instalado, não usado em lugar algum);
+- `RichTextArea` é editor legado em Descrição da Mesa e outros campos — também candidato à substituição;
+- 10 `<textarea>` nus inventariados com arquivo, linha, tela e finalidade;
+- 5 campos com `RichTextArea` inventariados como candidatos a upgrade;
+- interface de `MarkdownEditor` compatível com formulários React existentes.
 
 ## Phase 1: Design & Contracts
 
@@ -79,16 +89,21 @@ Design consolidado em:
 - [data-model.md](./data-model.md)
 - [quickstart.md](./quickstart.md)
 
-Não há novo contrato público previsto. O diretório `contracts/` documenta ausência de mudança de API por padrão.
+Não há novo contrato público previsto. O diretório `contracts/` documenta ausência de mudança de API — campos continuam sendo `string` no payload.
+
+### Agent context update
+
+AGENTS.md atualizado para apontar `specs/009-editor-rico-textareas/plan.md` como plano ativo.
 
 ## Post-Design Constitution Check
 
-- **Mapeamento antes de alteração**: PASS — tasks exigem inventário completo.
-- **Editor único reaproveitado**: PASS — plano impede editor paralelo sem justificativa.
+- **Mapeamento antes de alteração**: PASS — tasks exigem inventário e classificação completos antes de qualquer patch.
+- **Editor único reaproveitado**: PASS — `MarkdownEditor` existente; nenhum editor paralelo criado.
 - **Compatibilidade legada**: PASS — quickstart exige salvar/reabrir conteúdo existente.
-- **Sem backend/schema por padrão**: PASS — contratos documentam ausência de mudança.
+- **Sem backend/schema por padrão**: PASS — contratos documentam ausência de mudança de API.
 - **Beta obrigatório quando fluxo real afetado**: PASS — quickstart e tasks exigem validação.
+- **Responsividade**: ATENÇÃO registrada — tasks incluem validação mobile obrigatória por formulário.
 
 ## Complexity Tracking
 
-Sem violações constitucionais identificadas.
+Sem violações constitucionais identificadas. Ponto de atenção: responsividade de `react-markdown-editor-lite` em mobile — mitigado por validação obrigatória por formulário alterado.

@@ -474,5 +474,5 @@ Próximos Passos  — próximos passos objetivos e imediatos
 Toda comunicação em **português**. Nomes de arquivos, comandos, funções e identificadores de código permanecem no formato original.
 
 <!-- SPECKIT START -->
-Current active plan: `specs/008-catalogo-painel-ux-bugs/plan.md`.
+Current active plan: `specs/009-editor-rico-textareas/plan.md`.
 <!-- SPECKIT END -->

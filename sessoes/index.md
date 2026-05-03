@@ -1,6 +1,6 @@
 # Índice de Sessões
 
-Última atualização: 29/04/2026 14:10 BRT
+Última atualização: 01/05/2026 BRT
 
 ---
 
@@ -229,15 +229,25 @@
 | # | Arquivo |
 |---|---|
 | 1 | `encerradas/26-04-29_1_imagens-banners-placeholder.md` |
-| 2 | `26-04-29_2_lancamento-itens-sdd.md` |
+| 2 | `encerradas/26-04-29_2_lancamento-itens-sdd.md` |
 | 3 | `encerradas/26-04-29_3_exclusao-mesa-sem-popup.md` |
-| 4 | `26-04-29_4_catalogo-painel-ux-bugs.md` |
+| 4 | `encerradas/26-04-29_4_catalogo-painel-ux-bugs.md` |
+
+---
+
+---
+
+## 01/05/2026 (1 sessão)
+
+| # | Arquivo |
+|---|---|
+| 1 | `26-05-01_1_editor-rico-textareas.md` |
 
 ---
 
 ## Sessão Mais Recente
 
-`26-04-29_4_catalogo-painel-ux-bugs.md`
+`26-05-01_1_editor-rico-textareas.md`
 
 ---
 

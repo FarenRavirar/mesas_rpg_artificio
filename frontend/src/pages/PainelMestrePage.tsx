@@ -13,6 +13,7 @@ import { ContactMethodsEditor } from '../components/mestre/ContactMethodsEditor'
 import { GmInsightsDashboard } from '../components/mestre/GmInsightsDashboard';
 // Componente refatorado
 import { CreateTableForm } from '../features/create-table/components/CreateTableForm';
+import { MarkdownEditor } from '../components/MarkdownEditor';
 
 type TableStatus = 'draft' | 'active' | 'full' | 'cancelled' | 'ended' | 'pending_review';
 
@@ -187,14 +188,12 @@ function CreateGmProfileForm({ onSuccess }: { onSuccess: () => void }) {
         </button>
       )}
       <div className="flex flex-col gap-1">
-        <label htmlFor="gm-bio" className="text-sm font-medium text-white/70">Bio (opcional)</label>
-        <textarea
-          id="gm-bio"
+        <label className="text-sm font-medium text-white/70">Bio (opcional)</label>
+        <MarkdownEditor
           value={bio}
-          onChange={(e) => setBio(e.target.value)}
-          rows={3}
+          onChange={setBio}
           placeholder="Conte um pouco sobre você como mestre..."
-          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all resize-none"
+          height={200}
         />
       </div>
       {error && <div className="p-3 bg-red-900/40 border border-red-700/50 rounded-xl text-red-300 text-sm">{error}</div>}

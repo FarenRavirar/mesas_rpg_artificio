@@ -7,6 +7,7 @@ import { LinksManager } from '../components/LinksManager';
 import { showSuccess, showError } from '../utils/toast';
 import { track } from '../services/analytics';
 import { useImageUrlImport } from '../hooks/useImageUrlImport';
+import { MarkdownEditor } from '../components/MarkdownEditor';
 import './ProfileEditPage.css';
 
 /**
@@ -283,6 +284,7 @@ export default function ProfileEditPage() {
 function TabGeral() {
   const { profile, updateUser, updateProfile } = useProfileContext();
   const [avatarError, setAvatarError] = useState(false);
+  const [bio, setBio] = useState(profile?.profile?.bio || '');
   const currentAvatar = profile?.profile?.avatar_url || '';
 
   const handleAvatarChange = (url: string) => {
@@ -480,13 +482,12 @@ function TabGeral() {
         </div>
 
         <div className="form-group">
-          <label htmlFor="bio">Bio</label>
-          <textarea
-            id="bio"
-            defaultValue={profile.profile?.bio || ''}
-            onChange={(e) => updateProfile({ bio: e.target.value })}
+          <label>Bio</label>
+          <MarkdownEditor
+            value={bio}
+            onChange={(text) => { setBio(text); updateProfile({ bio: text }); }}
             placeholder="Conte um pouco sobre você..."
-            rows={4}
+            height={200}
           />
         </div>
 
@@ -698,6 +699,7 @@ function TabMestre({
   const { profile, updateGm, addSystem, removeSystem } = useProfileContext();
   const [connecting, setConnecting] = useState(false);
   const gmProfile = (profile?.gm || {}) as Partial<GmProfile>;
+  const [bioLong, setBioLong] = useState(gmProfile.bio_long || '');
 
   const gmAvatarUrlImport = useImageUrlImport({
     purpose: 'profile_avatar',
@@ -740,13 +742,12 @@ function TabMestre({
         </div>
 
         <div className="form-group">
-          <label htmlFor="bio_long">Bio Detalhada</label>
-          <textarea
-            id="bio_long"
-            defaultValue={gmProfile.bio_long || ''}
-            onChange={(e) => updateGm({ bio_long: e.target.value })}
+          <label>Bio Detalhada</label>
+          <MarkdownEditor
+            value={bioLong}
+            onChange={(text) => { setBioLong(text); updateGm({ bio_long: text }); }}
             placeholder="Conte sobre sua experiência como mestre..."
-            rows={6}
+            height={300}
           />
         </div>
 
