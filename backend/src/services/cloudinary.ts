@@ -1,5 +1,8 @@
 import { v2 as cloudinary } from 'cloudinary';
-import { lookup } from 'node:dns/promises';
+import { lookup as dnsLookup } from 'node:dns/promises';
+import type { LookupAddress } from 'node:dns';
+import http from 'node:http';
+import https from 'node:https';
 import { isIP } from 'node:net';
 
 cloudinary.config({
@@ -38,18 +41,62 @@ export async function uploadImageToCloudinary(imageUrl: string) {
 
 const MAX_REMOTE_IMAGE_BYTES = 5 * 1024 * 1024;
 const REMOTE_IMAGE_TIMEOUT_MS = 10000;
+const MAX_REMOTE_IMAGE_REDIRECTS = 3;
 const ALLOWED_REMOTE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 function isPrivateIp(address: string): boolean {
-  if (address.startsWith('10.')) return true;
-  if (address.startsWith('127.')) return true;
-  if (address.startsWith('169.254.')) return true;
-  if (address.startsWith('192.168.')) return true;
-  if (/^172\.(1[6-9]|2\d|3[01])\./.test(address)) return true;
-  if (address === '::1') return true;
-  if (address.toLowerCase().startsWith('fc') || address.toLowerCase().startsWith('fd')) return true;
-  if (address.toLowerCase().startsWith('fe80')) return true;
+  if (isIP(address) === 4) {
+    const parts = address.split('.').map((part) => Number(part));
+    const [first, second, third] = parts;
+
+    if (first === 0) return true;
+    if (first === 10) return true;
+    if (first === 127) return true;
+    if (first === 169 && second === 254) return true;
+    if (first === 172 && second >= 16 && second <= 31) return true;
+    if (first === 192 && second === 168) return true;
+    if (first === 100 && second >= 64 && second <= 127) return true;
+    if (first === 192 && second === 0 && third === 0) return true;
+    if (first === 192 && second === 0 && third === 2) return true;
+    if (first === 198 && (second === 18 || second === 19)) return true;
+    if (first === 198 && second === 51 && third === 100) return true;
+    if (first === 203 && second === 0 && third === 113) return true;
+    if (first >= 224) return true;
+    return false;
+  }
+
+  if (isIP(address) === 6) {
+    const normalized = address.toLowerCase();
+    if (normalized === '::' || normalized === '::1') return true;
+    if (normalized.startsWith('::ffff:')) {
+      return isPrivateIp(normalized.replace(/^::ffff:/, ''));
+    }
+
+    const firstBlock = Number.parseInt(normalized.split(':')[0] || '0', 16);
+    if ((firstBlock & 0xfe00) === 0xfc00) return true; // fc00::/7
+    if ((firstBlock & 0xffc0) === 0xfe80) return true; // fe80::/10
+    if ((firstBlock & 0xff00) === 0xff00) return true; // ff00::/8
+  }
+
   return false;
+}
+
+async function resolvePublicAddresses(hostname: string): Promise<LookupAddress[]> {
+  const ipVersion = isIP(hostname);
+
+  if (ipVersion) {
+    if (isPrivateIp(hostname)) {
+      throw new Error('URL privada não é permitida.');
+    }
+    return [{ address: hostname, family: ipVersion }];
+  }
+
+  const records = await dnsLookup(hostname, { all: true, verbatim: true });
+  if (records.length === 0 || records.some((record) => isPrivateIp(record.address))) {
+    throw new Error('URL privada não é permitida.');
+  }
+
+  return records;
 }
 
 async function assertPublicHttpUrl(rawUrl: string): Promise<URL> {
@@ -70,66 +117,97 @@ async function assertPublicHttpUrl(rawUrl: string): Promise<URL> {
     throw new Error('URL local não é permitida.');
   }
 
-  if (isIP(hostname) && isPrivateIp(hostname)) {
-    throw new Error('URL privada não é permitida.');
-  }
-
-  const records = await lookup(hostname, { all: true });
-  if (records.some((record) => isPrivateIp(record.address))) {
-    throw new Error('URL privada não é permitida.');
-  }
+  await resolvePublicAddresses(hostname);
 
   return parsed;
 }
 
-async function readResponseBodyWithLimit(response: Response): Promise<Buffer> {
-  if (!response.body) {
-    throw new Error('Resposta sem conteúdo de imagem.');
-  }
-
-  const chunks: Uint8Array[] = [];
+async function readResponseBodyWithLimit(response: http.IncomingMessage): Promise<Buffer> {
+  const chunks: Buffer[] = [];
   let total = 0;
-  const reader = response.body.getReader();
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    if (!value) continue;
+  for await (const chunk of response) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
 
-    total += value.byteLength;
+    total += buffer.byteLength;
     if (total > MAX_REMOTE_IMAGE_BYTES) {
-      await reader.cancel();
+      response.destroy();
       throw new Error('Imagem muito grande. Limite de 5 MB.');
     }
 
-    chunks.push(value);
+    chunks.push(buffer);
   }
 
   return Buffer.concat(chunks);
 }
 
+async function requestPublicRemoteImage(url: URL): Promise<http.IncomingMessage> {
+  const publicRecords = await resolvePublicAddresses(url.hostname);
+  const selectedRecord = publicRecords[0];
+  const client = url.protocol === 'https:' ? https : http;
+
+  return new Promise((resolve, reject) => {
+    // DNS is revalidated immediately before this request, and the connection
+    // uses the already validated public address to avoid DNS rebinding.
+    // lgtm[js/request-forgery]
+    const request = client.get(url, {
+      timeout: REMOTE_IMAGE_TIMEOUT_MS,
+      lookup: (_hostname, _options, callback) => {
+        callback(null, selectedRecord.address, selectedRecord.family);
+      },
+      headers: {
+        accept: 'image/jpeg,image/png,image/webp',
+        'user-agent': 'MesasRPGArtificio/1.0 image-import',
+      },
+    }, resolve);
+
+    request.on('timeout', () => {
+      request.destroy(new Error('Tempo esgotado ao baixar a imagem.'));
+    });
+    request.on('error', reject);
+  });
+}
+
+async function fetchPublicRemoteImage(initialUrl: URL): Promise<http.IncomingMessage> {
+  let currentUrl = initialUrl;
+
+  for (let redirectCount = 0; redirectCount <= MAX_REMOTE_IMAGE_REDIRECTS; redirectCount += 1) {
+    const response = await requestPublicRemoteImage(currentUrl);
+    const statusCode = response.statusCode ?? 0;
+
+    if (statusCode < 300 || statusCode >= 400) {
+      return response;
+    }
+
+    response.resume();
+
+    const location = response.headers.location;
+    if (!location) {
+      throw new Error('Redirecionamento de imagem sem destino válido.');
+    }
+
+    currentUrl = await assertPublicHttpUrl(new URL(location, currentUrl).toString());
+  }
+
+  throw new Error('O link da imagem redireciona muitas vezes.');
+}
+
 export async function uploadRemoteImageToCloudinary(rawUrl: string) {
   const parsedUrl = await assertPublicHttpUrl(rawUrl);
 
-  const response = await fetch(parsedUrl, {
-    redirect: 'follow',
-    signal: AbortSignal.timeout(REMOTE_IMAGE_TIMEOUT_MS),
-    headers: {
-      accept: 'image/jpeg,image/png,image/webp',
-      'user-agent': 'MesasRPGArtificio/1.0 image-import',
-    },
-  });
+  const response = await fetchPublicRemoteImage(parsedUrl);
 
-  if (!response.ok) {
+  const statusCode = response.statusCode ?? 0;
+  if (statusCode < 200 || statusCode >= 300) {
     throw new Error('Não foi possível baixar a imagem desse link.');
   }
 
-  const contentType = response.headers.get('content-type')?.split(';')[0]?.toLowerCase() ?? '';
+  const contentType = response.headers['content-type']?.split(';')[0]?.toLowerCase() ?? '';
   if (!ALLOWED_REMOTE_MIME_TYPES.has(contentType)) {
     throw new Error('O link informado não aponta para uma imagem JPG, PNG ou WEBP.');
   }
 
-  const contentLength = Number(response.headers.get('content-length') ?? '0');
+  const contentLength = Number(response.headers['content-length'] ?? '0');
   if (contentLength > MAX_REMOTE_IMAGE_BYTES) {
     throw new Error('Imagem muito grande. Limite de 5 MB.');
   }

@@ -97,24 +97,22 @@ router.post('/', async (req, res) => {
             }
             return created;
         });
-        if (newSuggestion) {
-            void (0, activityLogger_1.logActivity)({
-                actorId: userId,
-                actorRole: req.user?.role,
-                action: 'system_suggestion.created',
-                entityType: 'system_suggestion',
-                entityId: newSuggestion.id,
-                entityLabel: newSuggestion.name,
-                targetUserId: userId,
-                summary: `${userName} sugeriu o sistema "${newSuggestion.name}".`,
-                metadata: {
-                    suggestion_id: newSuggestion.id,
-                    node_type: newSuggestion.node_type,
-                    parent_id: newSuggestion.parent_id,
-                    name_pt: newSuggestion.name_pt,
-                },
-            });
-        }
+        void (0, activityLogger_1.logActivity)({
+            actorId: userId,
+            actorRole: req.user?.role,
+            action: 'system_suggestion.created',
+            entityType: 'system_suggestion',
+            entityId: newSuggestion.id,
+            entityLabel: newSuggestion.name,
+            targetUserId: userId,
+            summary: `${userName} sugeriu o sistema "${newSuggestion.name}".`,
+            metadata: {
+                suggestion_id: newSuggestion.id,
+                node_type: newSuggestion.node_type,
+                parent_id: newSuggestion.parent_id,
+                name_pt: newSuggestion.name_pt,
+            },
+        });
         return res.status(201).json({ data: newSuggestion });
     }
     catch (error) {

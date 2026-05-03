@@ -70,6 +70,10 @@
 - Validacao estrutural: `JSON_OK`.
 - Validacao editorial: zero ocorrencias para `sidebar vertical`, `migration`, `refactor`, `placeholder`, `performance`, `otimizados`, `Q1`, `Q4`, `administrativa`, `arvore administrativa`, `admin`.
 - Validacao de data publicada: `DUPLICATE_DATES_OK`.
+- Promocao dev -> main: PR #139 criado; preflight-prod retornou GO; CodeQL bloqueou por SSRF em `backend/src/services/cloudinary.ts`.
+- Correcao aplicada: importacao de imagem remota agora revalida DNS imediatamente antes da requisicao, usa o endereco publico resolvido na conexao, valida cada redirect manualmente e cobre faixas IPv6 privadas.
+- Correcao aplicada: removido `if` redundante em `backend/src/routes/systemSuggestions.ts`.
+- Validacao tecnica: `npm --prefix backend run build` GREEN.
 
 ---
 
