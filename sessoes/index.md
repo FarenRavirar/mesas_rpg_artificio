@@ -245,18 +245,19 @@
 
 ---
 
-## 03/05/2026 (2 sessões)
+## 03/05/2026 (3 sessões)
 
 | # | Arquivo |
 |---|---|
 | 1 | `encerradas/26-05-03_1_verificacao-sugestoes-sistemas-admin.md` |
 | 2 | `26-05-03_2_refatoracao-changelog.md` |
+| 3 | `26-05-03_3_discord-covil-sync.md` |
 
 ---
 
 ## Sessão Mais Recente
 
-`26-05-03_2_refatoracao-changelog.md`
+`26-05-03_3_discord-covil-sync.md`
 
 ---
 

@@ -15,11 +15,19 @@
 
 ## Estado Técnico Atual
 
-**Branch ativa:** `dev`
-**Último commit base:** `faf1921` — feat: notificar admins sobre sugestoes
+**Branch ativa:** `dev` (branch `feat/012-discord-covil-sync` a criar ao iniciar implementacao)
+**Último commit base:** `3df0fff` — fix: ajusta importacao segura de url
 
-**Feature ativa:** `specs/010-refatoracao-changelog/`
-**Sessão ativa:** `sessoes/26-05-03_2_refatoracao-changelog.md`
+**Feature ativa:** `specs/012-discord-covil-sync/`
+**Sessão ativa:** `sessoes/26-05-03_3_discord-covil-sync.md`
+
+**Feature 012 — Pipeline Discord Covil Sync (03/05/2026):**
+- Sessao nova aberta a pedido explícito do mantenedor.
+- Decisao de arquitetura aprovada: pipeline de 3 camadas (ingestao → staging → sync para `tables`).
+- `origin = 'imported'`, `is_covil = true`; sem criar novo valor de enum neste ciclo.
+- Migration 115 planejada: 3 novas tabelas (`discord_import_sources`, `discord_import_messages`, `discord_import_table_drafts`).
+- 29 tasks criadas em 7 fases (Fases 0–6 implementaveis; Fase 7 bot/automacao posterior).
+- **Status:** artefatos SDD criados; aguardando comando do mantenedor para iniciar implementacao.
 
 **Feature 010 — Refatoração do Changelog (03/05/2026):**
 - Sessão nova aberta a pedido explícito do mantenedor, sem branch dedicada; trabalho direto em `dev`.

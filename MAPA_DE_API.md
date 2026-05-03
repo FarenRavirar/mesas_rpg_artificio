@@ -174,6 +174,24 @@
 | **PUT** | `/admin/tables/:id` | ✅ Em Uso | GestaoPage.tsx, PainelMestrePage.tsx |
 | **DELETE** | `/admin/tables/:id` | ✅ Em Uso | GestaoPage.tsx |
 
+### ADMIN DISCORD SYNC (`routes/adminDiscordSync.ts`)
+> Auth: `authMiddleware` + `role === 'admin'` em todas as rotas.
+
+| Metodo | Endpoint | Status | Chamado por (Frontend) |
+|---|---|---|---|
+| **GET** | `/admin/discord-sync/sources` | 🔧 Impl. | DiscordSourceList.tsx |
+| **POST** | `/admin/discord-sync/sources` | 🔧 Impl. | DiscordSourceList.tsx |
+| **PATCH** | `/admin/discord-sync/sources/:id` | 🔧 Impl. | DiscordSourceList.tsx |
+| **DELETE** | `/admin/discord-sync/sources/:id` | 🔧 Impl. | DiscordSourceList.tsx |
+| **POST** | `/admin/discord-sync/fetch` | 🔧 Impl. | DiscordSyncPanel.tsx — dispara ingestão REST de um canal |
+| **GET** | `/admin/discord-sync/messages` | 🔧 Impl. | DiscordSyncPanel.tsx — filtros: `source_id`, `status`, `limit`, `offset` |
+| **GET** | `/admin/discord-sync/drafts` | 🔧 Impl. | DiscordDraftReviewTable.tsx — filtros: `status`, `limit`, `offset` |
+| **GET** | `/admin/discord-sync/drafts/:id` | 🔧 Impl. | DiscordDraftPreview.tsx |
+| **PATCH** | `/admin/discord-sync/drafts/:id` | 🔧 Impl. | DiscordDraftPreview.tsx — edita `normalized_payload`, `status`, `review_notes` |
+| **POST** | `/admin/discord-sync/drafts/:id/reparse` | ⏳ Fase 5 | DiscordDraftPreview.tsx — reprocessa mensagem pelo parser |
+| **POST** | `/admin/discord-sync/drafts/:id/sync` | ⏳ Fase 3 | DiscordDraftPreview.tsx — sincroniza draft para `tables` |
+| **POST** | `/admin/discord-sync/sync-ready` | ⏳ Fase 3 | DiscordSyncPanel.tsx — sincroniza todos os drafts `ready` em lote |
+
 ### ACTIVITYLOG (`routes/activityLog.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |
 |---|---|---|---|
