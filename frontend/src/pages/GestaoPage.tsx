@@ -9,6 +9,7 @@ import { ScenarioEditModal } from '../components/ScenarioEditModal';
 import toast from 'react-hot-toast';
 import { HydrationAdminPanel } from '../modules/admin/hydration/HydrationAdminPanel';
 import { InlineDeleteConfirmation } from '../components/InlineDeleteConfirmation';
+import { DiscordSyncPanel } from '../features/discord-sync/components/DiscordSyncPanel';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -32,7 +33,7 @@ export const GestaoPage = () => {
   const [suggestions, setSuggestions] = useState<SystemSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
-  const [activeTab, setActiveTab] = useState<'systems' | 'crud' | 'activity' | 'hydration'>('crud');
+  const [activeTab, setActiveTab] = useState<'systems' | 'crud' | 'activity' | 'hydration' | 'discord'>('crud');
   const [crudSubTab, setCrudSubTab] = useState<'systems' | 'platforms' | 'scenarios' | 'tables'>('systems');
   const [scenarioEditModal, setScenarioEditModal] = useState<any>(null);
   const [allTables, setAllTables] = useState<any[]>([]);
@@ -310,6 +311,16 @@ export const GestaoPage = () => {
           >
             Hidratação de Dados
           </button>
+          <button
+            onClick={() => setActiveTab('discord')}
+            className={`px-6 py-3 font-semibold transition-all ${
+              activeTab === 'discord'
+                ? 'text-white border-b-2 border-blue-500'
+                : 'text-white/60 hover:text-white/80'
+            }`}
+          >
+            Discord Sync
+          </button>
         </div>
 
         {/* Conteúdo das abas */}
@@ -452,6 +463,10 @@ export const GestaoPage = () => {
 
         {activeTab === 'hydration' && (
           <HydrationAdminPanel />
+        )}
+
+        {activeTab === 'discord' && (
+          <DiscordSyncPanel />
         )}
 
         {activeTab === 'systems' && (
