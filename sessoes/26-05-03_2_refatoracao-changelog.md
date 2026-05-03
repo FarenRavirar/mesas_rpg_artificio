@@ -74,6 +74,8 @@
 - Correcao aplicada: importacao de imagem remota agora revalida DNS imediatamente antes da requisicao, usa o endereco publico resolvido na conexao, valida cada redirect manualmente e cobre faixas IPv6 privadas.
 - Correcao aplicada: removido `if` redundante em `backend/src/routes/systemSuggestions.ts`.
 - Validacao tecnica: `npm --prefix backend run build` GREEN.
+- Segundo ajuste de review: requisicao remota deixou de passar o objeto `URL` original para o cliente HTTP e passa a conectar pelo endereco publico ja resolvido.
+- Segundo ajuste de review: `useImageUrlImport` normaliza `VITE_API_URL` antes de montar `/api/v1/upload/url`.
 
 ---
 

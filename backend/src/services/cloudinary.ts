@@ -144,22 +144,27 @@ async function readResponseBodyWithLimit(response: http.IncomingMessage): Promis
 async function requestPublicRemoteImage(url: URL): Promise<http.IncomingMessage> {
   const publicRecords = await resolvePublicAddresses(url.hostname);
   const selectedRecord = publicRecords[0];
-  const client = url.protocol === 'https:' ? https : http;
+  const requestPath = `${url.pathname}${url.search}` || '/';
+  const requestHeaders = {
+    accept: 'image/jpeg,image/png,image/webp',
+    host: url.host,
+    'user-agent': 'MesasRPGArtificio/1.0 image-import',
+  };
 
   return new Promise((resolve, reject) => {
     // DNS is revalidated immediately before this request, and the connection
     // uses the already validated public address to avoid DNS rebinding.
-    // lgtm[js/request-forgery]
-    const request = client.get(url, {
+    const requestOptions = {
+      hostname: selectedRecord.address,
+      port: url.port ? Number(url.port) : undefined,
+      path: requestPath,
       timeout: REMOTE_IMAGE_TIMEOUT_MS,
-      lookup: (_hostname, _options, callback) => {
-        callback(null, selectedRecord.address, selectedRecord.family);
-      },
-      headers: {
-        accept: 'image/jpeg,image/png,image/webp',
-        'user-agent': 'MesasRPGArtificio/1.0 image-import',
-      },
-    }, resolve);
+      headers: requestHeaders,
+    };
+
+    const request = url.protocol === 'https:'
+      ? https.get({ ...requestOptions, servername: url.hostname }, resolve)
+      : http.get(requestOptions, resolve);
 
     request.on('timeout', () => {
       request.destroy(new Error('Tempo esgotado ao baixar a imagem.'));
