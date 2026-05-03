@@ -36,10 +36,19 @@ function extractContacts(
   }
 
   if (draft.table.contact_url) {
-    const url = draft.table.contact_url;
-    const channel: TableContactChannel = url.includes('discord.com') ? 'discord' : 'form';
-    if (!contacts.some((c) => c.channel === channel && c.value === url)) {
-      contacts.push({ channel, value: url, label: 'Ticket / Inscrição', discord_server_url: null });
+    const rawUrl = draft.table.contact_url;
+    let channel: TableContactChannel = 'form';
+    try {
+      const parsed = new URL(rawUrl);
+      channel =
+        parsed.hostname === 'discord.com' || parsed.hostname.endsWith('.discord.com')
+          ? 'discord'
+          : 'form';
+    } catch {
+      channel = 'form';
+    }
+    if (!contacts.some((c) => c.channel === channel && c.value === rawUrl)) {
+      contacts.push({ channel, value: rawUrl, label: 'Ticket / Inscrição', discord_server_url: null });
     }
   }
 
@@ -161,6 +170,7 @@ export async function syncDiscordDraftToTable(draftId: string): Promise<SyncResu
           modality: t.modality ?? 'online',
           price_type: t.price_type ?? 'gratuita',
           price_value: t.price_value ?? null,
+          price_frequency: t.price_type === 'paga' ? 'sessao' : null,
           slots_total: t.slots_total ?? t.slots_open ?? 0,
           slots_filled: t.slots_filled ?? 0,
           slots_open: t.slots_open ?? t.slots_total ?? 0,
@@ -173,10 +183,13 @@ export async function syncDiscordDraftToTable(draftId: string): Promise<SyncResu
         .execute();
 
       await trx.deleteFrom('table_contacts').where('table_id', '=', tableId).execute();
-      if (contacts.length > 0) {
+      const uniqueContacts = contacts.filter(
+        (c, i, arr) => arr.findIndex((x) => x.channel === c.channel && x.value === c.value) === i
+      );
+      if (uniqueContacts.length > 0) {
         await trx
           .insertInto('table_contacts')
-          .values(contacts.map((c, i) => ({ ...c, table_id: tableId, sort_order: i })))
+          .values(uniqueContacts.map((c, i) => ({ ...c, table_id: tableId, sort_order: i })))
           .execute();
       }
 
