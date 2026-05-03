@@ -15,7 +15,7 @@
 
 ## Estado Técnico Atual
 
-**Branch ativa:** `feat/013-discord-settings-config` — implementação local concluída, aguardando commit/push/PR
+**Branch ativa:** `feat/013-discord-settings-config` — PR draft #142 aberto para `dev`
 **Último commit base:** `0d10601` — atualização da documentação de sessões e outros
 
 **Feature ativa:** `specs/013-discord-settings-config/`
@@ -36,7 +36,7 @@
 - Backend implementado: AES-256-GCM via `node:crypto`, chave derivada de `JWT_SECRET`, rotas GET/PUT/DELETE de settings e fallback DB → `process.env.DISCORD_BOT_TOKEN` na ingestão.
 - Frontend implementado: `DiscordSettingsPanel` como primeira aba em `DiscordSyncPanel`, salvar token, status mascarado e remoção com confirmação inline.
 - Validação técnica: `npm --prefix backend run build` GREEN; `npm --prefix frontend run build` GREEN.
-- **Status:** implementação local concluída; próximo passo é commit, push da branch `feat/013-discord-settings-config` e PR para `dev`.
+- **Status:** PR draft #142 aberto para `dev`; aguarda checks/review e deploy Beta após merge.
 
 **Feature 010 — Refatoração do Changelog (03/05/2026):**
 - Sessão nova aberta a pedido explícito do mantenedor, sem branch dedicada; trabalho direto em `dev`.
@@ -209,7 +209,7 @@
 **Feature 013 — Discord Settings Config:**
 1. ✅ **Spec/plan/tasks/implement concluídos:** `specs/013-discord-settings-config/` com implementação backend/frontend local.
 2. ✅ **Validação técnica:** builds backend e frontend verdes.
-3. **Próximo passo:** commit, push da branch `feat/013-discord-settings-config` e abrir PR para `dev`.
+3. **Próximo passo:** acompanhar checks do PR #142 e revisar feedback.
 4. **Critério de desbloqueio:** após merge/deploy em Beta, admin salva token via frontend e desbloqueia teste funcional do painel Discord Sync.
 
 **Feature 012 — Pipeline Discord Covil Sync:**

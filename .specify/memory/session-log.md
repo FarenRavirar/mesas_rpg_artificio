@@ -7,7 +7,8 @@
 **Tasks:** T001-T025 concluidas no artefato de tasks da feature.
 **Decisoes arquiteturais:** token do bot salvo em `discord_settings` cifrado com AES-256-GCM; registro global usa `guild_id IS NULL`; indice unico parcial evita duplicidade global; leitura da ingestao prioriza DB e usa `DISCORD_BOT_TOKEN` como fallback sem cache obrigatorio.
 **Evidencias principais:** `npm --prefix backend run build` GREEN; `npm --prefix frontend run build` GREEN; busca de seguranca sem logs de token; rotas admin documentadas em `MAPA_DE_API.md`.
-**Risco residual:** validacao funcional depende de PR, merge em `dev`, deploy Beta e teste em janela anonima pelo mantenedor.
+**PR:** #142 — `feat/013-discord-settings-config` -> `dev` (draft).
+**Risco residual:** validacao funcional depende de checks, merge em `dev`, deploy Beta e teste em janela anonima pelo mantenedor.
 **Sessao mantida aberta em:** `sessoes/26-05-03_4_discord-settings-config.md`
 
 ## 2026-04-29T14:20:00-03:00 — exclusao-mesa-sem-popup BUG-001

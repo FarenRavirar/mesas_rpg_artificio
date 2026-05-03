@@ -152,5 +152,5 @@ Sessao concluida quando a Feature 013 tiver plan, tasks, implementacao, builds b
 - [x] T025 concluida: `.specify/memory/session-log.md` atualizado via procedimento `/speckit.retro.run`.
 - [x] `/speckit.implement` executado.
 - [x] Builds obrigatorios executados.
-- [ ] PR aberto para `dev`.
+- [x] PR aberto para `dev`: https://github.com/FarenRavirar/mesas_rpg_artificio/pull/142
 - [x] `/speckit.retro.run` executado.
