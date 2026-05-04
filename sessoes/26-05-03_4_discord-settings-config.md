@@ -207,3 +207,12 @@ Sessao concluida quando a Feature 013 tiver plan, tasks, implementacao, builds b
     ```
   - Busca: `rg -n "AbortSignal\\.timeout" backend/src/discord/discovery.ts backend/dist/discord/discovery.js`
   - Resultado: zero ocorrencias.
+- [x] Deploy para `dev` solicitado pelo mantenedor em 2026-05-04: marcar PR #143 como ready, executar merge via PR e acompanhar Deploy Beta.
+  - PR: https://github.com/FarenRavirar/mesas_rpg_artificio/pull/143
+  - Merge commit: `28c31d9270b069912acec41ff4c53125e921c4d8`
+  - Deploy Beta: https://github.com/FarenRavirar/mesas_rpg_artificio/actions/runs/25313493502
+  - Resultado: GREEN (`validate`, `lint`, `enforce-dir`, `migrate`, `deploy-app`, `smoke`)
+  - CodeQL dev: https://github.com/FarenRavirar/mesas_rpg_artificio/actions/runs/25313493001 — GREEN
+- [x] Bug visual pos-deploy identificado pelo mantenedor em 2026-05-04: selects de servidor/canal abriam com fundo claro e texto claro.
+  - Correcao local: `DiscordSourceList.tsx` define `option` com `bg-white text-slate-900` e classe compartilhada para selects.
+  - Validacao local: `npm --prefix frontend run build` GREEN.

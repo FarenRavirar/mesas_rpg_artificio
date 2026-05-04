@@ -17,6 +17,8 @@ interface NewSourceForm {
 }
 
 const emptyForm: NewSourceForm = { guild_id: '', channel_id: '', channel_name: '' };
+const selectClassName =
+  'px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm disabled:opacity-50 [&_option]:bg-white [&_option]:text-slate-900';
 
 export function DiscordSourceList({ sources, onRefresh, onFetchMessages, fetchingSourceId }: Props) {
   const [showForm, setShowForm] = useState(false);
@@ -184,11 +186,11 @@ export function DiscordSourceList({ sources, onRefresh, onFetchMessages, fetchin
                     value={selectedGuildId}
                     onChange={e => handleSelectGuild(e.target.value)}
                     disabled={loadingGuilds}
-                    className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm disabled:opacity-50"
+                    className={selectClassName}
                   >
-                    <option value="">{loadingGuilds ? 'Carregando servidores...' : 'Selecione um servidor'}</option>
+                    <option className="bg-white text-slate-900" value="">{loadingGuilds ? 'Carregando servidores...' : 'Selecione um servidor'}</option>
                     {guilds.map(guild => (
-                      <option key={guild.id} value={guild.id}>
+                      <option className="bg-white text-slate-900" key={guild.id} value={guild.id}>
                         {guild.name}
                       </option>
                     ))}
@@ -200,11 +202,11 @@ export function DiscordSourceList({ sources, onRefresh, onFetchMessages, fetchin
                     value={selectedChannelId}
                     onChange={e => setSelectedChannelId(e.target.value)}
                     disabled={!selectedGuildId || loadingChannels}
-                    className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm disabled:opacity-50"
+                    className={selectClassName}
                   >
-                    <option value="">{loadingChannels ? 'Carregando canais...' : 'Selecione um canal'}</option>
+                    <option className="bg-white text-slate-900" value="">{loadingChannels ? 'Carregando canais...' : 'Selecione um canal'}</option>
                     {channels.map(channel => (
-                      <option key={channel.id} value={channel.id}>
+                      <option className="bg-white text-slate-900" key={channel.id} value={channel.id}>
                         {channel.parent_name ? `${channel.parent_name} / #${channel.name}` : `#${channel.name}`}
                       </option>
                     ))}
