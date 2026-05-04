@@ -23,6 +23,15 @@
 **Risco residual:** validacao funcional depende de deploy Beta e bot com permissoes de ver canal/ler historico.
 **Sessao mantida aberta em:** `sessoes/26-05-03_4_discord-settings-config.md`
 
+## 2026-05-04T09:30:00-03:00 — discord-selects-unificados
+
+**Tipo:** Correção UX pós-Feature 015
+**Escopo:** todos os menus `<select>` atuais do frontend.
+**Correção:** estilo canônico do seletor de servidor do Discord Sync consolidado como `.app-select` em `frontend/src/index.css`, com fallback global para opções de selects, e aplicado aos selects existentes.
+**Evidências principais:** `npm --prefix frontend run build` passou; busca por `<select>` sem `.app-select` retornou zero; `database/changelogs.json` validado sem duplicidade de data/ID e sem termos bloqueados.
+**Risco residual:** validação funcional/manual ainda depende de commit, push/deploy para `dev` e teste do mantenedor em janela anônima no Beta.
+**Sessão mantida aberta em:** `sessoes/26-05-04_1_discord-forum-threads.md`
+
 ## 2026-05-03T16:36:45-03:00 — discord-settings-config
 
 **Tipo:** Implementacao SDD

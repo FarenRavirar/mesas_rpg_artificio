@@ -76,7 +76,7 @@ export function DiscordDraftReviewTable() {
         <select
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value as DiscordImportDraftStatus | '')}
-          className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm"
+          className="app-select"
         >
           <option value="">Todos os status</option>
           {(Object.keys(DRAFT_STATUS_LABELS) as DiscordImportDraftStatus[]).map(s => (

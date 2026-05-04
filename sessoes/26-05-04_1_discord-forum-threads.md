@@ -148,3 +148,15 @@ Sessao concluida quando a Feature 015 tiver spec, plan, tasks, implementacao, bu
 - [x] CodeQL em `dev` concluido GREEN no run `25317355526`.
 - [x] Health publico Beta validado: `GET https://mesasbeta.artificiorpg.com/api/v1/health` retornou HTTP 200.
 - [x] Documentacao pos-deploy atualizada para liberar teste funcional em janela anonima.
+- [x] Retomada para correcao UX de selects: manter todos os menus `<select>` com o mesmo estilo usado em "Selecione um servidor".
+- [x] Busca inicial executada em `frontend/src`: selects atuais localizados em componentes de Discord Sync, catalogo, perfil, formulario de mesa, sugestao de sistema, arvore de sistemas, atividade admin e inspector admin.
+- [x] Estilo unificado de select extraido para `.app-select` em `frontend/src/index.css`, com fallback global para `select option`/`optgroup`, e aplicado aos selects existentes.
+- [x] Build frontend executado apos a padronizacao: `npm --prefix frontend run build` GREEN.
+- [x] Busca final confirma ausencia de selects fora do helper unificado: zero `<select>` sem `app-select` em `frontend/src`.
+- [x] Changelog atualizado em `database/changelogs.json` com entrada unica de 04/05/2026, validada sem duplicidade de data/ID e sem termos bloqueados.
+- [x] `project-state.md` e `session-log.md` atualizados com status da correcao UX de selects.
+- [x] Servidor local de dev iniciado para teste: `http://127.0.0.1:5173/` (PID 27560).
+
+- 2026-05-04: Pedido de deploy de todo `dev` recebido. Governança de deploy lida (`PRE_DEPLOY_CHECKLIST.md`, `BRANCH_POLICY.md`, registry completo, project-state). Estado Git mostra `dev` sem commits locais à frente de `origin/dev`, mas com múltiplas mudanças não commitadas; deploy exige commit e push explícitos antes de acionar Beta.
+
+- 2026-05-04: Mantenedor autorizou explicitamente commit de todas as mudanças pendentes e `git push origin dev` para acionar Deploy Beta. Próximo: verificar diff stat, stage explícito por arquivo, commit, push e acompanhar validação.

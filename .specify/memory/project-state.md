@@ -1,6 +1,6 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-05-04T08:54:52-03:00
+**Última atualização:** 2026-05-04T09:30:00-03:00
 **Atualizado por:** sessão 26-05-04_1_discord-forum-threads
 ---
 
@@ -20,6 +20,15 @@
 
 **Feature ativa:** `specs/015-discord-forum-threads/`
 **Sessão ativa:** `sessoes/26-05-04_1_discord-forum-threads.md`
+
+**Correção UX — Menus de seleção unificados (04/05/2026):**
+- Retomada solicitada pelo mantenedor após identificação visual de dropdown com fundo/opções inconsistentes no Discord Sync.
+- Estilo canônico do select "Selecione um servidor" consolidado como `.app-select` em `frontend/src/index.css`.
+- Fallback global adicionado para `select option` e `select optgroup`, reduzindo risco de novos menus abrirem com contraste incorreto.
+- Todos os `<select>` atuais em `frontend/src` foram atualizados para usar `.app-select`, incluindo Discord Sync, catálogo, perfil, cadastro de mesa, sugestão/árvore de sistemas, filtros de atividade admin e inspector admin.
+- `database/changelogs.json` recebeu entrada de 04/05/2026 para a mudança visível.
+- Validação técnica: `npm --prefix frontend run build` GREEN; busca final por `<select>` sem `.app-select` retornou zero resultados; validação do changelog sem IDs/datas duplicadas e sem termos bloqueados.
+- **Status:** implementação local pronta para revisão/teste em dev; commit/push/deploy Beta dependem de autorização explícita.
 
 **Feature 015 — Importação de Posts de Fóruns Discord (04/05/2026):**
 - Sessão `26-05-04_1_discord-forum-threads` aberta a partir do prompt 015.

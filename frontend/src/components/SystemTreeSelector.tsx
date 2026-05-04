@@ -321,7 +321,7 @@ export const SystemTreeSelector = ({
                       handleToggleWithFeedback(e.target.value);
                     }
                   }}
-                  className="w-full rounded-lg border border-white/20 bg-[#13213f] px-3 py-2 text-sm text-white outline-none focus:border-[var(--color-artificio-orange)]"
+                  className="app-select w-full"
                 >
 <option value="">Selecione uma edição...</option>
                   {midNodes.map(ed => (
@@ -344,7 +344,7 @@ export const SystemTreeSelector = ({
                       handleToggleWithFeedback(e.target.value);
                     }
                   }}
-                  className="w-full rounded-lg border border-white/20 bg-[#13213f] px-3 py-2 text-sm text-white outline-none focus:border-[var(--color-artificio-orange)]"
+                  className="app-select w-full"
                 >
                   <option value="">Selecione uma variante...</option>
                   {variants.map(variant => (

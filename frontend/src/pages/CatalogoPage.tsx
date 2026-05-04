@@ -260,7 +260,7 @@ export const CatalogoPage = () => {
                 <select
                   value={filters.modality}
                   onChange={(e) => setFilters(prev => ({ ...prev, modality: e.target.value as any }))}
-                  className="rounded-lg border border-white/10 bg-[#0F1A2E] px-3 py-2.5 text-sm outline-none transition-colors focus:border-[var(--color-artificio-orange)]"
+                  className="app-select py-2.5"
                 >
                   <option value="">Modalidade</option>
                   <option value="online">Online</option>
@@ -271,7 +271,7 @@ export const CatalogoPage = () => {
                 <select
                   value={filters.priceType}
                   onChange={(e) => setFilters(prev => ({ ...prev, priceType: e.target.value as any }))}
-                  className="rounded-lg border border-white/10 bg-[#0F1A2E] px-3 py-2.5 text-sm outline-none transition-colors focus:border-[var(--color-artificio-orange)]"
+                  className="app-select py-2.5"
                 >
                   <option value="">Preço</option>
                   <option value="gratuita">Gratuita</option>
@@ -281,7 +281,7 @@ export const CatalogoPage = () => {
                 <select
                   value={filters.experience}
                   onChange={(e) => setFilters(prev => ({ ...prev, experience: e.target.value as any }))}
-                  className="rounded-lg border border-white/10 bg-[#0F1A2E] px-3 py-2.5 text-sm outline-none transition-colors focus:border-[var(--color-artificio-orange)]"
+                  className="app-select py-2.5"
                 >
                   <option value="">Nível</option>
                   <option value="iniciante">Iniciante</option>
@@ -398,7 +398,7 @@ export const CatalogoPage = () => {
           <select
             value={filters.modality}
             onChange={(e) => setFilters(prev => ({ ...prev, modality: e.target.value as any }))}
-            className="w-full rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
+            className="app-select w-full py-2.5"
           >
             <option value="">Modalidade</option>
             <option value="online">Online</option>
@@ -409,7 +409,7 @@ export const CatalogoPage = () => {
           <select
             value={filters.priceType}
             onChange={(e) => setFilters(prev => ({ ...prev, priceType: e.target.value as any }))}
-            className="w-full rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
+            className="app-select w-full py-2.5"
           >
             <option value="">Preço</option>
             <option value="gratuita">Gratuita</option>
@@ -419,7 +419,7 @@ export const CatalogoPage = () => {
           <select
             value={filters.experience}
             onChange={(e) => setFilters(prev => ({ ...prev, experience: e.target.value as any }))}
-            className="w-full rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
+            className="app-select w-full py-2.5"
           >
             <option value="">Nível</option>
             <option value="iniciante">Iniciante</option>
@@ -430,7 +430,7 @@ export const CatalogoPage = () => {
           <select
             value={filters.sort}
             onChange={(e) => setFilters(prev => ({ ...prev, sort: e.target.value as any }))}
-            className="w-full rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
+            className="app-select w-full py-2.5"
           >
             <option value="popular">Mais populares</option>
             <option value="recent">Mais recentes</option>

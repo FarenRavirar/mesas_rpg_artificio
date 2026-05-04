@@ -1,5 +1,13 @@
 [
   {
+    "id": "2026-05-04-atualizacoes-do-dia",
+    "title": "Menus de escolha ficaram mais consistentes",
+    "body": "Publicamos um ajuste visual para deixar as escolhas dentro do site mais confortáveis:\n\n• **Menus mais fáceis de ler** - As listas de escolha agora seguem o mesmo visual em diferentes telas, evitando contraste ruim ao abrir as opções\n\n_Atualização unificada publicada em 04/05/2026 às 09:28_",
+    "type": "app",
+    "published": true,
+    "created_at": "2026-05-04T09:28:00-03:00"
+  },
+  {
     "id": "2026-05-03-atualizacoes-do-dia",
     "title": "Sugestões agora chegam mais rápido para a equipe responsável",
     "body": "Publicamos uma melhoria para deixar o acompanhamento de sugestões mais confiável:\n\n• **Aviso para a equipe responsável** - Toda sugestão enviada por usuários agora gera uma notificação para quem cuida da análise\n• **Confirmação mais clara** - Ao sugerir um sistema, a confirmação só aparece depois que o envio foi registrado com sucesso\n\n_Atualização unificada publicada em 03/05/2026 às 07:40_",

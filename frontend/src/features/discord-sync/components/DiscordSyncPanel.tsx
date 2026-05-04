@@ -134,7 +134,7 @@ export function DiscordSyncPanel() {
             <select
               value={messageStatusFilter}
               onChange={e => setMessageStatusFilter(e.target.value as DiscordImportMessageStatus | '')}
-              className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm"
+              className="app-select"
             >
               <option value="">Todos os status</option>
               {(Object.keys(MESSAGE_STATUS_LABELS) as DiscordImportMessageStatus[]).map(s => (

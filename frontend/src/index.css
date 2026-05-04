@@ -28,4 +28,45 @@
     color: rgba(255, 255, 255, 0.4) !important;
     opacity: 1 !important;
   }
+
+  select {
+    color-scheme: dark;
+  }
+
+  select option,
+  select optgroup {
+    background: #ffffff;
+    color: #0f172a;
+  }
+}
+
+@layer components {
+  .app-select {
+    width: auto;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: #ffffff;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    outline: none;
+    transition: border-color 0.2s ease, background-color 0.2s ease, opacity 0.2s ease;
+    cursor: pointer;
+  }
+
+  .app-select:focus {
+    border-color: rgba(232, 82, 26, 0.6);
+  }
+
+  .app-select:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .app-select option,
+  .app-select optgroup {
+    background: #ffffff;
+    color: #0f172a;
+  }
 }

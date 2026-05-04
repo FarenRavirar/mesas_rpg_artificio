@@ -352,6 +352,20 @@
   color: white;
 }
 
+.form-group select.app-select {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+.form-group select.app-select option,
+.form-group select.app-select optgroup {
+  background: #ffffff;
+  color: #0f172a;
+}
+
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {

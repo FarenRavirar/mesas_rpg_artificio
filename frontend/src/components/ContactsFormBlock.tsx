@@ -67,7 +67,7 @@ export function ContactsFormBlock({ contacts, onChange, error }: ContactsFormBlo
                     id={`painel-mestre-contact-channel-${index}`}
                     value={contact.channel}
                     onChange={(event) => updateContact(index, { channel: event.target.value as TableContactChannel, discord_server_url: event.target.value === 'discord' ? contact.discord_server_url : '' })}
-                    className="w-full bg-[#1B2A4A] border border-white/10 rounded-xl px-3 py-2.5 text-white outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all cursor-pointer"
+                    className="app-select w-full py-2.5"
                   >
                     {CHANNEL_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>{option.label}</option>

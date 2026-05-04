@@ -176,7 +176,7 @@ export const SystemSuggestionModal = ({ isOpen, onClose, onSuccess }: SystemSugg
                   setSuggestionType(e.target.value as SuggestionType);
                   setParentId('');
                 }}
-                className="w-full px-4 py-2 bg-[#0F1A2E] border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-artificio-orange)]"
+                className="app-select w-full px-4"
               >
                 <option value="system">Novo Sistema</option>
                 <option value="edition">Edição de Sistema Existente</option>
@@ -233,7 +233,7 @@ export const SystemSuggestionModal = ({ isOpen, onClose, onSuccess }: SystemSugg
                 <select
                   value={parentId}
                   onChange={(e) => setParentId(e.target.value)}
-                  className="w-full px-4 py-2 bg-[#0F1A2E] border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-artificio-orange)]"
+                  className="app-select w-full px-4"
                   disabled={systemsLoading}
                 >
                   <option value="">

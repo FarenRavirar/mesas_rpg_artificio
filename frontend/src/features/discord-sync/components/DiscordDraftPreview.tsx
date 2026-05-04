@@ -97,7 +97,7 @@ export function DiscordDraftPreview({ draft, onUpdate, onClose }: Props) {
               <select
                 value={newStatus}
                 onChange={e => setNewStatus(e.target.value as DiscordImportDraftStatus)}
-                className="px-2 py-1 bg-white/5 border border-white/10 rounded-lg text-white text-sm"
+                className="app-select py-1"
               >
                 {STATUS_OPTIONS.map(s => (
                   <option key={s} value={s}>{s}</option>

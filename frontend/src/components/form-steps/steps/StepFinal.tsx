@@ -110,7 +110,7 @@ function SelectField({
       <select
         id={id}
         {...props}
-        className="w-full bg-[#1B2A4A] border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all cursor-pointer"
+        className="app-select w-full px-4 py-3"
       >
         {children}
       </select>

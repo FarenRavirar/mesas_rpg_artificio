@@ -18,8 +18,6 @@ interface NewSourceForm {
 }
 
 const emptyForm: NewSourceForm = { guild_id: '', channel_id: '', channel_name: '', channel_type: 'text' };
-const selectClassName =
-  'px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm disabled:opacity-50 [&_option]:bg-white [&_option]:text-slate-900';
 
 function getChannelKindLabel(kind: DiscordSourceChannelType): string {
   if (kind === 'forum') return 'Fórum';
@@ -199,7 +197,7 @@ export function DiscordSourceList({ sources, onRefresh, onFetchMessages, fetchin
                     value={selectedGuildId}
                     onChange={e => handleSelectGuild(e.target.value)}
                     disabled={loadingGuilds}
-                    className={selectClassName}
+                    className="app-select w-full"
                   >
                     <option className="bg-white text-slate-900" value="">{loadingGuilds ? 'Carregando servidores...' : 'Selecione um servidor'}</option>
                     {guilds.map(guild => (
@@ -215,7 +213,7 @@ export function DiscordSourceList({ sources, onRefresh, onFetchMessages, fetchin
                     value={selectedChannelId}
                     onChange={e => setSelectedChannelId(e.target.value)}
                     disabled={!selectedGuildId || loadingChannels}
-                    className={selectClassName}
+                    className="app-select w-full"
                   >
                     <option className="bg-white text-slate-900" value="">{loadingChannels ? 'Carregando canais...' : 'Selecione um canal ou fórum'}</option>
                     {channels.map(channel => (
@@ -259,7 +257,7 @@ export function DiscordSourceList({ sources, onRefresh, onFetchMessages, fetchin
               <select
                 value={form.channel_type}
                 onChange={e => setForm(f => ({ ...f, channel_type: e.target.value as DiscordSourceChannelType }))}
-                className={selectClassName}
+                className="app-select w-full"
               >
                 <option className="bg-white text-slate-900" value="text">Texto</option>
                 <option className="bg-white text-slate-900" value="announcement">Anúncio</option>

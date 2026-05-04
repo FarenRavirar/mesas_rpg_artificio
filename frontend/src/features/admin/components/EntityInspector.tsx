@@ -176,7 +176,7 @@ export function EntityInspector(props: Props) {
               value={nodeType}
               onChange={(e) => setNodeType(e.target.value as any)}
               disabled={mode === 'edit'}
-              className="w-full px-3 py-2 bg-[#0F1A2E] border border-white/10 rounded text-white focus:outline-none focus:border-blue-500"
+              className="app-select w-full rounded px-3"
             >
               {validTypes.map(t => <option key={t} value={t}>{TYPE_LABEL[t]}</option>)}
             </select>

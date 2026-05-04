@@ -527,6 +527,7 @@ function TabJogador() {
           <select
             id="experience_level"
             defaultValue={playerProfile.experience_level || ''}
+            className="app-select w-full"
             onChange={(e) =>
               updatePlayer({
                 experience_level: e.target.value as 'iniciante' | 'intermediario' | 'veterano',
@@ -638,6 +639,7 @@ function TabJogador() {
           <select
             id="preferred_time"
             defaultValue={playerProfile.preferred_time || ''}
+            className="app-select w-full"
             onChange={(e) =>
               updatePlayer({ preferred_time: e.target.value as 'manha' | 'tarde' | 'noite' })
             }
@@ -654,6 +656,7 @@ function TabJogador() {
           <select
             id="pricing_preference"
             defaultValue={playerProfile.pricing_preference || ''}
+            className="app-select w-full"
             onChange={(e) =>
               updatePlayer({ pricing_preference: e.target.value as 'free' | 'paid' | 'both' })
             }
