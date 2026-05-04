@@ -160,3 +160,5 @@ Sessao concluida quando a Feature 015 tiver spec, plan, tasks, implementacao, bu
 - 2026-05-04: Pedido de deploy de todo `dev` recebido. Governança de deploy lida (`PRE_DEPLOY_CHECKLIST.md`, `BRANCH_POLICY.md`, registry completo, project-state). Estado Git mostra `dev` sem commits locais à frente de `origin/dev`, mas com múltiplas mudanças não commitadas; deploy exige commit e push explícitos antes de acionar Beta.
 
 - 2026-05-04: Mantenedor autorizou explicitamente commit de todas as mudanças pendentes e `git push origin dev` para acionar Deploy Beta. Próximo: verificar diff stat, stage explícito por arquivo, commit, push e acompanhar validação.
+
+- 2026-05-04: Commit `f8742db` criado em `dev` com mudanças pendentes autorizadas e enviado para `origin/dev`. Deploy Beta run `25320559567` concluído com sucesso (`validate`, `enforce-dir`, `lint`, `migrate`, `deploy-app`, `smoke`). Pós-deploy: `https://mesasbeta.artificiorpg.com` retornou HTTP 200 e `/api/v1/health` retornou `status=ok`, `environment=beta`, `db=connected`.

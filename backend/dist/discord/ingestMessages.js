@@ -90,13 +90,12 @@ function getContentHash(msg) {
         .digest('hex');
 }
 async function fetchChannelMessages(params) {
-    const url = new URL(`${DISCORD_API_BASE}/channels/${params.channelId}/messages`);
-    url.searchParams.set('limit', String(Math.min(params.limit, 100)));
+    const qs = new URLSearchParams({ limit: String(Math.min(params.limit, 100)) });
     if (params.beforeMessageId)
-        url.searchParams.set('before', params.beforeMessageId);
+        qs.set('before', params.beforeMessageId);
     if (params.afterMessageId)
-        url.searchParams.set('after', params.afterMessageId);
-    const payload = await discordGetUnknown(`${url.pathname}${url.search}`, params.token);
+        qs.set('after', params.afterMessageId);
+    const payload = await discordGetUnknown(`/channels/${params.channelId}/messages?${qs}`, params.token);
     const parsed = discordApiMessagesSchema.safeParse(payload);
     if (!parsed.success) {
         throw new DiscordIngestError('Discord retornou mensagens em formato inesperado.', 502);
