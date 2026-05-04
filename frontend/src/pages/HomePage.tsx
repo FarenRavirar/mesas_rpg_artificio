@@ -52,24 +52,29 @@ export const HomePage = () => {
 
   return (
     <main className="bg-[var(--color-artificio-blue)] font-sans text-white">
-      {/* HERO OTIMIZADO */}
+      {/* HERO */}
       <section className="relative w-full py-16 lg:py-20 overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[var(--color-artificio-orange)] rounded-full blur-[150px] opacity-10 pointer-events-none" />
+        <div className="orange-glow" />
         <div className="container mx-auto px-6 text-center space-y-6 relative z-10">
 
-          {/* PROVA SOCIAL (DINÂMICA) */}
-          <p className="text-sm text-white/60">
-            {/* CORREÇÃO HP-07: Sempre usar totalCount, fallback só se undefined */}
-            {totalCount ?? tables.length}+ mesas abertas agora
+          {/* EYEBROW — prova social dinâmica */}
+          <p className="eyebrow">
+            ◆ {totalCount ?? tables.length}+ mesas abertas · comunidade Artifício RPG
           </p>
 
-          {/* HEADLINE ORIENTADA A AÇÃO */}
+          {/* HEADLINE */}
           <h1 className="text-4xl lg:text-6xl font-extrabold tracking-tight">
             Encontre uma mesa de RPG em <span className="text-[var(--color-artificio-orange)]">30 segundos</span>
           </h1>
 
-          {/* BUSCA COM AUTO TRIGGER */}
-          <div className="max-w-2xl mx-auto mt-6 p-2 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full flex items-center shadow-2xl focus-within:ring-2 focus-within:ring-[var(--color-artificio-orange)]/50 transition-all">
+          {/* SUBTÍTULO */}
+          <p className="text-base text-white/70 max-w-xl mx-auto leading-relaxed">
+            D&amp;D, Tormenta, Vampiro e dezenas de outros sistemas. Online ou presencial.
+            De mestres da comunidade Artifício e parceiros.
+          </p>
+
+          {/* BUSCA */}
+          <div className="glass max-w-2xl mx-auto mt-6 p-2 rounded-full flex items-center shadow-2xl focus-within:ring-2 focus-within:ring-[var(--color-artificio-orange)]/50 transition-all">
             <Search className="w-6 h-6 text-white/50 ml-4 hidden sm:block" />
             <input
               id="input-busca-mesas"
@@ -89,7 +94,7 @@ export const HomePage = () => {
             </button>
           </div>
 
-          {/* SUGESTÕES (REDUZ CARGA COGNITIVA) */}
+          {/* SUGESTÕES */}
           <div className="flex flex-wrap justify-center gap-2 mt-4">
             {SUGGESTIONS.map((item) => (
               <button
@@ -102,38 +107,44 @@ export const HomePage = () => {
             ))}
           </div>
 
-          {/* CORREÇÃO HP-11: Filtros de selos */}
-          <div className="flex flex-wrap justify-center gap-2 mt-4">
+          {/* FILTROS DE SELOS */}
+          <div className="flex flex-wrap justify-center gap-2 mt-2">
             <button
               onClick={() => setActiveSeal('')}
               className={`px-3 py-1 text-xs rounded-full transition-colors ${
-                activeSeal === '' 
-                  ? 'bg-[var(--color-artificio-orange)] text-white' 
+                activeSeal === ''
+                  ? 'bg-[var(--color-artificio-orange)] text-white font-semibold'
                   : 'bg-white/10 hover:bg-white/20 text-white/70'
               }`}
             >
-              Todas
+              Todas as mesas
             </button>
             <button
               onClick={() => setActiveSeal('ddal')}
               className={`px-3 py-1 text-xs rounded-full transition-colors flex items-center gap-1 ${
-                activeSeal === 'ddal' 
-                  ? 'bg-amber-500 text-white' 
+                activeSeal === 'ddal'
+                  ? 'bg-amber-500 text-white font-semibold'
                   : 'bg-white/10 hover:bg-white/20 text-white/70'
               }`}
             >
-              🏅 DDAL
+              🛡️ DDAL
             </button>
             <button
               onClick={() => setActiveSeal('covil-do-lich')}
               className={`px-3 py-1 text-xs rounded-full transition-colors flex items-center gap-1 ${
-                activeSeal === 'covil-do-lich' 
-                  ? 'bg-purple-500 text-white' 
+                activeSeal === 'covil-do-lich'
+                  ? 'bg-purple-500 text-white font-semibold'
                   : 'bg-white/10 hover:bg-white/20 text-white/70'
               }`}
             >
-              💀 Covil do Lich
+              👑 Covil do Lich
             </button>
+            <Link
+              to="/catalogo?priceType=gratuita"
+              className="px-3 py-1 text-xs rounded-full bg-white/10 hover:bg-white/20 text-white/70 transition-colors"
+            >
+              Gratuitas
+            </Link>
           </div>
 
         </div>

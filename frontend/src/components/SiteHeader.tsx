@@ -39,6 +39,7 @@ export const SiteHeader = () => {
         </Link>
 
         <nav className="hidden md:flex items-center gap-5 text-sm text-white/75">
+          <Link to="/" className="hover:text-white transition-colors" id="site-header-link-inicio">Início</Link>
           <Link to="/catalogo" className="hover:text-white transition-colors" id="site-header-link-catalogo">Catálogo</Link>
           <Link to="/painel" className="hover:text-white transition-colors" id="site-header-link-painel">Painel</Link>
         </nav>
