@@ -1,6 +1,6 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-05-04T12:15:00-03:00
+**Última atualização:** 2026-05-04T14:32:00-03:00
 **Atualizado por:** sessão 26-05-04_1_discord-forum-threads
 ---
 
@@ -37,7 +37,11 @@
 - Backend: `POST /admin/discord-sync/fetch` aceita `since`/`until`; ingestão filtra mensagens fora da janela; `PATCH /admin/discord-sync/messages/:id` atualiza status de triagem.
 - Frontend: aba Fontes permite escolher janela (`24h`, `7d`, `30d`, `90d`, `sem limite`) antes de buscar; aba Mensagens permite selecionar mensagem, ler conteúdo completo, abrir no Discord e alterar status.
 - Validação técnica: `npm --prefix backend run build` GREEN; `npm --prefix frontend run build` GREEN.
-- **Status:** pronto para commit/push/deploy Beta solicitado pelo mantenedor.
+- **Commit/deploy:** commit `8825e2d` enviado para `origin/dev`; Deploy Beta run `25333281806` GREEN em 2026-05-04.
+- **Deploy Beta:** jobs `validate`, `enforce-dir`, `lint`, `migrate`, `deploy-app` e `smoke` passaram.
+- **CodeQL dev:** run `25333281042` GREEN.
+- **Health Beta:** `https://mesasbeta.artificiorpg.com/` retornou HTTP 200 e `/api/v1/health` retornou `status=ok`, `environment=beta`, `db=connected`.
+- **Status:** disponível em Beta para teste funcional do mantenedor em janela anônima.
 
 **Feature 015 — Importação de Posts de Fóruns Discord (04/05/2026):**
 - Sessão `26-05-04_1_discord-forum-threads` aberta a partir do prompt 015.

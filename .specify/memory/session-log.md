@@ -30,7 +30,8 @@
 **Bug:** `specs/015-discord-forum-threads/bugs/BUG-001.md`
 **Correção:** `POST /fetch` aceita janela temporal para qualquer fonte Discord; aba Fontes permite escolher período antes da busca; aba Mensagens abre detalhe de apuração com conteúdo completo, link para Discord e edição de status via `PATCH /messages/:id`.
 **Evidências principais:** `npm --prefix backend run build` passou; `npm --prefix frontend run build` passou; MAPA_DE_API, contratos, tasks, project-state e changelog atualizados.
-**Risco residual:** validação funcional/manual ainda depende de deploy Beta e teste do mantenedor em janela anônima.
+**Deploy:** commit `8825e2d` em `origin/dev`; Deploy Beta `25333281806` GREEN; CodeQL `25333281042` GREEN; health Beta HTTP 200 com DB conectado.
+**Risco residual:** validação funcional/manual ainda depende de teste do mantenedor em janela anônima.
 **Sessão mantida aberta em:** `sessoes/26-05-04_1_discord-forum-threads.md`
 
 ## 2026-05-04T09:30:00-03:00 — discord-selects-unificados
