@@ -75,8 +75,13 @@ export function DiscordSyncPanel() {
   const handleFetchMessages = async (sourceId: string) => {
     setFetchingSourceId(sourceId);
     try {
+      const source = sources.find(item => item.id === sourceId);
       const result = await discordSyncApi.fetchMessages({ source_id: sourceId, limit: 50 });
-      toast.success(`+${result.inserted} inseridas, ${result.updated} atualizadas.`);
+      if (source?.channel_type === 'forum') {
+        toast.success(`${result.threadsScanned} posts varridos: +${result.inserted} inseridas, ${result.updated} atualizadas.`);
+      } else {
+        toast.success(`+${result.inserted} inseridas, ${result.updated} atualizadas.`);
+      }
       if (tab === 'mensagens') loadMessages();
       loadSources();
     } catch (err) {
@@ -161,6 +166,11 @@ export function DiscordSyncPanel() {
                         <span className={`px-2 py-0.5 text-xs rounded-full ${MESSAGE_STATUS_COLORS[msg.status]}`}>
                           {MESSAGE_STATUS_LABELS[msg.status]}
                         </span>
+                        {msg.discord_thread_id && (
+                          <span className="px-2 py-0.5 text-xs rounded-full bg-sky-900/40 text-sky-200 border border-sky-500/30">
+                            Fórum: {msg.discord_thread_name ?? msg.discord_thread_id}
+                          </span>
+                        )}
                         <span className="text-white/40 text-xs">
                           {msg.discord_author_name ?? msg.discord_author_id ?? 'autor desconhecido'}
                         </span>

@@ -1,4 +1,5 @@
 export type DiscordImportSourceKind = 'discord_bot' | 'discord_chat_exporter_json';
+export type DiscordSourceChannelType = 'text' | 'announcement' | 'forum';
 export type DiscordImportMessageStatus = 'pending' | 'parsed' | 'needs_review' | 'synced' | 'ignored' | 'error';
 export type DiscordImportDraftStatus = 'draft' | 'ready' | 'needs_review' | 'synced' | 'rejected';
 
@@ -7,6 +8,7 @@ export interface DiscordSource {
   guild_id: string;
   channel_id: string;
   channel_name: string | null;
+  channel_type: DiscordSourceChannelType;
   enabled: boolean;
   auto_sync_enabled: boolean;
   last_message_id: string | null;
@@ -27,6 +29,7 @@ export interface DiscordDiscoveredChannel {
   guild_id: string;
   name: string;
   type: number;
+  kind: DiscordSourceChannelType;
   position: number | null;
   parent_id: string | null;
   parent_name: string | null;
@@ -38,6 +41,9 @@ export interface DiscordMessage {
   discord_message_id: string;
   discord_channel_id: string;
   discord_guild_id: string;
+  discord_parent_channel_id: string | null;
+  discord_thread_id: string | null;
+  discord_thread_name: string | null;
   discord_author_id: string | null;
   discord_author_name: string | null;
   discord_message_url: string | null;
@@ -70,6 +76,10 @@ export interface DiscordDraft {
 export interface IngestResult {
   inserted: number;
   updated: number;
+  total: number;
+  newestMessageId: string | null;
+  threadsScanned: number;
+  sourceKind: DiscordSourceChannelType;
 }
 
 export interface SyncReadyResult {

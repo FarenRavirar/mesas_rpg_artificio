@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import type { DiscordDiscoveredChannel, DiscordDiscoveredGuild, DiscordSource } from '../types';
+import type { DiscordDiscoveredChannel, DiscordDiscoveredGuild, DiscordSource, DiscordSourceChannelType } from '../types';
 import { discordSyncApi } from '../api/discordSyncApi';
 
 interface Props {
@@ -14,11 +14,22 @@ interface NewSourceForm {
   guild_id: string;
   channel_id: string;
   channel_name: string;
+  channel_type: DiscordSourceChannelType;
 }
 
-const emptyForm: NewSourceForm = { guild_id: '', channel_id: '', channel_name: '' };
+const emptyForm: NewSourceForm = { guild_id: '', channel_id: '', channel_name: '', channel_type: 'text' };
 const selectClassName =
   'px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm disabled:opacity-50 [&_option]:bg-white [&_option]:text-slate-900';
+
+function getChannelKindLabel(kind: DiscordSourceChannelType): string {
+  if (kind === 'forum') return 'Fórum';
+  if (kind === 'announcement') return 'Anúncio';
+  return 'Texto';
+}
+
+function getChannelPrefix(kind: DiscordSourceChannelType): string {
+  return kind === 'forum' ? 'Fórum ' : '#';
+}
 
 export function DiscordSourceList({ sources, onRefresh, onFetchMessages, fetchingSourceId }: Props) {
   const [showForm, setShowForm] = useState(false);
@@ -85,7 +96,7 @@ export function DiscordSourceList({ sources, onRefresh, onFetchMessages, fetchin
       const discoveredChannels = await discordSyncApi.discoverChannels(guildId);
       setChannels(discoveredChannels);
       if (discoveredChannels.length === 0) {
-        setDiscoveryError('Nenhum canal textual encontrado. Revise permissões do bot no servidor e nos canais.');
+        setDiscoveryError('Nenhum canal textual, anúncio ou fórum encontrado. Revise permissões do bot no servidor e nos canais.');
       }
     } catch (err) {
       setDiscoveryError(err instanceof Error ? err.message : 'Erro ao descobrir canais.');
@@ -106,8 +117,9 @@ export function DiscordSourceList({ sources, onRefresh, onFetchMessages, fetchin
         guild_id: selectedGuildId,
         channel_id: channel.id,
         channel_name: channel.name,
+        channel_type: channel.kind,
       });
-      toast.success('Canal cadastrado.');
+      toast.success(channel.kind === 'forum' ? 'Fórum cadastrado.' : 'Canal cadastrado.');
       closeForm();
       onRefresh();
     } catch (err) {
@@ -128,8 +140,9 @@ export function DiscordSourceList({ sources, onRefresh, onFetchMessages, fetchin
         guild_id: form.guild_id.trim(),
         channel_id: form.channel_id.trim(),
         channel_name: form.channel_name.trim() || undefined,
+        channel_type: form.channel_type,
       });
-      toast.success('Canal cadastrado.');
+      toast.success(form.channel_type === 'forum' ? 'Fórum cadastrado.' : 'Canal cadastrado.');
       closeForm();
       onRefresh();
     } catch (err) {
@@ -197,17 +210,19 @@ export function DiscordSourceList({ sources, onRefresh, onFetchMessages, fetchin
                   </select>
                 </label>
                 <label className="flex flex-col gap-1 text-xs text-white/50">
-                  Canal
+                  Canal ou fórum
                   <select
                     value={selectedChannelId}
                     onChange={e => setSelectedChannelId(e.target.value)}
                     disabled={!selectedGuildId || loadingChannels}
                     className={selectClassName}
                   >
-                    <option className="bg-white text-slate-900" value="">{loadingChannels ? 'Carregando canais...' : 'Selecione um canal'}</option>
+                    <option className="bg-white text-slate-900" value="">{loadingChannels ? 'Carregando canais...' : 'Selecione um canal ou fórum'}</option>
                     {channels.map(channel => (
                       <option className="bg-white text-slate-900" key={channel.id} value={channel.id}>
-                        {channel.parent_name ? `${channel.parent_name} / #${channel.name}` : `#${channel.name}`}
+                        {channel.parent_name
+                          ? `${channel.parent_name} / ${getChannelKindLabel(channel.kind)} ${channel.name}`
+                          : `${getChannelKindLabel(channel.kind)} ${channel.name}`}
                       </option>
                     ))}
                   </select>
@@ -222,7 +237,7 @@ export function DiscordSourceList({ sources, onRefresh, onFetchMessages, fetchin
           )}
 
           {manualMode && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <input
                 placeholder="Guild ID *"
                 value={form.guild_id}
@@ -241,6 +256,15 @@ export function DiscordSourceList({ sources, onRefresh, onFetchMessages, fetchin
                 onChange={e => setForm(f => ({ ...f, channel_name: e.target.value }))}
                 className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 text-sm"
               />
+              <select
+                value={form.channel_type}
+                onChange={e => setForm(f => ({ ...f, channel_type: e.target.value as DiscordSourceChannelType }))}
+                className={selectClassName}
+              >
+                <option className="bg-white text-slate-900" value="text">Texto</option>
+                <option className="bg-white text-slate-900" value="announcement">Anúncio</option>
+                <option className="bg-white text-slate-900" value="forum">Fórum</option>
+              </select>
             </div>
           )}
 
@@ -281,7 +305,10 @@ export function DiscordSourceList({ sources, onRefresh, onFetchMessages, fetchin
                 <span className="text-white font-medium text-sm">
                   {source.channel_name ?? source.channel_id}
                 </span>
-                <span className="ml-2 text-white/40 text-xs">#{source.channel_id}</span>
+                <span className="ml-2 text-sky-200 bg-sky-900/30 border border-sky-500/30 rounded px-2 py-0.5 text-xs">
+                  {getChannelKindLabel(source.channel_type)}
+                </span>
+                <span className="ml-2 text-white/40 text-xs">{getChannelPrefix(source.channel_type)}{source.channel_id}</span>
                 {source.last_synced_at && (
                   <span className="ml-2 text-white/30 text-xs">
                     sync {new Date(source.last_synced_at).toLocaleString('pt-BR')}
@@ -304,7 +331,9 @@ export function DiscordSourceList({ sources, onRefresh, onFetchMessages, fetchin
                   disabled={fetchingSourceId === source.id || !source.enabled}
                   className="px-3 py-1 bg-blue-700 hover:bg-blue-600 text-white text-xs rounded-lg transition-colors disabled:opacity-40"
                 >
-                  {fetchingSourceId === source.id ? 'Buscando...' : 'Buscar mensagens'}
+                  {fetchingSourceId === source.id
+                    ? (source.channel_type === 'forum' ? 'Varrendo posts...' : 'Buscando...')
+                    : (source.channel_type === 'forum' ? 'Buscar posts' : 'Buscar mensagens')}
                 </button>
                 {confirmDeleteId === source.id ? (
                   <>

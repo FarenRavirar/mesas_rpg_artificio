@@ -474,5 +474,5 @@ Próximos Passos  — próximos passos objetivos e imediatos
 Toda comunicação em **português**. Nomes de arquivos, comandos, funções e identificadores de código permanecem no formato original.
 
 <!-- SPECKIT START -->
-Current active plan: `specs/014-discord-channel-discovery/plan.md`.
+Current active plan: `specs/015-discord-forum-threads/plan.md`.
 <!-- SPECKIT END -->

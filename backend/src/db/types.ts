@@ -512,6 +512,7 @@ export type VttPlatformSuggestionUpdate = Updateable<VttPlatformSuggestionsTable
 
 // Migration 115: Pipeline de importação Discord/Covil
 export type DiscordImportSourceKind = 'discord_bot' | 'discord_chat_exporter_json';
+export type DiscordSourceChannelType = 'text' | 'announcement' | 'forum';
 export type DiscordImportMessageStatus = 'pending' | 'parsed' | 'needs_review' | 'synced' | 'ignored' | 'error';
 export type DiscordImportDraftStatus = 'draft' | 'ready' | 'needs_review' | 'synced' | 'rejected';
 
@@ -520,6 +521,7 @@ export interface DiscordImportSourcesTable {
   guild_id: string;
   channel_id: string;
   channel_name: string | null;
+  channel_type: Generated<DiscordSourceChannelType>;
   enabled: Generated<boolean>;
   auto_sync_enabled: Generated<boolean>;
   last_message_id: string | null;
@@ -538,6 +540,9 @@ export interface DiscordImportMessagesTable {
   discord_message_id: string;
   discord_channel_id: string;
   discord_guild_id: string;
+  discord_parent_channel_id: string | null;
+  discord_thread_id: string | null;
+  discord_thread_name: string | null;
   discord_author_id: string | null;
   discord_author_name: string | null;
   discord_message_url: string | null;

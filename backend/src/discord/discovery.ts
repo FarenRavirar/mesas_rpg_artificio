@@ -1,8 +1,14 @@
 import { z } from 'zod';
 import { requireDiscordBotToken } from './config';
+import type { DiscordSourceChannelType } from './types';
 
 const DISCORD_API_BASE = 'https://discord.com/api/v10';
-const DISCOVERABLE_CHANNEL_TYPES = new Set([0, 5]);
+const DISCOVERABLE_CHANNEL_TYPES = new Set([0, 5, 15]);
+const CHANNEL_KIND_BY_TYPE = new Map<number, DiscordSourceChannelType>([
+  [0, 'text'],
+  [5, 'announcement'],
+  [15, 'forum'],
+]);
 
 const discordGuildSchema = z.object({
   id: z.string(),
@@ -35,6 +41,7 @@ export interface DiscordDiscoveredChannel {
   guild_id: string;
   name: string;
   type: number;
+  kind: DiscordSourceChannelType;
   position: number | null;
   parent_id: string | null;
   parent_name: string | null;
@@ -129,6 +136,7 @@ export async function discoverDiscordChannels(guildId: string): Promise<DiscordD
       guild_id: channel.guild_id ?? guildId,
       name: channel.name as string,
       type: channel.type,
+      kind: CHANNEL_KIND_BY_TYPE.get(channel.type) ?? 'text',
       position: channel.position ?? null,
       parent_id: channel.parent_id ?? null,
       parent_name: channel.parent_id ? categoryNames.get(channel.parent_id) ?? null : null,

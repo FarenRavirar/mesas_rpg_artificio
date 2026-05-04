@@ -19,6 +19,7 @@ const createSourceSchema = zod_1.z.object({
     guild_id: zod_1.z.string().min(1),
     channel_id: zod_1.z.string().min(1),
     channel_name: zod_1.z.string().optional(),
+    channel_type: zod_1.z.enum(['text', 'announcement', 'forum']).optional(),
     enabled: zod_1.z.boolean().optional(),
     auto_sync_enabled: zod_1.z.boolean().optional(),
 });
@@ -65,6 +66,22 @@ function sendDiscordDiscoveryError(res, error, fallbackMessage) {
     }
     console.error(fallbackMessage, error);
     return res.status(502).json({ error: 'Não foi possível consultar o Discord agora. Tente novamente em instantes.' });
+}
+function normalizeSourceChannelType(value) {
+    return value === 'announcement' || value === 'forum' ? value : 'text';
+}
+function sendDiscordFetchError(res, error) {
+    if (error instanceof settingsCrypto_1.DiscordSettingsSecretUnavailableError) {
+        return res.status(503).json({ error: error.message });
+    }
+    if (error instanceof discord_1.DiscordIngestError) {
+        return res.status(error.statusCode).json({ error: error.message });
+    }
+    if (error instanceof Error && error.message.includes('DISCORD_BOT_TOKEN não configurado')) {
+        return res.status(422).json({ error: error.message });
+    }
+    console.error('[POST /admin/discord-sync/fetch]', error);
+    return res.status(500).json({ error: 'Erro ao buscar mensagens.' });
 }
 // ─── Configuracoes ───────────────────────────────────────────────────────────
 // GET /settings
@@ -224,7 +241,10 @@ router.post('/sources', auth_1.authMiddleware, async (req, res) => {
         }
         const [source] = await db_1.db
             .insertInto('discord_import_sources')
-            .values(parsed.data)
+            .values({
+            ...parsed.data,
+            channel_type: parsed.data.channel_type ?? 'text',
+        })
             .returningAll()
             .execute();
         return res.status(201).json({ data: source });
@@ -303,13 +323,21 @@ router.post('/fetch', auth_1.authMiddleware, async (req, res) => {
         if (!source) {
             return res.status(404).json({ error: 'Fonte não encontrada ou desabilitada.' });
         }
-        const result = await (0, discord_1.ingestMessages)({
-            sourceId: source_id,
-            channelId: source.channel_id,
-            guildId: source.guild_id,
-            limit,
-            beforeMessageId: before_message_id,
-        });
+        const sourceChannelType = normalizeSourceChannelType(source.channel_type);
+        const result = sourceChannelType === 'forum'
+            ? await (0, discord_1.ingestForumMessages)({
+                sourceId: source_id,
+                forumChannelId: source.channel_id,
+                guildId: source.guild_id,
+                limit,
+            })
+            : await (0, discord_1.ingestMessages)({
+                sourceId: source_id,
+                channelId: source.channel_id,
+                guildId: source.guild_id,
+                limit,
+                beforeMessageId: before_message_id,
+            });
         // Atualiza last_synced_at apenas se a chamada ao Discord foi concluida com sucesso
         if (result.inserted > 0 || result.updated > 0 || result.total === 0) {
             await db_1.db
@@ -321,14 +349,7 @@ router.post('/fetch', auth_1.authMiddleware, async (req, res) => {
         return res.json({ data: result });
     }
     catch (error) {
-        if (error instanceof settingsCrypto_1.DiscordSettingsSecretUnavailableError) {
-            return res.status(503).json({ error: error.message });
-        }
-        if (error instanceof Error && error.message.includes('DISCORD_BOT_TOKEN não configurado')) {
-            return res.status(422).json({ error: error.message });
-        }
-        console.error('[POST /admin/discord-sync/fetch]', error);
-        return res.status(500).json({ error: 'Erro ao buscar mensagens.' });
+        return sendDiscordFetchError(res, error);
     }
 });
 // ─── Mensagens ────────────────────────────────────────────────────────────────

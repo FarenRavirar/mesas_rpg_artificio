@@ -1,4 +1,5 @@
 export type DiscordImportSourceKind = 'discord_bot' | 'discord_chat_exporter_json';
+export type DiscordSourceChannelType = 'text' | 'announcement' | 'forum';
 
 export type DiscordImportMessageStatus =
   | 'pending'
@@ -61,6 +62,9 @@ export interface DiscordRawMessage {
   discord_message_id: string;
   discord_channel_id: string;
   discord_guild_id: string;
+  discord_parent_channel_id?: string | null;
+  discord_thread_id?: string | null;
+  discord_thread_name?: string | null;
   discord_author_id: string | null;
   discord_author_name: string | null;
   discord_message_url: string | null;

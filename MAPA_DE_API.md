@@ -183,13 +183,13 @@
 | **PUT** | `/admin/discord-sync/settings/bot-token` | 🔧 Impl. | DiscordSettingsPanel.tsx — salva token cifrado |
 | **DELETE** | `/admin/discord-sync/settings/bot-token` | 🔧 Impl. | DiscordSettingsPanel.tsx — remove token salvo |
 | **GET** | `/admin/discord-sync/discovery/guilds` | 🔧 Impl. | DiscordSourceList.tsx — lista servidores acessíveis ao bot |
-| **GET** | `/admin/discord-sync/discovery/guilds/:guildId/channels` | 🔧 Impl. | DiscordSourceList.tsx — lista canais textuais/announcement do servidor |
+| **GET** | `/admin/discord-sync/discovery/guilds/:guildId/channels` | 🔧 Impl. | DiscordSourceList.tsx — lista canais textuais/announcement/forum do servidor; retorna `kind` (`text`, `announcement`, `forum`) |
 | **GET** | `/admin/discord-sync/sources` | 🔧 Impl. | DiscordSourceList.tsx |
-| **POST** | `/admin/discord-sync/sources` | 🔧 Impl. | DiscordSourceList.tsx |
+| **POST** | `/admin/discord-sync/sources` | 🔧 Impl. | DiscordSourceList.tsx — aceita `channel_type` opcional (`text`, `announcement`, `forum`) |
 | **PATCH** | `/admin/discord-sync/sources/:id` | 🔧 Impl. | DiscordSourceList.tsx |
 | **DELETE** | `/admin/discord-sync/sources/:id` | 🔧 Impl. | DiscordSourceList.tsx |
-| **POST** | `/admin/discord-sync/fetch` | 🔧 Impl. | DiscordSyncPanel.tsx — dispara ingestão REST de um canal |
-| **GET** | `/admin/discord-sync/messages` | 🔧 Impl. | DiscordSyncPanel.tsx — filtros: `source_id`, `status`, `limit`, `offset` |
+| **POST** | `/admin/discord-sync/fetch` | 🔧 Impl. | DiscordSyncPanel.tsx — dispara ingestão REST de canal textual/anúncio ou varredura de posts/threads de fórum |
+| **GET** | `/admin/discord-sync/messages` | 🔧 Impl. | DiscordSyncPanel.tsx — filtros: `source_id`, `status`, `limit`, `offset`; mensagens de fórum incluem `discord_thread_id`, `discord_parent_channel_id`, `discord_thread_name` |
 | **GET** | `/admin/discord-sync/drafts` | 🔧 Impl. | DiscordDraftReviewTable.tsx — filtros: `status`, `limit`, `offset` |
 | **GET** | `/admin/discord-sync/drafts/:id` | 🔧 Impl. | DiscordDraftPreview.tsx |
 | **PATCH** | `/admin/discord-sync/drafts/:id` | 🔧 Impl. | DiscordDraftPreview.tsx — edita `normalized_payload`, `status`, `review_notes` |
