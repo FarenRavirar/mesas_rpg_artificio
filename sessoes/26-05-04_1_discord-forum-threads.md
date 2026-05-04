@@ -142,4 +142,9 @@ Sessao concluida quando a Feature 015 tiver spec, plan, tasks, implementacao, bu
 - [x] Checks da PR #145 verdes em 2026-05-04T08:10:08-03:00: `build-backend`, `build-frontend`, CodeQL actions/javascript-typescript/python.
 - [x] Retomada em 2026-05-04T08:48:45-03:00: mantenedor solicitou atualizar documentacoes e executar o proximo passo para testar em `dev`.
 - [x] Documentacao atualizada antes do merge: `project-state.md` registra autorizacao para ready/merge/deploy Beta.
-- [ ] Marcar PR #145 como ready, mergear em `dev` e acompanhar Deploy Beta.
+- [x] PR #145 marcada como ready.
+- [x] PR #145 mergeada em `dev`: merge commit `13655dd`.
+- [x] Deploy Beta run `25317356143` concluido GREEN: `lint`, `validate`, `enforce-dir`, `migrate`, `deploy-app`, `smoke`.
+- [x] CodeQL em `dev` concluido GREEN no run `25317355526`.
+- [x] Health publico Beta validado: `GET https://mesasbeta.artificiorpg.com/api/v1/health` retornou HTTP 200.
+- [x] Documentacao pos-deploy atualizada para liberar teste funcional em janela anonima.

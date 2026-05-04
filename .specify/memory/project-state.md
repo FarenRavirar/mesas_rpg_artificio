@@ -1,6 +1,6 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-05-04T08:48:45-03:00
+**Última atualização:** 2026-05-04T08:54:52-03:00
 **Atualizado por:** sessão 26-05-04_1_discord-forum-threads
 ---
 
@@ -15,8 +15,8 @@
 
 ## Estado Técnico Atual
 
-**Branch ativa:** `feat/015-discord-forum-threads` — PR #145 autorizada pelo mantenedor para avançar a `dev`
-**Último commit base:** `97cf7dd` — merge da correção visual da Feature 014 em `dev`
+**Branch ativa:** `dev` — Feature 015 mergeada e deployada em Beta
+**Último commit base:** `13655dd` — merge da Feature 015 em `dev`
 
 **Feature ativa:** `specs/015-discord-forum-threads/`
 **Sessão ativa:** `sessoes/26-05-04_1_discord-forum-threads.md`
@@ -34,7 +34,11 @@
 - **PR:** #145 — https://github.com/FarenRavirar/mesas_rpg_artificio/pull/145
 - **Checks PR #145:** GREEN em 2026-05-04T08:10:08-03:00 (`build-backend`, `build-frontend`, CodeQL actions/javascript-typescript/python).
 - **Autorização:** mantenedor solicitou em 2026-05-04T08:48:45-03:00 atualizar documentações e realizar o próximo passo para testar em `dev`.
-- **Status:** PR #145 pronta para marcar como ready, mergear em `dev`, acompanhar deploy Beta e liberar teste funcional em janela anônima com fórum real.
+- **Merge:** PR #145 mergeada em `dev` em 2026-05-04T08:51:12-03:00; merge commit `13655dd`.
+- **Deploy Beta:** GREEN no run `25317356143` em 2026-05-04; jobs `lint`, `validate`, `enforce-dir`, `migrate`, `deploy-app` e `smoke` passaram.
+- **CodeQL dev:** GREEN no run `25317355526`.
+- **Health Beta:** `https://mesasbeta.artificiorpg.com/api/v1/health` retornou HTTP 200.
+- **Status:** disponível em Beta para teste funcional do mantenedor em janela anônima com fórum real.
 
 **Feature 012 — Pipeline Discord Covil Sync (03/05/2026):**
 - T001–T017 implementados e mergeados via PR #141.
@@ -237,8 +241,9 @@
 1. ✅ **Spec/plan/tasks/implement concluídos:** `specs/015-discord-forum-threads/` com implementação backend/frontend local.
 2. ✅ **Validação técnica:** builds backend e frontend verdes; busca final sem `AbortSignal.timeout`; sem logs de token detectados.
 3. ✅ **Checks da PR #145:** verdes em 2026-05-04T08:10:08-03:00.
-4. **Próximo passo autorizado:** marcar PR #145 como ready, mergear para `dev` e acompanhar deploy Beta.
-5. **Critério de desbloqueio funcional:** após merge/deploy em Beta, admin cadastra um fórum real como fonte, executa busca em janela anônima e confirma importação/deduplicação de posts/threads.
+4. ✅ **Merge em dev:** PR #145 mergeada com commit `13655dd`.
+5. ✅ **Deploy Beta:** run `25317356143` GREEN; health público retornou HTTP 200.
+6. **Próximo passo funcional:** mantenedor testar em janela anônima no Beta: cadastrar fórum real como fonte, executar busca e confirmar importação/deduplicação de posts/threads.
 
 **Feature 014 — Descoberta de Canais Discord:**
 1. ✅ **Spec/plan/tasks/implement concluídos:** `specs/014-discord-channel-discovery/` com implementação backend/frontend local.
