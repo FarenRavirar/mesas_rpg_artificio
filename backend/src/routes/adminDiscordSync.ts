@@ -1,10 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { db } from '../db';
-import type { NewDiscordSetting } from '../db/types';
+import type { DiscordSourceChannelType, NewDiscordSetting } from '../db/types';
 import { authMiddleware } from '../middleware/auth';
 import type { DiscordImportMessageStatus, DiscordImportDraftStatus } from '../discord';
-import { DiscordDiscoveryError, discoverDiscordChannels, discoverDiscordGuilds, ingestMessages, syncDiscordDraftToTable } from '../discord';
+import { DiscordDiscoveryError, DiscordIngestError, discoverDiscordChannels, discoverDiscordGuilds, ingestForumMessages, ingestMessages, syncDiscordDraftToTable } from '../discord';
 import { encryptDiscordSetting, decryptDiscordSetting, DiscordSettingsSecretUnavailableError } from '../discord/settingsCrypto';
 
 const router = Router();
@@ -23,6 +23,7 @@ const createSourceSchema = z.object({
   guild_id: z.string().min(1),
   channel_id: z.string().min(1),
   channel_name: z.string().optional(),
+  channel_type: z.enum(['text', 'announcement', 'forum']).optional(),
   enabled: z.boolean().optional(),
   auto_sync_enabled: z.boolean().optional(),
 });
@@ -77,6 +78,24 @@ function sendDiscordDiscoveryError(res: Response, error: unknown, fallbackMessag
   }
   console.error(fallbackMessage, error);
   return res.status(502).json({ error: 'Não foi possível consultar o Discord agora. Tente novamente em instantes.' });
+}
+
+function normalizeSourceChannelType(value: unknown): DiscordSourceChannelType {
+  return value === 'announcement' || value === 'forum' ? value : 'text';
+}
+
+function sendDiscordFetchError(res: Response, error: unknown): Response {
+  if (error instanceof DiscordSettingsSecretUnavailableError) {
+    return res.status(503).json({ error: error.message });
+  }
+  if (error instanceof DiscordIngestError) {
+    return res.status(error.statusCode).json({ error: error.message });
+  }
+  if (error instanceof Error && error.message.includes('DISCORD_BOT_TOKEN não configurado')) {
+    return res.status(422).json({ error: error.message });
+  }
+  console.error('[POST /admin/discord-sync/fetch]', error);
+  return res.status(500).json({ error: 'Erro ao buscar mensagens.' });
 }
 
 // ─── Configuracoes ───────────────────────────────────────────────────────────
@@ -239,7 +258,10 @@ router.post('/sources', authMiddleware, async (req: Request, res: Response) => {
     }
     const [source] = await db
       .insertInto('discord_import_sources')
-      .values(parsed.data)
+      .values({
+        ...parsed.data,
+        channel_type: parsed.data.channel_type ?? 'text',
+      })
       .returningAll()
       .execute();
     return res.status(201).json({ data: source });
@@ -319,13 +341,21 @@ router.post('/fetch', authMiddleware, async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Fonte não encontrada ou desabilitada.' });
     }
 
-    const result = await ingestMessages({
-      sourceId: source_id,
-      channelId: source.channel_id,
-      guildId: source.guild_id,
-      limit,
-      beforeMessageId: before_message_id,
-    });
+    const sourceChannelType = normalizeSourceChannelType(source.channel_type);
+    const result = sourceChannelType === 'forum'
+      ? await ingestForumMessages({
+          sourceId: source_id,
+          forumChannelId: source.channel_id,
+          guildId: source.guild_id,
+          limit,
+        })
+      : await ingestMessages({
+          sourceId: source_id,
+          channelId: source.channel_id,
+          guildId: source.guild_id,
+          limit,
+          beforeMessageId: before_message_id,
+        });
 
     // Atualiza last_synced_at apenas se a chamada ao Discord foi concluida com sucesso
     if (result.inserted > 0 || result.updated > 0 || result.total === 0) {
@@ -338,14 +368,7 @@ router.post('/fetch', authMiddleware, async (req: Request, res: Response) => {
 
     return res.json({ data: result });
   } catch (error: unknown) {
-    if (error instanceof DiscordSettingsSecretUnavailableError) {
-      return res.status(503).json({ error: error.message });
-    }
-    if (error instanceof Error && error.message.includes('DISCORD_BOT_TOKEN não configurado')) {
-      return res.status(422).json({ error: error.message });
-    }
-    console.error('[POST /admin/discord-sync/fetch]', error);
-    return res.status(500).json({ error: 'Erro ao buscar mensagens.' });
+    return sendDiscordFetchError(res, error);
   }
 });
 

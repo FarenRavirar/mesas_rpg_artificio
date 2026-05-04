@@ -1,16 +1,50 @@
 import crypto from 'node:crypto';
+import { z } from 'zod';
 import { db } from '../db';
-import type { DiscordImportSourceKind } from './types';
+import type { DiscordImportSourceKind, DiscordSourceChannelType } from './types';
 import { requireDiscordBotToken } from './config';
 
-interface DiscordApiMessage {
-  id: string;
-  content: string;
-  timestamp: string;
-  edited_timestamp: string | null;
-  author?: { id: string; username: string };
-  attachments?: unknown[];
-  embeds?: unknown[];
+const DISCORD_API_BASE = 'https://discord.com/api/v10';
+
+const discordApiMessageSchema = z.object({
+  id: z.string(),
+  content: z.string().optional().default(''),
+  timestamp: z.string().optional(),
+  edited_timestamp: z.string().nullable().optional(),
+  author: z.object({ id: z.string(), username: z.string() }).optional(),
+  attachments: z.array(z.unknown()).optional(),
+  embeds: z.array(z.unknown()).optional(),
+});
+
+const discordApiMessagesSchema = z.array(discordApiMessageSchema);
+
+const discordThreadSchema = z.object({
+  id: z.string(),
+  parent_id: z.string().nullable().optional(),
+  name: z.string().nullable().optional(),
+  archived: z.boolean().optional(),
+});
+
+const discordActiveThreadsSchema = z.object({
+  threads: z.array(discordThreadSchema),
+});
+
+const discordArchivedThreadsSchema = z.object({
+  threads: z.array(discordThreadSchema),
+  has_more: z.boolean().optional(),
+});
+
+type DiscordApiMessage = z.infer<typeof discordApiMessageSchema>;
+type DiscordApiThread = z.infer<typeof discordThreadSchema>;
+
+export class DiscordIngestError extends Error {
+  constructor(
+    message: string,
+    public readonly statusCode: number,
+  ) {
+    super(message);
+    this.name = 'DiscordIngestError';
+  }
 }
 
 export interface IngestResult {
@@ -18,6 +52,8 @@ export interface IngestResult {
   updated: number;
   total: number;
   newestMessageId: string | null;
+  threadsScanned: number;
+  sourceKind: DiscordSourceChannelType;
 }
 
 type InsertRow = {
@@ -25,6 +61,9 @@ type InsertRow = {
   discord_message_id: string;
   discord_channel_id: string;
   discord_guild_id: string;
+  discord_parent_channel_id: string | null;
+  discord_thread_id: string | null;
+  discord_thread_name: string | null;
   discord_author_id: string | null;
   discord_author_name: string | null;
   discord_message_url: string;
@@ -40,77 +79,107 @@ type InsertRow = {
 
 type UpdateRow = { id: string; contentRaw: string; contentHash: string };
 
-/**
- * Busca mensagens de um canal via REST API Discord e salva em discord_import_messages.
- * Idempotente: mensagens existentes so sao atualizadas se o content_hash mudou.
- * Usa batch SELECT + batch INSERT para evitar N+1 queries.
- */
-export async function ingestMessages(params: {
+function mapDiscordStatus(status: number): DiscordIngestError {
+  if (status === 401) {
+    return new DiscordIngestError('Token do bot inválido ou revogado. Gere um novo token no Discord e salve novamente.', 502);
+  }
+  if (status === 403) {
+    return new DiscordIngestError('O bot não tem permissão para ler esse canal, forum ou thread no Discord.', 403);
+  }
+  if (status === 404) {
+    return new DiscordIngestError('Canal, forum ou thread não encontrado para o bot configurado.', 404);
+  }
+  if (status === 429) {
+    return new DiscordIngestError('Discord limitou temporariamente as requisições. Aguarde um momento e tente novamente.', 502);
+  }
+  return new DiscordIngestError('Discord não respondeu como esperado. Tente novamente em instantes.', 502);
+}
+
+async function discordGetUnknown(path: string, token: string): Promise<unknown> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10_000);
+
+  try {
+    const res = await fetch(`${DISCORD_API_BASE}${path}`, {
+      headers: { Authorization: `Bot ${token.trim()}` },
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      throw mapDiscordStatus(res.status);
+    }
+
+    return res.json() as Promise<unknown>;
+  } catch (error: unknown) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new DiscordIngestError('Discord demorou demais para responder. Tente novamente em instantes.', 502);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+function getContentHash(msg: DiscordApiMessage): string {
+  return crypto
+    .createHash('sha256')
+    .update(msg.content ?? '')
+    .update(JSON.stringify(msg.embeds ?? []))
+    .update(JSON.stringify(msg.attachments ?? []))
+    .digest('hex');
+}
+
+async function fetchChannelMessages(params: {
+  channelId: string;
+  token: string;
+  limit: number;
+  beforeMessageId?: string;
+  afterMessageId?: string;
+}): Promise<DiscordApiMessage[]> {
+  const url = new URL(`${DISCORD_API_BASE}/channels/${params.channelId}/messages`);
+  url.searchParams.set('limit', String(Math.min(params.limit, 100)));
+  if (params.beforeMessageId) url.searchParams.set('before', params.beforeMessageId);
+  if (params.afterMessageId) url.searchParams.set('after', params.afterMessageId);
+
+  const payload = await discordGetUnknown(`${url.pathname}${url.search}`, params.token);
+  const parsed = discordApiMessagesSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new DiscordIngestError('Discord retornou mensagens em formato inesperado.', 502);
+  }
+  return parsed.data;
+}
+
+async function persistMessages(params: {
   sourceId: string;
   channelId: string;
   guildId: string;
-  botToken?: string;
-  limit?: number;
-  beforeMessageId?: string;
-  afterMessageId?: string;
-  sourceKind?: DiscordImportSourceKind;
-}): Promise<IngestResult> {
+  messages: DiscordApiMessage[];
+  sourceKind: DiscordImportSourceKind;
+  parentChannelId?: string | null;
+  threadId?: string | null;
+  threadName?: string | null;
+}): Promise<Omit<IngestResult, 'threadsScanned' | 'sourceKind'>> {
   const {
     sourceId,
     channelId,
     guildId,
-    botToken,
-    limit = 50,
-    beforeMessageId,
-    afterMessageId,
-    sourceKind = 'discord_bot',
+    messages,
+    sourceKind,
+    parentChannelId = null,
+    threadId = null,
+    threadName = null,
   } = params;
 
-  const resolvedToken = botToken ?? await requireDiscordBotToken();
-  const trimmedToken = resolvedToken.trim();
-  if (!trimmedToken) throw new Error('DISCORD_BOT_TOKEN não pode ser vazio.');
-
-  const url = new URL(`https://discord.com/api/v10/channels/${channelId}/messages`);
-  url.searchParams.set('limit', String(Math.min(limit, 100)));
-  if (beforeMessageId) url.searchParams.set('before', beforeMessageId);
-  if (afterMessageId) url.searchParams.set('after', afterMessageId);
-
-  const res = await fetch(url.toString(), {
-    headers: { Authorization: `Bot ${trimmedToken}` },
-    signal: AbortSignal.timeout(10_000),
-  });
-
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Discord API ${res.status}: ${body}`);
-  }
-
-  const messages = (await res.json()) as DiscordApiMessage[];
-
-  // Discord retorna mensagens em ordem decrescente de ID (mais recente primeiro)
   const newestMessageId = messages[0]?.id ?? null;
-
   if (messages.length === 0) return { inserted: 0, updated: 0, total: 0, newestMessageId: null };
 
-  // Computa hashes e URLs de todos os mensagens antes de tocar o banco
-  const msgData = messages.map((msg) => {
-    const contentRaw = msg.content ?? '';
-    // Hash cobre content + embeds + attachments para detectar edicoes que so alteram midia
-    const contentHash = crypto
-      .createHash('sha256')
-      .update(contentRaw)
-      .update(JSON.stringify(msg.embeds ?? []))
-      .update(JSON.stringify(msg.attachments ?? []))
-      .digest('hex');
-    return {
-      msg,
-      contentRaw,
-      contentHash,
-      messageUrl: `https://discord.com/channels/${guildId}/${channelId}/${msg.id}`,
-    };
-  });
+  const msgData = messages.map((msg) => ({
+    msg,
+    contentRaw: msg.content ?? '',
+    contentHash: getContentHash(msg),
+    messageUrl: `https://discord.com/channels/${guildId}/${channelId}/${msg.id}`,
+  }));
 
-  // Um SELECT para todos os IDs: evita N+1
   const existingRecords = await db
     .selectFrom('discord_import_messages')
     .select(['id', 'content_hash', 'discord_message_id'])
@@ -119,7 +188,6 @@ export async function ingestMessages(params: {
     .execute();
 
   const existingMap = new Map(existingRecords.map((e) => [e.discord_message_id, e]));
-
   const toInsert: InsertRow[] = [];
   const toUpdate: UpdateRow[] = [];
 
@@ -131,6 +199,9 @@ export async function ingestMessages(params: {
         discord_message_id: msg.id,
         discord_channel_id: channelId,
         discord_guild_id: guildId,
+        discord_parent_channel_id: parentChannelId,
+        discord_thread_id: threadId,
+        discord_thread_name: threadName,
         discord_author_id: msg.author?.id ?? null,
         discord_author_name: msg.author?.username ?? null,
         discord_message_url: messageUrl,
@@ -167,4 +238,128 @@ export async function ingestMessages(params: {
   }
 
   return { inserted: toInsert.length, updated: toUpdate.length, total: messages.length, newestMessageId };
+}
+
+async function listForumThreads(params: {
+  guildId: string;
+  forumChannelId: string;
+  token: string;
+}): Promise<DiscordApiThread[]> {
+  const activePayload = await discordGetUnknown(`/guilds/${encodeURIComponent(params.guildId)}/threads/active`, params.token);
+  const activeParsed = discordActiveThreadsSchema.safeParse(activePayload);
+  if (!activeParsed.success) {
+    throw new DiscordIngestError('Discord retornou threads ativas em formato inesperado.', 502);
+  }
+
+  const archivedPayload = await discordGetUnknown(`/channels/${encodeURIComponent(params.forumChannelId)}/threads/archived/public?limit=50`, params.token);
+  const archivedParsed = discordArchivedThreadsSchema.safeParse(archivedPayload);
+  if (!archivedParsed.success) {
+    throw new DiscordIngestError('Discord retornou threads arquivadas em formato inesperado.', 502);
+  }
+
+  const byId = new Map<string, DiscordApiThread>();
+  for (const thread of activeParsed.data.threads) {
+    if (thread.parent_id === params.forumChannelId) byId.set(thread.id, thread);
+  }
+  for (const thread of archivedParsed.data.threads) {
+    byId.set(thread.id, thread);
+  }
+
+  return [...byId.values()].sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '', 'pt-BR'));
+}
+
+/**
+ * Busca mensagens de um canal textual/anuncio via REST API Discord.
+ */
+export async function ingestMessages(params: {
+  sourceId: string;
+  channelId: string;
+  guildId: string;
+  botToken?: string;
+  limit?: number;
+  beforeMessageId?: string;
+  afterMessageId?: string;
+  sourceKind?: DiscordImportSourceKind;
+}): Promise<IngestResult> {
+  const {
+    sourceId,
+    channelId,
+    guildId,
+    botToken,
+    limit = 50,
+    beforeMessageId,
+    afterMessageId,
+    sourceKind = 'discord_bot',
+  } = params;
+
+  const resolvedToken = botToken ?? await requireDiscordBotToken();
+  const trimmedToken = resolvedToken.trim();
+  if (!trimmedToken) throw new DiscordIngestError('Token do bot Discord não pode ser vazio.', 422);
+
+  const messages = await fetchChannelMessages({
+    channelId,
+    token: trimmedToken,
+    limit,
+    beforeMessageId,
+    afterMessageId,
+  });
+  const result = await persistMessages({ sourceId, channelId, guildId, messages, sourceKind });
+  return { ...result, threadsScanned: 0, sourceKind: 'text' };
+}
+
+export async function ingestForumMessages(params: {
+  sourceId: string;
+  forumChannelId: string;
+  guildId: string;
+  botToken?: string;
+  limit?: number;
+  sourceKind?: DiscordImportSourceKind;
+}): Promise<IngestResult> {
+  const {
+    sourceId,
+    forumChannelId,
+    guildId,
+    botToken,
+    limit = 50,
+    sourceKind = 'discord_bot',
+  } = params;
+
+  const resolvedToken = botToken ?? await requireDiscordBotToken();
+  const trimmedToken = resolvedToken.trim();
+  if (!trimmedToken) throw new DiscordIngestError('Token do bot Discord não pode ser vazio.', 422);
+
+  const threads = await listForumThreads({ guildId, forumChannelId, token: trimmedToken });
+  if (threads.length === 0) {
+    return { inserted: 0, updated: 0, total: 0, newestMessageId: null, threadsScanned: 0, sourceKind: 'forum' };
+  }
+
+  let inserted = 0;
+  let updated = 0;
+  let total = 0;
+  let newestMessageId: string | null = null;
+
+  for (const thread of threads) {
+    const messages = await fetchChannelMessages({
+      channelId: thread.id,
+      token: trimmedToken,
+      limit,
+    });
+    const result = await persistMessages({
+      sourceId,
+      channelId: thread.id,
+      guildId,
+      messages,
+      sourceKind,
+      parentChannelId: forumChannelId,
+      threadId: thread.id,
+      threadName: thread.name ?? null,
+    });
+
+    inserted += result.inserted;
+    updated += result.updated;
+    total += result.total;
+    newestMessageId ??= result.newestMessageId;
+  }
+
+  return { inserted, updated, total, newestMessageId, threadsScanned: threads.length, sourceKind: 'forum' };
 }

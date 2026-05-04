@@ -1,6 +1,6 @@
 # Índice de Sessões
 
-Última atualização: 03/05/2026 18:00 BRT
+Última atualização: 04/05/2026 00:00 BRT
 
 ---
 
@@ -256,9 +256,17 @@
 
 ---
 
+## 04/05/2026 (1 sessão)
+
+| # | Arquivo |
+|---|---|
+| 1 | `26-05-04_1_discord-forum-threads.md` |
+
+---
+
 ## Sessão Mais Recente
 
-`26-05-03_4_discord-settings-config.md`
+`26-05-04_1_discord-forum-threads.md`
 
 ---
 
@@ -274,4 +282,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-05-03_4_*` ou nova data
+**Próxima sessão:** `26-05-04_2_*` ou nova data

@@ -1,7 +1,7 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-05-03T16:36:45-03:00
-**Atualizado por:** sessão 26-05-03_4_discord-settings-config
+**Última atualização:** 2026-05-04T08:48:45-03:00
+**Atualizado por:** sessão 26-05-04_1_discord-forum-threads
 ---
 
 ## Ambientes
@@ -15,11 +15,26 @@
 
 ## Estado Técnico Atual
 
-**Branch ativa:** `feat/014-discord-channel-discovery` — implementação local concluída; aguardando autorização para commit/push/PR
-**Último commit base:** `7cfccf5` — merge da Feature 013 em `dev`
+**Branch ativa:** `feat/015-discord-forum-threads` — PR #145 autorizada pelo mantenedor para avançar a `dev`
+**Último commit base:** `97cf7dd` — merge da correção visual da Feature 014 em `dev`
 
-**Feature ativa:** `specs/014-discord-channel-discovery/`
-**Sessão encerrada:** `sessoes/26-05-03_3_discord-covil-sync.md`
+**Feature ativa:** `specs/015-discord-forum-threads/`
+**Sessão ativa:** `sessoes/26-05-04_1_discord-forum-threads.md`
+
+**Feature 015 — Importação de Posts de Fóruns Discord (04/05/2026):**
+- Sessão `26-05-04_1_discord-forum-threads` aberta a partir do prompt 015.
+- Branch `feat/015-discord-forum-threads` criada a partir de `origin/dev`, já contendo a PR #144.
+- `/speckit.specify`, `/speckit.plan`, `/speckit.tasks` e `/speckit.implement` executados proceduralmente para `specs/015-discord-forum-threads/`.
+- Pesquisa oficial Discord incorporada: canais de fórum (`GUILD_FORUM`, tipo 15) são importados por posts/threads; `GUILD_MEDIA` ficou fora do escopo inicial por estar em desenvolvimento ativo na documentação.
+- Migration 117 criada: adiciona `channel_type` em `discord_import_sources` e metadados `discord_parent_channel_id`, `discord_thread_id`, `discord_thread_name` em `discord_import_messages`.
+- Backend implementado: discovery inclui fóruns, fontes persistem tipo do canal, fetch diferencia canal textual/anúncio vs fórum, ingestão de fórum lista threads ativas e públicas arquivadas e busca mensagens por thread com timeout manual via `AbortController`.
+- Frontend implementado: seleção e cadastro de fórum, badges de tipo de fonte, feedback de varredura de posts e exibição de metadados da thread em mensagens importadas.
+- Documentação: `MAPA_DE_API.md`, contratos, data-model, quickstart e `pr-description.md` atualizados.
+- Validação técnica: `npm --prefix backend run build` GREEN; `npm --prefix frontend run build` GREEN; busca final sem `AbortSignal.timeout`; busca de segurança sem logs de token.
+- **PR:** #145 — https://github.com/FarenRavirar/mesas_rpg_artificio/pull/145
+- **Checks PR #145:** GREEN em 2026-05-04T08:10:08-03:00 (`build-backend`, `build-frontend`, CodeQL actions/javascript-typescript/python).
+- **Autorização:** mantenedor solicitou em 2026-05-04T08:48:45-03:00 atualizar documentações e realizar o próximo passo para testar em `dev`.
+- **Status:** PR #145 pronta para marcar como ready, mergear em `dev`, acompanhar deploy Beta e liberar teste funcional em janela anônima com fórum real.
 
 **Feature 012 — Pipeline Discord Covil Sync (03/05/2026):**
 - T001–T017 implementados e mergeados via PR #141.
@@ -217,6 +232,13 @@
 ---
 
 ## Próxima Ação
+
+**Feature 015 — Importação de Posts de Fóruns Discord:**
+1. ✅ **Spec/plan/tasks/implement concluídos:** `specs/015-discord-forum-threads/` com implementação backend/frontend local.
+2. ✅ **Validação técnica:** builds backend e frontend verdes; busca final sem `AbortSignal.timeout`; sem logs de token detectados.
+3. ✅ **Checks da PR #145:** verdes em 2026-05-04T08:10:08-03:00.
+4. **Próximo passo autorizado:** marcar PR #145 como ready, mergear para `dev` e acompanhar deploy Beta.
+5. **Critério de desbloqueio funcional:** após merge/deploy em Beta, admin cadastra um fórum real como fonte, executa busca em janela anônima e confirma importação/deduplicação de posts/threads.
 
 **Feature 014 — Descoberta de Canais Discord:**
 1. ✅ **Spec/plan/tasks/implement concluídos:** `specs/014-discord-channel-discovery/` com implementação backend/frontend local.

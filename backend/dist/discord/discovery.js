@@ -6,7 +6,12 @@ exports.discoverDiscordChannels = discoverDiscordChannels;
 const zod_1 = require("zod");
 const config_1 = require("./config");
 const DISCORD_API_BASE = 'https://discord.com/api/v10';
-const DISCOVERABLE_CHANNEL_TYPES = new Set([0, 5]);
+const DISCOVERABLE_CHANNEL_TYPES = new Set([0, 5, 15]);
+const CHANNEL_KIND_BY_TYPE = new Map([
+    [0, 'text'],
+    [5, 'announcement'],
+    [15, 'forum'],
+]);
 const discordGuildSchema = zod_1.z.object({
     id: zod_1.z.string(),
     name: zod_1.z.string(),
@@ -102,6 +107,7 @@ async function discoverDiscordChannels(guildId) {
         guild_id: channel.guild_id ?? guildId,
         name: channel.name,
         type: channel.type,
+        kind: CHANNEL_KIND_BY_TYPE.get(channel.type) ?? 'text',
         position: channel.position ?? null,
         parent_id: channel.parent_id ?? null,
         parent_name: channel.parent_id ? categoryNames.get(channel.parent_id) ?? null : null,

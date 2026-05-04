@@ -10,6 +10,7 @@ export type {
   DiscordTableDraftTable,
   DiscordRawMessage,
   DiscordImportSourceKind,
+  DiscordSourceChannelType,
   DiscordImportMessageStatus,
   DiscordImportDraftStatus,
   TableDraftType,
@@ -24,7 +25,7 @@ export { discordConfig } from './config';
 // Funções de pipeline (adicionadas conforme implementação das Fases 2–4)
 export { discoverDiscordChannels, discoverDiscordGuilds, DiscordDiscoveryError } from './discovery';
 export type { DiscordDiscoveredChannel, DiscordDiscoveredGuild } from './discovery';
-export { ingestMessages } from './ingestMessages';
+export { DiscordIngestError, ingestForumMessages, ingestMessages } from './ingestMessages';
 export type { IngestResult } from './ingestMessages';
 // export { parseDiscordAnnouncement } from './parseDiscordAnnouncement';
 // export { normalizeDiscordTableDraft } from './normalizeDiscordTableDraft';

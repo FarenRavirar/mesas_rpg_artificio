@@ -6,6 +6,7 @@ import type {
   DiscordDraft,
   DiscordSettings,
   DiscordBotTokenSettings,
+  DiscordSourceChannelType,
   DiscordImportMessageStatus,
   DiscordImportDraftStatus,
   IngestResult,
@@ -50,9 +51,49 @@ const discordDiscoveredChannelSchema = z.object({
   guild_id: z.string(),
   name: z.string(),
   type: z.number(),
+  kind: z.enum(['text', 'announcement', 'forum']).default('text'),
   position: z.number().nullable(),
   parent_id: z.string().nullable(),
   parent_name: z.string().nullable(),
+});
+
+const discordSourceSchema = z.object({
+  id: z.string(),
+  guild_id: z.string(),
+  channel_id: z.string(),
+  channel_name: z.string().nullable(),
+  channel_type: z.enum(['text', 'announcement', 'forum']).default('text'),
+  enabled: z.boolean(),
+  auto_sync_enabled: z.boolean(),
+  last_message_id: z.string().nullable(),
+  last_synced_at: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+const discordMessageSchema = z.object({
+  id: z.string(),
+  source_id: z.string(),
+  discord_message_id: z.string(),
+  discord_channel_id: z.string(),
+  discord_guild_id: z.string(),
+  discord_parent_channel_id: z.string().nullable().default(null),
+  discord_thread_id: z.string().nullable().default(null),
+  discord_thread_name: z.string().nullable().default(null),
+  discord_author_id: z.string().nullable(),
+  discord_author_name: z.string().nullable(),
+  discord_message_url: z.string().nullable(),
+  content_raw: z.string(),
+  attachments: z.array(z.unknown()).default([]),
+  embeds: z.array(z.unknown()).default([]),
+  message_created_at: z.string().nullable(),
+  message_edited_at: z.string().nullable(),
+  content_hash: z.string(),
+  source_kind: z.enum(['discord_bot', 'discord_chat_exporter_json']),
+  status: z.enum(['pending', 'parsed', 'needs_review', 'synced', 'ignored', 'error']),
+  parse_error: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
 });
 
 function parseDiscordSettings(value: unknown): DiscordSettings {
@@ -81,6 +122,16 @@ function parseDiscordDiscoveredChannels(value: unknown): DiscordDiscoveredChanne
   return parsed.success ? parsed.data : [];
 }
 
+function parseDiscordSources(value: unknown): DiscordSource[] {
+  const parsed = z.array(discordSourceSchema).safeParse(value);
+  return parsed.success ? parsed.data : [];
+}
+
+function parseDiscordMessages(value: unknown): DiscordMessage[] {
+  const parsed = z.array(discordMessageSchema).safeParse(value);
+  return parsed.success ? parsed.data : [];
+}
+
 export const discordSyncApi = {
   getDiscordSettings: async () =>
     parseDiscordSettings(await apiFetch<unknown>('/settings')),
@@ -97,10 +148,10 @@ export const discordSyncApi = {
   discoverChannels: async (guildId: string) =>
     parseDiscordDiscoveredChannels(await apiFetch<unknown>(`/discovery/guilds/${guildId}/channels`)),
 
-  getSources: () =>
-    apiFetch<DiscordSource[]>('/sources'),
+  getSources: async () =>
+    parseDiscordSources(await apiFetch<unknown>('/sources')),
 
-  createSource: (body: { guild_id: string; channel_id: string; channel_name?: string; enabled?: boolean }) =>
+  createSource: (body: { guild_id: string; channel_id: string; channel_name?: string; channel_type?: DiscordSourceChannelType; enabled?: boolean }) =>
     apiFetch<DiscordSource>('/sources', { method: 'POST', body: JSON.stringify(body) }),
 
   updateSource: (id: string, body: { channel_name?: string; enabled?: boolean; auto_sync_enabled?: boolean }) =>
@@ -112,13 +163,13 @@ export const discordSyncApi = {
   fetchMessages: (body: { source_id: string; limit?: number; before_message_id?: string }) =>
     apiFetch<IngestResult>('/fetch', { method: 'POST', body: JSON.stringify(body) }),
 
-  getMessages: (params?: { source_id?: string; status?: DiscordImportMessageStatus; limit?: number; offset?: number }) => {
+  getMessages: async (params?: { source_id?: string; status?: DiscordImportMessageStatus; limit?: number; offset?: number }) => {
     const qs = new URLSearchParams();
     if (params?.source_id) qs.set('source_id', params.source_id);
     if (params?.status) qs.set('status', params.status);
     if (params?.limit != null) qs.set('limit', String(params.limit));
     if (params?.offset != null) qs.set('offset', String(params.offset));
-    return apiFetch<DiscordMessage[]>(`/messages?${qs}`);
+    return parseDiscordMessages(await apiFetch<unknown>(`/messages?${qs}`));
   },
 
   getDrafts: (params?: { status?: DiscordImportDraftStatus; limit?: number; offset?: number }) => {

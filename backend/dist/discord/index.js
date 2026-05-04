@@ -4,7 +4,7 @@
  * Todo código fora de backend/src/discord/ deve importar exclusivamente daqui.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.syncDiscordDraftToTable = exports.ingestMessages = exports.DiscordDiscoveryError = exports.discoverDiscordGuilds = exports.discoverDiscordChannels = exports.discordConfig = void 0;
+exports.syncDiscordDraftToTable = exports.ingestMessages = exports.ingestForumMessages = exports.DiscordIngestError = exports.DiscordDiscoveryError = exports.discoverDiscordGuilds = exports.discoverDiscordChannels = exports.discordConfig = void 0;
 // Configuração
 var config_1 = require("./config");
 Object.defineProperty(exports, "discordConfig", { enumerable: true, get: function () { return config_1.discordConfig; } });
@@ -14,6 +14,8 @@ Object.defineProperty(exports, "discoverDiscordChannels", { enumerable: true, ge
 Object.defineProperty(exports, "discoverDiscordGuilds", { enumerable: true, get: function () { return discovery_1.discoverDiscordGuilds; } });
 Object.defineProperty(exports, "DiscordDiscoveryError", { enumerable: true, get: function () { return discovery_1.DiscordDiscoveryError; } });
 var ingestMessages_1 = require("./ingestMessages");
+Object.defineProperty(exports, "DiscordIngestError", { enumerable: true, get: function () { return ingestMessages_1.DiscordIngestError; } });
+Object.defineProperty(exports, "ingestForumMessages", { enumerable: true, get: function () { return ingestMessages_1.ingestForumMessages; } });
 Object.defineProperty(exports, "ingestMessages", { enumerable: true, get: function () { return ingestMessages_1.ingestMessages; } });
 // export { parseDiscordAnnouncement } from './parseDiscordAnnouncement';
 // export { normalizeDiscordTableDraft } from './normalizeDiscordTableDraft';
