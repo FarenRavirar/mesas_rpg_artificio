@@ -1,6 +1,6 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-05-04T14:32:00-03:00
+**Última atualização:** 2026-05-04T14:42:00-03:00
 **Atualizado por:** sessão 26-05-04_1_discord-forum-threads
 ---
 
@@ -42,6 +42,14 @@
 - **CodeQL dev:** run `25333281042` GREEN.
 - **Health Beta:** `https://mesasbeta.artificiorpg.com/` retornou HTTP 200 e `/api/v1/health` retornou `status=ok`, `environment=beta`, `db=connected`.
 - **Status:** disponível em Beta para teste funcional do mantenedor em janela anônima.
+
+**BUG-002 — Apuração visível e operável (04/05/2026):**
+- Reportado pelo mantenedor após testar o BUG-001 em Beta: o botão "Apurar" apenas selecionava a linha; em viewport desktop comum o painel de detalhe ficava abaixo da lista e parecia não existir.
+- `specs/015-discord-forum-threads/bugs/BUG-002.md` criado e `tasks.md` recebeu T034.
+- Frontend atualizado: aba Mensagens agora seleciona automaticamente o primeiro item, usa layout mestre/detalhe em `lg`, mantém painel de apuração visível/sticky, adiciona contadores de fila e ações rápidas de status.
+- Mensagens sem `content_raw` exibem fallback com nome do post/thread para evitar linhas vazias.
+- Validação técnica: `npm --prefix frontend run build` GREEN.
+- **Status:** pronto para commit/push/deploy Beta.
 
 **Feature 015 — Importação de Posts de Fóruns Discord (04/05/2026):**
 - Sessão `26-05-04_1_discord-forum-threads` aberta a partir do prompt 015.

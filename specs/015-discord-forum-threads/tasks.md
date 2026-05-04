@@ -65,8 +65,10 @@
 - [x] T031 [BUG-001] Add imported-message status update API in `backend/src/routes/adminDiscordSync.ts` and frontend normalizer/client support in `frontend/src/features/discord-sync/api/discordSyncApi.ts`.
 - [x] T032 [BUG-001] Add actionable message detail/triage UI in `frontend/src/features/discord-sync/components/DiscordSyncPanel.tsx`.
 - [x] T033 [BUG-001] Update API/docs/status artifacts and run backend/frontend builds plus final searches.
+- [x] T034 [BUG-002] Make imported-message triage visible and operational in `frontend/src/features/discord-sync/components/DiscordSyncPanel.tsx`, including queue summary, selected item fallback content and quick status actions.
 
 **Bugfix**: 2026-05-04 — BUG-001 adiciona tasks T030-T033 para filtro temporal, triagem de mensagens e validacao.
+**Bugfix**: 2026-05-04 — BUG-002 adiciona T034 para corrigir apuracao invisivel e transformar a lista em painel de gestao.
 
 ## Dependencies
 

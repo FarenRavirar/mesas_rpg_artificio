@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import type { DiscordFetchWindow, DiscordSource, DiscordMessage, DiscordImportMessageStatus } from '../types';
 import { discordSyncApi } from '../api/discordSyncApi';
@@ -26,6 +26,19 @@ const MESSAGE_STATUS_COLORS: Record<DiscordImportMessageStatus, string> = {
 
 type PanelTab = 'configuracao' | 'fontes' | 'mensagens' | 'drafts';
 
+const REVIEW_ACTIONS: Array<{ status: DiscordImportMessageStatus; label: string; className: string }> = [
+  { status: 'needs_review', label: 'Mandar para revisão', className: 'bg-orange-600 hover:bg-orange-700' },
+  { status: 'parsed', label: 'Marcar conferida', className: 'bg-blue-600 hover:bg-blue-700' },
+  { status: 'ignored', label: 'Ignorar', className: 'bg-white/10 hover:bg-white/20' },
+];
+
+function getMessagePreview(message: DiscordMessage): string {
+  const content = message.content_raw.trim();
+  if (content) return content;
+  if (message.discord_thread_name) return `Post sem texto no corpo: ${message.discord_thread_name}`;
+  return 'Mensagem sem texto no corpo. Abra no Discord para conferir anexos ou contexto.';
+}
+
 export function DiscordSyncPanel() {
   const [tab, setTab] = useState<PanelTab>('configuracao');
   const [sources, setSources] = useState<DiscordSource[]>([]);
@@ -36,6 +49,14 @@ export function DiscordSyncPanel() {
   const [messageStatusFilter, setMessageStatusFilter] = useState<DiscordImportMessageStatus | ''>('');
   const [selectedMessage, setSelectedMessage] = useState<DiscordMessage | null>(null);
   const [savingMessageStatus, setSavingMessageStatus] = useState(false);
+  const detailRef = useRef<HTMLElement | null>(null);
+
+  const queueStats = useMemo(() => ({
+    pending: messages.filter(message => message.status === 'pending').length,
+    review: messages.filter(message => message.status === 'needs_review').length,
+    checked: messages.filter(message => message.status === 'parsed').length,
+    ignored: messages.filter(message => message.status === 'ignored').length,
+  }), [messages]);
 
   const loadSources = async () => {
     setLoadingSources(true);
@@ -74,6 +95,17 @@ export function DiscordSyncPanel() {
     }
   }, [tab, messageStatusFilter]);
 
+  useEffect(() => {
+    if (tab !== 'mensagens') return;
+    if (messages.length === 0) {
+      setSelectedMessage(null);
+      return;
+    }
+    if (!selectedMessage || !messages.some(message => message.id === selectedMessage.id)) {
+      setSelectedMessage(messages[0]);
+    }
+  }, [messages, selectedMessage, tab]);
+
   const handleFetchMessages = async (sourceId: string, window: DiscordFetchWindow) => {
     setFetchingSourceId(sourceId);
     try {
@@ -105,6 +137,13 @@ export function DiscordSyncPanel() {
     } finally {
       setSavingMessageStatus(false);
     }
+  };
+
+  const handleSelectMessage = (message: DiscordMessage) => {
+    setSelectedMessage(message);
+    window.requestAnimationFrame(() => {
+      detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
   };
 
   const tabClass = (t: PanelTab) =>
@@ -146,7 +185,7 @@ export function DiscordSyncPanel() {
 
       {tab === 'mensagens' && (
         <div>
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex flex-wrap items-center gap-3 mb-4">
             <select
               value={messageStatusFilter}
               onChange={e => setMessageStatusFilter(e.target.value as DiscordImportMessageStatus | '')}
@@ -165,17 +204,36 @@ export function DiscordSyncPanel() {
             </button>
           </div>
 
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
+            <div className="bg-white/5 border border-white/10 rounded-lg px-3 py-2">
+              <p className="text-white/40 text-xs">Pendentes</p>
+              <p className="text-yellow-300 text-lg font-bold">{queueStats.pending}</p>
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-lg px-3 py-2">
+              <p className="text-white/40 text-xs">Em revisão</p>
+              <p className="text-orange-300 text-lg font-bold">{queueStats.review}</p>
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-lg px-3 py-2">
+              <p className="text-white/40 text-xs">Conferidas</p>
+              <p className="text-blue-300 text-lg font-bold">{queueStats.checked}</p>
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-lg px-3 py-2">
+              <p className="text-white/40 text-xs">Ignoradas</p>
+              <p className="text-white/70 text-lg font-bold">{queueStats.ignored}</p>
+            </div>
+          </div>
+
           {loadingMessages ? (
             <p className="text-white/40 text-sm py-4 text-center">Carregando...</p>
           ) : messages.length === 0 ? (
             <p className="text-white/40 text-sm py-4 text-center">Nenhuma mensagem encontrada.</p>
           ) : (
-            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_420px] gap-4">
-              <div className="space-y-2">
+            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_400px] gap-4 items-start">
+              <div className="space-y-2 lg:max-h-[68vh] lg:overflow-y-auto lg:pr-1">
               {messages.map(msg => (
                 <button
                   key={msg.id}
-                  onClick={() => setSelectedMessage(msg)}
+                  onClick={() => handleSelectMessage(msg)}
                   className={`w-full text-left bg-white/5 border rounded-lg px-4 py-3 transition-colors hover:bg-white/[0.08] ${
                     selectedMessage?.id === msg.id ? 'border-blue-400/60' : 'border-white/10'
                   }`}
@@ -200,18 +258,18 @@ export function DiscordSyncPanel() {
                           </span>
                         )}
                       </div>
-                      <p className="text-white/70 text-sm truncate">{msg.content_raw.slice(0, 200)}</p>
+                      <p className="text-white/70 text-sm truncate">{getMessagePreview(msg).slice(0, 200)}</p>
                       {msg.parse_error && (
                         <p className="text-red-400 text-xs mt-1">Erro: {msg.parse_error}</p>
                       )}
                     </div>
-                    <span className="text-blue-400 text-xs shrink-0">Apurar</span>
+                    <span className="text-blue-400 text-xs shrink-0">{selectedMessage?.id === msg.id ? 'Aberta' : 'Apurar'}</span>
                   </div>
                 </button>
               ))}
               </div>
 
-              <aside className="bg-white/5 border border-white/10 rounded-lg p-4 min-h-[360px]">
+              <aside ref={detailRef} className="bg-white/5 border border-white/10 rounded-lg p-4 min-h-[360px] lg:sticky lg:top-4">
                 {selectedMessage ? (
                   <div className="space-y-4">
                     <div className="flex items-start justify-between gap-3">
@@ -245,6 +303,19 @@ export function DiscordSyncPanel() {
                       </select>
                     </label>
 
+                    <div className="flex flex-wrap gap-2">
+                      {REVIEW_ACTIONS.map(action => (
+                        <button
+                          key={action.status}
+                          onClick={() => handleUpdateMessageStatus(selectedMessage, action.status)}
+                          disabled={savingMessageStatus || selectedMessage.status === action.status}
+                          className={`px-3 py-2 rounded-lg text-white text-xs font-medium transition-colors disabled:opacity-40 ${action.className}`}
+                        >
+                          {action.label}
+                        </button>
+                      ))}
+                    </div>
+
                     <div className="grid grid-cols-1 gap-2 text-xs text-white/50">
                       <div><span className="text-white/30">Origem:</span> {selectedMessage.discord_thread_name ?? selectedMessage.discord_channel_id}</div>
                       <div><span className="text-white/30">Autor:</span> {selectedMessage.discord_author_name ?? selectedMessage.discord_author_id ?? 'autor desconhecido'}</div>
@@ -255,7 +326,7 @@ export function DiscordSyncPanel() {
                       <p className="text-xs text-white/60 mb-1">Conteúdo completo</p>
                       <textarea
                         readOnly
-                        value={selectedMessage.content_raw}
+                        value={selectedMessage.content_raw.trim() ? selectedMessage.content_raw : getMessagePreview(selectedMessage)}
                         className="w-full min-h-[220px] resize-y bg-[#0F1A2E] border border-white/10 rounded-lg px-3 py-2 text-sm text-white/80 outline-none"
                       />
                     </div>

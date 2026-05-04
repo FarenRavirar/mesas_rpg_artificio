@@ -1,5 +1,15 @@
 # Session Log
 
+## 2026-05-04T14:42:00-03:00 — discord-sync-apuracao-operavel
+
+**Tipo:** Bugfix SDD pós-deploy Beta
+**Feature:** `specs/015-discord-forum-threads/`
+**Bug:** `specs/015-discord-forum-threads/bugs/BUG-002.md`
+**Correção:** aba Mensagens passou a funcionar como painel mestre/detalhe visível em desktop comum, com seleção automática, contadores de fila, ações rápidas de status e fallback para mensagens sem texto bruto.
+**Evidências principais:** `npm --prefix frontend run build` passou.
+**Risco residual:** validação funcional/manual ainda depende de deploy Beta e teste do mantenedor em janela anônima.
+**Sessão mantida aberta em:** `sessoes/26-05-04_1_discord-forum-threads.md`
+
 ## 2026-05-04T08:05:28-03:00 — discord-forum-threads
 
 **Tipo:** Implementacao SDD
