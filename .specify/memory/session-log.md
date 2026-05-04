@@ -1,5 +1,16 @@
 # Session Log
 
+## 2026-05-03T17:35:00-03:00 — discord-channel-discovery
+
+**Tipo:** Implementacao SDD
+**Feature:** `specs/014-discord-channel-discovery/`
+**Tasks:** T001-T022 concluidas no artefato de tasks da feature.
+**Decisoes arquiteturais:** discovery sob demanda via REST Discord com Bot token; `GET /users/@me/guilds` lista servidores do bot; `GET /guilds/:id/channels` lista canais; UI usa seletores como caminho principal e mantem modo manual avancado; sem nova migration.
+**Evidencias principais:** `npm --prefix backend run build` GREEN; `npm --prefix frontend run build` GREEN; busca de seguranca sem logs de token; rotas admin documentadas em `MAPA_DE_API.md`.
+**PR:** ainda nao aberto; aguardando autorizacao explicita para commit/push/PR.
+**Risco residual:** validacao funcional depende de deploy Beta e bot com permissoes de ver canal/ler historico.
+**Sessao mantida aberta em:** `sessoes/26-05-03_4_discord-settings-config.md`
+
 ## 2026-05-03T16:36:45-03:00 — discord-settings-config
 
 **Tipo:** Implementacao SDD

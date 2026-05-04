@@ -15,10 +15,10 @@
 
 ## Estado Técnico Atual
 
-**Branch ativa:** `feat/013-discord-settings-config` — PR draft #142 aberto para `dev`
-**Último commit base:** `0d10601` — atualização da documentação de sessões e outros
+**Branch ativa:** `feat/014-discord-channel-discovery` — implementação local concluída; aguardando autorização para commit/push/PR
+**Último commit base:** `7cfccf5` — merge da Feature 013 em `dev`
 
-**Feature ativa:** `specs/013-discord-settings-config/`
+**Feature ativa:** `specs/014-discord-channel-discovery/`
 **Sessão encerrada:** `sessoes/26-05-03_3_discord-covil-sync.md`
 
 **Feature 012 — Pipeline Discord Covil Sync (03/05/2026):**
@@ -36,7 +36,19 @@
 - Backend implementado: AES-256-GCM via `node:crypto`, chave derivada de `JWT_SECRET`, rotas GET/PUT/DELETE de settings e fallback DB → `process.env.DISCORD_BOT_TOKEN` na ingestão.
 - Frontend implementado: `DiscordSettingsPanel` como primeira aba em `DiscordSyncPanel`, salvar token, status mascarado e remoção com confirmação inline.
 - Validação técnica: `npm --prefix backend run build` GREEN; `npm --prefix frontend run build` GREEN.
-- **Status:** PR draft #142 aberto para `dev`; aguarda checks/review e deploy Beta após merge.
+- PR #142 mergeado em `dev` e Deploy Beta verde.
+- Validação funcional inicial em Beta: token salvo pelo painel e status mascarado exibido (`Bot configurado`).
+- **Status:** concluída em `dev`; desbloqueou configuração do bot sem SSH.
+
+**Feature 014 — Descoberta de Canais Discord (03/05/2026):**
+- Sessão 013 retomada a pedido do mantenedor para eliminar cadastro manual rígido de `guild_id`/`channel_id`.
+- Branch `feat/014-discord-channel-discovery` criada a partir de `dev`.
+- `/speckit.specify`, `/speckit.plan`, `/speckit.tasks` e `/speckit.implement` executados proceduralmente para `specs/014-discord-channel-discovery/`.
+- Backend implementado: cliente REST Discord em `backend/src/discord/discovery.ts`, rotas admin `GET /discovery/guilds` e `GET /discovery/guilds/:guildId/channels`, filtro de canais textuais/anúncios e erros acionáveis sem expor token.
+- Frontend implementado: aba Fontes agora descobre servidores/canais pelo bot, cadastra fonte por seleção e mantém modo manual como opção avançada.
+- Documentação: `MAPA_DE_API.md` atualizado e `pr-description.md` criado.
+- Validação técnica: `npm --prefix backend run build` GREEN; `npm --prefix frontend run build` GREEN; busca final sem logs de token.
+- **Status:** implementação local concluída; aguardando autorização explícita para commit/push/PR.
 
 **Feature 010 — Refatoração do Changelog (03/05/2026):**
 - Sessão nova aberta a pedido explícito do mantenedor, sem branch dedicada; trabalho direto em `dev`.
@@ -206,11 +218,16 @@
 
 ## Próxima Ação
 
-**Feature 013 — Discord Settings Config:**
-1. ✅ **Spec/plan/tasks/implement concluídos:** `specs/013-discord-settings-config/` com implementação backend/frontend local.
+**Feature 014 — Descoberta de Canais Discord:**
+1. ✅ **Spec/plan/tasks/implement concluídos:** `specs/014-discord-channel-discovery/` com implementação backend/frontend local.
 2. ✅ **Validação técnica:** builds backend e frontend verdes.
-3. **Próximo passo:** acompanhar checks do PR #142 e revisar feedback.
-4. **Critério de desbloqueio:** após merge/deploy em Beta, admin salva token via frontend e desbloqueia teste funcional do painel Discord Sync.
+3. **Próximo passo:** se autorizado, commitar, fazer push da branch e abrir PR para `dev`.
+4. **Critério de desbloqueio:** após merge/deploy em Beta, admin seleciona servidor/canal sem copiar IDs e cadastra fonte pelo painel.
+
+**Feature 013 — Discord Settings Config:**
+1. ✅ **Mergeado e deployado:** PR #142 em `dev`.
+2. ✅ **Validação funcional inicial:** token salvo via painel no Beta com preview mascarado.
+3. **Próximo passo funcional:** usar Feature 014 para cadastrar fonte sem IDs manuais e buscar mensagens.
 
 **Feature 012 — Pipeline Discord Covil Sync:**
 1. ✅ **Mergeado e deployado:** PR #141 em `dev`; Beta com migration_115 aplicada.
