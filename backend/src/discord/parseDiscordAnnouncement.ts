@@ -193,6 +193,9 @@ export function parseDiscordAnnouncement(
 
   const systemName = matchedSystem?.name ?? null;
   const systemId = matchedSystem?.id ?? null;
+  // Preserva o hint bruto quando não há correspondência: usado para criar
+  // system_suggestion automática e para o revisor ver o que veio do Discord.
+  const rawSystemHint = (!matchedSystem && systemHint) ? systemHint : null;
 
   // Campos extraídos do corpo
   const modality = extractModality(body) ?? 'online';
@@ -205,7 +208,10 @@ export function parseDiscordAnnouncement(
   const description = body.trim() || null;
 
   const missingFields: string[] = [];
-  if (!systemName) missingFields.push('system_name');
+  if (!systemName) {
+    // Distingue "hint encontrado mas não reconhecido" de "sem pista alguma"
+    missingFields.push(rawSystemHint ? 'system_name:unmatched_hint' : 'system_name');
+  }
   if (!dayOfWeek) missingFields.push('day_of_week');
   if (!startTime) missingFields.push('start_time');
   if (!slotsTotal) missingFields.push('slots_total');
@@ -216,6 +222,7 @@ export function parseDiscordAnnouncement(
     title: title || threadName || null,
     system_name: systemName,
     system_id: systemId,
+    raw_system_hint: rawSystemHint,
     type,
     modality,
     price_type: priceType,

@@ -34,6 +34,13 @@ export interface DiscordTableDraftTable {
   title: string | null;
   system_name: string | null;
   system_id: string | null;
+  /**
+   * Texto bruto extraído do nome do thread antes do ":" que o parser
+   * tentou resolver como sistema mas não encontrou correspondência no banco.
+   * Usado para criar system_suggestion automática e mostrar ao revisor
+   * o que chegou do Discord antes de qualquer normalização.
+   */
+  raw_system_hint: string | null;
   type: TableDraftType | null;
   modality: TableDraftModality | null;
   price_type: TableDraftPriceType | null;

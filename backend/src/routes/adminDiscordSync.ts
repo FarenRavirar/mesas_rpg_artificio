@@ -615,6 +615,42 @@ router.post('/messages/:id/parse', authMiddleware, async (req: Request, res: Res
       .where('id', '=', message.id)
       .execute();
 
+    // Se o parser extraiu um hint de sistema mas não casou com nenhum sistema
+    // cadastrado, cria uma system_suggestion pendente para fechar o loop:
+    // admin revisa → aprova → alias entra em system_aliases → próximos parses detectam.
+    const rawHint = parsed.table.raw_system_hint;
+    if (rawHint && !parsed.table.system_id) {
+      const adminId = (req as any).user?.userId as string | undefined;
+      if (adminId) {
+        // Verifica se já existe sugestão pendente ou aprovada com o mesmo nome
+        const existing = await db
+          .selectFrom('system_suggestions')
+          .select('id')
+          .where('name', '=', rawHint)
+          .where('status', 'in', ['pending', 'approved'])
+          .executeTakeFirst();
+
+        if (!existing) {
+          await db
+            .insertInto('system_suggestions')
+            .values({
+              user_id: adminId,
+              name: rawHint,
+              name_pt: null,
+              node_type: 'system',
+              parent_id: null,
+              description: `Sugestão automática gerada ao parsear mensagem Discord: "${message.discord_thread_name ?? message.discord_message_id}"`,
+              aliases: [rawHint],
+              status: 'pending',
+              reviewed_by: null,
+              reviewed_at: null,
+              rejection_reason: null,
+            })
+            .execute();
+        }
+      }
+    }
+
     return res.json({ data: draft });
   } catch (error: unknown) {
     console.error('[POST /admin/discord-sync/messages/:id/parse]', error);
