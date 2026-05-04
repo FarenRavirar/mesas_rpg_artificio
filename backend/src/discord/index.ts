@@ -27,7 +27,7 @@ export { discoverDiscordChannels, discoverDiscordGuilds, DiscordDiscoveryError }
 export type { DiscordDiscoveredChannel, DiscordDiscoveredGuild } from './discovery';
 export { DiscordIngestError, ingestForumMessages, ingestMessages } from './ingestMessages';
 export type { IngestResult } from './ingestMessages';
-// export { parseDiscordAnnouncement } from './parseDiscordAnnouncement';
-// export { normalizeDiscordTableDraft } from './normalizeDiscordTableDraft';
+export { parseDiscordAnnouncement } from './parseDiscordAnnouncement';
+export type { SystemEntry } from './parseDiscordAnnouncement';
 export { syncDiscordDraftToTable } from './syncDiscordDraftToTable';
 export type { SyncResult } from './syncDiscordDraftToTable';

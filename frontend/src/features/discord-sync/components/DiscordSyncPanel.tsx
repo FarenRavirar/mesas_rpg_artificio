@@ -49,6 +49,7 @@ export function DiscordSyncPanel() {
   const [messageStatusFilter, setMessageStatusFilter] = useState<DiscordImportMessageStatus | ''>('');
   const [selectedMessage, setSelectedMessage] = useState<DiscordMessage | null>(null);
   const [savingMessageStatus, setSavingMessageStatus] = useState(false);
+  const [parsingMessageId, setParsingMessageId] = useState<string | null>(null);
   const detailRef = useRef<HTMLElement | null>(null);
 
   const queueStats = useMemo(() => ({
@@ -136,6 +137,22 @@ export function DiscordSyncPanel() {
       toast.error(err instanceof Error ? err.message : 'Erro ao atualizar mensagem.');
     } finally {
       setSavingMessageStatus(false);
+    }
+  };
+
+  const handleParseMessage = async (message: DiscordMessage) => {
+    setParsingMessageId(message.id);
+    try {
+      await discordSyncApi.parseMessage(message.id);
+      toast.success('Draft criado! Acesse a aba Drafts para revisar e sincronizar.');
+      // Atualiza a mensagem na lista para refletir status 'parsed'
+      const updated = await discordSyncApi.updateMessage(message.id, { status: 'parsed' });
+      setMessages(prev => prev.map(item => (item.id === updated.id ? updated : item)));
+      setSelectedMessage(updated);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao parsear mensagem.');
+    } finally {
+      setParsingMessageId(null);
     }
   };
 
@@ -304,6 +321,13 @@ export function DiscordSyncPanel() {
                     </label>
 
                     <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => handleParseMessage(selectedMessage)}
+                        disabled={parsingMessageId === selectedMessage.id || selectedMessage.status === 'synced'}
+                        className="px-3 py-2 rounded-lg text-white text-xs font-bold transition-colors disabled:opacity-40 bg-green-700 hover:bg-green-600"
+                      >
+                        {parsingMessageId === selectedMessage.id ? 'Criando draft...' : '✦ Criar Draft'}
+                      </button>
                       {REVIEW_ACTIONS.map(action => (
                         <button
                           key={action.status}

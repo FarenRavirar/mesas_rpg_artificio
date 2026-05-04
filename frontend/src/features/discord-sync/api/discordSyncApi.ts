@@ -182,6 +182,9 @@ export const discordSyncApi = {
   updateMessage: async (id: string, body: { status: DiscordImportMessageStatus }) =>
     parseDiscordMessage(await apiFetch<unknown>(`/messages/${id}`, { method: 'PATCH', body: JSON.stringify(body) })),
 
+  parseMessage: (id: string) =>
+    apiFetch<DiscordDraft>(`/messages/${id}/parse`, { method: 'POST' }),
+
   getDrafts: (params?: { status?: DiscordImportDraftStatus; limit?: number; offset?: number }) => {
     const qs = new URLSearchParams();
     if (params?.status) qs.set('status', params.status);
