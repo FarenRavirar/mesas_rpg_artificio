@@ -7,7 +7,8 @@
 **Tasks:** T001-T029 geradas; T001-T027 concluidas; T028/T029 executadas via atualizacao de estado e retrospectiva documental nesta sessao.
 **Decisoes arquiteturais:** fontes Discord passam a ter `channel_type`; canais de forum (`GUILD_FORUM`, tipo 15) sao importados por posts/threads; mensagens de forum usam `discord_channel_id` como thread real e preservam `discord_parent_channel_id`, `discord_thread_id`, `discord_thread_name`; `GUILD_MEDIA` ficou fora do escopo inicial.
 **Evidencias principais:** `npm --prefix backend run build` GREEN; `npm --prefix frontend run build` GREEN; busca final sem `AbortSignal.timeout`; busca de seguranca sem `console.log`/`console.error` com token.
-**PR:** #145 — `feat/015-discord-forum-threads` -> `dev` (draft); checks verdes em 2026-05-04T08:10:08-03:00; ready/merge/deploy Beta autorizado pelo mantenedor em 2026-05-04T08:48:45-03:00.
+**PR:** #145 — `feat/015-discord-forum-threads` -> `dev`; checks verdes em 2026-05-04T08:10:08-03:00; mergeado em `dev` com commit `13655dd` em 2026-05-04T08:51:12-03:00.
+**Deploy Beta:** run `25317356143` GREEN; `migrate`, `deploy-app` e `smoke` passaram; health publico retornou HTTP 200.
 **Risco residual:** validacao funcional depende de deploy Beta e teste do mantenedor em janela anonima usando forum real com permissoes do bot.
 **Sessao mantida aberta em:** `sessoes/26-05-04_1_discord-forum-threads.md`
 
