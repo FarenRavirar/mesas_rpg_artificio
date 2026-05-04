@@ -15,7 +15,7 @@
 
 ## Estado Técnico Atual
 
-**Branch ativa:** `feat/015-discord-forum-threads` — implementação local concluída; aguardando commit/push/PR para `dev`
+**Branch ativa:** `feat/015-discord-forum-threads` — implementação local publicada em PR draft para `dev`
 **Último commit base:** `97cf7dd` — merge da correção visual da Feature 014 em `dev`
 
 **Feature ativa:** `specs/015-discord-forum-threads/`
@@ -31,7 +31,8 @@
 - Frontend implementado: seleção e cadastro de fórum, badges de tipo de fonte, feedback de varredura de posts e exibição de metadados da thread em mensagens importadas.
 - Documentação: `MAPA_DE_API.md`, contratos, data-model, quickstart e `pr-description.md` atualizados.
 - Validação técnica: `npm --prefix backend run build` GREEN; `npm --prefix frontend run build` GREEN; busca final sem `AbortSignal.timeout`; busca de segurança sem logs de token.
-- **Status:** implementação local concluída; aguardando commit/push/PR para `dev`, deploy Beta e teste funcional em janela anônima com fórum real.
+- **PR:** #145 — https://github.com/FarenRavirar/mesas_rpg_artificio/pull/145
+- **Status:** implementação local publicada em PR draft para `dev`; aguardando checks, review/merge, deploy Beta e teste funcional em janela anônima com fórum real.
 
 **Feature 012 — Pipeline Discord Covil Sync (03/05/2026):**
 - T001–T017 implementados e mergeados via PR #141.
@@ -233,7 +234,7 @@
 **Feature 015 — Importação de Posts de Fóruns Discord:**
 1. ✅ **Spec/plan/tasks/implement concluídos:** `specs/015-discord-forum-threads/` com implementação backend/frontend local.
 2. ✅ **Validação técnica:** builds backend e frontend verdes; busca final sem `AbortSignal.timeout`; sem logs de token detectados.
-3. **Próximo passo:** commitar arquivos da feature, fazer push da branch e abrir PR para `dev`.
+3. **Próximo passo:** acompanhar checks da PR #145 e, se aprovado, seguir para merge/deploy Beta.
 4. **Critério de desbloqueio funcional:** após merge/deploy em Beta, admin cadastra um fórum real como fonte, executa busca em janela anônima e confirma importação/deduplicação de posts/threads.
 
 **Feature 014 — Descoberta de Canais Discord:**

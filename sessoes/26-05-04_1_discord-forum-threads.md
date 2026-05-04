@@ -136,3 +136,6 @@ Sessao concluida quando a Feature 015 tiver spec, plan, tasks, implementacao, bu
   - Comando: `rg -n "console\\.(log|error).*token|plaintext|DISCORD_BOT_TOKEN" backend/src/discord backend/src/routes/adminDiscordSync.ts frontend/src/features/discord-sync --glob "*.ts" --glob "*.tsx"`
   - Resultado: zero ocorrencias de `console.log`/`console.error` com token; ocorrencias restantes sao texto/configuracao/crypto sem log.
 - [x] T027-T029 concluidas: `tasks.md`, `project-state.md`, `session-log.md` e esta sessao atualizados.
+- [x] Commit criado: `a2f8456 feat(015): suporta foruns no discord sync`.
+- [x] Push concluido para `origin/feat/015-discord-forum-threads`.
+- [x] PR draft aberta para `dev`: https://github.com/FarenRavirar/mesas_rpg_artificio/pull/145
