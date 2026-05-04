@@ -23,6 +23,16 @@
 **Risco residual:** validacao funcional depende de deploy Beta e bot com permissoes de ver canal/ler historico.
 **Sessao mantida aberta em:** `sessoes/26-05-03_4_discord-settings-config.md`
 
+## 2026-05-04T12:15:00-03:00 — discord-sync-triagem-tempo
+
+**Tipo:** Bugfix SDD pós-deploy Beta
+**Feature:** `specs/015-discord-forum-threads/`
+**Bug:** `specs/015-discord-forum-threads/bugs/BUG-001.md`
+**Correção:** `POST /fetch` aceita janela temporal para qualquer fonte Discord; aba Fontes permite escolher período antes da busca; aba Mensagens abre detalhe de apuração com conteúdo completo, link para Discord e edição de status via `PATCH /messages/:id`.
+**Evidências principais:** `npm --prefix backend run build` passou; `npm --prefix frontend run build` passou; MAPA_DE_API, contratos, tasks, project-state e changelog atualizados.
+**Risco residual:** validação funcional/manual ainda depende de deploy Beta e teste do mantenedor em janela anônima.
+**Sessão mantida aberta em:** `sessoes/26-05-04_1_discord-forum-threads.md`
+
 ## 2026-05-04T09:30:00-03:00 — discord-selects-unificados
 
 **Tipo:** Correção UX pós-Feature 015

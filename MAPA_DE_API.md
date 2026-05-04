@@ -188,8 +188,9 @@
 | **POST** | `/admin/discord-sync/sources` | 🔧 Impl. | DiscordSourceList.tsx — aceita `channel_type` opcional (`text`, `announcement`, `forum`) |
 | **PATCH** | `/admin/discord-sync/sources/:id` | 🔧 Impl. | DiscordSourceList.tsx |
 | **DELETE** | `/admin/discord-sync/sources/:id` | 🔧 Impl. | DiscordSourceList.tsx |
-| **POST** | `/admin/discord-sync/fetch` | 🔧 Impl. | DiscordSyncPanel.tsx — dispara ingestão REST de canal textual/anúncio ou varredura de posts/threads de fórum |
+| **POST** | `/admin/discord-sync/fetch` | 🔧 Impl. | DiscordSyncPanel.tsx — dispara ingestão REST de canal textual/anúncio ou varredura de posts/threads de fórum; aceita `since`/`until` para janela temporal |
 | **GET** | `/admin/discord-sync/messages` | 🔧 Impl. | DiscordSyncPanel.tsx — filtros: `source_id`, `status`, `limit`, `offset`; mensagens de fórum incluem `discord_thread_id`, `discord_parent_channel_id`, `discord_thread_name` |
+| **PATCH** | `/admin/discord-sync/messages/:id` | 🔧 Impl. | DiscordSyncPanel.tsx — atualiza status de triagem da mensagem importada |
 | **GET** | `/admin/discord-sync/drafts` | 🔧 Impl. | DiscordDraftReviewTable.tsx — filtros: `status`, `limit`, `offset` |
 | **GET** | `/admin/discord-sync/drafts/:id` | 🔧 Impl. | DiscordDraftPreview.tsx |
 | **PATCH** | `/admin/discord-sync/drafts/:id` | 🔧 Impl. | DiscordDraftPreview.tsx — edita `normalized_payload`, `status`, `review_notes` |

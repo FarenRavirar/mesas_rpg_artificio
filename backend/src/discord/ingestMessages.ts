@@ -79,6 +79,19 @@ type InsertRow = {
 
 type UpdateRow = { id: string; contentRaw: string; contentHash: string };
 
+function filterMessagesByWindow(messages: DiscordApiMessage[], since?: Date, until?: Date): DiscordApiMessage[] {
+  if (!since && !until) return messages;
+
+  return messages.filter((message) => {
+    if (!message.timestamp) return false;
+    const createdAt = new Date(message.timestamp);
+    if (Number.isNaN(createdAt.getTime())) return false;
+    if (since && createdAt < since) return false;
+    if (until && createdAt > until) return false;
+    return true;
+  });
+}
+
 function mapDiscordStatus(status: number): DiscordIngestError {
   if (status === 401) {
     return new DiscordIngestError('Token do bot inválido ou revogado. Gere um novo token no Discord e salve novamente.', 502);
@@ -279,6 +292,8 @@ export async function ingestMessages(params: {
   beforeMessageId?: string;
   afterMessageId?: string;
   sourceKind?: DiscordImportSourceKind;
+  since?: Date;
+  until?: Date;
 }): Promise<IngestResult> {
   const {
     sourceId,
@@ -289,6 +304,8 @@ export async function ingestMessages(params: {
     beforeMessageId,
     afterMessageId,
     sourceKind = 'discord_bot',
+    since,
+    until,
   } = params;
 
   const resolvedToken = botToken ?? await requireDiscordBotToken();
@@ -302,7 +319,13 @@ export async function ingestMessages(params: {
     beforeMessageId,
     afterMessageId,
   });
-  const result = await persistMessages({ sourceId, channelId, guildId, messages, sourceKind });
+  const result = await persistMessages({
+    sourceId,
+    channelId,
+    guildId,
+    messages: filterMessagesByWindow(messages, since, until),
+    sourceKind,
+  });
   return { ...result, threadsScanned: 0, sourceKind: 'text' };
 }
 
@@ -313,6 +336,8 @@ export async function ingestForumMessages(params: {
   botToken?: string;
   limit?: number;
   sourceKind?: DiscordImportSourceKind;
+  since?: Date;
+  until?: Date;
 }): Promise<IngestResult> {
   const {
     sourceId,
@@ -321,6 +346,8 @@ export async function ingestForumMessages(params: {
     botToken,
     limit = 50,
     sourceKind = 'discord_bot',
+    since,
+    until,
   } = params;
 
   const resolvedToken = botToken ?? await requireDiscordBotToken();
@@ -347,7 +374,7 @@ export async function ingestForumMessages(params: {
       sourceId,
       channelId: thread.id,
       guildId,
-      messages,
+      messages: filterMessagesByWindow(messages, since, until),
       sourceKind,
       parentChannelId: forumChannelId,
       threadId: thread.id,

@@ -33,10 +33,18 @@ const updateDraftSchema = zod_1.z.object({
     status: zod_1.z.enum(['draft', 'ready', 'needs_review', 'rejected']).optional(),
     review_notes: zod_1.z.string().optional(),
 });
+const updateMessageSchema = zod_1.z.object({
+    status: zod_1.z.enum(['pending', 'parsed', 'needs_review', 'synced', 'ignored', 'error']),
+});
 const fetchSchema = zod_1.z.object({
     source_id: zod_1.z.string().uuid(),
     limit: zod_1.z.coerce.number().int().min(1).max(100).default(50),
     before_message_id: zod_1.z.string().optional(),
+    since: zod_1.z.coerce.date().optional(),
+    until: zod_1.z.coerce.date().optional(),
+}).refine((value) => !value.since || !value.until || value.since <= value.until, {
+    message: 'Janela de tempo inválida.',
+    path: ['until'],
 });
 const snowflakeParamSchema = zod_1.z.object({
     guildId: zod_1.z.string().regex(/^\d{5,30}$/, 'Servidor Discord inválido.'),
@@ -312,7 +320,7 @@ router.post('/fetch', auth_1.authMiddleware, async (req, res) => {
     if (!parsed.success) {
         return res.status(400).json({ error: 'Dados inválidos.', details: parsed.error.flatten() });
     }
-    const { source_id, limit, before_message_id } = parsed.data;
+    const { source_id, limit, before_message_id, since, until } = parsed.data;
     try {
         const source = await db_1.db
             .selectFrom('discord_import_sources')
@@ -330,6 +338,8 @@ router.post('/fetch', auth_1.authMiddleware, async (req, res) => {
                 forumChannelId: source.channel_id,
                 guildId: source.guild_id,
                 limit,
+                since,
+                until,
             })
             : await (0, discord_1.ingestMessages)({
                 sourceId: source_id,
@@ -337,6 +347,8 @@ router.post('/fetch', auth_1.authMiddleware, async (req, res) => {
                 guildId: source.guild_id,
                 limit,
                 beforeMessageId: before_message_id,
+                since,
+                until,
             });
         // Atualiza last_synced_at apenas se a chamada ao Discord foi concluida com sucesso
         if (result.inserted > 0 || result.updated > 0 || result.total === 0) {
@@ -377,6 +389,30 @@ router.get('/messages', auth_1.authMiddleware, async (req, res) => {
     catch (error) {
         console.error('[GET /admin/discord-sync/messages]', error);
         return res.status(500).json({ error: 'Erro ao listar mensagens.' });
+    }
+});
+// PATCH /messages/:id
+router.patch('/messages/:id', auth_1.authMiddleware, async (req, res) => {
+    if (!isAdmin(req, res))
+        return;
+    const parsed = updateMessageSchema.safeParse(req.body);
+    if (!parsed.success) {
+        return res.status(400).json({ error: 'Dados inválidos.', details: parsed.error.flatten() });
+    }
+    try {
+        const [message] = await db_1.db
+            .updateTable('discord_import_messages')
+            .set({ status: parsed.data.status, parse_error: null, updated_at: new Date() })
+            .where('id', '=', req.params.id)
+            .returningAll()
+            .execute();
+        if (!message)
+            return res.status(404).json({ error: 'Mensagem não encontrada.' });
+        return res.json({ data: message });
+    }
+    catch (error) {
+        console.error('[PATCH /admin/discord-sync/messages/:id]', error);
+        return res.status(500).json({ error: 'Erro ao atualizar mensagem.' });
     }
 });
 // ─── Drafts ───────────────────────────────────────────────────────────────────

@@ -9,6 +9,7 @@ import type {
   DiscordSourceChannelType,
   DiscordImportMessageStatus,
   DiscordImportDraftStatus,
+  DiscordFetchWindow,
   IngestResult,
   SyncReadyResult,
 } from '../types';
@@ -132,6 +133,12 @@ function parseDiscordMessages(value: unknown): DiscordMessage[] {
   return parsed.success ? parsed.data : [];
 }
 
+function parseDiscordMessage(value: unknown): DiscordMessage {
+  const parsed = discordMessageSchema.safeParse(value);
+  if (!parsed.success) throw new Error('Mensagem Discord em formato inesperado.');
+  return parsed.data;
+}
+
 export const discordSyncApi = {
   getDiscordSettings: async () =>
     parseDiscordSettings(await apiFetch<unknown>('/settings')),
@@ -160,7 +167,7 @@ export const discordSyncApi = {
   deleteSource: (id: string) =>
     apiFetch<{ message: string }>(`/sources/${id}`, { method: 'DELETE' }),
 
-  fetchMessages: (body: { source_id: string; limit?: number; before_message_id?: string }) =>
+  fetchMessages: (body: { source_id: string; limit?: number; before_message_id?: string } & DiscordFetchWindow) =>
     apiFetch<IngestResult>('/fetch', { method: 'POST', body: JSON.stringify(body) }),
 
   getMessages: async (params?: { source_id?: string; status?: DiscordImportMessageStatus; limit?: number; offset?: number }) => {
@@ -171,6 +178,9 @@ export const discordSyncApi = {
     if (params?.offset != null) qs.set('offset', String(params.offset));
     return parseDiscordMessages(await apiFetch<unknown>(`/messages?${qs}`));
   },
+
+  updateMessage: async (id: string, body: { status: DiscordImportMessageStatus }) =>
+    parseDiscordMessage(await apiFetch<unknown>(`/messages/${id}`, { method: 'PATCH', body: JSON.stringify(body) })),
 
   getDrafts: (params?: { status?: DiscordImportDraftStatus; limit?: number; offset?: number }) => {
     const qs = new URLSearchParams();

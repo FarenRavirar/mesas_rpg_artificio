@@ -80,6 +80,10 @@ Como administrador, quero receber mensagens acionaveis quando a busca em forum f
 - **FR-011**: O sistema MUST NOT expor o token do bot em respostas, logs ou interface.
 - **FR-012**: O sistema MUST restringir descoberta, cadastro de fontes e busca de mensagens a administradores autenticados.
 - **FR-013**: O sistema MUST registrar tipo e origem suficientes para que futuras etapas de parser saibam se uma mensagem veio de canal comum ou de forum.
+- **FR-014**: O sistema MUST permitir que o administrador abra uma mensagem importada, leia o conteudo completo, veja metadados de origem e atualize o status de triagem da mensagem.
+- **FR-015**: Ao carregar mensagens de qualquer fonte Discord, o sistema MUST permitir selecionar uma janela de tempo para limitar a busca de mensagens recentes.
+
+**Bugfix**: 2026-05-04 — BUG-001 adiciona triagem funcional de mensagens importadas e filtro temporal na busca de mensagens/posts Discord.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -102,6 +106,8 @@ Migration planejada para registrar metadados de tipo de canal e origem de forum/
 - **SC-004**: Fontes textuais e de anuncio existentes continuam importando mensagens apos a entrega da feature.
 - **SC-005**: Em falhas comuns de token, permissao ou limite temporario, o admin recebe uma orientacao acionavel na propria interface.
 - **SC-006**: O token completo do bot nunca aparece em telas, respostas HTTP ou logs durante descoberta, cadastro ou busca.
+- **SC-007**: Um administrador consegue abrir uma mensagem importada da lista, conferir o texto completo e mudar seu status sem sair do painel Discord Sync.
+- **SC-008**: Uma busca com janela temporal selecionada nao persiste mensagens fora do periodo solicitado.
 
 ## Assumptions
 

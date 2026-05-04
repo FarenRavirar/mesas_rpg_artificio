@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import type { DiscordDiscoveredChannel, DiscordDiscoveredGuild, DiscordSource, DiscordSourceChannelType } from '../types';
+import type { DiscordDiscoveredChannel, DiscordDiscoveredGuild, DiscordFetchWindow, DiscordSource, DiscordSourceChannelType } from '../types';
 import { discordSyncApi } from '../api/discordSyncApi';
 
 interface Props {
   sources: DiscordSource[];
   onRefresh: () => void;
-  onFetchMessages: (sourceId: string) => void;
+  onFetchMessages: (sourceId: string, window: DiscordFetchWindow) => void;
   fetchingSourceId: string | null;
 }
 
@@ -18,6 +18,24 @@ interface NewSourceForm {
 }
 
 const emptyForm: NewSourceForm = { guild_id: '', channel_id: '', channel_name: '', channel_type: 'text' };
+
+const FETCH_WINDOW_OPTIONS = [
+  { value: '24h', label: 'Últimas 24h', days: 1 },
+  { value: '7d', label: 'Últimos 7 dias', days: 7 },
+  { value: '30d', label: 'Últimos 30 dias', days: 30 },
+  { value: '90d', label: 'Últimos 90 dias', days: 90 },
+  { value: 'all', label: 'Sem limite', days: null },
+] as const;
+
+type FetchWindowOption = (typeof FETCH_WINDOW_OPTIONS)[number]['value'];
+
+function buildFetchWindow(value: FetchWindowOption): DiscordFetchWindow {
+  const option = FETCH_WINDOW_OPTIONS.find((item) => item.value === value);
+  if (!option?.days) return {};
+  const since = new Date();
+  since.setDate(since.getDate() - option.days);
+  return { since: since.toISOString(), until: new Date().toISOString() };
+}
 
 function getChannelKindLabel(kind: DiscordSourceChannelType): string {
   if (kind === 'forum') return 'Fórum';
@@ -43,6 +61,7 @@ export function DiscordSourceList({ sources, onRefresh, onFetchMessages, fetchin
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [fetchWindows, setFetchWindows] = useState<Record<string, FetchWindowOption>>({});
 
   const resetForm = () => {
     setForm(emptyForm);
@@ -324,8 +343,18 @@ export function DiscordSourceList({ sources, onRefresh, onFetchMessages, fetchin
                 >
                   {source.enabled ? 'Habilitado' : 'Desabilitado'}
                 </button>
+                <select
+                  value={fetchWindows[source.id] ?? '7d'}
+                  onChange={(event) => setFetchWindows((prev) => ({ ...prev, [source.id]: event.target.value as FetchWindowOption }))}
+                  className="app-select py-1 text-xs"
+                  aria-label={`Janela de tempo para ${source.channel_name ?? source.channel_id}`}
+                >
+                  {FETCH_WINDOW_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
                 <button
-                  onClick={() => onFetchMessages(source.id)}
+                  onClick={() => onFetchMessages(source.id, buildFetchWindow(fetchWindows[source.id] ?? '7d'))}
                   disabled={fetchingSourceId === source.id || !source.enabled}
                   className="px-3 py-1 bg-blue-700 hover:bg-blue-600 text-white text-xs rounded-lg transition-colors disabled:opacity-40"
                 >

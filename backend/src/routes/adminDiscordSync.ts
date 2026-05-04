@@ -40,10 +40,19 @@ const updateDraftSchema = z.object({
   review_notes: z.string().optional(),
 });
 
+const updateMessageSchema = z.object({
+  status: z.enum(['pending', 'parsed', 'needs_review', 'synced', 'ignored', 'error']),
+});
+
 const fetchSchema = z.object({
   source_id: z.string().uuid(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
   before_message_id: z.string().optional(),
+  since: z.coerce.date().optional(),
+  until: z.coerce.date().optional(),
+}).refine((value) => !value.since || !value.until || value.since <= value.until, {
+  message: 'Janela de tempo inválida.',
+  path: ['until'],
 });
 
 const snowflakeParamSchema = z.object({
@@ -327,7 +336,7 @@ router.post('/fetch', authMiddleware, async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Dados inválidos.', details: parsed.error.flatten() });
   }
 
-  const { source_id, limit, before_message_id } = parsed.data;
+  const { source_id, limit, before_message_id, since, until } = parsed.data;
 
   try {
     const source = await db
@@ -348,6 +357,8 @@ router.post('/fetch', authMiddleware, async (req: Request, res: Response) => {
           forumChannelId: source.channel_id,
           guildId: source.guild_id,
           limit,
+          since,
+          until,
         })
       : await ingestMessages({
           sourceId: source_id,
@@ -355,6 +366,8 @@ router.post('/fetch', authMiddleware, async (req: Request, res: Response) => {
           guildId: source.guild_id,
           limit,
           beforeMessageId: before_message_id,
+          since,
+          until,
         });
 
     // Atualiza last_synced_at apenas se a chamada ao Discord foi concluida com sucesso
@@ -398,6 +411,29 @@ router.get('/messages', authMiddleware, async (req: Request, res: Response) => {
   } catch (error: unknown) {
     console.error('[GET /admin/discord-sync/messages]', error);
     return res.status(500).json({ error: 'Erro ao listar mensagens.' });
+  }
+});
+
+// PATCH /messages/:id
+router.patch('/messages/:id', authMiddleware, async (req: Request, res: Response) => {
+  if (!isAdmin(req, res)) return;
+  const parsed = updateMessageSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Dados inválidos.', details: parsed.error.flatten() });
+  }
+
+  try {
+    const [message] = await db
+      .updateTable('discord_import_messages')
+      .set({ status: parsed.data.status, parse_error: null, updated_at: new Date() })
+      .where('id', '=', req.params.id)
+      .returningAll()
+      .execute();
+    if (!message) return res.status(404).json({ error: 'Mensagem não encontrada.' });
+    return res.json({ data: message });
+  } catch (error: unknown) {
+    console.error('[PATCH /admin/discord-sync/messages/:id]', error);
+    return res.status(500).json({ error: 'Erro ao atualizar mensagem.' });
   }
 });
 

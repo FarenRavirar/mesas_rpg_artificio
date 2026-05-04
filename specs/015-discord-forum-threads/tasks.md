@@ -61,6 +61,12 @@
 - [x] T027 Update `specs/015-discord-forum-threads/tasks.md` checkboxes with evidence after implementation.
 - [x] T028 Update `.specify/memory/project-state.md` via `/speckit.status`.
 - [x] T029 Update `.specify/memory/session-log.md` and session file via `/speckit.retro.run`.
+- [x] T030 [BUG-001] Add temporal fetch filter support for every Discord source type in `backend/src/routes/adminDiscordSync.ts`, `backend/src/discord/ingestMessages.ts`, `frontend/src/features/discord-sync/api/discordSyncApi.ts` and `frontend/src/features/discord-sync/components/DiscordSourceList.tsx`.
+- [x] T031 [BUG-001] Add imported-message status update API in `backend/src/routes/adminDiscordSync.ts` and frontend normalizer/client support in `frontend/src/features/discord-sync/api/discordSyncApi.ts`.
+- [x] T032 [BUG-001] Add actionable message detail/triage UI in `frontend/src/features/discord-sync/components/DiscordSyncPanel.tsx`.
+- [x] T033 [BUG-001] Update API/docs/status artifacts and run backend/frontend builds plus final searches.
+
+**Bugfix**: 2026-05-04 — BUG-001 adiciona tasks T030-T033 para filtro temporal, triagem de mensagens e validacao.
 
 ## Dependencies
 

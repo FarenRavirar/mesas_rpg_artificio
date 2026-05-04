@@ -1,6 +1,6 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-05-04T09:30:00-03:00
+**Última atualização:** 2026-05-04T12:15:00-03:00
 **Atualizado por:** sessão 26-05-04_1_discord-forum-threads
 ---
 
@@ -29,6 +29,15 @@
 - `database/changelogs.json` recebeu entrada de 04/05/2026 para a mudança visível.
 - Validação técnica: `npm --prefix frontend run build` GREEN; busca final por `<select>` sem `.app-select` retornou zero resultados; validação do changelog sem IDs/datas duplicadas e sem termos bloqueados.
 - **Status:** implementação local pronta para revisão/teste em dev; commit/push/deploy Beta dependem de autorização explícita.
+
+**BUG-001 — Triagem e janela de tempo no Discord Sync (04/05/2026):**
+- Reportado pelo mantenedor após deploy Beta: backend importou mensagens, mas a aba Mensagens não permitia visualizar conteúdo completo, apurar, editar status ou organizar próximos passos.
+- Escopo ajustado pelo mantenedor: a janela de tempo deve existir para qualquer fonte Discord, não apenas fóruns.
+- `specs/015-discord-forum-threads/bugs/BUG-001.md` criado e artefatos `spec.md`, `plan.md`, `tasks.md` e contratos atualizados.
+- Backend: `POST /admin/discord-sync/fetch` aceita `since`/`until`; ingestão filtra mensagens fora da janela; `PATCH /admin/discord-sync/messages/:id` atualiza status de triagem.
+- Frontend: aba Fontes permite escolher janela (`24h`, `7d`, `30d`, `90d`, `sem limite`) antes de buscar; aba Mensagens permite selecionar mensagem, ler conteúdo completo, abrir no Discord e alterar status.
+- Validação técnica: `npm --prefix backend run build` GREEN; `npm --prefix frontend run build` GREEN.
+- **Status:** pronto para commit/push/deploy Beta solicitado pelo mantenedor.
 
 **Feature 015 — Importação de Posts de Fóruns Discord (04/05/2026):**
 - Sessão `26-05-04_1_discord-forum-threads` aberta a partir do prompt 015.

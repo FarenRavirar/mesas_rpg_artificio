@@ -116,6 +116,8 @@ MAPA_DE_API.md
 - `.specify/memory/project-state.md`
 - `.specify/memory/session-log.md`
 
+**Bugfix**: 2026-05-04 — BUG-001 atualiza o escopo para incluir triagem funcional de mensagens importadas e filtro temporal em `POST /fetch` para qualquer fonte Discord.
+
 ## Complexity Tracking
 
 > **Fill ONLY if Constitution Check has violations that must be justified**

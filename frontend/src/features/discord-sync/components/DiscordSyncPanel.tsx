@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import type { DiscordSource, DiscordMessage, DiscordImportMessageStatus } from '../types';
+import type { DiscordFetchWindow, DiscordSource, DiscordMessage, DiscordImportMessageStatus } from '../types';
 import { discordSyncApi } from '../api/discordSyncApi';
 import { DiscordSourceList } from './DiscordSourceList';
 import { DiscordDraftReviewTable } from './DiscordDraftReviewTable';
@@ -34,6 +34,8 @@ export function DiscordSyncPanel() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [fetchingSourceId, setFetchingSourceId] = useState<string | null>(null);
   const [messageStatusFilter, setMessageStatusFilter] = useState<DiscordImportMessageStatus | ''>('');
+  const [selectedMessage, setSelectedMessage] = useState<DiscordMessage | null>(null);
+  const [savingMessageStatus, setSavingMessageStatus] = useState(false);
 
   const loadSources = async () => {
     setLoadingSources(true);
@@ -72,11 +74,11 @@ export function DiscordSyncPanel() {
     }
   }, [tab, messageStatusFilter]);
 
-  const handleFetchMessages = async (sourceId: string) => {
+  const handleFetchMessages = async (sourceId: string, window: DiscordFetchWindow) => {
     setFetchingSourceId(sourceId);
     try {
       const source = sources.find(item => item.id === sourceId);
-      const result = await discordSyncApi.fetchMessages({ source_id: sourceId, limit: 50 });
+      const result = await discordSyncApi.fetchMessages({ source_id: sourceId, limit: 50, ...window });
       if (source?.channel_type === 'forum') {
         toast.success(`${result.threadsScanned} posts varridos: +${result.inserted} inseridas, ${result.updated} atualizadas.`);
       } else {
@@ -88,6 +90,20 @@ export function DiscordSyncPanel() {
       toast.error(err instanceof Error ? err.message : 'Erro ao buscar mensagens.');
     } finally {
       setFetchingSourceId(null);
+    }
+  };
+
+  const handleUpdateMessageStatus = async (message: DiscordMessage, status: DiscordImportMessageStatus) => {
+    setSavingMessageStatus(true);
+    try {
+      const updated = await discordSyncApi.updateMessage(message.id, { status });
+      setMessages(prev => prev.map(item => (item.id === updated.id ? updated : item)));
+      setSelectedMessage(updated);
+      toast.success('Status da mensagem atualizado.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao atualizar mensagem.');
+    } finally {
+      setSavingMessageStatus(false);
     }
   };
 
@@ -154,11 +170,15 @@ export function DiscordSyncPanel() {
           ) : messages.length === 0 ? (
             <p className="text-white/40 text-sm py-4 text-center">Nenhuma mensagem encontrada.</p>
           ) : (
-            <div className="space-y-2">
+            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_420px] gap-4">
+              <div className="space-y-2">
               {messages.map(msg => (
-                <div
+                <button
                   key={msg.id}
-                  className="bg-white/5 border border-white/10 rounded-lg px-4 py-3"
+                  onClick={() => setSelectedMessage(msg)}
+                  className={`w-full text-left bg-white/5 border rounded-lg px-4 py-3 transition-colors hover:bg-white/[0.08] ${
+                    selectedMessage?.id === msg.id ? 'border-blue-400/60' : 'border-white/10'
+                  }`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
@@ -185,19 +205,71 @@ export function DiscordSyncPanel() {
                         <p className="text-red-400 text-xs mt-1">Erro: {msg.parse_error}</p>
                       )}
                     </div>
-                    {msg.discord_message_url && (
-                      <a
-                        href={msg.discord_message_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-400 hover:text-blue-300 text-xs shrink-0"
+                    <span className="text-blue-400 text-xs shrink-0">Apurar</span>
+                  </div>
+                </button>
+              ))}
+              </div>
+
+              <aside className="bg-white/5 border border-white/10 rounded-lg p-4 min-h-[360px]">
+                {selectedMessage ? (
+                  <div className="space-y-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-white font-semibold text-sm">Apuração da mensagem</h3>
+                        <p className="text-white/40 text-xs mt-1">{selectedMessage.discord_message_id}</p>
+                      </div>
+                      {selectedMessage.discord_message_url && (
+                        <a
+                          href={selectedMessage.discord_message_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:text-blue-300 text-xs shrink-0"
+                        >
+                          Ver no Discord
+                        </a>
+                      )}
+                    </div>
+
+                    <label className="flex flex-col gap-1 text-xs text-white/60">
+                      Status
+                      <select
+                        value={selectedMessage.status}
+                        onChange={(event) => handleUpdateMessageStatus(selectedMessage, event.target.value as DiscordImportMessageStatus)}
+                        disabled={savingMessageStatus}
+                        className="app-select w-full"
                       >
-                        Ver no Discord
-                      </a>
+                        {(Object.keys(MESSAGE_STATUS_LABELS) as DiscordImportMessageStatus[]).map(status => (
+                          <option key={status} value={status}>{MESSAGE_STATUS_LABELS[status]}</option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <div className="grid grid-cols-1 gap-2 text-xs text-white/50">
+                      <div><span className="text-white/30">Origem:</span> {selectedMessage.discord_thread_name ?? selectedMessage.discord_channel_id}</div>
+                      <div><span className="text-white/30">Autor:</span> {selectedMessage.discord_author_name ?? selectedMessage.discord_author_id ?? 'autor desconhecido'}</div>
+                      <div><span className="text-white/30">Data:</span> {selectedMessage.message_created_at ? new Date(selectedMessage.message_created_at).toLocaleString('pt-BR') : 'sem data'}</div>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-white/60 mb-1">Conteúdo completo</p>
+                      <textarea
+                        readOnly
+                        value={selectedMessage.content_raw}
+                        className="w-full min-h-[220px] resize-y bg-[#0F1A2E] border border-white/10 rounded-lg px-3 py-2 text-sm text-white/80 outline-none"
+                      />
+                    </div>
+
+                    {selectedMessage.parse_error && (
+                      <p className="text-red-300 bg-red-900/20 border border-red-700/40 rounded-lg px-3 py-2 text-xs">
+                        {selectedMessage.parse_error}
+                      </p>
                     )}
                   </div>
-                </div>
-              ))}
+                ) : (
+                  <p className="text-white/40 text-sm py-8 text-center">Selecione uma mensagem para conferir e apurar.</p>
+                )}
+              </aside>
             </div>
           )}
         </div>

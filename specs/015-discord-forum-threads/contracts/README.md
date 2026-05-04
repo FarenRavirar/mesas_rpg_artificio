@@ -116,3 +116,26 @@ Mensagens de forum incluem metadados de thread quando disponiveis.
   ]
 }
 ```
+
+## PATCH /api/v1/admin/discord-sync/messages/:id
+
+Atualiza o status de triagem de uma mensagem importada.
+
+```json
+{
+  "status": "needs_review"
+}
+```
+
+## POST /api/v1/admin/discord-sync/fetch
+
+Aceita janela temporal opcional para qualquer fonte Discord.
+
+```json
+{
+  "source_id": "uuid",
+  "limit": 50,
+  "since": "2026-04-27T12:00:00.000Z",
+  "until": "2026-05-04T12:00:00.000Z"
+}
+```

@@ -82,6 +82,11 @@ export interface IngestResult {
   sourceKind: DiscordSourceChannelType;
 }
 
+export interface DiscordFetchWindow {
+  since?: string;
+  until?: string;
+}
+
 export interface SyncReadyResult {
   synced: number;
   failed: number;
