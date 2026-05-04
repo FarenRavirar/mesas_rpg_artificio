@@ -422,6 +422,138 @@ router.post('/fetch', authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
+// POST /sources/:sourceId/reingest-force — apaga mensagens pendentes e rebusca no Discord
+router.post('/sources/:sourceId/reingest-force', authMiddleware, async (req: Request, res: Response) => {
+  if (!isAdmin(req, res)) return;
+  try {
+    const source = await db
+      .selectFrom('discord_import_sources')
+      .selectAll()
+      .where('id', '=', req.params.sourceId)
+      .executeTakeFirst();
+
+    if (!source) return res.status(404).json({ error: 'Fonte não encontrada.' });
+
+    // Apaga mensagens não-sincronizadas para forçar reingestão
+    const deleted = await db
+      .deleteFrom('discord_import_messages')
+      .where('source_id', '=', source.id)
+      .where('status', 'not in', ['synced'])
+      .executeTakeFirst();
+
+    const sourceChannelType = normalizeSourceChannelType(source.channel_type);
+    const result = sourceChannelType === 'forum'
+      ? await ingestForumMessages({ sourceId: source.id, forumChannelId: source.channel_id, guildId: source.guild_id })
+      : await ingestMessages({ sourceId: source.id, channelId: source.channel_id, guildId: source.guild_id });
+
+    await db.updateTable('discord_import_sources')
+      .set({ last_synced_at: new Date(), updated_at: new Date() })
+      .where('id', '=', source.id)
+      .execute();
+
+    return res.json({ data: { deleted: Number(deleted.numDeletedRows ?? 0), ...result } });
+  } catch (error: unknown) {
+    return sendDiscordFetchError(res, error);
+  }
+});
+
+// POST /messages/parse-batch — parseia todas as mensagens pendentes em lote
+router.post('/messages/parse-batch', authMiddleware, async (req: Request, res: Response) => {
+  if (!isAdmin(req, res)) return;
+  try {
+    const messages = await db
+      .selectFrom('discord_import_messages')
+      .selectAll()
+      .where('status', 'in', ['pending', 'error'])
+      .limit(200)
+      .execute();
+
+    if (messages.length === 0) return res.json({ data: { processed: 0, succeeded: 0, failed: 0 } });
+
+    const systems = await loadSystemsForParser();
+    let succeeded = 0;
+    let failed = 0;
+
+    for (const message of messages) {
+      try {
+        const parsed = parseDiscordAnnouncement({
+          source_kind: message.source_kind,
+          discord_message_id: message.discord_message_id,
+          discord_channel_id: message.discord_channel_id,
+          discord_guild_id: message.discord_guild_id,
+          discord_parent_channel_id: message.discord_parent_channel_id,
+          discord_thread_id: message.discord_thread_id,
+          discord_thread_name: message.discord_thread_name,
+          discord_author_id: message.discord_author_id,
+          discord_author_name: message.discord_author_name,
+          discord_message_url: message.discord_message_url,
+          content_raw: message.content_raw,
+          attachments: parseJsonField(message.attachments),
+          embeds: parseJsonField(message.embeds),
+          message_created_at: message.message_created_at,
+          message_edited_at: message.message_edited_at,
+        }, systems);
+
+        const existing = await db.selectFrom('discord_import_table_drafts')
+          .select('id')
+          .where('discord_message_id', '=', message.discord_message_id)
+          .executeTakeFirst();
+
+        if (existing) {
+          await db.updateTable('discord_import_table_drafts')
+            .set({ parsed_payload: parsed as any, confidence: parsed.confidence, status: 'draft', updated_at: new Date() })
+            .where('id', '=', existing.id)
+            .execute();
+        } else {
+          await db.insertInto('discord_import_table_drafts')
+            .values({ discord_message_id: message.discord_message_id, parsed_payload: parsed as any, confidence: parsed.confidence })
+            .execute();
+        }
+
+        await db.updateTable('discord_import_messages')
+          .set({ status: 'parsed', parse_error: null, updated_at: new Date() })
+          .where('id', '=', message.id)
+          .execute();
+
+        // Cria system_suggestion se havia hint não reconhecido
+        const rawHint = parsed.table.raw_system_hint;
+        if (rawHint && !parsed.table.system_id) {
+          const alreadyExists = await db.selectFrom('system_suggestions')
+            .select('id')
+            .where('name', '=', rawHint)
+            .where('status', 'in', ['pending', 'approved'])
+            .executeTakeFirst();
+          if (!alreadyExists) {
+            await db.insertInto('system_suggestions')
+              .values({
+                user_id: req.user!.userId,
+                name: rawHint,
+                node_type: 'system',
+                aliases: [rawHint] as any,
+                description: `Sugestão automática (lote): "${rawHint}"`,
+                status: 'pending',
+              })
+              .execute();
+          }
+        }
+
+        succeeded++;
+      } catch {
+        await db.updateTable('discord_import_messages')
+          .set({ status: 'error', parse_error: 'Erro no parse em lote', updated_at: new Date() })
+          .where('id', '=', message.id)
+          .execute();
+        failed++;
+      }
+    }
+
+    return res.json({ data: { processed: messages.length, succeeded, failed } });
+  } catch (error: any) {
+    console.error('[POST /messages/parse-batch]', error);
+    return res.status(500).json({ error: 'Erro ao processar mensagens em lote.' });
+  }
+});
+
 // ─── Mensagens ────────────────────────────────────────────────────────────────
 
 // GET /messages

@@ -77,7 +77,7 @@ type InsertRow = {
   status: 'pending';
 };
 
-type UpdateRow = { id: string; contentRaw: string; contentHash: string };
+type UpdateRow = { id: string; contentRaw: string; contentHash: string; embeds: unknown[]; attachments: unknown[] };
 
 function filterMessagesByWindow(messages: DiscordApiMessage[], since?: Date, until?: Date): DiscordApiMessage[] {
   if (!since && !until) return messages;
@@ -227,7 +227,7 @@ async function persistMessages(params: {
         status: 'pending',
       });
     } else if (existing.content_hash !== contentHash) {
-      toUpdate.push({ id: existing.id, contentRaw, contentHash });
+      toUpdate.push({ id: existing.id, contentRaw, contentHash, embeds: (msg.embeds ?? []) as unknown[], attachments: (msg.attachments ?? []) as unknown[] });
     }
   }
 
@@ -241,6 +241,8 @@ async function persistMessages(params: {
       .set({
         content_raw: upd.contentRaw,
         content_hash: upd.contentHash,
+        embeds: upd.embeds as any,
+        attachments: upd.attachments as any,
         status: 'pending',
         parse_error: null,
         updated_at: new Date(),

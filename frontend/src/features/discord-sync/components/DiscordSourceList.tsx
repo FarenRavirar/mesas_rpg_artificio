@@ -8,6 +8,8 @@ interface Props {
   onRefresh: () => void;
   onFetchMessages: (sourceId: string, window: DiscordFetchWindow) => void;
   fetchingSourceId: string | null;
+  onReingestForce?: (sourceId: string) => void;
+  reingestingSourceId?: string | null;
 }
 
 interface NewSourceForm {
@@ -47,7 +49,7 @@ function getChannelPrefix(kind: DiscordSourceChannelType): string {
   return kind === 'forum' ? 'Fórum ' : '#';
 }
 
-export function DiscordSourceList({ sources, onRefresh, onFetchMessages, fetchingSourceId }: Props) {
+export function DiscordSourceList({ sources, onRefresh, onFetchMessages, fetchingSourceId, onReingestForce, reingestingSourceId }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<NewSourceForm>(emptyForm);
   const [guilds, setGuilds] = useState<DiscordDiscoveredGuild[]>([]);
@@ -355,13 +357,23 @@ export function DiscordSourceList({ sources, onRefresh, onFetchMessages, fetchin
                 </select>
                 <button
                   onClick={() => onFetchMessages(source.id, buildFetchWindow(fetchWindows[source.id] ?? '7d'))}
-                  disabled={fetchingSourceId === source.id || !source.enabled}
+                  disabled={fetchingSourceId === source.id || reingestingSourceId === source.id || !source.enabled}
                   className="px-3 py-1 bg-blue-700 hover:bg-blue-600 text-white text-xs rounded-lg transition-colors disabled:opacity-40"
                 >
                   {fetchingSourceId === source.id
                     ? (source.channel_type === 'forum' ? 'Varrendo posts...' : 'Buscando...')
                     : (source.channel_type === 'forum' ? 'Buscar posts' : 'Buscar mensagens')}
                 </button>
+                {onReingestForce && (
+                  <button
+                    onClick={() => onReingestForce(source.id)}
+                    disabled={fetchingSourceId === source.id || reingestingSourceId === source.id || !source.enabled}
+                    title="Apaga todas as mensagens pendentes e rebusca tudo do Discord"
+                    className="px-3 py-1 bg-amber-700 hover:bg-amber-600 text-white text-xs rounded-lg transition-colors disabled:opacity-40"
+                  >
+                    {reingestingSourceId === source.id ? 'Reidratando...' : '↺ Reidratar'}
+                  </button>
+                )}
                 {confirmDeleteId === source.id ? (
                   <>
                     <span className="text-white/60 text-xs">Confirmar?</span>

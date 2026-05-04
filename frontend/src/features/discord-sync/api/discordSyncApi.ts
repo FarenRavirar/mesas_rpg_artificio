@@ -207,4 +207,10 @@ export const discordSyncApi = {
 
   syncReady: () =>
     apiFetch<SyncReadyResult>('/sync-ready', { method: 'POST' }),
+
+  reingestForce: (sourceId: string) =>
+    apiFetch<{ deleted: number; inserted: number; updated: number; total: number; threadsScanned: number }>(`/sources/${sourceId}/reingest-force`, { method: 'POST' }),
+
+  parseBatch: () =>
+    apiFetch<{ processed: number; succeeded: number; failed: number }>('/messages/parse-batch', { method: 'POST' }),
 };

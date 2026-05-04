@@ -46,6 +46,8 @@ export function DiscordSyncPanel() {
   const [loadingSources, setLoadingSources] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [fetchingSourceId, setFetchingSourceId] = useState<string | null>(null);
+  const [reingestingSourceId, setReingestingSourceId] = useState<string | null>(null);
+  const [parsingBatch, setParsingBatch] = useState(false);
   const [messageStatusFilter, setMessageStatusFilter] = useState<DiscordImportMessageStatus | ''>('');
   const [selectedMessage, setSelectedMessage] = useState<DiscordMessage | null>(null);
   const [savingMessageStatus, setSavingMessageStatus] = useState(false);
@@ -156,6 +158,34 @@ export function DiscordSyncPanel() {
     }
   };
 
+  const handleReingestForce = async (sourceId: string) => {
+    if (!window.confirm('Isso vai apagar todas as mensagens pendentes desta fonte e rebuscar tudo do Discord. Confirmar?')) return;
+    setReingestingSourceId(sourceId);
+    try {
+      const result = await discordSyncApi.reingestForce(sourceId);
+      toast.success(`Reidratado: ${result.deleted} apagadas, +${result.inserted} rebuscadas.`);
+      if (tab === 'mensagens') loadMessages();
+      loadSources();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao reidratar.');
+    } finally {
+      setReingestingSourceId(null);
+    }
+  };
+
+  const handleParseBatch = async () => {
+    setParsingBatch(true);
+    try {
+      const result = await discordSyncApi.parseBatch();
+      toast.success(`Apuração em lote: ${result.succeeded} criados, ${result.failed} com erro (total: ${result.processed}).`);
+      loadMessages();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro na apuração em lote.');
+    } finally {
+      setParsingBatch(false);
+    }
+  };
+
   const handleSelectMessage = (message: DiscordMessage) => {
     setSelectedMessage(message);
     window.requestAnimationFrame(() => {
@@ -195,6 +225,8 @@ export function DiscordSyncPanel() {
               onRefresh={loadSources}
               onFetchMessages={handleFetchMessages}
               fetchingSourceId={fetchingSourceId}
+              onReingestForce={handleReingestForce}
+              reingestingSourceId={reingestingSourceId}
             />
           )}
         </div>
@@ -218,6 +250,13 @@ export function DiscordSyncPanel() {
               className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg transition-colors"
             >
               Recarregar
+            </button>
+            <button
+              onClick={handleParseBatch}
+              disabled={parsingBatch}
+              className="px-3 py-2 bg-green-700 hover:bg-green-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-40"
+            >
+              {parsingBatch ? 'Apurando...' : '✦ Apurar todas pendentes'}
             </button>
           </div>
 
