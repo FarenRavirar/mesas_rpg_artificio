@@ -115,20 +115,35 @@ export const GestaoPage = () => {
 
       if (response.ok) {
         const result = await response.json();
-        
-        // Novo contrato: { success: true, data: { suggestion_id, system_id, path_slug } }
-        // Antigo contrato: { success: true }
-        if (result.data && result.data.system_id) {
-          toast.success(`Sistema aprovado! ID: ${result.data.system_id}`);
-        } else {
-          // Fallback retrocompatível
-          toast.success('Sistema aprovado com sucesso!');
-        }
-        
+        const data = result.data ?? {};
+
+        const systemLabel = data.system_name ? `"${data.system_name}"` : 'Sistema';
+        toast.success(`${systemLabel} aprovado e adicionado ao catálogo.`);
         fetchSuggestions();
+
+        const pending: Array<{ id: string; title: string | null }> = data.pending_drafts ?? [];
+        if (pending.length > 0) {
+          const list = pending.map((d: { id: string; title: string | null }) => `• ${d.title ?? 'Mesa sem título'}`).join('\n');
+          const publish = window.confirm(
+            `${pending.length} mesa(s) pronta(s) para publicar:\n${list}\n\nPublicar agora?`,
+          );
+          if (publish) {
+            const results = await Promise.allSettled(
+              pending.map((d: { id: string; title: string | null }) =>
+                fetch(`${API_BASE}/api/v1/admin/discord-sync/drafts/${d.id}/sync`, {
+                  method: 'POST',
+                  credentials: 'include',
+                  headers: { 'Content-Type': 'application/json' },
+                }),
+              ),
+            );
+            const succeeded = results.filter((r) => r.status === 'fulfilled').length;
+            toast.success(`${succeeded}/${pending.length} mesa(s) publicada(s)!`);
+          }
+        }
       } else {
-        const data = await response.json();
-        toast.error(`Erro: ${data.error}`);
+        const errData = await response.json();
+        toast.error(`Erro: ${errData.error}`);
       }
     } catch (error) {
       console.error('[GestaoPage] Erro ao aprovar:', error);
