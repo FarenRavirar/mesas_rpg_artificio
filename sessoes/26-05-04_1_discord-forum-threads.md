@@ -140,3 +140,6 @@ Sessao concluida quando a Feature 015 tiver spec, plan, tasks, implementacao, bu
 - [x] Push concluido para `origin/feat/015-discord-forum-threads`.
 - [x] PR draft aberta para `dev`: https://github.com/FarenRavirar/mesas_rpg_artificio/pull/145
 - [x] Checks da PR #145 verdes em 2026-05-04T08:10:08-03:00: `build-backend`, `build-frontend`, CodeQL actions/javascript-typescript/python.
+- [x] Retomada em 2026-05-04T08:48:45-03:00: mantenedor solicitou atualizar documentacoes e executar o proximo passo para testar em `dev`.
+- [x] Documentacao atualizada antes do merge: `project-state.md` registra autorizacao para ready/merge/deploy Beta.
+- [ ] Marcar PR #145 como ready, mergear em `dev` e acompanhar Deploy Beta.

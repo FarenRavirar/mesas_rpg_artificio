@@ -1,6 +1,6 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-05-04T08:05:28-03:00
+**Última atualização:** 2026-05-04T08:48:45-03:00
 **Atualizado por:** sessão 26-05-04_1_discord-forum-threads
 ---
 
@@ -15,7 +15,7 @@
 
 ## Estado Técnico Atual
 
-**Branch ativa:** `feat/015-discord-forum-threads` — implementação local publicada em PR draft para `dev`
+**Branch ativa:** `feat/015-discord-forum-threads` — PR #145 autorizada pelo mantenedor para avançar a `dev`
 **Último commit base:** `97cf7dd` — merge da correção visual da Feature 014 em `dev`
 
 **Feature ativa:** `specs/015-discord-forum-threads/`
@@ -33,7 +33,8 @@
 - Validação técnica: `npm --prefix backend run build` GREEN; `npm --prefix frontend run build` GREEN; busca final sem `AbortSignal.timeout`; busca de segurança sem logs de token.
 - **PR:** #145 — https://github.com/FarenRavirar/mesas_rpg_artificio/pull/145
 - **Checks PR #145:** GREEN em 2026-05-04T08:10:08-03:00 (`build-backend`, `build-frontend`, CodeQL actions/javascript-typescript/python).
-- **Status:** implementação local publicada em PR draft para `dev`; aguardando autorização para ready/merge, deploy Beta e teste funcional em janela anônima com fórum real.
+- **Autorização:** mantenedor solicitou em 2026-05-04T08:48:45-03:00 atualizar documentações e realizar o próximo passo para testar em `dev`.
+- **Status:** PR #145 pronta para marcar como ready, mergear em `dev`, acompanhar deploy Beta e liberar teste funcional em janela anônima com fórum real.
 
 **Feature 012 — Pipeline Discord Covil Sync (03/05/2026):**
 - T001–T017 implementados e mergeados via PR #141.
@@ -236,8 +237,8 @@
 1. ✅ **Spec/plan/tasks/implement concluídos:** `specs/015-discord-forum-threads/` com implementação backend/frontend local.
 2. ✅ **Validação técnica:** builds backend e frontend verdes; busca final sem `AbortSignal.timeout`; sem logs de token detectados.
 3. ✅ **Checks da PR #145:** verdes em 2026-05-04T08:10:08-03:00.
-4. **Próximo passo:** com autorização explícita do mantenedor, marcar PR como ready/mergear para `dev` e acompanhar deploy Beta.
-4. **Critério de desbloqueio funcional:** após merge/deploy em Beta, admin cadastra um fórum real como fonte, executa busca em janela anônima e confirma importação/deduplicação de posts/threads.
+4. **Próximo passo autorizado:** marcar PR #145 como ready, mergear para `dev` e acompanhar deploy Beta.
+5. **Critério de desbloqueio funcional:** após merge/deploy em Beta, admin cadastra um fórum real como fonte, executa busca em janela anônima e confirma importação/deduplicação de posts/threads.
 
 **Feature 014 — Descoberta de Canais Discord:**
 1. ✅ **Spec/plan/tasks/implement concluídos:** `specs/014-discord-channel-discovery/` com implementação backend/frontend local.
