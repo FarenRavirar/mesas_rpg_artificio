@@ -65,6 +65,15 @@ const botTokenSchema = z.object({
 });
 
 /** Carrega todos os sistemas e seus aliases do banco para o parser. */
+// Embeds/attachments podem vir como array (novo) ou JSON string (dados antigos)
+function parseJsonField(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string') {
+    try { const parsed = JSON.parse(value); return Array.isArray(parsed) ? parsed : []; } catch { return []; }
+  }
+  return [];
+}
+
 async function loadSystemsForParser(): Promise<SystemEntry[]> {
   const systems = await db
     .selectFrom('systems')
@@ -563,8 +572,8 @@ router.post('/messages/:id/parse', authMiddleware, async (req: Request, res: Res
       discord_author_name: message.discord_author_name,
       discord_message_url: message.discord_message_url,
       content_raw: message.content_raw,
-      attachments: Array.isArray(message.attachments) ? message.attachments : [],
-      embeds: Array.isArray(message.embeds) ? message.embeds : [],
+      attachments: parseJsonField(message.attachments),
+      embeds: parseJsonField(message.embeds),
       message_created_at: message.message_created_at,
       message_edited_at: message.message_edited_at,
     }, systems);
@@ -700,8 +709,8 @@ router.post('/drafts/:id/reparse', authMiddleware, async (req: Request, res: Res
       discord_author_name: message.discord_author_name,
       discord_message_url: message.discord_message_url,
       content_raw: message.content_raw,
-      attachments: Array.isArray(message.attachments) ? message.attachments : [],
-      embeds: Array.isArray(message.embeds) ? message.embeds : [],
+      attachments: parseJsonField(message.attachments),
+      embeds: parseJsonField(message.embeds),
       message_created_at: message.message_created_at,
       message_edited_at: message.message_edited_at,
     }, systems);

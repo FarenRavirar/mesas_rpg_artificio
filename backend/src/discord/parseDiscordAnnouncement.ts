@@ -7,6 +7,30 @@ export interface SystemEntry {
   aliases: string[];
 }
 
+// Extrai texto dos embeds Discord quando content_raw está vazio
+function extractBodyFromEmbeds(embeds: unknown[]): string {
+  if (!embeds || embeds.length === 0) return '';
+  const parts: string[] = [];
+  for (const embed of embeds) {
+    if (typeof embed !== 'object' || embed === null) continue;
+    const e = embed as Record<string, unknown>;
+    if (typeof e.description === 'string' && e.description.trim()) {
+      parts.push(e.description.trim());
+    }
+    if (Array.isArray(e.fields)) {
+      for (const field of e.fields) {
+        if (typeof field === 'object' && field !== null) {
+          const f = field as Record<string, unknown>;
+          if (typeof f.name === 'string' && typeof f.value === 'string') {
+            parts.push(`${f.name}: ${f.value}`);
+          }
+        }
+      }
+    }
+  }
+  return parts.join('\n');
+}
+
 // Remove sufixo ™ / ® de strings
 function cleanTrademark(s: string): string {
   return s.replace(/[™®]/g, '').trim();
@@ -176,7 +200,9 @@ export function parseDiscordAnnouncement(
   systems: SystemEntry[] = [],
 ): DiscordTableDraft {
   const threadName = message.discord_thread_name ?? '';
-  const body = message.content_raw ?? '';
+  const rawBody = message.content_raw ?? '';
+  // Fóruns Discord frequentemente colocam o conteúdo em embeds em vez do campo content
+  const body = rawBody.trim() || extractBodyFromEmbeds(message.embeds ?? []);
   const fullText = `${threadName}\n${body}`.trim();
 
   // Título e dica de sistema (a partir do nome do thread)
