@@ -46,6 +46,13 @@ const fetchSchema = zod_1.z.object({
     message: 'Janela de tempo inválida.',
     path: ['until'],
 });
+const reingestForceSchema = zod_1.z.object({
+    since: zod_1.z.coerce.date().optional(),
+    until: zod_1.z.coerce.date().optional(),
+}).refine((value) => !value.since || !value.until || value.since <= value.until, {
+    message: 'Janela de tempo inválida.',
+    path: ['until'],
+});
 const snowflakeParamSchema = zod_1.z.object({
     guildId: zod_1.z.string().regex(/^\d{5,30}$/, 'Servidor Discord inválido.'),
 });
@@ -57,8 +64,14 @@ const botTokenSchema = zod_1.z.object({
 function parseJsonField(value) {
     if (Array.isArray(value))
         return value;
-    if (value && typeof value === 'object')
-        return [];
+    if (value && typeof value === 'object') {
+        const record = value;
+        if (Array.isArray(record.items))
+            return record.items;
+        if (Array.isArray(record.data))
+            return record.data;
+        return Object.values(record);
+    }
     if (typeof value === 'string') {
         try {
             const parsed = JSON.parse(value);
@@ -91,6 +104,112 @@ async function loadSystemsForParser() {
         name_pt: s.name_pt,
         aliases: aliasMap.get(s.id) ?? [],
     }));
+}
+async function createOrUpdateDraftFromMessage(message, systems) {
+    const parsed = (0, discord_1.parseDiscordAnnouncement)({
+        source_kind: message.source_kind,
+        discord_message_id: message.discord_message_id,
+        discord_channel_id: message.discord_channel_id,
+        discord_guild_id: message.discord_guild_id,
+        discord_parent_channel_id: message.discord_parent_channel_id,
+        discord_thread_id: message.discord_thread_id,
+        discord_thread_name: message.discord_thread_name,
+        discord_author_id: message.discord_author_id,
+        discord_author_name: message.discord_author_name,
+        discord_message_url: message.discord_message_url,
+        content_raw: message.content_raw,
+        attachments: parseJsonField(message.attachments),
+        embeds: parseJsonField(message.embeds),
+        message_created_at: message.message_created_at,
+        message_edited_at: message.message_edited_at,
+    }, systems);
+    if (!parsed) {
+        await db_1.db.updateTable('discord_import_messages')
+            .set({ status: 'ignored', parse_error: null, updated_at: new Date() })
+            .where('id', '=', message.id)
+            .execute();
+        return 'ignored';
+    }
+    const normalized = (0, discord_1.normalizeDiscordTableDraft)(parsed, systems);
+    const existingDraft = await db_1.db
+        .selectFrom('discord_import_table_drafts')
+        .select(['id', 'status'])
+        .where('discord_message_id', '=', message.id)
+        .executeTakeFirst();
+    if (existingDraft && existingDraft.status !== 'synced' && existingDraft.status !== 'rejected') {
+        await db_1.db
+            .updateTable('discord_import_table_drafts')
+            .set({
+            parsed_payload: parsed,
+            normalized_payload: normalized.draft,
+            confidence: normalized.draft.confidence,
+            status: normalized.status,
+            review_notes: null,
+            updated_at: new Date(),
+        })
+            .where('id', '=', existingDraft.id)
+            .execute();
+    }
+    else if (!existingDraft) {
+        await db_1.db
+            .insertInto('discord_import_table_drafts')
+            .values({
+            discord_message_id: message.id,
+            table_id: null,
+            parsed_payload: parsed,
+            normalized_payload: normalized.draft,
+            confidence: normalized.draft.confidence,
+            status: normalized.status,
+            review_notes: null,
+        })
+            .execute();
+    }
+    await db_1.db.updateTable('discord_import_messages')
+        .set({ status: 'parsed', parse_error: null, updated_at: new Date() })
+        .where('id', '=', message.id)
+        .execute();
+    return 'draft';
+}
+async function parsePendingMessagesForSource(sourceId, since, until) {
+    let query = db_1.db
+        .selectFrom('discord_import_messages')
+        .selectAll()
+        .where('source_id', '=', sourceId)
+        .where('status', 'in', ['pending', 'error'])
+        .orderBy('message_created_at', 'desc')
+        .limit(200);
+    if (since)
+        query = query.where('message_created_at', '>=', since);
+    if (until)
+        query = query.where('message_created_at', '<=', until);
+    const messages = await query.execute();
+    if (messages.length === 0)
+        return { processed: 0, succeeded: 0, ignored: 0, failed: 0 };
+    const systems = await loadSystemsForParser();
+    let succeeded = 0;
+    let ignored = 0;
+    let failed = 0;
+    for (const message of messages) {
+        try {
+            const result = await createOrUpdateDraftFromMessage(message, systems);
+            if (result === 'draft')
+                succeeded++;
+            else
+                ignored++;
+        }
+        catch (error) {
+            await db_1.db.updateTable('discord_import_messages')
+                .set({
+                status: 'error',
+                parse_error: error instanceof Error ? error.message : 'Erro no parse automatico',
+                updated_at: new Date(),
+            })
+                .where('id', '=', message.id)
+                .execute();
+            failed++;
+        }
+    }
+    return { processed: messages.length, succeeded, ignored, failed };
 }
 function maskToken(token) {
     return `${token.slice(0, 4)}...${token.slice(-4)}`;
@@ -398,7 +517,8 @@ router.post('/fetch', auth_1.authMiddleware, async (req, res) => {
                 .where('id', '=', source_id)
                 .execute();
         }
-        return res.json({ data: result });
+        const parse = await parsePendingMessagesForSource(source_id, since, until);
+        return res.json({ data: { ...result, parse } });
     }
     catch (error) {
         return sendDiscordFetchError(res, error);
@@ -408,6 +528,10 @@ router.post('/fetch', auth_1.authMiddleware, async (req, res) => {
 router.post('/sources/:sourceId/reingest-force', auth_1.authMiddleware, async (req, res) => {
     if (!isAdmin(req, res))
         return;
+    const parsed = reingestForceSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+        return res.status(400).json({ error: 'Dados inválidos.', details: parsed.error.flatten() });
+    }
     try {
         const source = await db_1.db
             .selectFrom('discord_import_sources')
@@ -416,21 +540,27 @@ router.post('/sources/:sourceId/reingest-force', auth_1.authMiddleware, async (r
             .executeTakeFirst();
         if (!source)
             return res.status(404).json({ error: 'Fonte não encontrada.' });
+        const { since, until } = parsed.data;
         // Apaga mensagens não-sincronizadas para forçar reingestão
-        const deleted = await db_1.db
+        let deleteQuery = db_1.db
             .deleteFrom('discord_import_messages')
             .where('source_id', '=', source.id)
-            .where('status', 'not in', ['synced'])
-            .executeTakeFirst();
+            .where('status', 'not in', ['synced']);
+        if (since)
+            deleteQuery = deleteQuery.where('message_created_at', '>=', since);
+        if (until)
+            deleteQuery = deleteQuery.where('message_created_at', '<=', until);
+        const deleted = await deleteQuery.executeTakeFirst();
         const sourceChannelType = normalizeSourceChannelType(source.channel_type);
         const result = sourceChannelType === 'forum'
-            ? await (0, discord_1.ingestForumMessages)({ sourceId: source.id, forumChannelId: source.channel_id, guildId: source.guild_id })
-            : await (0, discord_1.ingestMessages)({ sourceId: source.id, channelId: source.channel_id, guildId: source.guild_id });
+            ? await (0, discord_1.ingestForumMessages)({ sourceId: source.id, forumChannelId: source.channel_id, guildId: source.guild_id, since, until })
+            : await (0, discord_1.ingestMessages)({ sourceId: source.id, channelId: source.channel_id, guildId: source.guild_id, since, until });
         await db_1.db.updateTable('discord_import_sources')
             .set({ last_synced_at: new Date(), updated_at: new Date() })
             .where('id', '=', source.id)
             .execute();
-        return res.json({ data: { deleted: Number(deleted.numDeletedRows ?? 0), ...result } });
+        const parse = await parsePendingMessagesForSource(source.id, since, until);
+        return res.json({ data: { deleted: Number(deleted.numDeletedRows ?? 0), ...result, parse } });
     }
     catch (error) {
         return sendDiscordFetchError(res, error);

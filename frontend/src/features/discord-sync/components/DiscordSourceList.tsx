@@ -8,7 +8,7 @@ interface Props {
   onRefresh: () => void;
   onFetchMessages: (sourceId: string, window: DiscordFetchWindow) => void;
   fetchingSourceId: string | null;
-  onReingestForce?: (sourceId: string) => void;
+  onReingestForce?: (sourceId: string, window: DiscordFetchWindow) => void;
   reingestingSourceId?: string | null;
 }
 
@@ -366,9 +366,9 @@ export function DiscordSourceList({ sources, onRefresh, onFetchMessages, fetchin
                 </button>
                 {onReingestForce && (
                   <button
-                    onClick={() => onReingestForce(source.id)}
+                    onClick={() => onReingestForce(source.id, buildFetchWindow(fetchWindows[source.id] ?? '7d'))}
                     disabled={fetchingSourceId === source.id || reingestingSourceId === source.id || !source.enabled}
-                    title="Apaga todas as mensagens pendentes e rebusca tudo do Discord"
+                    title="Apaga mensagens pendentes e rebusca respeitando a janela escolhida"
                     className="px-3 py-1 bg-amber-700 hover:bg-amber-600 text-white text-xs rounded-lg transition-colors disabled:opacity-40"
                   >
                     {reingestingSourceId === source.id ? 'Reidratando...' : '↺ Reidratar'}

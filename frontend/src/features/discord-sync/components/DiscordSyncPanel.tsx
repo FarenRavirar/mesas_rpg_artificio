@@ -114,10 +114,11 @@ export function DiscordSyncPanel() {
     try {
       const source = sources.find(item => item.id === sourceId);
       const result = await discordSyncApi.fetchMessages({ source_id: sourceId, limit: 50, ...window });
+      const draftsText = result.parse ? ` ${result.parse.succeeded} drafts criados/atualizados.` : '';
       if (source?.channel_type === 'forum') {
-        toast.success(`${result.threadsScanned} posts varridos: +${result.inserted} inseridas, ${result.updated} atualizadas.`);
+        toast.success(`${result.threadsScanned} posts na janela: +${result.inserted} mensagens, ${result.updated} atualizadas.${draftsText}`);
       } else {
-        toast.success(`+${result.inserted} inseridas, ${result.updated} atualizadas.`);
+        toast.success(`+${result.inserted} mensagens, ${result.updated} atualizadas.${draftsText}`);
       }
       if (tab === 'mensagens') loadMessages();
       loadSources();
@@ -158,12 +159,13 @@ export function DiscordSyncPanel() {
     }
   };
 
-  const handleReingestForce = async (sourceId: string) => {
+  const handleReingestForce = async (sourceId: string, fetchWindow: DiscordFetchWindow) => {
     if (!window.confirm('Isso vai apagar todas as mensagens pendentes desta fonte e rebuscar tudo do Discord. Confirmar?')) return;
     setReingestingSourceId(sourceId);
     try {
-      const result = await discordSyncApi.reingestForce(sourceId);
-      toast.success(`Reidratado: ${result.deleted} apagadas, +${result.inserted} rebuscadas.`);
+      const result = await discordSyncApi.reingestForce(sourceId, fetchWindow);
+      const draftsText = result.parse ? ` ${result.parse.succeeded} drafts criados/atualizados.` : '';
+      toast.success(`Reidratado: ${result.deleted} apagadas, +${result.inserted} rebuscadas.${draftsText}`);
       if (tab === 'mensagens') loadMessages();
       loadSources();
     } catch (err) {

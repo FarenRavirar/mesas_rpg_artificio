@@ -42,6 +42,52 @@ describe('parseDiscordAnnouncement', () => {
     );
   });
 
+  it('creates drafts for real Covil forum starter titles even when only the thread name is available', () => {
+    const titles = [
+      'Forgotten Realms™: Uma Campanha Sandbox',
+      'Dungeons & Dragons™: Deicídio',
+      'Tormenta20™: A Libertação de Valkaria',
+      'Planescape™: Legends of the Outer Planes',
+      'Fundação 0: Lucro, Ossos e Reputação',
+      'Crystal Heart™: O Último Manuscrito',
+      'Dungeons & Dragons™: Wrath of the River King',
+      'Mage: The Awakeking™: Pó de Osso e Água de Poço',
+      'Dungeons & Dragons: Dragons Delves™',
+      'Waterdeep: Dragon Heist™ + Dungeon of the Mad Mage™',
+      'Doomed Forgotten Realms™: Rise and Fall of Vecna',
+      'Dungeons & Dragons: Chains of Asmodeus™',
+    ];
+
+    const drafts = titles.map((threadName, index) =>
+      parseDiscordAnnouncement(
+        makeMessage({
+          discord_message_id: `starter-${index}`,
+          discord_channel_id: `starter-${index}`,
+          discord_thread_id: `starter-${index}`,
+          discord_thread_name: threadName,
+          content_raw: '',
+        }),
+      ),
+    );
+
+    expect(drafts).toHaveLength(12);
+    expect(drafts.every(Boolean)).toBe(true);
+    expect(drafts.map((draft) => draft?.table.title)).toEqual([
+      'Uma Campanha Sandbox',
+      'Deicídio',
+      'A Libertação de Valkaria',
+      'Legends of the Outer Planes',
+      'Lucro, Ossos e Reputação',
+      'O Último Manuscrito',
+      'Wrath of the River King',
+      'The Awakeking: Pó de Osso e Água de Poço',
+      'Dragons Delves',
+      'Dragon Heist + Dungeon of the Mad Mage',
+      'Rise and Fall of Vecna',
+      'Chains of Asmodeus',
+    ]);
+  });
+
   it('extracts structured table fields from announcement text', () => {
     const draft = parseDiscordAnnouncement(
       makeMessage({

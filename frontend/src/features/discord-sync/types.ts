@@ -80,6 +80,12 @@ export interface IngestResult {
   newestMessageId: string | null;
   threadsScanned: number;
   sourceKind: DiscordSourceChannelType;
+  parse?: {
+    processed: number;
+    succeeded: number;
+    ignored: number;
+    failed: number;
+  };
 }
 
 export interface DiscordFetchWindow {

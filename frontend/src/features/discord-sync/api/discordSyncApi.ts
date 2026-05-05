@@ -72,6 +72,25 @@ const discordSourceSchema = z.object({
   updated_at: z.string(),
 });
 
+const discordJsonArraySchema = z.preprocess((value) => {
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    if (Array.isArray(record.items)) return record.items;
+    if (Array.isArray(record.data)) return record.data;
+    return Object.values(record);
+  }
+  return [];
+}, z.array(z.unknown()));
+
 const discordMessageSchema = z.object({
   id: z.string(),
   source_id: z.string(),
@@ -85,8 +104,8 @@ const discordMessageSchema = z.object({
   discord_author_name: z.string().nullable(),
   discord_message_url: z.string().nullable(),
   content_raw: z.string(),
-  attachments: z.array(z.unknown()).default([]),
-  embeds: z.array(z.unknown()).default([]),
+  attachments: discordJsonArraySchema.default([]),
+  embeds: discordJsonArraySchema.default([]),
   message_created_at: z.string().nullable(),
   message_edited_at: z.string().nullable(),
   content_hash: z.string(),
@@ -208,8 +227,8 @@ export const discordSyncApi = {
   syncReady: () =>
     apiFetch<SyncReadyResult>('/sync-ready', { method: 'POST' }),
 
-  reingestForce: (sourceId: string) =>
-    apiFetch<{ deleted: number; inserted: number; updated: number; total: number; threadsScanned: number }>(`/sources/${sourceId}/reingest-force`, { method: 'POST' }),
+  reingestForce: (sourceId: string, body?: DiscordFetchWindow) =>
+    apiFetch<IngestResult & { deleted: number }>(`/sources/${sourceId}/reingest-force`, { method: 'POST', body: JSON.stringify(body ?? {}) }),
 
   parseBatch: () =>
     apiFetch<{ processed: number; succeeded: number; failed: number }>('/messages/parse-batch', { method: 'POST' }),

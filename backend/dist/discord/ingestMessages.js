@@ -43,6 +43,17 @@ class DiscordIngestError extends Error {
     }
 }
 exports.DiscordIngestError = DiscordIngestError;
+function getSnowflakeCreatedAt(id) {
+    try {
+        const timestamp = Number((BigInt(id) >> 22n) + 1420070400000n);
+        if (!Number.isFinite(timestamp))
+            return null;
+        return new Date(timestamp);
+    }
+    catch {
+        return null;
+    }
+}
 function filterMessagesByWindow(messages, since, until) {
     if (!since && !until)
         return messages;
@@ -51,6 +62,20 @@ function filterMessagesByWindow(messages, since, until) {
             return false;
         const createdAt = new Date(message.timestamp);
         if (Number.isNaN(createdAt.getTime()))
+            return false;
+        if (since && createdAt < since)
+            return false;
+        if (until && createdAt > until)
+            return false;
+        return true;
+    });
+}
+function filterThreadsByWindow(threads, since, until) {
+    if (!since && !until)
+        return threads;
+    return threads.filter((thread) => {
+        const createdAt = getSnowflakeCreatedAt(thread.id);
+        if (!createdAt)
             return false;
         if (since && createdAt < since)
             return false;
@@ -238,7 +263,7 @@ async function ingestForumMessages(params) {
     const trimmedToken = resolvedToken.trim();
     if (!trimmedToken)
         throw new DiscordIngestError('Token do bot Discord não pode ser vazio.', 422);
-    const threads = await listForumThreads({ guildId, forumChannelId, token: trimmedToken });
+    const threads = filterThreadsByWindow(await listForumThreads({ guildId, forumChannelId, token: trimmedToken }), since, until);
     if (threads.length === 0) {
         return { inserted: 0, updated: 0, total: 0, newestMessageId: null, threadsScanned: 0, sourceKind: 'forum' };
     }
