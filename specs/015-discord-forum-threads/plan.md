@@ -5,18 +5,18 @@
 
 ## Summary
 
-Adicionar suporte a fontes Discord de forum no painel "Discord Sync": discovery passa a listar foruns, fontes passam a registrar tipo do canal, e a ingestao escolhe entre fluxo existente de canais textuais/anuncio e novo fluxo de posts/threads. A solucao mantem compatibilidade com fontes atuais, preserva deduplicacao por mensagem dentro do canal/thread real e adiciona metadados de forum/thread para auditoria, parser futuro e URL correta do Discord.
+Adicionar suporte a fontes Discord de forum no painel "Discord Sync": discovery passa a listar foruns, fontes passam a registrar tipo do canal, e a ingestao escolhe entre fluxo existente de canais textuais/anuncio e novo fluxo de posts/threads. A solucao mantem compatibilidade com fontes atuais, preserva deduplicacao por mensagem dentro do canal/thread real e adiciona metadados de forum/thread para auditoria, parser, draft revisavel e URL correta do Discord.
 
 ## Technical Context
 
 **Language/Version**: TypeScript estrito; Node.js 25.9.0; React + Vite  
 **Primary Dependencies**: Express, Kysely, Zod 4.3.6, React, Tailwind; Discord REST API v10 via `fetch` nativo  
 **Storage**: PostgreSQL 16; tabelas existentes `discord_import_sources` e `discord_import_messages` com migration online-safe nova  
-**Testing**: `npm --prefix backend run build`; `npm --prefix frontend run build`; verificacoes direcionadas com `rg`; teste funcional final em Beta pelo mantenedor em janela anonima  
+**Testing**: `npm --prefix backend test -- parseDiscordAnnouncement`; `npm --prefix backend run build`; `npm --prefix frontend run build`; verificacoes direcionadas com `rg`; teste funcional final em Beta pelo mantenedor em janela anonima
 **Target Platform**: Backend e frontend do portal em Beta/Producao via workflow GitHub Actions  
 **Project Type**: Monorepo web app + API administrativa  
 **Performance Goals**: Uma busca manual de forum deve processar lote limitado de threads/mensagens sem travar a UI; cada chamada externa deve ter timeout explicito  
-**Constraints**: Sem expor token; sem scraping; sem `AbortSignal.timeout`; schema online-safe; fontes legadas sem `channel_type` devem continuar como canais textuais  
+**Constraints**: Sem expor token; sem scraping; sem `AbortSignal.timeout`; schema online-safe; fontes legadas sem `channel_type` devem continuar como canais textuais; parser v1 deterministico e sem LLM; sync cria mesa em status `draft`; sync bloqueado ate draft `ready` com campos obrigatorios completos
 **Scale/Scope**: Admin interno; suporte a `GUILD_TEXT` (0), `GUILD_ANNOUNCEMENT` (5), `GUILD_FORUM` (15); `GUILD_MEDIA` (16) fica fora do escopo de implementacao inicial por aviso oficial de desenvolvimento ativo
 
 ## Constitution Check
@@ -57,11 +57,15 @@ backend/
 ├── src/
 │   ├── routes/
 │   │   └── adminDiscordSync.ts
-│   ├── discord/
-│   │   ├── discovery.ts
-│   │   ├── ingestMessages.ts
-│   │   ├── types.ts
-│   │   └── index.ts
+  │   ├── discord/
+  │   │   ├── __tests__/parseDiscordAnnouncement.test.ts
+  │   │   ├── discovery.ts
+  │   │   ├── ingestMessages.ts
+  │   │   ├── normalizeDiscordTableDraft.ts
+  │   │   ├── parseDiscordAnnouncement.ts
+  │   │   ├── syncDiscordDraftToTable.ts
+  │   │   ├── types.ts
+  │   │   └── index.ts
 │   └── db/
 │       └── types.ts
 
@@ -101,15 +105,23 @@ MAPA_DE_API.md
 - `backend/src/db/types.ts`
 - `backend/src/discord/discovery.ts`
 - `backend/src/discord/ingestMessages.ts`
+- `backend/src/discord/parseDiscordAnnouncement.ts`
+- `backend/src/discord/normalizeDiscordTableDraft.ts`
+- `backend/src/discord/syncDiscordDraftToTable.ts`
+- `backend/src/discord/__tests__/parseDiscordAnnouncement.test.ts`
 - `backend/src/discord/types.ts`
 - `backend/src/discord/index.ts`
 - `backend/src/routes/adminDiscordSync.ts`
 - `backend/dist/discord/discovery.js`
 - `backend/dist/discord/index.js`
 - `backend/dist/discord/ingestMessages.js`
+- `backend/dist/discord/normalizeDiscordTableDraft.js`
+- `backend/dist/discord/parseDiscordAnnouncement.js`
 - `backend/dist/routes/adminDiscordSync.js`
+- `backend/dist/routes/systemSuggestionsAdmin.js` (build artifact regenerated from existing `origin/dev` source)
 - `frontend/src/features/discord-sync/api/discordSyncApi.ts`
 - `frontend/src/features/discord-sync/components/DiscordSourceList.tsx`
+- `frontend/src/features/discord-sync/components/DiscordDraftPreview.tsx`
 - `frontend/src/features/discord-sync/components/DiscordSyncPanel.tsx`
 - `frontend/src/features/discord-sync/types.ts`
 - `MAPA_DE_API.md`
@@ -117,6 +129,7 @@ MAPA_DE_API.md
 - `.specify/memory/session-log.md`
 
 **Bugfix**: 2026-05-04 — BUG-001 atualiza o escopo para incluir triagem funcional de mensagens importadas e filtro temporal em `POST /fetch` para qualquer fonte Discord.
+**Bugfix**: 2026-05-05 — BUG-003 atualiza o plano para incluir parser, normalizador, drafts idempotentes, sync para mesa em status `draft`, gate de prontidao backend e editor estruturado de draft no frontend.
 
 ## Complexity Tracking
 

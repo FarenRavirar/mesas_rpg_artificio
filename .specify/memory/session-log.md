@@ -1,5 +1,15 @@
 # Session Log
 
+## 2026-05-05T18:20:00-03:00 — discord-draft-pipeline
+
+**Tipo:** Bugfix SDD pós-diagnóstico Beta
+**Feature:** `specs/015-discord-forum-threads/`
+**Bug:** `specs/015-discord-forum-threads/bugs/BUG-003.md`
+**Correção:** funil Discord forum → parser → draft → mesa em status `draft` implementado localmente; parser cobre starter de forum com `content_raw` vazio, conteúdo textual estruturado e reply vazio ignorado; normalizador classifica drafts como `ready` ou `needs_review`; rotas de parse/reparse salvam JSONB como objeto e deduplicam pelo UUID interno da mensagem.
+**Evidências principais:** RED observado em `npm --prefix backend test -- parseDiscordAnnouncement`; depois GREEN 3/3; `npm --prefix backend run build` GREEN; `npm --prefix frontend run build` GREEN; `git diff --check` sem erros; busca final sem `NOT IMPLEMENTED: parser`, `Fase 5`, `JSON.stringify(parsed)`, `where('discord_message_id', '=', message.discord_message_id)` e `status: 'active'` no escopo Discord Sync.
+**Risco residual:** validação funcional/manual ainda depende de commit/push, PR para `dev`, deploy Beta e teste do mantenedor em janela anônima com forum real.
+**Sessão mantida aberta em:** `sessoes/26-05-04_1_discord-forum-threads.md`
+
 ## 2026-05-04T14:42:00-03:00 — discord-sync-apuracao-operavel
 
 **Tipo:** Bugfix SDD pós-deploy Beta
@@ -113,3 +123,13 @@
 **Evidências principais:** Deploy Beta `25079585177` verde após atualização de runtime; Deploy Beta `25080459429` verde após correção do lint `SC2086`; VM validada com `node v25.9.0` e `npm 11.13.0`; `mesas-cron` validado sem `ts-node: not found`.
 **Risco residual:** Node 25 é linha Current, não LTS; reavaliar antes de promoção para produção se a política de estabilidade mudar.
 **Sessão encerrada:** `sessoes/encerradas/26-04-28_1_fix-publicacao-mesa-opcao.md`
+
+## 2026-05-05T19:05:00-03:00 — discord-draft-readiness-gate
+
+**Tipo:** Bugfix SDD pre-deploy
+**Feature:** `specs/015-discord-forum-threads/`
+**Bug:** `specs/015-discord-forum-threads/bugs/BUG-003.md`
+**Correção:** backend bloqueia sync de draft Discord sem status `ready` e sem campos obrigatorios completos; frontend adiciona editor estruturado com seletor real de sistemas, validacao local e sync desabilitado ate o draft estar pronto.
+**Evidencias principais:** dry-run 7d nos dois foruns gerou 11 drafts `needs_review`, 1 reply vazio ignorado e 0 `ready`; `npm --prefix backend test -- parseDiscordAnnouncement` passou; `npm --prefix backend run build` passou; `npm --prefix frontend run build` passou; `git diff --check` sem erros.
+**Risco residual:** validacao funcional/manual ainda depende de commit, PR, deploy Beta e teste do mantenedor em janela anonima.
+**Sessao mantida aberta em:** `sessoes/26-05-04_1_discord-forum-threads.md`

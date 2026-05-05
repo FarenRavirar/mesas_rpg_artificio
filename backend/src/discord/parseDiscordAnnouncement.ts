@@ -126,6 +126,12 @@ function extractPrice(text: string): { priceType: TableDraftPriceType; priceValu
 
 // Extrai número de vagas do texto
 function extractSlots(text: string): { total: number | null; open: number | null } {
+  const labeledMatch = text.match(/(?:^|\n)\s*(?:vagas|vagas dispon[ií]veis|jogadores)\s*[:=]\s*(\d+)/i);
+  if (labeledMatch) {
+    const n = parseInt(labeledMatch[1], 10);
+    return { total: n, open: n };
+  }
+
   const slashMatch = text.match(/(\d+)\s*\/\s*(\d+)\s*vagas?/i);
   if (slashMatch) {
     const filled = parseInt(slashMatch[1], 10);
@@ -177,6 +183,26 @@ function extractContactUrl(text: string): string | null {
   return urlMatch ? urlMatch[0] : null;
 }
 
+function extractLabelValue(text: string, labels: string[]): string | null {
+  const escaped = labels.map((label) => label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+  const pattern = new RegExp(`(?:^|\\n)\\s*(?:${escaped})\\s*[:\\-]\\s*(.+?)(?=\\n\\s*\\S+\\s*[:\\-]|$)`, 'i');
+  const match = text.match(pattern);
+  return match?.[1]?.trim() || null;
+}
+
+function normalizeTitle(value: string | null): string | null {
+  if (!value) return null;
+  return cleanTrademark(value.replace(/^["“”']|["“”']$/g, '').trim()) || null;
+}
+
+function isThreadStarter(message: DiscordRawMessage): boolean {
+  return Boolean(
+    message.discord_thread_id
+      && message.discord_message_id === message.discord_thread_id
+      && message.discord_channel_id === message.discord_thread_id,
+  );
+}
+
 // Calcula confiança com base nos campos preenchidos
 function calcConfidence(table: DiscordTableDraftTable): number {
   const fields: Array<keyof DiscordTableDraftTable> = [
@@ -198,30 +224,39 @@ function calcConfidence(table: DiscordTableDraftTable): number {
 export function parseDiscordAnnouncement(
   message: DiscordRawMessage,
   systems: SystemEntry[] = [],
-): DiscordTableDraft {
+): DiscordTableDraft | null {
   const threadName = message.discord_thread_name ?? '';
   const rawBody = message.content_raw ?? '';
   // Fóruns Discord frequentemente colocam o conteúdo em embeds em vez do campo content
   const body = rawBody.trim() || extractBodyFromEmbeds(message.embeds ?? []);
+  if (!body.trim() && !isThreadStarter(message)) {
+    return null;
+  }
   const fullText = `${threadName}\n${body}`.trim();
 
   // Título e dica de sistema (a partir do nome do thread)
-  const { systemHint, title } = splitThreadName(threadName || body.split('\n')[0] || 'Mesa sem título');
+  const threadParts = splitThreadName(threadName || body.split('\n')[0] || 'Mesa sem título');
+  const explicitTitle = normalizeTitle(extractLabelValue(body, ['mesa', 'titulo', 'título', 'nome da mesa', 'aventura']));
+  const explicitSystem = normalizeTitle(extractLabelValue(body, ['sistema', 'jogo', 'rpg']));
+  const systemHint = explicitSystem ?? threadParts.systemHint;
+  const title = explicitTitle ?? threadParts.title;
 
   // Detecção de sistema via banco de dados
   let matchedSystem: SystemEntry | null = null;
   if (systems.length > 0) {
     // Tenta primeiro na parte antes do ":" (systemHint) — mais preciso
     if (systemHint) matchedSystem = matchSystem(systemHint, systems);
-    // Fallback: busca no texto completo
-    if (!matchedSystem) matchedSystem = matchSystem(fullText, systems);
+    // Fallback só quando não há hint forte no nome da thread. Se existe
+    // "Sistema: Titulo", buscar no titulo completo gera falso positivo
+    // como "Mad Mage" -> sistema "Mage".
+    if (!matchedSystem && !systemHint) matchedSystem = matchSystem(fullText, systems);
   }
 
-  const systemName = matchedSystem?.name ?? null;
+  const systemName = matchedSystem?.name ?? explicitSystem ?? null;
   const systemId = matchedSystem?.id ?? null;
   // Preserva o hint bruto quando não há correspondência: usado para criar
   // system_suggestion automática e para o revisor ver o que veio do Discord.
-  const rawSystemHint = (!matchedSystem && systemHint) ? systemHint : null;
+  const rawSystemHint = (!matchedSystem && systemHint && !explicitSystem) ? systemHint : null;
 
   // Campos extraídos do corpo
   const modality = extractModality(body) ?? 'online';
@@ -231,7 +266,7 @@ export function parseDiscordAnnouncement(
   const dayOfWeek = extractDayOfWeek(body);
   const startTime = extractStartTime(body);
   const contactUrl = extractContactUrl(body);
-  const description = body.trim() || null;
+  const description = extractLabelValue(body, ['descricao', 'descrição', 'sinopse', 'proposta']) ?? (body.trim() || null);
 
   const missingFields: string[] = [];
   if (!systemName) {

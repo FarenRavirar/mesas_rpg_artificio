@@ -153,8 +153,8 @@ async function persistMessages(params) {
                 discord_author_name: msg.author?.username ?? null,
                 discord_message_url: messageUrl,
                 content_raw: contentRaw,
-                attachments: JSON.stringify(msg.attachments ?? []),
-                embeds: JSON.stringify(msg.embeds ?? []),
+                attachments: (msg.attachments ?? []),
+                embeds: (msg.embeds ?? []),
                 message_created_at: msg.timestamp ? new Date(msg.timestamp) : null,
                 message_edited_at: msg.edited_timestamp ? new Date(msg.edited_timestamp) : null,
                 content_hash: contentHash,
@@ -163,7 +163,7 @@ async function persistMessages(params) {
             });
         }
         else if (existing.content_hash !== contentHash) {
-            toUpdate.push({ id: existing.id, contentRaw, contentHash });
+            toUpdate.push({ id: existing.id, contentRaw, contentHash, embeds: (msg.embeds ?? []), attachments: (msg.attachments ?? []) });
         }
     }
     if (toInsert.length > 0) {
@@ -175,6 +175,8 @@ async function persistMessages(params) {
             .set({
             content_raw: upd.contentRaw,
             content_hash: upd.contentHash,
+            embeds: upd.embeds,
+            attachments: upd.attachments,
             status: 'pending',
             parse_error: null,
             updated_at: new Date(),

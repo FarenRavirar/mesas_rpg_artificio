@@ -10,9 +10,19 @@ export interface SyncResult {
   created: boolean;
 }
 
+export class DiscordDraftSyncValidationError extends Error {
+  constructor(public readonly missingFields: string[]) {
+    super(`Draft incompleto para sincronização: ${missingFields.join(', ')}.`);
+    this.name = 'DiscordDraftSyncValidationError';
+  }
+}
+
 const VALID_DAYS: DayOfWeek[] = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'];
 const VALID_FREQ: ScheduleFrequency[] = ['semanal', 'quinzenal', 'mensal', 'avulsa'];
 const VALID_CHANNELS: TableContactChannel[] = ['whatsapp', 'discord', 'phone', 'email', 'facebook', 'instagram', 'form'];
+const VALID_TABLE_TYPES = ['campanha', 'one-shot', 'oneshot-serie', 'aberta'];
+const VALID_MODALITIES = ['online', 'presencial', 'hibrida'];
+const VALID_PRICE_TYPES = ['gratuita', 'paga'];
 
 function isDayOfWeek(v: unknown): v is DayOfWeek {
   return typeof v === 'string' && (VALID_DAYS as string[]).includes(v);
@@ -24,6 +34,32 @@ function isScheduleFrequency(v: unknown): v is ScheduleFrequency {
 
 function isTableContactChannel(v: unknown): v is TableContactChannel {
   return typeof v === 'string' && (VALID_CHANNELS as string[]).includes(v);
+}
+
+function hasText(v: unknown): v is string {
+  return typeof v === 'string' && v.trim().length > 0;
+}
+
+function hasPositiveNumber(v: unknown): v is number {
+  return typeof v === 'number' && Number.isFinite(v) && v > 0;
+}
+
+function validateDraftForSync(draft: DiscordTableDraft): string[] {
+  const missing: string[] = [];
+  const t = draft.table;
+
+  if (!hasText(t.title)) missing.push('title');
+  if (!hasText(t.description)) missing.push('description');
+  if (!hasText(t.system_id)) missing.push('system_id');
+  if (!hasText(t.type) || !VALID_TABLE_TYPES.includes(t.type)) missing.push('type');
+  if (!hasText(t.modality) || !VALID_MODALITIES.includes(t.modality)) missing.push('modality');
+  if (!hasText(t.price_type) || !VALID_PRICE_TYPES.includes(t.price_type)) missing.push('price_type');
+  if (!hasPositiveNumber(t.slots_total) && !hasPositiveNumber(t.slots_open)) missing.push('slots_total');
+  if (!hasText(t.contact_url) && !hasText(t.contact_discord)) missing.push('contact_url/contact_discord');
+  if (!isDayOfWeek(t.day_of_week)) missing.push('day_of_week');
+  if (!hasText(t.start_time)) missing.push('start_time');
+
+  return missing;
 }
 
 function extractContacts(
@@ -80,13 +116,14 @@ function buildTableData(
   slug: string
 ): Insertable<TablesTable> {
   const t = draft.table;
+  if (!t.title) throw new DiscordDraftSyncValidationError(['title']);
 
   return {
     slug,
     gm_id: null,
     system_id: t.system_id ?? null,
     scenario_id: null,
-    title: t.title ?? 'Mesa Sem Título',
+    title: t.title,
     description: t.description ?? null,
     type: t.type ?? 'campanha',
     audience: 'livre',
@@ -105,7 +142,7 @@ function buildTableData(
     origin: 'imported',
     source_id: message.discord_message_id,
     source_url: message.discord_message_url ?? null,
-    status: 'active',
+    status: 'draft',
     rules_notes: null,
     banner_url: null,
     is_ddal: false,
@@ -129,6 +166,7 @@ export async function syncDiscordDraftToTable(draftId: string): Promise<SyncResu
     return { tableId: draft.table_id, created: false };
   }
   if (draft.status === 'rejected') throw new Error(`Draft ${draftId} foi rejeitado e não pode ser sincronizado.`);
+  if (draft.status !== 'ready') throw new Error(`Draft ${draftId} precisa estar com status ready antes de sincronizar.`);
 
   const message = await db
     .selectFrom('discord_import_messages')
@@ -140,6 +178,11 @@ export async function syncDiscordDraftToTable(draftId: string): Promise<SyncResu
 
   const payload = (draft.normalized_payload ?? draft.parsed_payload) as DiscordTableDraft;
   if (!payload?.table) throw new Error(`Draft ${draftId} sem payload válido para sincronização.`);
+
+  const missingFields = validateDraftForSync(payload);
+  if (missingFields.length > 0) {
+    throw new DiscordDraftSyncValidationError(missingFields);
+  }
 
   const contacts = extractContacts(payload);
   const schedules = extractSchedules(payload);
@@ -161,10 +204,11 @@ export async function syncDiscordDraftToTable(draftId: string): Promise<SyncResu
 
     await db.transaction().execute(async (trx) => {
       const t = payload.table;
+      if (!t.title) throw new DiscordDraftSyncValidationError(['title']);
       await trx
         .updateTable('tables')
         .set({
-          title: t.title ?? 'Mesa Sem Título',
+          title: t.title,
           description: t.description ?? null,
           type: t.type ?? 'campanha',
           modality: t.modality ?? 'online',
@@ -177,6 +221,7 @@ export async function syncDiscordDraftToTable(draftId: string): Promise<SyncResu
           system_id: t.system_id ?? null,
           actual_gm_name: payload.source.author_name ?? null,
           is_covil: true,
+          status: 'draft',
           updated_at: new Date(),
         })
         .where('id', '=', tableId)
@@ -204,7 +249,8 @@ export async function syncDiscordDraftToTable(draftId: string): Promise<SyncResu
   } else {
     // INSERT
     created = true;
-    const slug = TableService.generateSlug(payload.table.title ?? 'mesa-covil');
+    if (!payload.table.title) throw new DiscordDraftSyncValidationError(['title']);
+    const slug = TableService.generateSlug(payload.table.title);
     const tableData = buildTableData(payload, message, slug);
     const inserted = await TableRepository.createTableWithRelations(tableData, contacts, schedules);
     tableId = inserted.id;

@@ -4,7 +4,7 @@ import { db } from '../db';
 import type { DiscordSourceChannelType, NewDiscordSetting } from '../db/types';
 import { authMiddleware } from '../middleware/auth';
 import type { DiscordImportMessageStatus, DiscordImportDraftStatus } from '../discord';
-import { DiscordDiscoveryError, DiscordIngestError, discoverDiscordChannels, discoverDiscordGuilds, ingestForumMessages, ingestMessages, syncDiscordDraftToTable, parseDiscordAnnouncement } from '../discord';
+import { DiscordDiscoveryError, DiscordDraftSyncValidationError, DiscordIngestError, discoverDiscordChannels, discoverDiscordGuilds, ingestForumMessages, ingestMessages, syncDiscordDraftToTable, parseDiscordAnnouncement, normalizeDiscordTableDraft } from '../discord';
 import type { SystemEntry } from '../discord';
 import { encryptDiscordSetting, decryptDiscordSetting, DiscordSettingsSecretUnavailableError } from '../discord/settingsCrypto';
 
@@ -68,6 +68,7 @@ const botTokenSchema = z.object({
 // Embeds/attachments podem vir como array (novo) ou JSON string (dados antigos)
 function parseJsonField(value: unknown): unknown[] {
   if (Array.isArray(value)) return value;
+  if (value && typeof value === 'object') return [];
   if (typeof value === 'string') {
     try { const parsed = JSON.parse(value); return Array.isArray(parsed) ? parsed : []; } catch { return []; }
   }
@@ -493,20 +494,40 @@ router.post('/messages/parse-batch', authMiddleware, async (req: Request, res: R
           message_created_at: message.message_created_at,
           message_edited_at: message.message_edited_at,
         }, systems);
+        if (!parsed) {
+          await db.updateTable('discord_import_messages')
+            .set({ status: 'ignored', parse_error: null, updated_at: new Date() })
+            .where('id', '=', message.id)
+            .execute();
+          continue;
+        }
+        const normalized = normalizeDiscordTableDraft(parsed, systems);
 
         const existing = await db.selectFrom('discord_import_table_drafts')
           .select('id')
-          .where('discord_message_id', '=', message.discord_message_id)
+          .where('discord_message_id', '=', message.id)
           .executeTakeFirst();
 
         if (existing) {
           await db.updateTable('discord_import_table_drafts')
-            .set({ parsed_payload: parsed as any, confidence: parsed.confidence, status: 'draft', updated_at: new Date() })
+            .set({
+              parsed_payload: parsed,
+              normalized_payload: normalized.draft,
+              confidence: normalized.draft.confidence,
+              status: normalized.status,
+              updated_at: new Date(),
+            })
             .where('id', '=', existing.id)
             .execute();
         } else {
           await db.insertInto('discord_import_table_drafts')
-            .values({ discord_message_id: message.discord_message_id, parsed_payload: parsed as any, confidence: parsed.confidence })
+            .values({
+              discord_message_id: message.id,
+              parsed_payload: parsed,
+              normalized_payload: normalized.draft,
+              confidence: normalized.draft.confidence,
+              status: normalized.status,
+            })
             .execute();
         }
 
@@ -516,7 +537,7 @@ router.post('/messages/parse-batch', authMiddleware, async (req: Request, res: R
           .execute();
 
         // Cria system_suggestion se havia hint não reconhecido
-        const rawHint = parsed.table.raw_system_hint;
+        const rawHint = normalized.draft.table.raw_system_hint;
         if (rawHint && !parsed.table.system_id) {
           const alreadyExists = await db.selectFrom('system_suggestions')
             .select('id')
@@ -692,7 +713,7 @@ router.post('/messages/:id/parse', authMiddleware, async (req: Request, res: Res
     }
 
     const systems = await loadSystemsForParser();
-    const parsed = parseDiscordAnnouncement({
+        const parsed = parseDiscordAnnouncement({
       source_kind: message.source_kind,
       discord_message_id: message.discord_message_id,
       discord_channel_id: message.discord_channel_id,
@@ -709,6 +730,8 @@ router.post('/messages/:id/parse', authMiddleware, async (req: Request, res: Res
       message_created_at: message.message_created_at,
       message_edited_at: message.message_edited_at,
     }, systems);
+    if (!parsed) return res.status(422).json({ error: 'Mensagem sem conteudo elegivel para virar draft.' });
+    const normalized = normalizeDiscordTableDraft(parsed, systems);
 
     // Verifica se já existe draft para esta mensagem
     const existingDraft = await db
@@ -723,9 +746,10 @@ router.post('/messages/:id/parse', authMiddleware, async (req: Request, res: Res
       [draft] = await db
         .updateTable('discord_import_table_drafts')
         .set({
-          parsed_payload: JSON.stringify(parsed) as unknown,
-          confidence: parsed.confidence,
-          status: 'draft',
+          parsed_payload: parsed,
+          normalized_payload: normalized.draft,
+          confidence: normalized.draft.confidence,
+          status: normalized.status,
           review_notes: null,
           updated_at: new Date(),
         })
@@ -739,10 +763,10 @@ router.post('/messages/:id/parse', authMiddleware, async (req: Request, res: Res
         .values({
           discord_message_id: message.id,
           table_id: null,
-          parsed_payload: JSON.stringify(parsed) as unknown,
-          normalized_payload: null,
-          confidence: parsed.confidence,
-          status: 'draft',
+          parsed_payload: parsed,
+          normalized_payload: normalized.draft,
+          confidence: normalized.draft.confidence,
+          status: normalized.status,
           review_notes: null,
         })
         .returningAll()
@@ -759,8 +783,8 @@ router.post('/messages/:id/parse', authMiddleware, async (req: Request, res: Res
     // Se o parser extraiu um hint de sistema mas não casou com nenhum sistema
     // cadastrado, cria uma system_suggestion pendente para fechar o loop:
     // admin revisa → aprova → alias entra em system_aliases → próximos parses detectam.
-    const rawHint = parsed.table.raw_system_hint;
-    if (rawHint && !parsed.table.system_id) {
+    const rawHint = normalized.draft.table.raw_system_hint;
+    if (rawHint && !normalized.draft.table.system_id) {
       const adminId = (req as any).user?.userId as string | undefined;
       if (adminId) {
         // Verifica se já existe sugestão pendente ou aprovada com o mesmo nome
@@ -846,13 +870,16 @@ router.post('/drafts/:id/reparse', authMiddleware, async (req: Request, res: Res
       message_created_at: message.message_created_at,
       message_edited_at: message.message_edited_at,
     }, systems);
+    if (!parsed) return res.status(422).json({ error: 'Mensagem sem conteudo elegivel para virar draft.' });
+    const normalized = normalizeDiscordTableDraft(parsed, systems);
 
     const [updated] = await db
       .updateTable('discord_import_table_drafts')
       .set({
-        parsed_payload: JSON.stringify(parsed) as unknown,
-        confidence: parsed.confidence,
-        status: 'draft',
+        parsed_payload: parsed,
+        normalized_payload: normalized.draft,
+        confidence: normalized.draft.confidence,
+        status: normalized.status,
         updated_at: new Date(),
       })
       .where('id', '=', req.params.id)
@@ -875,7 +902,10 @@ router.post('/drafts/:id/sync', authMiddleware, async (req: Request, res: Respon
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Erro ao sincronizar draft.';
     console.error('[POST /admin/discord-sync/drafts/:id/sync]', error);
-    if (message.includes('não encontrado') || message.includes('rejeitado')) {
+    if (error instanceof DiscordDraftSyncValidationError) {
+      return res.status(422).json({ error: message, details: { missingFields: error.missingFields } });
+    }
+    if (message.includes('não encontrado') || message.includes('rejeitado') || message.includes('status ready')) {
       return res.status(422).json({ error: message });
     }
     return res.status(500).json({ error: message });

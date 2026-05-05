@@ -189,14 +189,17 @@
 | **PATCH** | `/admin/discord-sync/sources/:id` | 🔧 Impl. | DiscordSourceList.tsx |
 | **DELETE** | `/admin/discord-sync/sources/:id` | 🔧 Impl. | DiscordSourceList.tsx |
 | **POST** | `/admin/discord-sync/fetch` | 🔧 Impl. | DiscordSyncPanel.tsx — dispara ingestão REST de canal textual/anúncio ou varredura de posts/threads de fórum; aceita `since`/`until` para janela temporal |
+| **POST** | `/admin/discord-sync/sources/:sourceId/reingest-force` | 🔧 Impl. | DiscordSyncPanel.tsx — reingere uma fonte após apagar mensagens não sincronizadas |
 | **GET** | `/admin/discord-sync/messages` | 🔧 Impl. | DiscordSyncPanel.tsx — filtros: `source_id`, `status`, `limit`, `offset`; mensagens de fórum incluem `discord_thread_id`, `discord_parent_channel_id`, `discord_thread_name` |
 | **PATCH** | `/admin/discord-sync/messages/:id` | 🔧 Impl. | DiscordSyncPanel.tsx — atualiza status de triagem da mensagem importada |
+| **POST** | `/admin/discord-sync/messages/:id/parse` | 🔧 Impl. | DiscordSyncPanel.tsx — parseia uma mensagem e cria/atualiza draft idempotente |
+| **POST** | `/admin/discord-sync/messages/parse-batch` | 🔧 Impl. | DiscordSyncPanel.tsx — processa mensagens pendentes/erro em lote |
 | **GET** | `/admin/discord-sync/drafts` | 🔧 Impl. | DiscordDraftReviewTable.tsx — filtros: `status`, `limit`, `offset` |
 | **GET** | `/admin/discord-sync/drafts/:id` | 🔧 Impl. | DiscordDraftPreview.tsx |
-| **PATCH** | `/admin/discord-sync/drafts/:id` | 🔧 Impl. | DiscordDraftPreview.tsx — edita `normalized_payload`, `status`, `review_notes` |
-| **POST** | `/admin/discord-sync/drafts/:id/reparse` | ⏳ Fase 5 | DiscordDraftPreview.tsx — reprocessa mensagem pelo parser |
-| **POST** | `/admin/discord-sync/drafts/:id/sync` | ⏳ Fase 3 | DiscordDraftPreview.tsx — sincroniza draft para `tables` |
-| **POST** | `/admin/discord-sync/sync-ready` | ⏳ Fase 3 | DiscordSyncPanel.tsx — sincroniza todos os drafts `ready` em lote |
+| **PATCH** | `/admin/discord-sync/drafts/:id` | 🔧 Impl. | DiscordDraftPreview.tsx — edita `normalized_payload`, `status`, `review_notes`; usado pelo editor estruturado para salvar campos e marcar `ready` somente quando completo |
+| **POST** | `/admin/discord-sync/drafts/:id/reparse` | 🔧 Impl. | DiscordDraftPreview.tsx — reprocessa mensagem pelo parser e atualiza draft |
+| **POST** | `/admin/discord-sync/drafts/:id/sync` | 🔧 Impl. | DiscordDraftPreview.tsx — sincroniza draft para `tables` em status `draft`; retorna 422 se status não for `ready` ou se faltarem título, descrição, sistema, tipo, modalidade, preço, vagas, contato, dia ou horário |
+| **POST** | `/admin/discord-sync/sync-ready` | 🔧 Impl. | DiscordSyncPanel.tsx — sincroniza todos os drafts `ready` em lote, respeitando a mesma validação de campos obrigatórios |
 
 ### ACTIVITYLOG (`routes/activityLog.ts`)
 | Metodo | Endpoint | Status | Chamado por (Frontend) |

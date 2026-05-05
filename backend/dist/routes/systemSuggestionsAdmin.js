@@ -179,10 +179,43 @@ router.patch('/system-suggestions/:id/approve', async (req, res) => {
             return {
                 suggestion_id: id,
                 system_id: newSystem.id,
+                system_name: suggestion.name,
                 path_slug: newSystem.path_slug,
             };
         });
-        return res.json({ success: true, data: result });
+        // Pós-transação: linkar drafts Discord que aguardavam este sistema
+        const pendingDrafts = [];
+        try {
+            const drafts = await db_1.db
+                .selectFrom('discord_import_table_drafts')
+                .select(['id', 'parsed_payload'])
+                .where('status', 'not in', ['synced', 'rejected'])
+                .execute();
+            for (const draft of drafts) {
+                const payload = draft.parsed_payload;
+                if (payload?.table?.raw_system_hint === result.system_name) {
+                    const updated = {
+                        ...payload,
+                        table: {
+                            ...payload.table,
+                            system_id: result.system_id,
+                            system_name: result.system_name,
+                            raw_system_hint: null,
+                        },
+                    };
+                    await db_1.db
+                        .updateTable('discord_import_table_drafts')
+                        .set({ parsed_payload: updated, status: 'ready' })
+                        .where('id', '=', draft.id)
+                        .execute();
+                    pendingDrafts.push({ id: draft.id, title: payload.table?.title ?? null });
+                }
+            }
+        }
+        catch (linkErr) {
+            console.error('[approve] Erro ao linkar drafts:', linkErr);
+        }
+        return res.json({ success: true, data: { ...result, pending_drafts: pendingDrafts } });
     }
     catch (error) {
         console.error('[PATCH /admin/system-suggestions/:id/approve]', error);

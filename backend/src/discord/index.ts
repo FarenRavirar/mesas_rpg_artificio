@@ -29,5 +29,7 @@ export { DiscordIngestError, ingestForumMessages, ingestMessages } from './inges
 export type { IngestResult } from './ingestMessages';
 export { parseDiscordAnnouncement } from './parseDiscordAnnouncement';
 export type { SystemEntry } from './parseDiscordAnnouncement';
-export { syncDiscordDraftToTable } from './syncDiscordDraftToTable';
+export { normalizeDiscordTableDraft } from './normalizeDiscordTableDraft';
+export type { NormalizedDraftStatus } from './normalizeDiscordTableDraft';
+export { DiscordDraftSyncValidationError, syncDiscordDraftToTable } from './syncDiscordDraftToTable';
 export type { SyncResult } from './syncDiscordDraftToTable';

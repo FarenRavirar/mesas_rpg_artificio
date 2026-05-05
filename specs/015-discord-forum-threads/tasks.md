@@ -66,9 +66,21 @@
 - [x] T032 [BUG-001] Add actionable message detail/triage UI in `frontend/src/features/discord-sync/components/DiscordSyncPanel.tsx`.
 - [x] T033 [BUG-001] Update API/docs/status artifacts and run backend/frontend builds plus final searches.
 - [x] T034 [BUG-002] Make imported-message triage visible and operational in `frontend/src/features/discord-sync/components/DiscordSyncPanel.tsx`, including queue summary, selected item fallback content and quick status actions.
+- [x] T035 [BUG-003] Create parser RED tests with forum fixtures in `backend/src/discord/__tests__/parseDiscordAnnouncement.test.ts` before parser implementation.
+- [x] T036 [BUG-003] Implement deterministic `parseDiscordAnnouncement.ts` for forum thread names, empty `content_raw`, content text and basic table fields.
+- [x] T037 [BUG-003] Implement `normalizeDiscordTableDraft.ts` to resolve systems/aliases and classify `ready` vs `needs_review`.
+- [x] T038 [BUG-003] Integrate parser/normalizer into `backend/src/routes/adminDiscordSync.ts` so fetch/reparse creates or updates `discord_import_table_drafts` idempotently.
+- [x] T039 [BUG-003] Update `syncDiscordDraftToTable.ts` so Discord drafts create/update `tables.status='draft'` instead of publishing automatically.
+- [x] T040 [BUG-003] Export parser/normalizer via `backend/src/discord/index.ts` and update Discord Sync API docs in `MAPA_DE_API.md`.
+- [x] T041 [BUG-003] Run backend parser tests, backend build, frontend build, final searches and record evidence before deploy.
+- [x] T042 [BUG-003] Block backend draft sync unless the draft is `ready` and has title, description, system, type, modality, price, slots, contact, day and start time.
+- [x] T043 [BUG-003] Add structured draft editor in `frontend/src/features/discord-sync/components/DiscordDraftPreview.tsx` with real system selector, field validation and disabled sync while incomplete.
+- [x] T044 [BUG-003] Re-run backend/frontend builds after readiness-gate patch and record evidence before any deploy suggestion.
 
 **Bugfix**: 2026-05-04 — BUG-001 adiciona tasks T030-T033 para filtro temporal, triagem de mensagens e validacao.
 **Bugfix**: 2026-05-04 — BUG-002 adiciona T034 para corrigir apuracao invisivel e transformar a lista em painel de gestao.
+**Bugfix**: 2026-05-05 — BUG-003 adiciona T035-T041 para fechar o funil forum → parser → draft → mesa em status draft.
+**Bugfix**: 2026-05-05 — BUG-003 adiciona T042-T044 para impedir sync incompleto e tornar o draft editavel antes de qualquer deploy.
 
 ## Dependencies
 
@@ -78,6 +90,7 @@
 - US2 can validate in parallel after T009-T012 because it exercises the legacy path.
 - US3 depends on T011-T012 to cover forum/thread-specific failures.
 - Final phase depends on US1-US3.
+- BUG-003 depends on T012 and must run parser RED tests before T036-T040.
 
 ## Parallel Examples
 
@@ -91,3 +104,4 @@
 2. Validate legacy channels immediately after forum path compiles.
 3. Harden errors and UI feedback.
 4. Run required builds and safety searches before PR.
+5. For BUG-003, prove parser RED/GREEN before changing runtime behavior.

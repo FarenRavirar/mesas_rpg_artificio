@@ -1,6 +1,6 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-05-04T14:42:00-03:00
+**Última atualização:** 2026-05-05T19:05:00-03:00
 **Atualizado por:** sessão 26-05-04_1_discord-forum-threads
 ---
 
@@ -15,11 +15,24 @@
 
 ## Estado Técnico Atual
 
-**Branch ativa:** `dev` — Feature 015 mergeada e deployada em Beta
-**Último commit base:** `13655dd` — merge da Feature 015 em `dev`
+**Branch ativa:** `feat/015-discord-draft-pipeline` — BUG-003 implementado localmente a partir de `origin/dev`
+**Último commit base:** `d6ef6ac` — `origin/dev` com parse/reingestao inicial
 
 **Feature ativa:** `specs/015-discord-forum-threads/`
 **Sessão ativa:** `sessoes/26-05-04_1_discord-forum-threads.md`
+
+**BUG-003 — Fórum importado vira draft publicável (05/05/2026):**
+- Reportado pelo mantenedor: o lançamento não resolveu o objetivo principal porque mensagens vindas do Discord não estavam virando drafts de mesa publicáveis.
+- Diagnóstico Beta read-only: 2 fontes `forum`, 182 mensagens importadas, 1 draft; todas as 182 mensagens com `status='error'` e `parse_error='Erro no parse em lote'`; 171 mensagens eram starters de thread e `content_raw` estava vazio nos registros amostrados.
+- `/speckit.bugfix.report` e `/speckit.bugfix.patch` executados proceduralmente: `BUG-003.md` criado e `spec.md`, `plan.md`, `tasks.md`, `MAPA_DE_API.md` atualizados.
+- Teste RED criado antes do patch em `backend/src/discord/__tests__/parseDiscordAnnouncement.test.ts`; RED observado com 2 falhas reais de semântica.
+- Implementação local: parser prioriza conteúdo estruturado, usa `discord_thread_name` para starters vazios, ignora replies vazios, normalizador classifica `ready`/`needs_review`, rotas salvam JSONB como objeto e deduplicam drafts pelo UUID interno da mensagem.
+- `syncDiscordDraftToTable` agora cria/atualiza `tables.status='draft'`, preservando revisão/publicação manual.
+- Dry-run dos últimos 7 dias nos dois fóruns Beta: 12 mensagens/threads avaliadas; 11 drafts gerados como `needs_review`, 1 reply vazio ignorado, 0 `ready`; evidência confirmou ausência real de descrição, vagas, contato, dia/horário e alguns sistemas.
+- Gate adicional aplicado antes de qualquer deploy: backend bloqueia sync se o draft não estiver `ready` ou se faltar título, descrição, sistema, tipo, modalidade, preço, vagas, contato, dia ou horário.
+- Frontend: `DiscordDraftPreview` agora possui editor estruturado de campos, seletor real de sistemas via `/api/v1/systems?view=tree`, validação local e botão de sync desabilitado enquanto o draft estiver incompleto.
+- Validação técnica: `npm --prefix backend test -- parseDiscordAnnouncement` GREEN (3/3); `npm --prefix backend run build` GREEN; `npm --prefix frontend run build` GREEN; `git diff --check` sem erros; busca final sem fallback "Mesa Sem Título" ou sync de `needs_review` no escopo alterado.
+- **Status:** implementação local pronta para revisão técnica; falta commit/push da branch, PR para `dev`, Deploy Beta e teste funcional do mantenedor em janela anônima.
 
 **Correção UX — Menus de seleção unificados (04/05/2026):**
 - Retomada solicitada pelo mantenedor após identificação visual de dropdown com fundo/opções inconsistentes no Discord Sync.

@@ -52,6 +52,46 @@ const snowflakeParamSchema = zod_1.z.object({
 const botTokenSchema = zod_1.z.object({
     token: zod_1.z.string().trim().min(50, 'Token deve ter pelo menos 50 caracteres.').regex(/^\S+$/, 'Token não pode conter espaços.'),
 });
+/** Carrega todos os sistemas e seus aliases do banco para o parser. */
+// Embeds/attachments podem vir como array (novo) ou JSON string (dados antigos)
+function parseJsonField(value) {
+    if (Array.isArray(value))
+        return value;
+    if (value && typeof value === 'object')
+        return [];
+    if (typeof value === 'string') {
+        try {
+            const parsed = JSON.parse(value);
+            return Array.isArray(parsed) ? parsed : [];
+        }
+        catch {
+            return [];
+        }
+    }
+    return [];
+}
+async function loadSystemsForParser() {
+    const systems = await db_1.db
+        .selectFrom('systems')
+        .select(['id', 'name', 'name_pt'])
+        .execute();
+    const aliases = await db_1.db
+        .selectFrom('system_aliases')
+        .select(['system_id', 'alias'])
+        .execute();
+    const aliasMap = new Map();
+    for (const a of aliases) {
+        const list = aliasMap.get(a.system_id) ?? [];
+        list.push(a.alias);
+        aliasMap.set(a.system_id, list);
+    }
+    return systems.map((s) => ({
+        id: s.id,
+        name: s.name,
+        name_pt: s.name_pt,
+        aliases: aliasMap.get(s.id) ?? [],
+    }));
+}
 function maskToken(token) {
     return `${token.slice(0, 4)}...${token.slice(-4)}`;
 }
@@ -364,6 +404,150 @@ router.post('/fetch', auth_1.authMiddleware, async (req, res) => {
         return sendDiscordFetchError(res, error);
     }
 });
+// POST /sources/:sourceId/reingest-force — apaga mensagens pendentes e rebusca no Discord
+router.post('/sources/:sourceId/reingest-force', auth_1.authMiddleware, async (req, res) => {
+    if (!isAdmin(req, res))
+        return;
+    try {
+        const source = await db_1.db
+            .selectFrom('discord_import_sources')
+            .selectAll()
+            .where('id', '=', req.params.sourceId)
+            .executeTakeFirst();
+        if (!source)
+            return res.status(404).json({ error: 'Fonte não encontrada.' });
+        // Apaga mensagens não-sincronizadas para forçar reingestão
+        const deleted = await db_1.db
+            .deleteFrom('discord_import_messages')
+            .where('source_id', '=', source.id)
+            .where('status', 'not in', ['synced'])
+            .executeTakeFirst();
+        const sourceChannelType = normalizeSourceChannelType(source.channel_type);
+        const result = sourceChannelType === 'forum'
+            ? await (0, discord_1.ingestForumMessages)({ sourceId: source.id, forumChannelId: source.channel_id, guildId: source.guild_id })
+            : await (0, discord_1.ingestMessages)({ sourceId: source.id, channelId: source.channel_id, guildId: source.guild_id });
+        await db_1.db.updateTable('discord_import_sources')
+            .set({ last_synced_at: new Date(), updated_at: new Date() })
+            .where('id', '=', source.id)
+            .execute();
+        return res.json({ data: { deleted: Number(deleted.numDeletedRows ?? 0), ...result } });
+    }
+    catch (error) {
+        return sendDiscordFetchError(res, error);
+    }
+});
+// POST /messages/parse-batch — parseia todas as mensagens pendentes em lote
+router.post('/messages/parse-batch', auth_1.authMiddleware, async (req, res) => {
+    if (!isAdmin(req, res))
+        return;
+    try {
+        const messages = await db_1.db
+            .selectFrom('discord_import_messages')
+            .selectAll()
+            .where('status', 'in', ['pending', 'error'])
+            .limit(200)
+            .execute();
+        if (messages.length === 0)
+            return res.json({ data: { processed: 0, succeeded: 0, failed: 0 } });
+        const systems = await loadSystemsForParser();
+        let succeeded = 0;
+        let failed = 0;
+        for (const message of messages) {
+            try {
+                const parsed = (0, discord_1.parseDiscordAnnouncement)({
+                    source_kind: message.source_kind,
+                    discord_message_id: message.discord_message_id,
+                    discord_channel_id: message.discord_channel_id,
+                    discord_guild_id: message.discord_guild_id,
+                    discord_parent_channel_id: message.discord_parent_channel_id,
+                    discord_thread_id: message.discord_thread_id,
+                    discord_thread_name: message.discord_thread_name,
+                    discord_author_id: message.discord_author_id,
+                    discord_author_name: message.discord_author_name,
+                    discord_message_url: message.discord_message_url,
+                    content_raw: message.content_raw,
+                    attachments: parseJsonField(message.attachments),
+                    embeds: parseJsonField(message.embeds),
+                    message_created_at: message.message_created_at,
+                    message_edited_at: message.message_edited_at,
+                }, systems);
+                if (!parsed) {
+                    await db_1.db.updateTable('discord_import_messages')
+                        .set({ status: 'ignored', parse_error: null, updated_at: new Date() })
+                        .where('id', '=', message.id)
+                        .execute();
+                    continue;
+                }
+                const normalized = (0, discord_1.normalizeDiscordTableDraft)(parsed, systems);
+                const existing = await db_1.db.selectFrom('discord_import_table_drafts')
+                    .select('id')
+                    .where('discord_message_id', '=', message.id)
+                    .executeTakeFirst();
+                if (existing) {
+                    await db_1.db.updateTable('discord_import_table_drafts')
+                        .set({
+                        parsed_payload: parsed,
+                        normalized_payload: normalized.draft,
+                        confidence: normalized.draft.confidence,
+                        status: normalized.status,
+                        updated_at: new Date(),
+                    })
+                        .where('id', '=', existing.id)
+                        .execute();
+                }
+                else {
+                    await db_1.db.insertInto('discord_import_table_drafts')
+                        .values({
+                        discord_message_id: message.id,
+                        parsed_payload: parsed,
+                        normalized_payload: normalized.draft,
+                        confidence: normalized.draft.confidence,
+                        status: normalized.status,
+                    })
+                        .execute();
+                }
+                await db_1.db.updateTable('discord_import_messages')
+                    .set({ status: 'parsed', parse_error: null, updated_at: new Date() })
+                    .where('id', '=', message.id)
+                    .execute();
+                // Cria system_suggestion se havia hint não reconhecido
+                const rawHint = normalized.draft.table.raw_system_hint;
+                if (rawHint && !parsed.table.system_id) {
+                    const alreadyExists = await db_1.db.selectFrom('system_suggestions')
+                        .select('id')
+                        .where('name', '=', rawHint)
+                        .where('status', 'in', ['pending', 'approved'])
+                        .executeTakeFirst();
+                    if (!alreadyExists) {
+                        await db_1.db.insertInto('system_suggestions')
+                            .values({
+                            user_id: req.user.userId,
+                            name: rawHint,
+                            node_type: 'system',
+                            aliases: [rawHint],
+                            description: `Sugestão automática (lote): "${rawHint}"`,
+                            status: 'pending',
+                        })
+                            .execute();
+                    }
+                }
+                succeeded++;
+            }
+            catch {
+                await db_1.db.updateTable('discord_import_messages')
+                    .set({ status: 'error', parse_error: 'Erro no parse em lote', updated_at: new Date() })
+                    .where('id', '=', message.id)
+                    .execute();
+                failed++;
+            }
+        }
+        return res.json({ data: { processed: messages.length, succeeded, failed } });
+    }
+    catch (error) {
+        console.error('[POST /messages/parse-batch]', error);
+        return res.status(500).json({ error: 'Erro ao processar mensagens em lote.' });
+    }
+});
 // ─── Mensagens ────────────────────────────────────────────────────────────────
 // GET /messages
 router.get('/messages', auth_1.authMiddleware, async (req, res) => {
@@ -486,11 +670,195 @@ router.patch('/drafts/:id', auth_1.authMiddleware, async (req, res) => {
         return res.status(500).json({ error: 'Erro ao atualizar draft.' });
     }
 });
-// POST /drafts/:id/reparse — placeholder ate o parser estar implementado (T019)
+// POST /messages/:id/parse — parseia mensagem e cria (ou atualiza) um draft
+router.post('/messages/:id/parse', auth_1.authMiddleware, async (req, res) => {
+    if (!isAdmin(req, res))
+        return;
+    try {
+        const message = await db_1.db
+            .selectFrom('discord_import_messages')
+            .selectAll()
+            .where('id', '=', req.params.id)
+            .executeTakeFirst();
+        if (!message)
+            return res.status(404).json({ error: 'Mensagem não encontrada.' });
+        if (message.status === 'synced') {
+            return res.status(422).json({ error: 'Mensagem já sincronizada como mesa. Não pode ser reparseada.' });
+        }
+        const systems = await loadSystemsForParser();
+        const parsed = (0, discord_1.parseDiscordAnnouncement)({
+            source_kind: message.source_kind,
+            discord_message_id: message.discord_message_id,
+            discord_channel_id: message.discord_channel_id,
+            discord_guild_id: message.discord_guild_id,
+            discord_parent_channel_id: message.discord_parent_channel_id,
+            discord_thread_id: message.discord_thread_id,
+            discord_thread_name: message.discord_thread_name,
+            discord_author_id: message.discord_author_id,
+            discord_author_name: message.discord_author_name,
+            discord_message_url: message.discord_message_url,
+            content_raw: message.content_raw,
+            attachments: parseJsonField(message.attachments),
+            embeds: parseJsonField(message.embeds),
+            message_created_at: message.message_created_at,
+            message_edited_at: message.message_edited_at,
+        }, systems);
+        if (!parsed)
+            return res.status(422).json({ error: 'Mensagem sem conteudo elegivel para virar draft.' });
+        const normalized = (0, discord_1.normalizeDiscordTableDraft)(parsed, systems);
+        // Verifica se já existe draft para esta mensagem
+        const existingDraft = await db_1.db
+            .selectFrom('discord_import_table_drafts')
+            .select(['id', 'status'])
+            .where('discord_message_id', '=', message.id)
+            .executeTakeFirst();
+        let draft;
+        if (existingDraft && existingDraft.status !== 'synced' && existingDraft.status !== 'rejected') {
+            // Atualiza draft existente
+            [draft] = await db_1.db
+                .updateTable('discord_import_table_drafts')
+                .set({
+                parsed_payload: parsed,
+                normalized_payload: normalized.draft,
+                confidence: normalized.draft.confidence,
+                status: normalized.status,
+                review_notes: null,
+                updated_at: new Date(),
+            })
+                .where('id', '=', existingDraft.id)
+                .returningAll()
+                .execute();
+        }
+        else {
+            // Cria novo draft
+            [draft] = await db_1.db
+                .insertInto('discord_import_table_drafts')
+                .values({
+                discord_message_id: message.id,
+                table_id: null,
+                parsed_payload: parsed,
+                normalized_payload: normalized.draft,
+                confidence: normalized.draft.confidence,
+                status: normalized.status,
+                review_notes: null,
+            })
+                .returningAll()
+                .execute();
+        }
+        // Atualiza status da mensagem para 'parsed'
+        await db_1.db
+            .updateTable('discord_import_messages')
+            .set({ status: 'parsed', parse_error: null, updated_at: new Date() })
+            .where('id', '=', message.id)
+            .execute();
+        // Se o parser extraiu um hint de sistema mas não casou com nenhum sistema
+        // cadastrado, cria uma system_suggestion pendente para fechar o loop:
+        // admin revisa → aprova → alias entra em system_aliases → próximos parses detectam.
+        const rawHint = normalized.draft.table.raw_system_hint;
+        if (rawHint && !normalized.draft.table.system_id) {
+            const adminId = req.user?.userId;
+            if (adminId) {
+                // Verifica se já existe sugestão pendente ou aprovada com o mesmo nome
+                const existing = await db_1.db
+                    .selectFrom('system_suggestions')
+                    .select('id')
+                    .where('name', '=', rawHint)
+                    .where('status', 'in', ['pending', 'approved'])
+                    .executeTakeFirst();
+                if (!existing) {
+                    await db_1.db
+                        .insertInto('system_suggestions')
+                        .values({
+                        user_id: adminId,
+                        name: rawHint,
+                        name_pt: null,
+                        node_type: 'system',
+                        parent_id: null,
+                        description: `Sugestão automática gerada ao parsear mensagem Discord: "${message.discord_thread_name ?? message.discord_message_id}"`,
+                        aliases: [rawHint],
+                        status: 'pending',
+                        reviewed_by: null,
+                        reviewed_at: null,
+                        rejection_reason: null,
+                    })
+                        .execute();
+                }
+            }
+        }
+        return res.json({ data: draft });
+    }
+    catch (error) {
+        console.error('[POST /admin/discord-sync/messages/:id/parse]', error);
+        const msg = error instanceof Error ? error.message : 'Erro ao parsear mensagem.';
+        await db_1.db
+            .updateTable('discord_import_messages')
+            .set({ parse_error: msg, updated_at: new Date() })
+            .where('id', '=', req.params.id)
+            .execute();
+        return res.status(500).json({ error: msg });
+    }
+});
+// POST /drafts/:id/reparse — re-parseia a mensagem de origem e atualiza o draft
 router.post('/drafts/:id/reparse', auth_1.authMiddleware, async (req, res) => {
     if (!isAdmin(req, res))
         return;
-    return res.status(501).json({ error: 'NOT IMPLEMENTED: parser disponível na Fase 5 (T019).' });
+    try {
+        const draft = await db_1.db
+            .selectFrom('discord_import_table_drafts')
+            .selectAll()
+            .where('id', '=', req.params.id)
+            .executeTakeFirst();
+        if (!draft)
+            return res.status(404).json({ error: 'Draft não encontrado.' });
+        if (draft.status === 'synced') {
+            return res.status(422).json({ error: 'Draft já sincronizado. Não pode ser reparseado.' });
+        }
+        const message = await db_1.db
+            .selectFrom('discord_import_messages')
+            .selectAll()
+            .where('id', '=', draft.discord_message_id)
+            .executeTakeFirst();
+        if (!message)
+            return res.status(404).json({ error: 'Mensagem de origem não encontrada.' });
+        const systems = await loadSystemsForParser();
+        const parsed = (0, discord_1.parseDiscordAnnouncement)({
+            source_kind: message.source_kind,
+            discord_message_id: message.discord_message_id,
+            discord_channel_id: message.discord_channel_id,
+            discord_guild_id: message.discord_guild_id,
+            discord_parent_channel_id: message.discord_parent_channel_id,
+            discord_thread_id: message.discord_thread_id,
+            discord_thread_name: message.discord_thread_name,
+            discord_author_id: message.discord_author_id,
+            discord_author_name: message.discord_author_name,
+            discord_message_url: message.discord_message_url,
+            content_raw: message.content_raw,
+            attachments: parseJsonField(message.attachments),
+            embeds: parseJsonField(message.embeds),
+            message_created_at: message.message_created_at,
+            message_edited_at: message.message_edited_at,
+        }, systems);
+        if (!parsed)
+            return res.status(422).json({ error: 'Mensagem sem conteudo elegivel para virar draft.' });
+        const normalized = (0, discord_1.normalizeDiscordTableDraft)(parsed, systems);
+        const [updated] = await db_1.db
+            .updateTable('discord_import_table_drafts')
+            .set({
+            parsed_payload: parsed,
+            normalized_payload: normalized.draft,
+            confidence: normalized.draft.confidence,
+            status: normalized.status,
+            updated_at: new Date(),
+        })
+            .where('id', '=', req.params.id)
+            .returningAll()
+            .execute();
+        return res.json({ data: updated });
+    }
+    catch (error) {
+        console.error('[POST /admin/discord-sync/drafts/:id/reparse]', error);
+        return res.status(500).json({ error: error instanceof Error ? error.message : 'Erro ao reparsar draft.' });
+    }
 });
 // POST /drafts/:id/sync
 router.post('/drafts/:id/sync', auth_1.authMiddleware, async (req, res) => {
@@ -503,7 +871,10 @@ router.post('/drafts/:id/sync', auth_1.authMiddleware, async (req, res) => {
     catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao sincronizar draft.';
         console.error('[POST /admin/discord-sync/drafts/:id/sync]', error);
-        if (message.includes('não encontrado') || message.includes('rejeitado')) {
+        if (error instanceof discord_1.DiscordDraftSyncValidationError) {
+            return res.status(422).json({ error: message, details: { missingFields: error.missingFields } });
+        }
+        if (message.includes('não encontrado') || message.includes('rejeitado') || message.includes('status ready')) {
             return res.status(422).json({ error: message });
         }
         return res.status(500).json({ error: message });

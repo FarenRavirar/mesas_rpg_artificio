@@ -13,13 +13,15 @@ Como administrador, quero cadastrar um canal de forum do Discord como fonte e bu
 
 **Why this priority**: O uso real do servidor depende de foruns. Sem este fluxo, a importacao nao cobre os anuncios principais e a integracao Discord fica operacionalmente incompleta.
 
-**Independent Test**: Com token valido e bot com acesso a um forum real, selecionar o forum no painel, cadastrar a fonte, executar a busca e confirmar que mensagens de posts/threads aparecem na area de mensagens importadas com origem reconhecivel.
+**Independent Test**: Com token valido e bot com acesso a um forum real, selecionar o forum no painel, cadastrar a fonte, executar a busca e confirmar que mensagens de posts/threads aparecem na area de mensagens importadas com origem reconhecivel e geram drafts de mesa revisaveis.
 
 **Acceptance Scenarios**:
 
 1. **Given** o token do bot esta configurado e o bot consegue ver um canal de forum, **When** o admin seleciona esse forum e cadastra a fonte, **Then** a fonte fica salva com identificacao clara de que e um forum.
 2. **Given** uma fonte de forum cadastrada possui posts visiveis, **When** o admin executa a busca de mensagens, **Then** o sistema importa mensagens dos posts/threads desse forum.
 3. **Given** uma mensagem importada veio de um post/thread de forum, **When** o admin consulta sua origem, **Then** a relacao com forum e post/thread fica preservada de forma clara.
+4. **Given** uma mensagem importada representa o starter de uma thread de forum, **When** o parser roda, **Then** o sistema cria ou atualiza um draft de mesa em `discord_import_table_drafts`.
+5. **Given** um draft foi criado a partir de forum, **When** o admin sincroniza esse draft, **Then** a mesa criada ou atualizada fica em status `draft`, preservando revisao/publicacao manual.
 
 ---
 
@@ -62,6 +64,8 @@ Como administrador, quero receber mensagens acionaveis quando a busca em forum f
 - Discord retorna limite temporario, indisponibilidade ou permissao negada durante parte da busca.
 - Fonte criada antes desta feature nao possui tipo de canal salvo.
 - Canais de texto/anuncio e foruns coexistem na mesma lista de fontes.
+- Mensagens de forum podem ter `content_raw` vazio e depender de `discord_thread_name` para titulo/sistema inicial.
+- Reexecutar parser/reparse nao pode criar drafts duplicados para a mesma mensagem.
 
 ## Requirements *(mandatory)*
 
@@ -82,8 +86,16 @@ Como administrador, quero receber mensagens acionaveis quando a busca em forum f
 - **FR-013**: O sistema MUST registrar tipo e origem suficientes para que futuras etapas de parser saibam se uma mensagem veio de canal comum ou de forum.
 - **FR-014**: O sistema MUST permitir que o administrador abra uma mensagem importada, leia o conteudo completo, veja metadados de origem e atualize o status de triagem da mensagem.
 - **FR-015**: Ao carregar mensagens de qualquer fonte Discord, o sistema MUST permitir selecionar uma janela de tempo para limitar a busca de mensagens recentes.
+- **FR-016**: O sistema MUST transformar mensagens de forum elegiveis em drafts idempotentes em `discord_import_table_drafts`, usando `discord_thread_name` como fonte quando `content_raw` estiver vazio.
+- **FR-017**: O parser MUST ser deterministico e coberto por testes RED/GREEN com fixtures representativas de anuncios reais de forum antes de qualquer decisao de implementacao.
+- **FR-018**: O normalizador MUST classificar drafts como `ready` ou `needs_review` a partir de campos obrigatorios e resolucao de `system_name`/hint contra `systems` e `system_aliases`.
+- **FR-019**: Ao sincronizar draft Discord para `tables`, a mesa MUST ficar em status `draft` ate revisao/publicacao manual.
+- **FR-020**: O sistema MUST bloquear a sincronizacao de drafts Discord enquanto faltarem campos obrigatorios para uma mesa publicavel: titulo, descricao, sistema, tipo, modalidade, preco, vagas, contato, dia e horario.
+- **FR-021**: A area de gestao MUST permitir editar os campos estruturados do draft, selecionar sistema cadastrado e salvar o draft como `ready` somente quando a validacao estiver completa.
 
 **Bugfix**: 2026-05-04 — BUG-001 adiciona triagem funcional de mensagens importadas e filtro temporal na busca de mensagens/posts Discord.
+**Bugfix**: 2026-05-05 — BUG-003 adiciona requisito de parser/normalizador/draft publicavel para fechar o funil Discord forum → mesa.
+**Bugfix**: 2026-05-05 — BUG-003 adiciona gate de prontidao e editor estruturado para impedir mesa draft incompleta.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -91,6 +103,7 @@ Como administrador, quero receber mensagens acionaveis quando a busca em forum f
 - **Forum Discord**: canal organizado por posts/threads, selecionavel como fonte quando visivel ao bot.
 - **Post/Thread Discord**: unidade de conversa dentro de um forum; contem mensagens que podem representar anuncios.
 - **Mensagem Importada Discord**: mensagem capturada de canal textual/anuncio ou post/thread de forum, com identificadores de origem e referencia para o Discord.
+- **Draft de Mesa Discord**: JSON estruturado criado a partir de mensagem importada, revisavel por administrador antes de virar mesa em `tables`.
 
 ## Database Migrations *(if feature modifies schema)*
 
@@ -108,11 +121,14 @@ Migration planejada para registrar metadados de tipo de canal e origem de forum/
 - **SC-006**: O token completo do bot nunca aparece em telas, respostas HTTP ou logs durante descoberta, cadastro ou busca.
 - **SC-007**: Um administrador consegue abrir uma mensagem importada da lista, conferir o texto completo e mudar seu status sem sair do painel Discord Sync.
 - **SC-008**: Uma busca com janela temporal selecionada nao persiste mensagens fora do periodo solicitado.
+- **SC-009**: Rodar o parser sobre mensagens de forum importadas cria drafts sem duplicar registros ja existentes.
+- **SC-010**: Mensagens starter de thread com `content_raw` vazio ainda geram draft com titulo/hint extraidos de `discord_thread_name`.
+- **SC-011**: Sincronizar um draft Discord cria ou atualiza uma mesa em status `draft`, nao publicada automaticamente.
 
 ## Assumptions
 
 - O token do bot continua sendo configurado pelo painel administrativo existente.
 - O bot possui permissoes do Discord suficientes para ver canais, posts/threads e mensagens que devem ser importados.
 - Threads privadas ou conteudo invisivel ao bot ficam fora do escopo inicial.
-- O parser semantico perfeito de anuncios continua fora do escopo; esta feature foca a captura e a origem das mensagens.
+- O parser semantico perfeito de anuncios continua fora do escopo; o parser v1 deve produzir draft util e seguro, classificando como `needs_review` quando faltarem campos.
 - Rotina automatica recorrente de sync continuo permanece fora do escopo, salvo reaproveitamento de fluxo ja existente.
