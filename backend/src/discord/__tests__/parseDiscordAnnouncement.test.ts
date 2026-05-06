@@ -121,6 +121,106 @@ describe('parseDiscordAnnouncement', () => {
     expect(draft?.missing_fields).not.toContain('title');
   });
 
+  it('extracts Covil forum body fields with markdown labels and session-zero note', () => {
+    const draft = parseDiscordAnnouncement(
+      makeMessage({
+        discord_thread_name: 'Forgotten Realms™: Uma Campanha Sandbox',
+        content_raw: [
+          '▬ **Sistema:** *Dungeons & Dragons 2024®*',
+          '▬ **Nível:** 3 ao 20',
+          '▬** Mestre:**',
+          '- <@186160570133643265>',
+          '▬ **Estilo/Temática:** Sandbox, aventura, sobrevivência, diplomacia, exploração e alta fantasia.',
+          '▬ **Local:** Discord + Foundry VTT (Necessário ter PC).',
+          '▬ **Data & Horários:**',
+          'Quartas-feiras das 21h às 00h',
+          '▬ **Vagas Totais:** 6',
+          '▬ **Vagas Disponíveis:** 0',
+          '▬ **Mesa Paga:** R$ 35,00 por sessão (Sessão Zero gratuita).',
+          'Caso se interesse pela aventura, basta enviar um ticket em <#1295552443337281576>',
+        ].join('\n'),
+      }),
+    );
+
+    expect(draft?.table.system_name).toBe('Dungeons & Dragons 2024');
+    expect(draft?.table.price_type).toBe('paga');
+    expect(draft?.table.price_value).toBe(35);
+    expect(draft?.table.slots_total).toBe(6);
+    expect(draft?.table.slots_open).toBe(0);
+    expect(draft?.table.day_of_week).toBe('quarta');
+    expect(draft?.table.start_time).toBe('21:00');
+    expect(draft?.missing_fields).not.toContain('slots_total');
+  });
+
+  it('matches systems by specific names before generic aliases and version suffixes', () => {
+    const systems = [
+      { id: 'gamma', name: 'Gamma World', name_pt: null, aliases: ['D&D'] },
+      { id: 'dnd', name: 'Dungeons & Dragons', name_pt: null, aliases: ['D&D 5e'] },
+      { id: 'tormenta', name: 'Tormenta', name_pt: null, aliases: [] },
+    ];
+
+    const dndDraft = parseDiscordAnnouncement(
+      makeMessage({
+        discord_thread_name: 'Planescape™: Legends of the Outer Planes',
+        content_raw: '▬ Sistema: Dungeons & Dragons 5.5e\n▬ Vagas Totais: 5\nQuartas-feiras às 20h\nhttps://forms.gle/example',
+      }),
+      systems,
+    );
+    const tormentaDraft = parseDiscordAnnouncement(
+      makeMessage({
+        discord_thread_name: 'Tormenta20™: A Libertação de Valkaria',
+        content_raw: '▬ Sistema: Tormenta20\n▬ Vagas Totais: 3\nQuartas-feiras às 20h\nhttps://forms.gle/example',
+      }),
+      systems,
+    );
+
+    expect(dndDraft?.table.system_id).toBe('dnd');
+    expect(tormentaDraft?.table.system_id).toBe('tormenta');
+  });
+
+  it('uses Discord channel mentions as contact when no external URL exists', () => {
+    const draft = parseDiscordAnnouncement(
+      makeMessage({
+        discord_thread_name: 'Dungeons & Dragons™: Wrath of the River King',
+        content_raw: [
+          '▬ Sistema: Dungeons & Dragons 5.5',
+          '▬ Data & Horário:',
+          '- Sextas-feiras das 19h30 às 23h',
+          '▬ Vagas Totais: 6',
+          '▬ Vagas Disponíveis: 6',
+          '▬ Mesa Paga: R$ 25,00 por sessão',
+          'Caso se interesse pela aventura, basta enviar um ticket em <#1295552443337281576>',
+        ].join('\n'),
+      }),
+    );
+
+    expect(draft?.table.contact_discord).toBe('<#1295552443337281576>');
+    expect(draft?.missing_fields).not.toContain('contact_url');
+  });
+
+  it('suggests unknown systems from the explicit system field instead of thread scenario titles', () => {
+    const draft = parseDiscordAnnouncement(
+      makeMessage({
+        discord_thread_name: 'Forgotten Realms™: Uma Campanha Sandbox',
+        content_raw: [
+          '▬ Sistema: One Two Six (Sistema Inédito)',
+          '▬ Data & Horário:',
+          '- Sextas-feiras das 18h às 21h',
+          '▬ Vagas Totais: 6',
+          '▬ Vagas Disponíveis: 6',
+          '▬ Mesa Paga: R$ 20,00 por sessão',
+          'Caso se interesse pela aventura, basta enviar um ticket em <#1295552443337281576>',
+        ].join('\n'),
+      }),
+      [{ id: 'dnd', name: 'Dungeons & Dragons', name_pt: null, aliases: ['D&D'] }],
+    );
+
+    expect(draft?.table.raw_system_hint).toBe('One Two Six (Sistema Inédito)');
+    expect(draft?.table.system_name).toBe('One Two Six (Sistema Inédito)');
+    expect(draft?.missing_fields).toContain('system_name:unmatched_hint');
+    expect(draft?.table.raw_system_hint).not.toBe('Forgotten Realms');
+  });
+
   it('ignores empty non-starter replies so they do not create duplicate drafts', () => {
     const draft = parseDiscordAnnouncement(
       makeMessage({

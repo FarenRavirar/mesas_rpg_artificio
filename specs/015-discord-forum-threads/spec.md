@@ -92,10 +92,14 @@ Como administrador, quero receber mensagens acionaveis quando a busca em forum f
 - **FR-019**: Ao sincronizar draft Discord para `tables`, a mesa MUST ficar em status `draft` ate revisao/publicacao manual.
 - **FR-020**: O sistema MUST bloquear a sincronizacao de drafts Discord enquanto faltarem campos obrigatorios para uma mesa publicavel: titulo, descricao, sistema, tipo, modalidade, preco, vagas, contato, dia e horario.
 - **FR-021**: A area de gestao MUST permitir editar os campos estruturados do draft, selecionar sistema cadastrado e salvar o draft como `ready` somente quando a validacao estiver completa.
+- **FR-022**: O parser MUST preferir o campo explicito `Sistema:` do corpo do post para resolver sistema; nomes de cenário, aventura ou título da thread nao podem virar sugestao de sistema quando ha corpo estruturado.
+- **FR-023**: Quando o campo `Sistema:` trouxer um sistema ainda nao cadastrado, o sistema MUST criar sugestao automatica de sistema e manter o draft em revisao ate a sugestao ser aprovada ou o admin selecionar um sistema existente.
+- **FR-024**: A gestao de sugestoes de sistemas MUST permitir selecionar sugestoes individualmente, selecionar todas as pendentes e rejeitar em lote sem exigir motivo.
 
 **Bugfix**: 2026-05-04 — BUG-001 adiciona triagem funcional de mensagens importadas e filtro temporal na busca de mensagens/posts Discord.
 **Bugfix**: 2026-05-05 — BUG-003 adiciona requisito de parser/normalizador/draft publicavel para fechar o funil Discord forum → mesa.
 **Bugfix**: 2026-05-05 — BUG-003 adiciona gate de prontidao e editor estruturado para impedir mesa draft incompleta.
+**Bugfix**: 2026-05-06 — BUG-003 corrige resolucao de sistema para nao confundir cenario/titulo com sistema, cria sugestao automatica para sistema inedito e melhora descarte em lote de sugestoes.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -124,6 +128,9 @@ Migration planejada para registrar metadados de tipo de canal e origem de forum/
 - **SC-009**: Rodar o parser sobre mensagens de forum importadas cria drafts sem duplicar registros ja existentes.
 - **SC-010**: Mensagens starter de thread com `content_raw` vazio ainda geram draft com titulo/hint extraidos de `discord_thread_name`.
 - **SC-011**: Sincronizar um draft Discord cria ou atualiza uma mesa em status `draft`, nao publicada automaticamente.
+- **SC-012**: Posts com corpo estruturado como `Sistema: Dungeons & Dragons` e titulo `Forgotten Realms` resolvem o sistema como Dungeons & Dragons, sem criar sugestao de Forgotten Realms.
+- **SC-013**: Um post com `Sistema:` nao cadastrado cria uma sugestao pendente com o nome desse sistema e nao usa nomes de campanha/cenario como sugestao.
+- **SC-014**: Na aba Sugestoes de Sistemas, o admin consegue selecionar multiplas sugestoes pendentes e descarta-las sem preencher motivo.
 
 ## Assumptions
 

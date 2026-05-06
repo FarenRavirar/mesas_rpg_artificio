@@ -1,5 +1,13 @@
 [
   {
+    "id": "2026-05-06-atualizacoes-do-dia",
+    "title": "Revisão do Discord e sugestões de sistemas ficaram mais confiáveis",
+    "body": "Publicamos ajustes para deixar a importação do Discord e a análise de sugestões mais úteis para a equipe:\n\n• **Mensagens do Discord com conteúdo completo** - Posts de fóruns passam a ser lidos pelo corpo real da publicação, evitando rascunhos vazios\n• **Sistema identificado pelo campo correto** - A importação usa o campo Sistema do post e não confunde cenário, campanha ou aventura com sistema de RPG\n• **Sugestão automática para sistema novo** - Quando um post usa um sistema ainda não cadastrado, ele entra na fila certa para revisão\n• **Revisão de sugestões mais rápida** - A equipe pode selecionar sugestões uma a uma, selecionar todas as pendentes e descartar em lote sem preencher motivo obrigatório\n\n_Atualização unificada publicada em 06/05/2026 às 17:55_",
+    "type": "app",
+    "published": true,
+    "created_at": "2026-05-06T17:55:00-03:00"
+  },
+  {
     "id": "2026-05-04-atualizacoes-do-dia",
     "title": "Menus de escolha ficaram mais consistentes",
     "body": "Publicamos ajustes para deixar escolhas e revisão de mensagens mais confortáveis:\n\n• **Menus mais fáceis de ler** - As listas de escolha agora seguem o mesmo visual em diferentes telas, evitando contraste ruim ao abrir as opções\n• **Busca do Discord com período definido** - Antes de carregar mensagens, a equipe pode escolher uma janela de tempo para evitar trazer conteúdo antigo demais\n• **Conferência de mensagens importadas** - As mensagens trazidas do Discord agora ficam em uma tela de trabalho com resumo, leitura completa e organização do status\n\n_Atualização unificada publicada em 04/05/2026 às 09:28_",

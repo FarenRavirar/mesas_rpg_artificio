@@ -60,3 +60,39 @@
 
 **Alternatives considered**:
 - Propagar corpo bruto do Discord no erro: rejeitado para evitar exposicao acidental e UX ruim.
+
+## Decisao 7 — Message Content Intent como pre-condicao de dados utilizaveis
+
+**Decision**: Tratar `MESSAGE_CONTENT` como pre-condicao obrigatoria para diagnostico e ingestao funcional de posts de forum. Se a API Discord retornar mensagem existente com `content`, `embeds`, `attachments` e `components` vazios, o sistema deve expor diagnostico acionavel em vez de considerar o post como valido para draft.
+
+**Rationale**: A documentacao oficial de Message Resource informa que apps sem `MESSAGE_CONTENT` configurado/aprovado recebem valores vazios em `content`, `embeds`, `attachments` e `components` no objeto de mensagem. O mesmo documento define `Get Channel Message` como retorno de um Message Object e exige `VIEW_CHANNEL` e `READ_MESSAGE_HISTORY` em canais de servidor. A API Reference oficial tambem define autenticacao por header `Authorization: Bot ...`, que e o formato usado pelo backend. Referencias: <https://docs.discord.com/developers/resources/message> e <https://docs.discord.com/developers/reference>.
+
+**Evidence 2026-05-06**: Antes do intent, chamadas reais para posts do Covil retornavam `contentLength=0`, `embedsLength=0` e `attachmentsLength=0`. Apos ativacao do Message Content Intent, os mesmos posts retornaram corpos reais pela API: Forgotten Realms (`2125` chars), Deicidio (`1878`), Tormenta20 (`1826`), Planescape (`2748`) e Mage one-shot (`1293`), todos com anexo.
+
+**Alternatives considered**:
+- Usar apenas `discord_thread_name` como fallback permanente: rejeitado porque o objetivo da feature e criar draft completo; titulo isolado nao contem descricao, vagas, preco, horario e contato.
+- Usar Application Commands para recuperar dados historicos: rejeitado. Application Commands servem para interacoes acionadas por usuario (`CHAT_INPUT`, `USER`, `MESSAGE`, `PRIMARY_ENTRY_POINT`) e nao substituem leitura REST de mensagens historicas de forum. Referencia: <https://docs.discord.com/developers/interactions/application-commands>.
+
+## Decisao 8 — Resolucao de sistema deve evitar aliases genericos
+
+**Decision**: O parser deve preferir nome/nome_pt e candidatos mais especificos antes de aliases curtos ou genericos. Aliases curtos como `D&D` nao podem vencer nomes especificos nem causar match em sistemas derivados sem relacao direta com o anuncio.
+
+**Rationale**: Teste real com a lista de sistemas do banco mostrou que aliases genericos podem estar associados a sistemas derivados, causando draft pronto com `system_id` incorreto. O parser agora ignora aliases curtos genericos e aceita sufixos numericos de versao no nome do sistema, permitindo `Tormenta20` casar com `Tormenta` sem transformar `D&D` em `Gamma World`.
+
+**Evidence 2026-05-06**: Com conteudo real da API Discord e sistemas reais do banco Beta, os posts testados geraram: Forgotten Realms -> `Dungeons & Dragons 2024`, Deicidio -> `Dungeons & Dragons`, Tormenta20 -> `Tormenta`, Planescape -> `Dungeons & Dragons`, Mage one-shot -> `Mage`, todos com status `ready` e `missing=[]`.
+
+## Decisao 9 — Apenas starter de thread representa post/anuncio
+
+**Decision**: Para forum Discord, apenas a mensagem starter (`discord_message_id = discord_thread_id`) deve ser candidata automatica a draft de mesa. Replies dentro da thread podem ser material auxiliar, conversa ou anexos e nao devem ser tratadas como post/anuncio.
+
+**Rationale**: Teste real do Covil confirmou que uma reply com PDF dentro da thread `Fundação 0: Lucro, Ossos e Reputação` nao era o anuncio. O anuncio verdadeiro era o starter da thread, que a API retornou com 1632 caracteres e imagem. Considerar replies como posts inflaria contagem, criaria falsos pendentes e poderia gerar drafts incorretos.
+
+**Evidence 2026-05-06**: `Fundação 0` tinha dois registros importados: starter `1498453714988433519` (`discord_message_id = discord_thread_id`) com corpo completo apos reidratacao, e reply `1499419708359971008` (`discord_message_id != discord_thread_id`) com PDF e sem texto. A reply foi marcada `ignored`; o starter virou candidato a draft e ficou `needs_review` apenas porque `One Two Six (Sistema Inédito)` ainda nao existe no cadastro de sistemas.
+
+## Decisao 10 — Sistema vem do corpo estruturado, nao do titulo/cenario
+
+**Decision**: Quando o post possui corpo estruturado, a resolucao de sistema deve usar primeiro o valor explicito do campo `Sistema:`. O nome da thread so pode ser usado como fallback quando nao ha corpo textual suficiente. Nomes como Forgotten Realms, Waterdeep, Planescape, Vecna ou Ravenloft nao devem virar sugestao automatica de sistema se o corpo informa outro sistema.
+
+**Rationale**: Posts profissionais do Covil normalmente usam o titulo para campanha, aventura, cenario ou produto, enquanto o sistema aparece no corpo. Promover titulo/cenario para sistema polui a fila de sugestoes e pode gerar drafts com sistema incorreto.
+
+**Evidence 2026-05-06**: Reteste com 11 starters reais reidratados no Beta e parser local corrigido retornou 11/11 `ready` no estado atual do banco. Forgotten Realms e Planescape resolveram para Dungeons & Dragons, Waterdeep para Dungeons & Dragons 5e, Tormenta20 para Tormenta, e One Two Six para o cadastro existente no Beta. O teste unitario cobre o caso inedito: se `Sistema: One Two Six (Sistema Inédito)` nao existir no banco, a sugestao criada usa esse valor, nao `Forgotten Realms`.

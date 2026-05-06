@@ -192,6 +192,7 @@
 | **POST** | `/admin/discord-sync/sources/:sourceId/reingest-force` | 🔧 Impl. | DiscordSyncPanel.tsx — reingere uma fonte após apagar mensagens não sincronizadas |
 | **GET** | `/admin/discord-sync/messages` | 🔧 Impl. | DiscordSyncPanel.tsx — filtros: `source_id`, `status`, `limit`, `offset`; mensagens de fórum incluem `discord_thread_id`, `discord_parent_channel_id`, `discord_thread_name` |
 | **PATCH** | `/admin/discord-sync/messages/:id` | 🔧 Impl. | DiscordSyncPanel.tsx — atualiza status de triagem da mensagem importada |
+| **POST** | `/admin/discord-sync/messages/:id/diagnose-content` | 🔧 Impl. local | DiscordSyncPanel.tsx — consulta a API Discord para comparar tamanho do corpo no banco vs API e diagnosticar `MESSAGE_CONTENT`/permissões sem expor token |
 | **POST** | `/admin/discord-sync/messages/:id/parse` | 🔧 Impl. | DiscordSyncPanel.tsx — parseia uma mensagem e cria/atualiza draft idempotente |
 | **POST** | `/admin/discord-sync/messages/parse-batch` | 🔧 Impl. | DiscordSyncPanel.tsx — processa mensagens pendentes/erro em lote |
 | **GET** | `/admin/discord-sync/drafts` | 🔧 Impl. | DiscordDraftReviewTable.tsx — filtros: `status`, `limit`, `offset` |
@@ -323,7 +324,7 @@
 |---|---|---|---|
 | **GET** | `/system-suggestions` | ✅ Em Uso | GestaoPage.tsx — Query params: `status` (pending/approved/rejected/all); retorna sugestões com `node_type`, `rejection_reason`, `user_notified` |
 | **PATCH** | `/system-suggestions/:id/approve` | ✅ Em Uso | GestaoPage.tsx — Materializa sugestão em `systems` + `system_aliases`, cria notificação com `action_url` e `metadata`; retorna `{ success: true, data: { suggestion_id, system_id, path_slug } }` |
-| **PATCH** | `/system-suggestions/:id/reject` | ✅ Em Uso | GestaoPage.tsx — Atualiza status para 'rejected' + `rejection_reason`, cria notificação; retorna `{ success: true }` |
+| **PATCH** | `/system-suggestions/:id/reject` | ✅ Em Uso | GestaoPage.tsx — Atualiza status para 'rejected' + `rejection_reason` opcional, cria notificação; aceita `{}` para descarte rápido individual ou em lote; retorna `{ success: true }` |
 
 **Campos de notificação (migration_106 - Abril/2026):**
 - `action_url` — URL de ação (ex: `/catalogo?system=[path_slug]`)

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import type { DiscordFetchWindow, DiscordSource, DiscordMessage, DiscordImportMessageStatus } from '../types';
+import type { DiscordFetchWindow, DiscordSource, DiscordMessage, DiscordImportMessageStatus, DiscordMessageContentDiagnostic } from '../types';
 import { discordSyncApi } from '../api/discordSyncApi';
 import { DiscordSourceList } from './DiscordSourceList';
 import { DiscordDraftReviewTable } from './DiscordDraftReviewTable';
@@ -64,6 +64,10 @@ function getMessagePreview(message: DiscordMessage): string {
   return 'Mensagem sem texto disponível.';
 }
 
+function didDiscordApiOmitBody(message: DiscordMessage): boolean {
+  return Boolean(message.discord_thread_id && message.discord_thread_name && !message.content_raw.trim());
+}
+
 export function DiscordSyncPanel() {
   const [tab, setTab] = useState<PanelTab>('configuracao');
   const [sources, setSources] = useState<DiscordSource[]>([]);
@@ -79,6 +83,8 @@ export function DiscordSyncPanel() {
   const [selectedMessage, setSelectedMessage] = useState<DiscordMessage | null>(null);
   const [savingMessageStatus, setSavingMessageStatus] = useState(false);
   const [parsingMessageId, setParsingMessageId] = useState<string | null>(null);
+  const [diagnosingMessageId, setDiagnosingMessageId] = useState<string | null>(null);
+  const [contentDiagnostic, setContentDiagnostic] = useState<DiscordMessageContentDiagnostic | null>(null);
   const detailRef = useRef<HTMLElement | null>(null);
 
   const queueStats = useMemo(() => ({
@@ -191,6 +197,24 @@ export function DiscordSyncPanel() {
     }
   };
 
+  const handleDiagnoseContent = async (message: DiscordMessage) => {
+    setDiagnosingMessageId(message.id);
+    setContentDiagnostic(null);
+    try {
+      const diagnostic = await discordSyncApi.diagnoseMessageContent(message.id);
+      setContentDiagnostic(diagnostic);
+      if (diagnostic.likely_missing_message_content_intent) {
+        toast.error('Discord entregou esta mensagem sem corpo para o bot.');
+      } else {
+        toast.success('Diagnóstico de conteúdo concluído.');
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao diagnosticar conteúdo.');
+    } finally {
+      setDiagnosingMessageId(null);
+    }
+  };
+
   const handleReingestForce = async (sourceId: string, fetchWindow: DiscordFetchWindow, windowOption: MessageWindowOption = '7d') => {
     if (!window.confirm('Isso vai apagar todas as mensagens pendentes desta fonte e rebuscar tudo do Discord. Confirmar?')) return;
     setReingestingSourceId(sourceId);
@@ -225,6 +249,7 @@ export function DiscordSyncPanel() {
 
   const handleSelectMessage = (message: DiscordMessage) => {
     setSelectedMessage(message);
+    setContentDiagnostic(null);
     window.requestAnimationFrame(() => {
       detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
@@ -374,6 +399,11 @@ export function DiscordSyncPanel() {
                       {msg.content_raw.trim() && (
                         <p className="text-white/60 text-xs truncate mt-1">{getMessagePreview(msg).slice(0, 200)}</p>
                       )}
+                      {didDiscordApiOmitBody(msg) && (
+                        <p className="text-amber-200 text-xs mt-1">
+                          Corpo não entregue pela API do Discord; apenas o título do tópico foi recebido.
+                        </p>
+                      )}
                       {msg.parse_error && (
                         <p className="text-red-400 text-xs mt-1">Erro: {msg.parse_error}</p>
                       )}
@@ -436,6 +466,15 @@ export function DiscordSyncPanel() {
                           {action.label}
                         </button>
                       ))}
+                      {didDiscordApiOmitBody(selectedMessage) && (
+                        <button
+                          onClick={() => handleDiagnoseContent(selectedMessage)}
+                          disabled={diagnosingMessageId === selectedMessage.id}
+                          className="px-3 py-2 rounded-lg text-white text-xs font-medium transition-colors disabled:opacity-40 bg-amber-700 hover:bg-amber-600"
+                        >
+                          {diagnosingMessageId === selectedMessage.id ? 'Diagnosticando...' : 'Diagnosticar corpo'}
+                        </button>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-1 gap-2 text-xs text-white/50">
@@ -446,6 +485,11 @@ export function DiscordSyncPanel() {
 
                     <div>
                       <p className="text-xs text-white/60 mb-1">Conteúdo completo</p>
+                      {didDiscordApiOmitBody(selectedMessage) && (
+                        <div className="mb-2 rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+                          O post tem corpo no Discord, mas o bot recebeu `content` vazio pela API. Use o diagnóstico para confirmar se o problema está no Message Content Intent ou em permissões do canal/tópico.
+                        </div>
+                      )}
                       <textarea
                         readOnly
                         value={selectedMessage.content_raw.trim() ? selectedMessage.content_raw : getMessageTitle(selectedMessage)}
@@ -457,6 +501,18 @@ export function DiscordSyncPanel() {
                       <p className="text-red-300 bg-red-900/20 border border-red-700/40 rounded-lg px-3 py-2 text-xs">
                         {selectedMessage.parse_error}
                       </p>
+                    )}
+
+                    {contentDiagnostic && contentDiagnostic.discord_message_id === selectedMessage.discord_message_id && (
+                      <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/70 space-y-1">
+                        <p className="font-semibold text-white">Diagnóstico API Discord</p>
+                        <p>DB content length: {contentDiagnostic.db_content_length}</p>
+                        <p>API content length: {contentDiagnostic.api_content_length}</p>
+                        <p>API embeds/anexos: {contentDiagnostic.api_embeds_count}/{contentDiagnostic.api_attachments_count}</p>
+                        <p className={contentDiagnostic.likely_missing_message_content_intent ? 'text-amber-200' : 'text-green-300'}>
+                          {contentDiagnostic.diagnosis}
+                        </p>
+                      </div>
                     )}
                   </div>
                 ) : (

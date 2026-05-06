@@ -270,15 +270,12 @@ router.patch('/system-suggestions/:id/approve', async (req: Request, res: Respon
 router.patch('/system-suggestions/:id/reject', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { reason } = req.body;
+    const rawReason = typeof req.body?.reason === 'string' ? req.body.reason.trim() : '';
+    const reason = rawReason.length > 0 ? rawReason : null;
     const adminId = req.user?.userId;
 
     if (!adminId) {
       return res.status(401).json({ error: 'Não autenticado.' });
-    }
-
-    if (!reason || typeof reason !== 'string' || reason.trim().length === 0) {
-      return res.status(400).json({ error: 'Motivo da rejeição é obrigatório.' });
     }
 
     // Transação: UPDATE status + INSERT notification
@@ -302,7 +299,7 @@ router.patch('/system-suggestions/:id/reject', async (req: Request, res: Respons
         .updateTable('system_suggestions')
         .set({
           status: 'rejected',
-          rejection_reason: reason.trim(),
+          rejection_reason: reason,
           reviewed_at: new Date(),
           reviewed_by: adminId,
         })
@@ -321,7 +318,7 @@ router.patch('/system-suggestions/:id/reject', async (req: Request, res: Respons
           metadata: JSON.stringify({
             suggestion_id: id,
             suggestion_kind: 'system',
-            reason: reason.trim(),
+            ...(reason ? { reason } : {}),
           }),
         })
         .execute();
@@ -337,7 +334,7 @@ router.patch('/system-suggestions/:id/reject', async (req: Request, res: Respons
         summary: `${adminName} rejeitou a sugestão "${suggestion.name}".`,
         metadata: {
           suggestion_id: id,
-          reason: reason.trim(),
+          ...(reason ? { reason } : {}),
         },
       }, trx);
     });

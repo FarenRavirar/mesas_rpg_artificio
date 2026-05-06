@@ -133,3 +133,13 @@
 **Evidencias principais:** dry-run 7d nos dois foruns gerou 11 drafts `needs_review`, 1 reply vazio ignorado e 0 `ready`; `npm --prefix backend test -- parseDiscordAnnouncement` passou; `npm --prefix backend run build` passou; `npm --prefix frontend run build` passou; `git diff --check` sem erros.
 **Risco residual:** validacao funcional/manual ainda depende de commit, PR, deploy Beta e teste do mantenedor em janela anonima.
 **Sessao mantida aberta em:** `sessoes/26-05-04_1_discord-forum-threads.md`
+
+## 2026-05-06T17:55:00-03:00 — discord-parser-system-suggestions
+
+**Tipo:** Bugfix SDD com deploy dev autorizado
+**Feature:** `specs/015-discord-forum-threads/`
+**Bug:** `specs/015-discord-forum-threads/bugs/BUG-003.md`
+**Correção:** reidratacao Beta confirmou corpos reais dos posts; parser passa a priorizar `Sistema:` do corpo e nao titulo/cenario de thread; sistemas ineditos geram sugestao automatica correta; replies de forum nao viram posts; gestao de sugestoes permite selecao individual, selecionar todas pendentes e descarte em lote sem motivo obrigatorio.
+**Evidencias principais:** 11 starters reais reidratados no Beta; parser local com sistemas reais do Beta retornou 11/11 `ready` no estado atual; teste unitario cobre sistema inedito sem cadastro; `npm --prefix backend test -- parseDiscordAnnouncement` passou com 8 testes; backend build, frontend build, changelog JSON e `git diff --check` passaram.
+**Risco residual:** validacao funcional em Beta apos deploy deve reprocessar os 11 starters pendentes e conferir a aba Sugestoes de Sistemas em janela anonima.
+**Sessao mantida aberta em:** `sessoes/26-05-04_1_discord-forum-threads.md`

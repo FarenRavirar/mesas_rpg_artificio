@@ -47,27 +47,47 @@ function normalize(s) {
  */
 function matchSystem(text, systems) {
     const normText = normalize(text);
+    if (!normText)
+        return null;
+    const matches = [];
     for (const system of systems) {
         const candidates = [
-            system.name,
-            ...(system.name_pt ? [system.name_pt] : []),
-            ...system.aliases,
+            { value: system.name, priority: 3 },
+            ...(system.name_pt ? [{ value: system.name_pt, priority: 3 }] : []),
+            ...system.aliases.map((alias) => ({ value: alias, priority: 1 })),
         ];
         for (const candidate of candidates) {
-            if (!candidate)
+            if (!candidate.value)
                 continue;
-            const normCandidate = normalize(candidate);
-            // Busca palavra(s) inteira(s): deve aparecer como token no texto
-            // Usa boundary de espaço/início/fim para evitar falsos positivos curtos
+            const normCandidate = normalize(candidate.value);
+            // Aliases curtos e genericos como "D&D" aparecem em sistemas derivados
+            // no banco; usar isso como match automatico gera falsos positivos.
+            if (normCandidate.length < 4 && candidate.priority < 3)
+                continue;
             if (normCandidate.length < 2)
                 continue;
             const pattern = new RegExp(`(?:^|[\\s,;:])${normCandidate.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:[\\s,;:]|$)`);
-            if (pattern.test(` ${normText} `)) {
-                return system;
+            const versionedPattern = new RegExp(`^${normCandidate.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\d`);
+            if (normText === normCandidate || pattern.test(` ${normText} `) || versionedPattern.test(normText)) {
+                matches.push({
+                    system,
+                    candidate: normCandidate,
+                    priority: candidate.priority,
+                    exact: normText === normCandidate,
+                });
             }
         }
     }
-    return null;
+    if (matches.length === 0)
+        return null;
+    matches.sort((a, b) => {
+        if (a.exact !== b.exact)
+            return a.exact ? -1 : 1;
+        if (a.priority !== b.priority)
+            return b.priority - a.priority;
+        return b.candidate.length - a.candidate.length;
+    });
+    return matches[0].system;
 }
 // Tenta extrair "sistema: titulo" do nome do thread
 function splitThreadName(threadName) {
@@ -105,10 +125,6 @@ function extractType(text) {
 }
 // Extrai informações de preço do texto
 function extractPrice(text) {
-    const lower = text.toLowerCase();
-    if (/\bgratuita?\b|\bfree\b|\bsem\s+custo\b/.test(lower)) {
-        return { priceType: 'gratuita', priceValue: null };
-    }
     const priceMatch = text.match(/R\$\s*(\d+(?:[,.]\d{1,2})?)/i)
         ?? text.match(/(\d+(?:[,.]\d{1,2})?)\s*reais/i);
     if (priceMatch) {
@@ -117,10 +133,22 @@ function extractPrice(text) {
             return { priceType: 'paga', priceValue: value };
         }
     }
+    const lower = text.toLowerCase();
+    if (/\bgratuita?\b|\bfree\b|\bsem\s+custo\b/.test(lower)) {
+        return { priceType: 'gratuita', priceValue: null };
+    }
     return { priceType: 'gratuita', priceValue: null };
 }
 // Extrai número de vagas do texto
 function extractSlots(text) {
+    const cleaned = text.replace(/\*/g, '');
+    const totalMatch = cleaned.match(/vagas?\s+(?:totais|total)\s*[:=]\s*(\d+)/i);
+    const openMatch = cleaned.match(/vagas?\s+(?:dispon[ií]veis|dispon[ií]vel|abertas|aberta)\s*[:=]\s*(\d+)/i);
+    if (totalMatch || openMatch) {
+        const total = totalMatch ? parseInt(totalMatch[1], 10) : null;
+        const open = openMatch ? parseInt(openMatch[1], 10) : total;
+        return { total, open };
+    }
     const labeledMatch = text.match(/(?:^|\n)\s*(?:vagas|vagas dispon[ií]veis|jogadores)\s*[:=]\s*(\d+)/i);
     if (labeledMatch) {
         const n = parseInt(labeledMatch[1], 10);
@@ -174,16 +202,61 @@ function extractContactUrl(text) {
     const urlMatch = text.match(/https?:\/\/[^\s<>"']+/);
     return urlMatch ? urlMatch[0] : null;
 }
+function extractContactDiscord(text) {
+    const mentionPattern = /<#[0-9]+>|<@!?[0-9]+>/;
+    const contactLine = text
+        .split(/\r?\n/)
+        .find((line) => /\b(contato|ticket|interesse|inscri[cç][aã]o)\b/i.test(line) && mentionPattern.test(line));
+    const match = contactLine?.match(mentionPattern);
+    return match ? match[0] : null;
+}
+function cleanLabelLine(line) {
+    return line
+        .replace(/^[\s▬•\-–—]+/, '')
+        .replace(/\*\*/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+function normalizeLabelKey(value) {
+    return normalize(value).replace(/\s+/g, ' ').trim();
+}
+function splitLabelLine(line) {
+    const cleaned = cleanLabelLine(line);
+    const match = cleaned.match(/^(.{1,48}?)\s*[:：]\s*(.*)$/);
+    if (!match)
+        return null;
+    return { key: normalizeLabelKey(match[1]), value: match[2].trim() };
+}
 function extractLabelValue(text, labels) {
-    const escaped = labels.map((label) => label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
-    const pattern = new RegExp(`(?:^|\\n)\\s*(?:${escaped})\\s*[:\\-]\\s*(.+?)(?=\\n\\s*\\S+\\s*[:\\-]|$)`, 'i');
-    const match = text.match(pattern);
-    return match?.[1]?.trim() || null;
+    const wanted = new Set(labels.map(normalizeLabelKey));
+    const lines = text.split(/\r?\n/);
+    for (let i = 0; i < lines.length; i++) {
+        const parsed = splitLabelLine(lines[i]);
+        if (!parsed || !wanted.has(parsed.key))
+            continue;
+        const values = [];
+        if (parsed.value)
+            values.push(parsed.value);
+        for (let j = i + 1; j < lines.length; j++) {
+            const next = lines[j].trim();
+            if (!next) {
+                if (values.length > 0)
+                    break;
+                continue;
+            }
+            if (splitLabelLine(next))
+                break;
+            values.push(next);
+        }
+        const value = values.join('\n').trim();
+        return value || null;
+    }
+    return null;
 }
 function normalizeTitle(value) {
     if (!value)
         return null;
-    return cleanTrademark(value.replace(/^["“”']|["“”']$/g, '').trim()) || null;
+    return cleanTrademark(value.replace(/\*/g, '').replace(/^["“”']|["“”']$/g, '').trim()) || null;
 }
 function isThreadStarter(message) {
     return Boolean(message.discord_thread_id
@@ -220,7 +293,7 @@ function parseDiscordAnnouncement(message, systems = []) {
     const threadParts = splitThreadName(threadName || body.split('\n')[0] || 'Mesa sem título');
     const explicitTitle = normalizeTitle(extractLabelValue(body, ['mesa', 'titulo', 'título', 'nome da mesa', 'aventura']));
     const explicitSystem = normalizeTitle(extractLabelValue(body, ['sistema', 'jogo', 'rpg']));
-    const systemHint = explicitSystem ?? threadParts.systemHint;
+    const systemHint = explicitSystem ?? (body.trim() ? null : threadParts.systemHint);
     const title = explicitTitle ?? threadParts.title;
     // Detecção de sistema via banco de dados
     let matchedSystem = null;
@@ -238,7 +311,7 @@ function parseDiscordAnnouncement(message, systems = []) {
     const systemId = matchedSystem?.id ?? null;
     // Preserva o hint bruto quando não há correspondência: usado para criar
     // system_suggestion automática e para o revisor ver o que veio do Discord.
-    const rawSystemHint = (!matchedSystem && systemHint && !explicitSystem) ? systemHint : null;
+    const rawSystemHint = (!matchedSystem && systemHint) ? systemHint : null;
     // Campos extraídos do corpo
     const modality = extractModality(body) ?? 'online';
     const type = extractType(fullText) ?? (threadName ? 'campanha' : null);
@@ -247,9 +320,10 @@ function parseDiscordAnnouncement(message, systems = []) {
     const dayOfWeek = extractDayOfWeek(body);
     const startTime = extractStartTime(body);
     const contactUrl = extractContactUrl(body);
+    const contactDiscord = extractContactDiscord(body);
     const description = extractLabelValue(body, ['descricao', 'descrição', 'sinopse', 'proposta']) ?? (body.trim() || null);
     const missingFields = [];
-    if (!systemName) {
+    if (!systemId) {
         // Distingue "hint encontrado mas não reconhecido" de "sem pista alguma"
         missingFields.push(rawSystemHint ? 'system_name:unmatched_hint' : 'system_name');
     }
@@ -259,7 +333,7 @@ function parseDiscordAnnouncement(message, systems = []) {
         missingFields.push('start_time');
     if (!slotsTotal)
         missingFields.push('slots_total');
-    if (!contactUrl)
+    if (!contactUrl && !contactDiscord)
         missingFields.push('contact_url');
     if (!description)
         missingFields.push('description');
@@ -279,7 +353,7 @@ function parseDiscordAnnouncement(message, systems = []) {
         start_time: startTime,
         frequency: dayOfWeek ? 'semanal' : null,
         description,
-        contact_discord: null,
+        contact_discord: contactDiscord,
         contact_url: contactUrl,
     };
     return {

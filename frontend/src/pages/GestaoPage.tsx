@@ -43,6 +43,8 @@ export const GestaoPage = () => {
 
   const [approvingSuggestionId, setApprovingSuggestionId] = useState<string | null>(null);
   const [rejectingSuggestionId, setRejectingSuggestionId] = useState<string | null>(null);
+  const [selectedSuggestionIds, setSelectedSuggestionIds] = useState<string[]>([]);
+  const [bulkRejectingSuggestions, setBulkRejectingSuggestions] = useState(false);
 
   useEffect(() => {
     if (!user || user.role !== 'admin') {
@@ -73,7 +75,14 @@ export const GestaoPage = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setSuggestions(data.data || []);
+        const nextSuggestions: SystemSuggestion[] = data.data || [];
+        setSuggestions(nextSuggestions);
+        const validPendingIds = new Set(
+          nextSuggestions
+            .filter((suggestion) => suggestion.status === 'pending')
+            .map((suggestion) => suggestion.id),
+        );
+        setSelectedSuggestionIds((current) => current.filter((id) => validPendingIds.has(id)));
       }
     } catch (error) {
       console.error('[GestaoPage] Erro ao buscar sugestões:', error);
@@ -154,8 +163,7 @@ export const GestaoPage = () => {
   };
 
   const handleReject = async (id: string) => {
-    const reason = prompt('Motivo da rejeição:');
-    if (!reason || !isAuthenticated) return;
+    if (!isAuthenticated) return;
 
     setRejectingSuggestionId(id);
 
@@ -164,11 +172,12 @@ export const GestaoPage = () => {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ reason }),
+        body: JSON.stringify({}),
       });
 
       if (response.ok) {
         toast.success('Sistema rejeitado!');
+        setSelectedSuggestionIds((current) => current.filter((selectedId) => selectedId !== id));
         fetchSuggestions();
       } else {
         const data = await response.json();
@@ -179,6 +188,51 @@ export const GestaoPage = () => {
       toast.error('Erro ao rejeitar sistema');
     } finally {
       setRejectingSuggestionId(null);
+    }
+  };
+
+  const toggleSuggestionSelection = (id: string) => {
+    setSelectedSuggestionIds((current) =>
+      current.includes(id)
+        ? current.filter((selectedId) => selectedId !== id)
+        : [...current, id],
+    );
+  };
+
+  const handleSelectAllPendingSuggestions = () => {
+    const pendingIds = suggestions
+      .filter((suggestion) => suggestion.status === 'pending')
+      .map((suggestion) => suggestion.id);
+    const allSelected = pendingIds.length > 0 && pendingIds.every((id) => selectedSuggestionIds.includes(id));
+    setSelectedSuggestionIds(allSelected ? [] : pendingIds);
+  };
+
+  const handleRejectSelectedSuggestions = async () => {
+    if (!isAuthenticated || selectedSuggestionIds.length === 0) return;
+    setBulkRejectingSuggestions(true);
+
+    try {
+      const results = await Promise.allSettled(
+        selectedSuggestionIds.map((id) =>
+          fetch(`${API_BASE}/api/v1/admin/system-suggestions/${id}/reject`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({}),
+          }),
+        ),
+      );
+      const succeeded = results.filter((result) => result.status === 'fulfilled' && result.value.ok).length;
+      const failed = selectedSuggestionIds.length - succeeded;
+      if (succeeded > 0) toast.success(`${succeeded} sugestão(ões) rejeitada(s).`);
+      if (failed > 0) toast.error(`${failed} sugestão(ões) não foram rejeitadas.`);
+      setSelectedSuggestionIds([]);
+      fetchSuggestions();
+    } catch (error) {
+      console.error('[GestaoPage] Erro ao rejeitar sugestões em lote:', error);
+      toast.error('Erro ao rejeitar sugestões selecionadas');
+    } finally {
+      setBulkRejectingSuggestions(false);
     }
   };
 
@@ -277,6 +331,11 @@ export const GestaoPage = () => {
   const filteredTables = allTables.filter(t =>
     t.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
+  const pendingSuggestionIds = suggestions
+    .filter((suggestion) => suggestion.status === 'pending')
+    .map((suggestion) => suggestion.id);
+  const allPendingSuggestionsSelected = pendingSuggestionIds.length > 0
+    && pendingSuggestionIds.every((id) => selectedSuggestionIds.includes(id));
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0F1A2E] via-[#1B2A4A] to-[#0F1A2E] py-8">
@@ -341,7 +400,7 @@ export const GestaoPage = () => {
         {/* Conteúdo das abas */}
         {activeTab === 'crud' && (
           <div>
-            <div className="flex gap-3 mb-6">
+            <div className="flex flex-wrap items-center gap-3 mb-6">
               <button
                 onClick={() => setCrudSubTab('systems')}
                 className={`px-4 py-2 rounded-lg transition-all ${
@@ -527,6 +586,26 @@ export const GestaoPage = () => {
               >
                 Todas
               </button>
+              {pendingSuggestionIds.length > 0 && (
+                <div className="ml-auto flex flex-wrap items-center gap-3">
+                  <label className="flex items-center gap-2 text-sm text-white/80">
+                    <input
+                      type="checkbox"
+                      checked={allPendingSuggestionsSelected}
+                      onChange={handleSelectAllPendingSuggestions}
+                      className="h-4 w-4"
+                    />
+                    Selecionar todas pendentes
+                  </label>
+                  <button
+                    onClick={handleRejectSelectedSuggestions}
+                    disabled={selectedSuggestionIds.length === 0 || bulkRejectingSuggestions}
+                    className="px-4 py-2 rounded-lg bg-red-600 text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {bulkRejectingSuggestions ? 'Descartando...' : `Descartar selecionadas (${selectedSuggestionIds.length})`}
+                  </button>
+                </div>
+              )}
             </div>
 
             {loading ? (
@@ -535,15 +614,26 @@ export const GestaoPage = () => {
               <div className="space-y-3">
                 {suggestions.map((suggestion) => (
                   <div key={suggestion.id} className="bg-white/5 border border-white/10 rounded-lg p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="text-white font-semibold">{suggestion.name}</h3>
-                        {suggestion.description && (
-                          <p className="text-white/60 text-sm mt-1">{suggestion.description}</p>
+                    <div className="flex justify-between items-start gap-4">
+                      <div className="flex min-w-0 gap-3">
+                        {suggestion.status === 'pending' && (
+                          <input
+                            type="checkbox"
+                            checked={selectedSuggestionIds.includes(suggestion.id)}
+                            onChange={() => toggleSuggestionSelection(suggestion.id)}
+                            className="mt-1 h-4 w-4 shrink-0"
+                            aria-label={`Selecionar sugestão ${suggestion.name}`}
+                          />
                         )}
-                        <p className="text-white/40 text-xs mt-2">
-                          Tipo: {suggestion.node_type} | Status: {suggestion.status}
-                        </p>
+                        <div className="min-w-0">
+                          <h3 className="text-white font-semibold">{suggestion.name}</h3>
+                          {suggestion.description && (
+                            <p className="text-white/60 text-sm mt-1">{suggestion.description}</p>
+                          )}
+                          <p className="text-white/40 text-xs mt-2">
+                            Tipo: {suggestion.node_type} | Status: {suggestion.status}
+                          </p>
+                        </div>
                       </div>
                       {suggestion.status === 'pending' && (
                         <div className="flex gap-2">

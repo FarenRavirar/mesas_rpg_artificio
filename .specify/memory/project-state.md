@@ -1,6 +1,6 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-05-05T19:05:00-03:00
+**Última atualização:** 2026-05-06T17:55:00-03:00
 **Atualizado por:** sessão 26-05-04_1_discord-forum-threads
 ---
 
@@ -15,13 +15,13 @@
 
 ## Estado Técnico Atual
 
-**Branch ativa:** `feat/015-discord-draft-pipeline` — BUG-003 implementado localmente a partir de `origin/dev`
-**Último commit base:** `d6ef6ac` — `origin/dev` com parse/reingestao inicial
+**Branch ativa:** `feat/015-discord-draft-pipeline` — BUG-003 com parser/sugestões corrigidos e deploy dev autorizado
+**Último commit base:** `790bd11` — `origin/dev` com reidratacao/filtro temporal parcial
 
 **Feature ativa:** `specs/015-discord-forum-threads/`
 **Sessão ativa:** `sessoes/26-05-04_1_discord-forum-threads.md`
 
-**BUG-003 — Fórum importado vira draft publicável (05/05/2026):**
+**BUG-003 — Fórum importado vira draft publicável (05–06/05/2026):**
 - Reportado pelo mantenedor: o lançamento não resolveu o objetivo principal porque mensagens vindas do Discord não estavam virando drafts de mesa publicáveis.
 - Diagnóstico Beta read-only: 2 fontes `forum`, 182 mensagens importadas, 1 draft; todas as 182 mensagens com `status='error'` e `parse_error='Erro no parse em lote'`; 171 mensagens eram starters de thread e `content_raw` estava vazio nos registros amostrados.
 - `/speckit.bugfix.report` e `/speckit.bugfix.patch` executados proceduralmente: `BUG-003.md` criado e `spec.md`, `plan.md`, `tasks.md`, `MAPA_DE_API.md` atualizados.
@@ -32,7 +32,11 @@
 - Gate adicional aplicado antes de qualquer deploy: backend bloqueia sync se o draft não estiver `ready` ou se faltar título, descrição, sistema, tipo, modalidade, preço, vagas, contato, dia ou horário.
 - Frontend: `DiscordDraftPreview` agora possui editor estruturado de campos, seletor real de sistemas via `/api/v1/systems?view=tree`, validação local e botão de sync desabilitado enquanto o draft estiver incompleto.
 - Validação técnica: `npm --prefix backend test -- parseDiscordAnnouncement` GREEN (3/3); `npm --prefix backend run build` GREEN; `npm --prefix frontend run build` GREEN; `git diff --check` sem erros; busca final sem fallback "Mesa Sem Título" ou sync de `needs_review` no escopo alterado.
-- **Status:** implementação local pronta para revisão técnica; falta commit/push da branch, PR para `dev`, Deploy Beta e teste funcional do mantenedor em janela anônima.
+- Reidratacao Beta apos ativacao do Message Content Intent: 11 starters reais de forum com corpo completo; 1 reply com PDF marcada `ignored` por nao ser post.
+- Parser corrigido: prioriza `Sistema:` do corpo sobre titulo/cenario da thread; sistema explicito inedito fica `needs_review` e cria `system_suggestion`; nomes como Forgotten Realms, Waterdeep, Vecna e Planescape nao viram sugestoes de sistema quando o corpo informa outro sistema.
+- Gestao de sugestoes: rejeicao sem motivo permitida; checkboxes por sugestao, selecao de todas pendentes e descarte em lote adicionados.
+- Evidencia atual: `npm --prefix backend test -- parseDiscordAnnouncement` GREEN (8/8); `npm --prefix backend run build` GREEN; `npm --prefix frontend run build` GREEN; changelog JSON validado; `git diff --check` sem erros.
+- **Status:** aguardando commit/push autorizado para `dev`, Deploy Beta e teste funcional em janela anonima.
 
 **Correção UX — Menus de seleção unificados (04/05/2026):**
 - Retomada solicitada pelo mantenedor após identificação visual de dropdown com fundo/opções inconsistentes no Discord Sync.

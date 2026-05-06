@@ -10,6 +10,7 @@ import type {
   DiscordImportMessageStatus,
   DiscordImportDraftStatus,
   DiscordFetchWindow,
+  DiscordMessageContentDiagnostic,
   IngestResult,
   SyncReadyResult,
 } from '../types';
@@ -205,6 +206,9 @@ export const discordSyncApi = {
 
   parseMessage: (id: string) =>
     apiFetch<DiscordDraft>(`/messages/${id}/parse`, { method: 'POST' }),
+
+  diagnoseMessageContent: (id: string) =>
+    apiFetch<DiscordMessageContentDiagnostic>(`/messages/${id}/diagnose-content`, { method: 'POST' }),
 
   getDrafts: (params?: { status?: DiscordImportDraftStatus; limit?: number; offset?: number }) => {
     const qs = new URLSearchParams();

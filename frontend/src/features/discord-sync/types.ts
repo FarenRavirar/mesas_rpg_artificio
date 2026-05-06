@@ -93,6 +93,19 @@ export interface DiscordFetchWindow {
   until?: string;
 }
 
+export interface DiscordMessageContentDiagnostic {
+  discord_message_id: string;
+  discord_channel_id: string;
+  discord_thread_name: string | null;
+  db_content_length: number;
+  api_content_length: number;
+  api_attachments_count: number;
+  api_embeds_count: number;
+  api_content_preview: string;
+  likely_missing_message_content_intent: boolean;
+  diagnosis: string;
+}
+
 export interface SyncReadyResult {
   synced: number;
   failed: number;

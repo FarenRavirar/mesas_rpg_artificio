@@ -76,11 +76,24 @@
 - [x] T042 [BUG-003] Block backend draft sync unless the draft is `ready` and has title, description, system, type, modality, price, slots, contact, day and start time.
 - [x] T043 [BUG-003] Add structured draft editor in `frontend/src/features/discord-sync/components/DiscordDraftPreview.tsx` with real system selector, field validation and disabled sync while incomplete.
 - [x] T044 [BUG-003] Re-run backend/frontend builds after readiness-gate patch and record evidence before any deploy suggestion.
+- [x] T045 [BUG-003] Validate Discord Message Content behavior against official docs and add admin diagnostic endpoint/client state for messages whose DB body is empty.
+- [x] T046 [BUG-003] Add parser regression coverage for real Covil system matching edge cases, including generic `D&D` aliases and `Tormenta20` version suffix.
+- [x] T047 [BUG-003] Re-test local parser with real Discord API content and real Beta systems after `Message Content Intent` was enabled.
+- [x] T048 [BUG-003] Update SDD/API docs with Message Content Intent, direct Discord diagnostic steps and full forum -> message -> draft -> mesa draft validation flow.
+- [x] T049 [BUG-003] Rehydrate Beta last-7-day forum starters after intent activation, ignore non-starter reply noise, and add Discord channel mention contact parsing.
+- [x] T050 [BUG-003] Investigate Fundação 0 PDF case to completion: prove reply is not the post, rehydrate the real starter and document starter-only draft rule.
+- [x] T051 [BUG-003] Fix parser/system suggestion contract so explicit `Sistema:` wins over thread title/scenario and unknown explicit systems generate suggestions.
+- [x] T052 [BUG-003] Allow system suggestion rejection without reason and add frontend checkboxes, select-all and bulk discard for pending suggestions.
+- [x] T053 [BUG-003] Update spec, research, contracts, quickstart, MAPA_DE_API and changelog for parser/suggestions/admin review changes.
 
 **Bugfix**: 2026-05-04 — BUG-001 adiciona tasks T030-T033 para filtro temporal, triagem de mensagens e validacao.
 **Bugfix**: 2026-05-04 — BUG-002 adiciona T034 para corrigir apuracao invisivel e transformar a lista em painel de gestao.
 **Bugfix**: 2026-05-05 — BUG-003 adiciona T035-T041 para fechar o funil forum → parser → draft → mesa em status draft.
 **Bugfix**: 2026-05-05 — BUG-003 adiciona T042-T044 para impedir sync incompleto e tornar o draft editavel antes de qualquer deploy.
+**Bugfix**: 2026-05-06 — BUG-003 adiciona T045-T048 para diagnostico oficial do Message Content Intent e regressao contra conteudo real do Discord.
+**Bugfix**: 2026-05-06 — BUG-003 adiciona T049 para validar dados reidratados no banco Beta e fechar contato via mencao de canal Discord.
+**Bugfix**: 2026-05-06 — BUG-003 adiciona T050 para encerrar a investigacao do caso PDF e formalizar que reply nao e post de forum para draft.
+**Bugfix**: 2026-05-06 — BUG-003 adiciona T051-T053 para corrigir resolucao de sistemas, sugestoes automaticas de sistemas ineditos e descarte em lote na gestao.
 
 ## Dependencies
 

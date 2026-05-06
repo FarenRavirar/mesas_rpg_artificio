@@ -5,8 +5,10 @@ const zod_1 = require("zod");
 const db_1 = require("../db");
 const auth_1 = require("../middleware/auth");
 const discord_1 = require("../discord");
+const config_1 = require("../discord/config");
 const settingsCrypto_1 = require("../discord/settingsCrypto");
 const router = (0, express_1.Router)();
+const DISCORD_API_BASE = 'https://discord.com/api/v10';
 function isAdmin(req, res) {
     if (req.user?.role !== 'admin') {
         res.status(403).json({ error: 'Acesso restrito a administradores.' });
@@ -59,6 +61,14 @@ const snowflakeParamSchema = zod_1.z.object({
 const botTokenSchema = zod_1.z.object({
     token: zod_1.z.string().trim().min(50, 'Token deve ter pelo menos 50 caracteres.').regex(/^\S+$/, 'Token não pode conter espaços.'),
 });
+const discordMessageDiagnosticSchema = zod_1.z.object({
+    id: zod_1.z.string(),
+    content: zod_1.z.string().optional().default(''),
+    attachments: zod_1.z.array(zod_1.z.unknown()).optional().default([]),
+    embeds: zod_1.z.array(zod_1.z.unknown()).optional().default([]),
+    message_reference: zod_1.z.unknown().optional(),
+    flags: zod_1.z.number().optional(),
+});
 /** Carrega todos os sistemas e seus aliases do banco para o parser. */
 // Embeds/attachments podem vir como array (novo) ou JSON string (dados antigos)
 function parseJsonField(value) {
@@ -83,6 +93,22 @@ function parseJsonField(value) {
     }
     return [];
 }
+async function fetchDiscordMessageDiagnostic(channelId, messageId) {
+    const token = (await (0, config_1.requireDiscordBotToken)()).trim();
+    const response = await fetch(`${DISCORD_API_BASE}/channels/${encodeURIComponent(channelId)}/messages/${encodeURIComponent(messageId)}`, { headers: { Authorization: `Bot ${token}` } });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+        const message = payload && typeof payload === 'object' && 'message' in payload
+            ? String(payload.message)
+            : 'Discord não respondeu como esperado.';
+        throw new discord_1.DiscordIngestError(message, response.status === 403 ? 403 : 502);
+    }
+    const parsed = discordMessageDiagnosticSchema.safeParse(payload);
+    if (!parsed.success) {
+        throw new discord_1.DiscordIngestError('Discord retornou mensagem em formato inesperado.', 502);
+    }
+    return parsed.data;
+}
 async function loadSystemsForParser() {
     const systems = await db_1.db
         .selectFrom('systems')
@@ -105,7 +131,43 @@ async function loadSystemsForParser() {
         aliases: aliasMap.get(s.id) ?? [],
     }));
 }
-async function createOrUpdateDraftFromMessage(message, systems) {
+function getUnmatchedSystemHint(draft) {
+    if (draft.table.system_id)
+        return null;
+    const hint = draft.table.raw_system_hint ?? draft.table.system_name;
+    const normalized = typeof hint === 'string' ? hint.trim() : '';
+    return normalized.length > 0 ? normalized : null;
+}
+async function ensureSystemSuggestionForDraft(draft, adminId, sourceLabel) {
+    const rawHint = getUnmatchedSystemHint(draft);
+    if (!rawHint || !adminId)
+        return;
+    const existing = await db_1.db
+        .selectFrom('system_suggestions')
+        .select('id')
+        .where('name', '=', rawHint)
+        .where('status', 'in', ['pending', 'approved'])
+        .executeTakeFirst();
+    if (existing)
+        return;
+    await db_1.db
+        .insertInto('system_suggestions')
+        .values({
+        user_id: adminId,
+        name: rawHint,
+        name_pt: null,
+        node_type: 'system',
+        parent_id: null,
+        description: `Sugestão automática gerada ao parsear mensagem Discord: "${sourceLabel ?? rawHint}"`,
+        aliases: [rawHint],
+        status: 'pending',
+        reviewed_by: null,
+        reviewed_at: null,
+        rejection_reason: null,
+    })
+        .execute();
+}
+async function createOrUpdateDraftFromMessage(message, systems, adminId) {
     const parsed = (0, discord_1.parseDiscordAnnouncement)({
         source_kind: message.source_kind,
         discord_message_id: message.discord_message_id,
@@ -168,9 +230,10 @@ async function createOrUpdateDraftFromMessage(message, systems) {
         .set({ status: 'parsed', parse_error: null, updated_at: new Date() })
         .where('id', '=', message.id)
         .execute();
+    await ensureSystemSuggestionForDraft(normalized.draft, adminId, message.discord_thread_name ?? message.discord_message_id);
     return 'draft';
 }
-async function parsePendingMessagesForSource(sourceId, since, until) {
+async function parsePendingMessagesForSource(sourceId, since, until, adminId) {
     let query = db_1.db
         .selectFrom('discord_import_messages')
         .selectAll()
@@ -191,7 +254,7 @@ async function parsePendingMessagesForSource(sourceId, since, until) {
     let failed = 0;
     for (const message of messages) {
         try {
-            const result = await createOrUpdateDraftFromMessage(message, systems);
+            const result = await createOrUpdateDraftFromMessage(message, systems, adminId);
             if (result === 'draft')
                 succeeded++;
             else
@@ -517,7 +580,7 @@ router.post('/fetch', auth_1.authMiddleware, async (req, res) => {
                 .where('id', '=', source_id)
                 .execute();
         }
-        const parse = await parsePendingMessagesForSource(source_id, since, until);
+        const parse = await parsePendingMessagesForSource(source_id, since, until, req.user?.userId);
         return res.json({ data: { ...result, parse } });
     }
     catch (error) {
@@ -559,7 +622,7 @@ router.post('/sources/:sourceId/reingest-force', auth_1.authMiddleware, async (r
             .set({ last_synced_at: new Date(), updated_at: new Date() })
             .where('id', '=', source.id)
             .execute();
-        const parse = await parsePendingMessagesForSource(source.id, since, until);
+        const parse = await parsePendingMessagesForSource(source.id, since, until, req.user?.userId);
         return res.json({ data: { deleted: Number(deleted.numDeletedRows ?? 0), ...result, parse } });
     }
     catch (error) {
@@ -640,27 +703,7 @@ router.post('/messages/parse-batch', auth_1.authMiddleware, async (req, res) => 
                     .set({ status: 'parsed', parse_error: null, updated_at: new Date() })
                     .where('id', '=', message.id)
                     .execute();
-                // Cria system_suggestion se havia hint não reconhecido
-                const rawHint = normalized.draft.table.raw_system_hint;
-                if (rawHint && !parsed.table.system_id) {
-                    const alreadyExists = await db_1.db.selectFrom('system_suggestions')
-                        .select('id')
-                        .where('name', '=', rawHint)
-                        .where('status', 'in', ['pending', 'approved'])
-                        .executeTakeFirst();
-                    if (!alreadyExists) {
-                        await db_1.db.insertInto('system_suggestions')
-                            .values({
-                            user_id: req.user.userId,
-                            name: rawHint,
-                            node_type: 'system',
-                            aliases: [rawHint],
-                            description: `Sugestão automática (lote): "${rawHint}"`,
-                            status: 'pending',
-                        })
-                            .execute();
-                    }
-                }
+                await ensureSystemSuggestionForDraft(normalized.draft, req.user?.userId, message.discord_thread_name ?? message.discord_message_id);
                 succeeded++;
             }
             catch {
@@ -739,6 +782,47 @@ router.patch('/messages/:id', auth_1.authMiddleware, async (req, res) => {
     catch (error) {
         console.error('[PATCH /admin/discord-sync/messages/:id]', error);
         return res.status(500).json({ error: 'Erro ao atualizar mensagem.' });
+    }
+});
+// POST /messages/:id/diagnose-content — compara DB vs API Discord sem expor token
+router.post('/messages/:id/diagnose-content', auth_1.authMiddleware, async (req, res) => {
+    if (!isAdmin(req, res))
+        return;
+    try {
+        const message = await db_1.db
+            .selectFrom('discord_import_messages')
+            .selectAll()
+            .where('id', '=', req.params.id)
+            .executeTakeFirst();
+        if (!message)
+            return res.status(404).json({ error: 'Mensagem não encontrada.' });
+        const apiMessage = await fetchDiscordMessageDiagnostic(message.discord_channel_id, message.discord_message_id);
+        const apiContentLength = apiMessage.content.trim().length;
+        const dbContentLength = message.content_raw.trim().length;
+        const likelyMissingMessageContentIntent = apiContentLength === 0 &&
+            dbContentLength === 0 &&
+            Boolean(message.discord_thread_name) &&
+            apiMessage.attachments.length === 0 &&
+            apiMessage.embeds.length === 0;
+        return res.json({
+            data: {
+                discord_message_id: message.discord_message_id,
+                discord_channel_id: message.discord_channel_id,
+                discord_thread_name: message.discord_thread_name,
+                db_content_length: dbContentLength,
+                api_content_length: apiContentLength,
+                api_attachments_count: apiMessage.attachments.length,
+                api_embeds_count: apiMessage.embeds.length,
+                api_content_preview: apiMessage.content.trim().slice(0, 240),
+                likely_missing_message_content_intent: likelyMissingMessageContentIntent,
+                diagnosis: likelyMissingMessageContentIntent
+                    ? 'A API do Discord entregou o starter do tópico sem corpo, anexos ou embeds. O post existe, mas o bot não recebeu o conteúdo pela API; verifique o Message Content Intent no Developer Portal e permissões do canal/tópico.'
+                    : 'A API do Discord entregou algum conteúdo para esta mensagem.',
+            },
+        });
+    }
+    catch (error) {
+        return sendDiscordFetchError(res, error);
     }
 });
 // ─── Drafts ───────────────────────────────────────────────────────────────────
@@ -893,40 +977,7 @@ router.post('/messages/:id/parse', auth_1.authMiddleware, async (req, res) => {
             .set({ status: 'parsed', parse_error: null, updated_at: new Date() })
             .where('id', '=', message.id)
             .execute();
-        // Se o parser extraiu um hint de sistema mas não casou com nenhum sistema
-        // cadastrado, cria uma system_suggestion pendente para fechar o loop:
-        // admin revisa → aprova → alias entra em system_aliases → próximos parses detectam.
-        const rawHint = normalized.draft.table.raw_system_hint;
-        if (rawHint && !normalized.draft.table.system_id) {
-            const adminId = req.user?.userId;
-            if (adminId) {
-                // Verifica se já existe sugestão pendente ou aprovada com o mesmo nome
-                const existing = await db_1.db
-                    .selectFrom('system_suggestions')
-                    .select('id')
-                    .where('name', '=', rawHint)
-                    .where('status', 'in', ['pending', 'approved'])
-                    .executeTakeFirst();
-                if (!existing) {
-                    await db_1.db
-                        .insertInto('system_suggestions')
-                        .values({
-                        user_id: adminId,
-                        name: rawHint,
-                        name_pt: null,
-                        node_type: 'system',
-                        parent_id: null,
-                        description: `Sugestão automática gerada ao parsear mensagem Discord: "${message.discord_thread_name ?? message.discord_message_id}"`,
-                        aliases: [rawHint],
-                        status: 'pending',
-                        reviewed_by: null,
-                        reviewed_at: null,
-                        rejection_reason: null,
-                    })
-                        .execute();
-                }
-            }
-        }
+        await ensureSystemSuggestionForDraft(normalized.draft, req.user?.userId, message.discord_thread_name ?? message.discord_message_id);
         return res.json({ data: draft });
     }
     catch (error) {
@@ -995,6 +1046,7 @@ router.post('/drafts/:id/reparse', auth_1.authMiddleware, async (req, res) => {
             .where('id', '=', req.params.id)
             .returningAll()
             .execute();
+        await ensureSystemSuggestionForDraft(normalized.draft, req.user?.userId, message.discord_thread_name ?? message.discord_message_id);
         return res.json({ data: updated });
     }
     catch (error) {

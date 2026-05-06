@@ -6,9 +6,11 @@ import { authMiddleware } from '../middleware/auth';
 import type { DiscordImportMessageStatus, DiscordImportDraftStatus } from '../discord';
 import { DiscordDiscoveryError, DiscordDraftSyncValidationError, DiscordIngestError, discoverDiscordChannels, discoverDiscordGuilds, ingestForumMessages, ingestMessages, syncDiscordDraftToTable, parseDiscordAnnouncement, normalizeDiscordTableDraft } from '../discord';
 import type { SystemEntry } from '../discord';
+import { requireDiscordBotToken } from '../discord/config';
 import { encryptDiscordSetting, decryptDiscordSetting, DiscordSettingsSecretUnavailableError } from '../discord/settingsCrypto';
 
 const router = Router();
+const DISCORD_API_BASE = 'https://discord.com/api/v10';
 
 function isAdmin(req: Request, res: Response): boolean {
   if ((req as any).user?.role !== 'admin') {
@@ -72,6 +74,15 @@ const botTokenSchema = z.object({
   token: z.string().trim().min(50, 'Token deve ter pelo menos 50 caracteres.').regex(/^\S+$/, 'Token não pode conter espaços.'),
 });
 
+const discordMessageDiagnosticSchema = z.object({
+  id: z.string(),
+  content: z.string().optional().default(''),
+  attachments: z.array(z.unknown()).optional().default([]),
+  embeds: z.array(z.unknown()).optional().default([]),
+  message_reference: z.unknown().optional(),
+  flags: z.number().optional(),
+});
+
 /** Carrega todos os sistemas e seus aliases do banco para o parser. */
 // Embeds/attachments podem vir como array (novo) ou JSON string (dados antigos)
 function parseJsonField(value: unknown): unknown[] {
@@ -86,6 +97,29 @@ function parseJsonField(value: unknown): unknown[] {
     try { const parsed = JSON.parse(value); return Array.isArray(parsed) ? parsed : []; } catch { return []; }
   }
   return [];
+}
+
+async function fetchDiscordMessageDiagnostic(channelId: string, messageId: string) {
+  const token = (await requireDiscordBotToken()).trim();
+  const response = await fetch(
+    `${DISCORD_API_BASE}/channels/${encodeURIComponent(channelId)}/messages/${encodeURIComponent(messageId)}`,
+    { headers: { Authorization: `Bot ${token}` } }
+  );
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message = payload && typeof payload === 'object' && 'message' in payload
+      ? String((payload as { message?: unknown }).message)
+      : 'Discord não respondeu como esperado.';
+    throw new DiscordIngestError(message, response.status === 403 ? 403 : 502);
+  }
+
+  const parsed = discordMessageDiagnosticSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new DiscordIngestError('Discord retornou mensagem em formato inesperado.', 502);
+  }
+
+  return parsed.data;
 }
 
 async function loadSystemsForParser(): Promise<SystemEntry[]> {
@@ -114,9 +148,52 @@ async function loadSystemsForParser(): Promise<SystemEntry[]> {
   }));
 }
 
+function getUnmatchedSystemHint(draft: ReturnType<typeof normalizeDiscordTableDraft>['draft']): string | null {
+  if (draft.table.system_id) return null;
+  const hint = draft.table.raw_system_hint ?? draft.table.system_name;
+  const normalized = typeof hint === 'string' ? hint.trim() : '';
+  return normalized.length > 0 ? normalized : null;
+}
+
+async function ensureSystemSuggestionForDraft(
+  draft: ReturnType<typeof normalizeDiscordTableDraft>['draft'],
+  adminId: string | undefined,
+  sourceLabel: string | null | undefined,
+): Promise<void> {
+  const rawHint = getUnmatchedSystemHint(draft);
+  if (!rawHint || !adminId) return;
+
+  const existing = await db
+    .selectFrom('system_suggestions')
+    .select('id')
+    .where('name', '=', rawHint)
+    .where('status', 'in', ['pending', 'approved'])
+    .executeTakeFirst();
+
+  if (existing) return;
+
+  await db
+    .insertInto('system_suggestions')
+    .values({
+      user_id: adminId,
+      name: rawHint,
+      name_pt: null,
+      node_type: 'system',
+      parent_id: null,
+      description: `Sugestão automática gerada ao parsear mensagem Discord: "${sourceLabel ?? rawHint}"`,
+      aliases: [rawHint],
+      status: 'pending',
+      reviewed_by: null,
+      reviewed_at: null,
+      rejection_reason: null,
+    })
+    .execute();
+}
+
 async function createOrUpdateDraftFromMessage(
   message: any,
-  systems: SystemEntry[]
+  systems: SystemEntry[],
+  adminId?: string,
 ): Promise<'draft' | 'ignored'> {
   const parsed = parseDiscordAnnouncement({
     source_kind: message.source_kind,
@@ -184,13 +261,20 @@ async function createOrUpdateDraftFromMessage(
     .where('id', '=', message.id)
     .execute();
 
+  await ensureSystemSuggestionForDraft(
+    normalized.draft,
+    adminId,
+    message.discord_thread_name ?? message.discord_message_id,
+  );
+
   return 'draft';
 }
 
 async function parsePendingMessagesForSource(
   sourceId: string,
   since?: Date,
-  until?: Date
+  until?: Date,
+  adminId?: string,
 ): Promise<{ processed: number; succeeded: number; ignored: number; failed: number }> {
   let query = db
     .selectFrom('discord_import_messages')
@@ -213,7 +297,7 @@ async function parsePendingMessagesForSource(
 
   for (const message of messages) {
     try {
-      const result = await createOrUpdateDraftFromMessage(message, systems);
+      const result = await createOrUpdateDraftFromMessage(message, systems, adminId);
       if (result === 'draft') succeeded++;
       else ignored++;
     } catch (error: unknown) {
@@ -548,7 +632,7 @@ router.post('/fetch', authMiddleware, async (req: Request, res: Response) => {
         .execute();
     }
 
-    const parse = await parsePendingMessagesForSource(source_id, since, until);
+    const parse = await parsePendingMessagesForSource(source_id, since, until, req.user?.userId);
     return res.json({ data: { ...result, parse } });
   } catch (error: unknown) {
     return sendDiscordFetchError(res, error);
@@ -593,7 +677,7 @@ router.post('/sources/:sourceId/reingest-force', authMiddleware, async (req: Req
       .where('id', '=', source.id)
       .execute();
 
-    const parse = await parsePendingMessagesForSource(source.id, since, until);
+    const parse = await parsePendingMessagesForSource(source.id, since, until, req.user?.userId);
     return res.json({ data: { deleted: Number(deleted.numDeletedRows ?? 0), ...result, parse } });
   } catch (error: unknown) {
     return sendDiscordFetchError(res, error);
@@ -678,27 +762,11 @@ router.post('/messages/parse-batch', authMiddleware, async (req: Request, res: R
           .where('id', '=', message.id)
           .execute();
 
-        // Cria system_suggestion se havia hint não reconhecido
-        const rawHint = normalized.draft.table.raw_system_hint;
-        if (rawHint && !parsed.table.system_id) {
-          const alreadyExists = await db.selectFrom('system_suggestions')
-            .select('id')
-            .where('name', '=', rawHint)
-            .where('status', 'in', ['pending', 'approved'])
-            .executeTakeFirst();
-          if (!alreadyExists) {
-            await db.insertInto('system_suggestions')
-              .values({
-                user_id: req.user!.userId,
-                name: rawHint,
-                node_type: 'system',
-                aliases: [rawHint] as any,
-                description: `Sugestão automática (lote): "${rawHint}"`,
-                status: 'pending',
-              })
-              .execute();
-          }
-        }
+        await ensureSystemSuggestionForDraft(
+          normalized.draft,
+          req.user?.userId,
+          message.discord_thread_name ?? message.discord_message_id,
+        );
 
         succeeded++;
       } catch {
@@ -777,6 +845,49 @@ router.patch('/messages/:id', authMiddleware, async (req: Request, res: Response
   } catch (error: unknown) {
     console.error('[PATCH /admin/discord-sync/messages/:id]', error);
     return res.status(500).json({ error: 'Erro ao atualizar mensagem.' });
+  }
+});
+
+// POST /messages/:id/diagnose-content — compara DB vs API Discord sem expor token
+router.post('/messages/:id/diagnose-content', authMiddleware, async (req: Request, res: Response) => {
+  if (!isAdmin(req, res)) return;
+  try {
+    const message = await db
+      .selectFrom('discord_import_messages')
+      .selectAll()
+      .where('id', '=', req.params.id)
+      .executeTakeFirst();
+
+    if (!message) return res.status(404).json({ error: 'Mensagem não encontrada.' });
+
+    const apiMessage = await fetchDiscordMessageDiagnostic(message.discord_channel_id, message.discord_message_id);
+    const apiContentLength = apiMessage.content.trim().length;
+    const dbContentLength = message.content_raw.trim().length;
+    const likelyMissingMessageContentIntent =
+      apiContentLength === 0 &&
+      dbContentLength === 0 &&
+      Boolean(message.discord_thread_name) &&
+      apiMessage.attachments.length === 0 &&
+      apiMessage.embeds.length === 0;
+
+    return res.json({
+      data: {
+        discord_message_id: message.discord_message_id,
+        discord_channel_id: message.discord_channel_id,
+        discord_thread_name: message.discord_thread_name,
+        db_content_length: dbContentLength,
+        api_content_length: apiContentLength,
+        api_attachments_count: apiMessage.attachments.length,
+        api_embeds_count: apiMessage.embeds.length,
+        api_content_preview: apiMessage.content.trim().slice(0, 240),
+        likely_missing_message_content_intent: likelyMissingMessageContentIntent,
+        diagnosis: likelyMissingMessageContentIntent
+          ? 'A API do Discord entregou o starter do tópico sem corpo, anexos ou embeds. O post existe, mas o bot não recebeu o conteúdo pela API; verifique o Message Content Intent no Developer Portal e permissões do canal/tópico.'
+          : 'A API do Discord entregou algum conteúdo para esta mensagem.',
+      },
+    });
+  } catch (error: unknown) {
+    return sendDiscordFetchError(res, error);
   }
 });
 
@@ -933,41 +1044,11 @@ router.post('/messages/:id/parse', authMiddleware, async (req: Request, res: Res
       .where('id', '=', message.id)
       .execute();
 
-    // Se o parser extraiu um hint de sistema mas não casou com nenhum sistema
-    // cadastrado, cria uma system_suggestion pendente para fechar o loop:
-    // admin revisa → aprova → alias entra em system_aliases → próximos parses detectam.
-    const rawHint = normalized.draft.table.raw_system_hint;
-    if (rawHint && !normalized.draft.table.system_id) {
-      const adminId = (req as any).user?.userId as string | undefined;
-      if (adminId) {
-        // Verifica se já existe sugestão pendente ou aprovada com o mesmo nome
-        const existing = await db
-          .selectFrom('system_suggestions')
-          .select('id')
-          .where('name', '=', rawHint)
-          .where('status', 'in', ['pending', 'approved'])
-          .executeTakeFirst();
-
-        if (!existing) {
-          await db
-            .insertInto('system_suggestions')
-            .values({
-              user_id: adminId,
-              name: rawHint,
-              name_pt: null,
-              node_type: 'system',
-              parent_id: null,
-              description: `Sugestão automática gerada ao parsear mensagem Discord: "${message.discord_thread_name ?? message.discord_message_id}"`,
-              aliases: [rawHint],
-              status: 'pending',
-              reviewed_by: null,
-              reviewed_at: null,
-              rejection_reason: null,
-            })
-            .execute();
-        }
-      }
-    }
+    await ensureSystemSuggestionForDraft(
+      normalized.draft,
+      req.user?.userId,
+      message.discord_thread_name ?? message.discord_message_id,
+    );
 
     return res.json({ data: draft });
   } catch (error: unknown) {
@@ -1038,6 +1119,12 @@ router.post('/drafts/:id/reparse', authMiddleware, async (req: Request, res: Res
       .where('id', '=', req.params.id)
       .returningAll()
       .execute();
+
+    await ensureSystemSuggestionForDraft(
+      normalized.draft,
+      req.user?.userId,
+      message.discord_thread_name ?? message.discord_message_id,
+    );
 
     return res.json({ data: updated });
   } catch (error: unknown) {
