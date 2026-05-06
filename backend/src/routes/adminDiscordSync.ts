@@ -723,7 +723,16 @@ router.post('/messages/parse-batch', authMiddleware, async (req: Request, res: R
 router.get('/messages', authMiddleware, async (req: Request, res: Response) => {
   if (!isAdmin(req, res)) return;
   try {
-    const { source_id, status, limit = '50', offset = '0' } = req.query as Record<string, string>;
+    const { source_id, status, limit = '50', offset = '0', since, until } = req.query as Record<string, string>;
+    const sinceDate = since ? new Date(since) : null;
+    const untilDate = until ? new Date(until) : null;
+
+    if ((sinceDate && Number.isNaN(sinceDate.getTime())) || (untilDate && Number.isNaN(untilDate.getTime()))) {
+      return res.status(400).json({ error: 'Janela de tempo inválida.' });
+    }
+    if (sinceDate && untilDate && sinceDate > untilDate) {
+      return res.status(400).json({ error: 'Janela de tempo inválida.' });
+    }
 
     let query = db
       .selectFrom('discord_import_messages')
@@ -733,6 +742,8 @@ router.get('/messages', authMiddleware, async (req: Request, res: Response) => {
       .offset(Number(offset) || 0);
 
     if (source_id) query = query.where('source_id', '=', source_id);
+    if (sinceDate) query = query.where('message_created_at', '>=', sinceDate);
+    if (untilDate) query = query.where('message_created_at', '<=', untilDate);
     const validMessageStatuses: DiscordImportMessageStatus[] = ['pending', 'parsed', 'needs_review', 'synced', 'ignored', 'error'];
     if (status && validMessageStatuses.includes(status as DiscordImportMessageStatus)) {
       query = query.where('status', '=', status as DiscordImportMessageStatus);

@@ -684,7 +684,15 @@ router.get('/messages', auth_1.authMiddleware, async (req, res) => {
     if (!isAdmin(req, res))
         return;
     try {
-        const { source_id, status, limit = '50', offset = '0' } = req.query;
+        const { source_id, status, limit = '50', offset = '0', since, until } = req.query;
+        const sinceDate = since ? new Date(since) : null;
+        const untilDate = until ? new Date(until) : null;
+        if ((sinceDate && Number.isNaN(sinceDate.getTime())) || (untilDate && Number.isNaN(untilDate.getTime()))) {
+            return res.status(400).json({ error: 'Janela de tempo inválida.' });
+        }
+        if (sinceDate && untilDate && sinceDate > untilDate) {
+            return res.status(400).json({ error: 'Janela de tempo inválida.' });
+        }
         let query = db_1.db
             .selectFrom('discord_import_messages')
             .selectAll()
@@ -693,6 +701,10 @@ router.get('/messages', auth_1.authMiddleware, async (req, res) => {
             .offset(Number(offset) || 0);
         if (source_id)
             query = query.where('source_id', '=', source_id);
+        if (sinceDate)
+            query = query.where('message_created_at', '>=', sinceDate);
+        if (untilDate)
+            query = query.where('message_created_at', '<=', untilDate);
         const validMessageStatuses = ['pending', 'parsed', 'needs_review', 'synced', 'ignored', 'error'];
         if (status && validMessageStatuses.includes(status)) {
             query = query.where('status', '=', status);

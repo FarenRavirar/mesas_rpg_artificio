@@ -32,11 +32,36 @@ const REVIEW_ACTIONS: Array<{ status: DiscordImportMessageStatus; label: string;
   { status: 'ignored', label: 'Ignorar', className: 'bg-white/10 hover:bg-white/20' },
 ];
 
+const MESSAGE_WINDOW_OPTIONS = [
+  { value: '24h', label: 'Últimas 24h', days: 1 },
+  { value: '7d', label: 'Últimos 7 dias', days: 7 },
+  { value: '30d', label: 'Últimos 30 dias', days: 30 },
+  { value: '90d', label: 'Últimos 90 dias', days: 90 },
+  { value: 'all', label: 'Sem limite', days: null },
+] as const;
+
+type MessageWindowOption = (typeof MESSAGE_WINDOW_OPTIONS)[number]['value'];
+
+function buildMessageWindow(value: MessageWindowOption): DiscordFetchWindow {
+  const option = MESSAGE_WINDOW_OPTIONS.find((item) => item.value === value);
+  if (!option?.days) return {};
+  const since = new Date();
+  since.setDate(since.getDate() - option.days);
+  return { since: since.toISOString(), until: new Date().toISOString() };
+}
+
+function getMessageTitle(message: DiscordMessage): string {
+  if (message.discord_thread_name) return message.discord_thread_name;
+  const content = message.content_raw.trim();
+  if (content) return content.split('\n').find(Boolean) ?? content;
+  return 'Mensagem sem título';
+}
+
 function getMessagePreview(message: DiscordMessage): string {
   const content = message.content_raw.trim();
   if (content) return content;
-  if (message.discord_thread_name) return `Post sem texto no corpo: ${message.discord_thread_name}`;
-  return 'Mensagem sem texto no corpo. Abra no Discord para conferir anexos ou contexto.';
+  if (message.discord_thread_name) return message.discord_thread_name;
+  return 'Mensagem sem texto disponível.';
 }
 
 export function DiscordSyncPanel() {
@@ -49,6 +74,8 @@ export function DiscordSyncPanel() {
   const [reingestingSourceId, setReingestingSourceId] = useState<string | null>(null);
   const [parsingBatch, setParsingBatch] = useState(false);
   const [messageStatusFilter, setMessageStatusFilter] = useState<DiscordImportMessageStatus | ''>('');
+  const [messageSourceFilter, setMessageSourceFilter] = useState('');
+  const [messageWindowFilter, setMessageWindowFilter] = useState<MessageWindowOption>('7d');
   const [selectedMessage, setSelectedMessage] = useState<DiscordMessage | null>(null);
   const [savingMessageStatus, setSavingMessageStatus] = useState(false);
   const [parsingMessageId, setParsingMessageId] = useState<string | null>(null);
@@ -73,11 +100,13 @@ export function DiscordSyncPanel() {
     }
   };
 
-  const loadMessages = async () => {
+  const loadMessages = async (override?: { sourceId?: string; window?: DiscordFetchWindow }) => {
     setLoadingMessages(true);
     try {
       const data = await discordSyncApi.getMessages({
+        source_id: override?.sourceId ?? (messageSourceFilter || undefined),
         status: messageStatusFilter || undefined,
+        ...(override?.window ?? buildMessageWindow(messageWindowFilter)),
         limit: 100,
       });
       setMessages(Array.isArray(data) ? data : []);
@@ -96,7 +125,7 @@ export function DiscordSyncPanel() {
     if (tab === 'mensagens') {
       loadMessages();
     }
-  }, [tab, messageStatusFilter]);
+  }, [tab, messageStatusFilter, messageSourceFilter, messageWindowFilter]);
 
   useEffect(() => {
     if (tab !== 'mensagens') return;
@@ -109,7 +138,7 @@ export function DiscordSyncPanel() {
     }
   }, [messages, selectedMessage, tab]);
 
-  const handleFetchMessages = async (sourceId: string, window: DiscordFetchWindow) => {
+  const handleFetchMessages = async (sourceId: string, window: DiscordFetchWindow, windowOption: MessageWindowOption = '7d') => {
     setFetchingSourceId(sourceId);
     try {
       const source = sources.find(item => item.id === sourceId);
@@ -120,7 +149,10 @@ export function DiscordSyncPanel() {
       } else {
         toast.success(`+${result.inserted} mensagens, ${result.updated} atualizadas.${draftsText}`);
       }
-      if (tab === 'mensagens') loadMessages();
+      setMessageSourceFilter(sourceId);
+      setMessageWindowFilter(windowOption);
+      setTab('mensagens');
+      loadMessages({ sourceId, window });
       loadSources();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao buscar mensagens.');
@@ -159,14 +191,17 @@ export function DiscordSyncPanel() {
     }
   };
 
-  const handleReingestForce = async (sourceId: string, fetchWindow: DiscordFetchWindow) => {
+  const handleReingestForce = async (sourceId: string, fetchWindow: DiscordFetchWindow, windowOption: MessageWindowOption = '7d') => {
     if (!window.confirm('Isso vai apagar todas as mensagens pendentes desta fonte e rebuscar tudo do Discord. Confirmar?')) return;
     setReingestingSourceId(sourceId);
     try {
       const result = await discordSyncApi.reingestForce(sourceId, fetchWindow);
       const draftsText = result.parse ? ` ${result.parse.succeeded} drafts criados/atualizados.` : '';
       toast.success(`Reidratado: ${result.deleted} apagadas, +${result.inserted} rebuscadas.${draftsText}`);
-      if (tab === 'mensagens') loadMessages();
+      setMessageSourceFilter(sourceId);
+      setMessageWindowFilter(windowOption);
+      setTab('mensagens');
+      loadMessages({ sourceId, window: fetchWindow });
       loadSources();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao reidratar.');
@@ -238,6 +273,25 @@ export function DiscordSyncPanel() {
         <div>
           <div className="flex flex-wrap items-center gap-3 mb-4">
             <select
+              value={messageSourceFilter}
+              onChange={e => setMessageSourceFilter(e.target.value)}
+              className="app-select"
+            >
+              <option value="">Todas as fontes</option>
+              {sources.map(source => (
+                <option key={source.id} value={source.id}>{source.channel_name ?? source.channel_id}</option>
+              ))}
+            </select>
+            <select
+              value={messageWindowFilter}
+              onChange={e => setMessageWindowFilter(e.target.value as MessageWindowOption)}
+              className="app-select"
+            >
+              {MESSAGE_WINDOW_OPTIONS.map(option => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+            <select
               value={messageStatusFilter}
               onChange={e => setMessageStatusFilter(e.target.value as DiscordImportMessageStatus | '')}
               className="app-select"
@@ -248,7 +302,7 @@ export function DiscordSyncPanel() {
               ))}
             </select>
             <button
-              onClick={loadMessages}
+              onClick={() => loadMessages()}
               className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg transition-colors"
             >
               Recarregar
@@ -316,7 +370,10 @@ export function DiscordSyncPanel() {
                           </span>
                         )}
                       </div>
-                      <p className="text-white/70 text-sm truncate">{getMessagePreview(msg).slice(0, 200)}</p>
+                      <p className="text-white text-sm font-medium truncate">{getMessageTitle(msg)}</p>
+                      {msg.content_raw.trim() && (
+                        <p className="text-white/60 text-xs truncate mt-1">{getMessagePreview(msg).slice(0, 200)}</p>
+                      )}
                       {msg.parse_error && (
                         <p className="text-red-400 text-xs mt-1">Erro: {msg.parse_error}</p>
                       )}
@@ -382,7 +439,7 @@ export function DiscordSyncPanel() {
                     </div>
 
                     <div className="grid grid-cols-1 gap-2 text-xs text-white/50">
-                      <div><span className="text-white/30">Origem:</span> {selectedMessage.discord_thread_name ?? selectedMessage.discord_channel_id}</div>
+                      <div><span className="text-white/30">Post:</span> {getMessageTitle(selectedMessage)}</div>
                       <div><span className="text-white/30">Autor:</span> {selectedMessage.discord_author_name ?? selectedMessage.discord_author_id ?? 'autor desconhecido'}</div>
                       <div><span className="text-white/30">Data:</span> {selectedMessage.message_created_at ? new Date(selectedMessage.message_created_at).toLocaleString('pt-BR') : 'sem data'}</div>
                     </div>
@@ -391,7 +448,7 @@ export function DiscordSyncPanel() {
                       <p className="text-xs text-white/60 mb-1">Conteúdo completo</p>
                       <textarea
                         readOnly
-                        value={selectedMessage.content_raw.trim() ? selectedMessage.content_raw : getMessagePreview(selectedMessage)}
+                        value={selectedMessage.content_raw.trim() ? selectedMessage.content_raw : getMessageTitle(selectedMessage)}
                         className="w-full min-h-[220px] resize-y bg-[#0F1A2E] border border-white/10 rounded-lg px-3 py-2 text-sm text-white/80 outline-none"
                       />
                     </div>

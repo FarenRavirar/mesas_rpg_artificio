@@ -6,9 +6,9 @@ import { discordSyncApi } from '../api/discordSyncApi';
 interface Props {
   sources: DiscordSource[];
   onRefresh: () => void;
-  onFetchMessages: (sourceId: string, window: DiscordFetchWindow) => void;
+  onFetchMessages: (sourceId: string, window: DiscordFetchWindow, windowOption: FetchWindowOption) => void;
   fetchingSourceId: string | null;
-  onReingestForce?: (sourceId: string, window: DiscordFetchWindow) => void;
+  onReingestForce?: (sourceId: string, window: DiscordFetchWindow, windowOption: FetchWindowOption) => void;
   reingestingSourceId?: string | null;
 }
 
@@ -356,7 +356,10 @@ export function DiscordSourceList({ sources, onRefresh, onFetchMessages, fetchin
                   ))}
                 </select>
                 <button
-                  onClick={() => onFetchMessages(source.id, buildFetchWindow(fetchWindows[source.id] ?? '7d'))}
+                  onClick={() => {
+                    const selectedWindow = fetchWindows[source.id] ?? '7d';
+                    onFetchMessages(source.id, buildFetchWindow(selectedWindow), selectedWindow);
+                  }}
                   disabled={fetchingSourceId === source.id || reingestingSourceId === source.id || !source.enabled}
                   className="px-3 py-1 bg-blue-700 hover:bg-blue-600 text-white text-xs rounded-lg transition-colors disabled:opacity-40"
                 >
@@ -366,7 +369,10 @@ export function DiscordSourceList({ sources, onRefresh, onFetchMessages, fetchin
                 </button>
                 {onReingestForce && (
                   <button
-                    onClick={() => onReingestForce(source.id, buildFetchWindow(fetchWindows[source.id] ?? '7d'))}
+                    onClick={() => {
+                      const selectedWindow = fetchWindows[source.id] ?? '7d';
+                      onReingestForce(source.id, buildFetchWindow(selectedWindow), selectedWindow);
+                    }}
                     disabled={fetchingSourceId === source.id || reingestingSourceId === source.id || !source.enabled}
                     title="Apaga mensagens pendentes e rebusca respeitando a janela escolhida"
                     className="px-3 py-1 bg-amber-700 hover:bg-amber-600 text-white text-xs rounded-lg transition-colors disabled:opacity-40"
