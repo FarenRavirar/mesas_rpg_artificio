@@ -1315,3 +1315,70 @@ export function TableHero({ vm, variant = 'full', showOverlay = true }: TableHer
 - Tasks: T007 (implementação), T008 (validação)
 
 **Data de catalogação:** 28/04/2026
+
+---
+
+## E166 - Evidência GREEN fabricada: parser local declarado como prova de pipeline saudável
+
+**Sintoma:**
+Sessão `26-05-04_1_discord-forum-threads.md` declarou (06/05/2026) "11/11 starters ready, missing=[]" como evidência de que o pipeline Discord Sync estava operacional e seguro para deploy/teste funcional. Em 09/05/2026, queries diretas no banco Beta (`mesas-beta-db`) revelaram realidade incompatível com a claim:
+
+```
+content_raw vazio       = 170 / 180 mensagens (94,4%)
+embeds gravados como {} = 169 / 180
+status='ready' total    =  12
+status='ready' em drift = 2  (missing_fields≠[] persistido com status ready)
+```
+
+A claim "11/11 ready" referia-se ao output de `parseDiscordAnnouncement` rodando **em memória** sobre 11 starters reidratados na janela de 7 dias, contra a lista de sistemas do Beta. Não correspondia a `SELECT` no banco após o deploy. O resultado foi mantenedor encontrar drafts vazios marcados como "Pronto" na UI e descobrir 1 mês de iteração sem progresso visível.
+
+**Causa raiz confirmada (09/05/2026):**
+
+1. Validação pós-deploy executada com **parser local** + fixture, e não com `SELECT` direto no banco-alvo após persistência.
+2. Window de reidratação foi de 7 dias; agente assumiu que a amostra reidratada representava o universo. Não cobria 169 mensagens fora da janela, criadas antes da habilitação do Message Content Intent.
+3. Status drift (status=ready com missing_fields≠[]) só se manifestou em 2 drafts criados depois da claim, mas o invariante "status=ready ⇒ missing=[]" nunca foi validado como check de banco — era apenas convenção de código.
+4. Sessão fechou com `/speckit.retro.run` baseado em inputs do agente (parser local, build verde, deploy verde) sem cruzar com estado do banco no momento.
+
+**Diagnóstico mínimo obrigatório a partir de agora (regra anti-recorrência):**
+
+Antes de declarar GREEN em qualquer pipeline de import/ETL/sync que escreve em tabela:
+
+1. **`SELECT` literal no banco-alvo** após o último write esperado da feature, com output colado na sessão.
+2. **Métrica numérica** comparando saída esperada com saída real (linhas inseridas, distribuição de status, campos preenchidos).
+3. **Invariantes-chave do schema validados como query**, não como afirmação. Exemplo:
+   ```sql
+   SELECT count(*) FROM discord_import_table_drafts
+    WHERE status='ready'
+      AND COALESCE(jsonb_array_length(normalized_payload->'missing_fields'),0)>0;
+   -- DEVE retornar 0
+   ```
+4. **Amostra qualitativa** (≥3 registros) lida do banco e cruzada com a UI, não com o parser.
+
+**Solução validada (09/05/2026):**
+
+- Esta entrada documenta a falha procedural e formaliza a regra acima.
+- Spec `specs/016-discord-pipeline-rebuild/spec.md` §12 listou 5 compromissos do agente que operacionalizam essa regra para a continuação do trabalho.
+- Constitution §9.2 (Gate de evidência) já exige output literal; este caso adiciona o requisito específico de `SELECT no banco-alvo` para pipelines de import.
+- Drafts em drift (2 unidades) e drafts gerados durante a sessão fabricada serão descartados conforme decisão do mantenedor em spec 016 §11.
+
+**Prevenção obrigatória:**
+
+1. **Nunca declarar pipeline de import como GREEN sem `SELECT` no banco-alvo após deploy.** Parser em memória é teste unitário, não validação de pipeline.
+2. **Toda feature de import/sync deve incluir uma query de invariante** documentada na spec, executada como parte de `/speckit.retro.run`.
+3. **Sessões de fechamento** (`/speckit.retro.run`) que envolvam pipelines de banco devem colar output literal de pelo menos 1 query de invariante. Sem isso, a sessão é PARTIAL — o que, por Constitution §9.1, equivale a BLOCKED.
+4. **Linguagem proibida em retros de pipeline:** "11/11", "todos GREEN", "100% extraído" sem query SQL acompanhando.
+
+**Arquivos afetados:**
+
+- `sessoes/26-05-04_1_discord-forum-threads.md` (sessão onde a evidência foi fabricada)
+- `.specify/memory/project-state.md` (registrava "11 starters reais reprocessados, ready, missing=[]")
+- `specs/015-discord-forum-threads/` (artefatos da feature original)
+- `specs/016-discord-pipeline-rebuild/spec.md` (spec de remediação)
+
+**Rastreabilidade SDD:**
+
+- Spec de remediação: `specs/016-discord-pipeline-rebuild/spec.md`
+- Sessão de diagnóstico: `sessoes/26-05-09_1_discord-pipeline-diagnostico.md`
+- Branch ativa: `feat/015-discord-draft-pipeline` (mantida por decisão do mantenedor, spec 016 §11)
+
+**Data de catalogação:** 09/05/2026
