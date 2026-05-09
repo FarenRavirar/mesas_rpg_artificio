@@ -1,8 +1,15 @@
 import crypto from 'node:crypto';
+import { sql } from 'kysely';
 import { z } from 'zod';
 import { db } from '../db';
 import type { DiscordImportSourceKind, DiscordSourceChannelType } from './types';
 import { requireDiscordBotToken } from './config';
+
+// BUG-004: pg driver converte arrays JS para literal de array Postgres ('{a,b,c}'),
+// formato inválido para colunas JSONB. Serializamos como JSON e fazemos cast explícito.
+function asJsonbArray(value: unknown): ReturnType<typeof sql<unknown[]>> {
+  return sql<unknown[]>`${JSON.stringify(value ?? [])}::jsonb`;
+}
 
 const DISCORD_API_BASE = 'https://discord.com/api/v10';
 
@@ -56,6 +63,8 @@ export interface IngestResult {
   sourceKind: DiscordSourceChannelType;
 }
 
+type JsonbParam = ReturnType<typeof sql<unknown[]>>;
+
 type InsertRow = {
   source_id: string;
   discord_message_id: string;
@@ -68,8 +77,8 @@ type InsertRow = {
   discord_author_name: string | null;
   discord_message_url: string;
   content_raw: string;
-  attachments: unknown[];
-  embeds: unknown[];
+  attachments: JsonbParam;
+  embeds: JsonbParam;
   message_created_at: Date | null;
   message_edited_at: Date | null;
   content_hash: string;
@@ -77,7 +86,7 @@ type InsertRow = {
   status: 'pending';
 };
 
-type UpdateRow = { id: string; contentRaw: string; contentHash: string; embeds: unknown[]; attachments: unknown[] };
+type UpdateRow = { id: string; contentRaw: string; contentHash: string; embeds: JsonbParam; attachments: JsonbParam };
 
 function getSnowflakeCreatedAt(id: string): Date | null {
   try {
@@ -240,8 +249,8 @@ async function persistMessages(params: {
         discord_author_name: msg.author?.username ?? null,
         discord_message_url: messageUrl,
         content_raw: contentRaw,
-        attachments: (msg.attachments ?? []) as unknown[],
-        embeds: (msg.embeds ?? []) as unknown[],
+        attachments: asJsonbArray(msg.attachments),
+        embeds: asJsonbArray(msg.embeds),
         message_created_at: msg.timestamp ? new Date(msg.timestamp) : null,
         message_edited_at: msg.edited_timestamp ? new Date(msg.edited_timestamp) : null,
         content_hash: contentHash,
@@ -249,7 +258,13 @@ async function persistMessages(params: {
         status: 'pending',
       });
     } else if (existing.content_hash !== contentHash) {
-      toUpdate.push({ id: existing.id, contentRaw, contentHash, embeds: (msg.embeds ?? []) as unknown[], attachments: (msg.attachments ?? []) as unknown[] });
+      toUpdate.push({
+        id: existing.id,
+        contentRaw,
+        contentHash,
+        embeds: asJsonbArray(msg.embeds),
+        attachments: asJsonbArray(msg.attachments),
+      });
     }
   }
 
@@ -263,8 +278,8 @@ async function persistMessages(params: {
       .set({
         content_raw: upd.contentRaw,
         content_hash: upd.contentHash,
-        embeds: upd.embeds as any,
-        attachments: upd.attachments as any,
+        embeds: upd.embeds,
+        attachments: upd.attachments,
         status: 'pending',
         parse_error: null,
         updated_at: new Date(),
