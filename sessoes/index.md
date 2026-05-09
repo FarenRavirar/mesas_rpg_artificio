@@ -1,6 +1,6 @@
 # Índice de Sessões
 
-Última atualização: 04/05/2026 00:00 BRT
+Última atualização: 09/05/2026 BRT
 
 ---
 
@@ -264,9 +264,17 @@
 
 ---
 
+## 09/05/2026 (1 sessão)
+
+| # | Arquivo |
+|---|---|
+| 1 | `26-05-09_1_discord-pipeline-diagnostico.md` |
+
+---
+
 ## Sessão Mais Recente
 
-`26-05-04_1_discord-forum-threads.md`
+`26-05-09_1_discord-pipeline-diagnostico.md`
 
 ---
 
@@ -282,4 +290,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-05-04_2_*` ou nova data
+**Próxima sessão:** `26-05-09_2_*` ou nova data
