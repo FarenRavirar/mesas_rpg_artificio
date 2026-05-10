@@ -33,3 +33,5 @@ export { normalizeDiscordTableDraft } from './normalizeDiscordTableDraft';
 export type { NormalizedDraftStatus } from './normalizeDiscordTableDraft';
 export { DiscordDraftSyncValidationError, syncDiscordDraftToTable } from './syncDiscordDraftToTable';
 export type { SyncResult } from './syncDiscordDraftToTable';
+export { assertDraftReadyTransition } from './draftValidation';
+export type { DraftReadyTransitionInput, DraftReadyTransitionResult } from './draftValidation';

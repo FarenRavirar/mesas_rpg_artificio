@@ -4,7 +4,7 @@ import { db } from '../db';
 import type { DiscordSourceChannelType, NewDiscordSetting } from '../db/types';
 import { authMiddleware } from '../middleware/auth';
 import type { DiscordImportMessageStatus, DiscordImportDraftStatus } from '../discord';
-import { DiscordDiscoveryError, DiscordDraftSyncValidationError, DiscordIngestError, discoverDiscordChannels, discoverDiscordGuilds, ingestForumMessages, ingestMessages, syncDiscordDraftToTable, parseDiscordAnnouncement, normalizeDiscordTableDraft } from '../discord';
+import { DiscordDiscoveryError, DiscordDraftSyncValidationError, DiscordIngestError, assertDraftReadyTransition, discoverDiscordChannels, discoverDiscordGuilds, ingestForumMessages, ingestMessages, syncDiscordDraftToTable, parseDiscordAnnouncement, normalizeDiscordTableDraft } from '../discord';
 import type { SystemEntry } from '../discord';
 import { requireDiscordBotToken } from '../discord/config';
 import { encryptDiscordSetting, decryptDiscordSetting, DiscordSettingsSecretUnavailableError } from '../discord/settingsCrypto';
@@ -947,6 +947,29 @@ router.patch('/drafts/:id', authMiddleware, async (req: Request, res: Response) 
     return res.status(400).json({ error: 'Nenhum dado para atualizar.' });
   }
   try {
+    const current = await db
+      .selectFrom('discord_import_table_drafts')
+      .select(['id', 'normalized_payload'])
+      .where('id', '=', req.params.id)
+      .executeTakeFirst();
+    if (!current) return res.status(404).json({ error: 'Draft não encontrado.' });
+
+    // T-F1-03: invariante status='ready' => missing_fields=[] aplicado em runtime,
+    // espelhando o CHECK CONSTRAINT da migration 118 com mensagem clara para a UI.
+    const patchPayload = parsed.data.normalized_payload as { missing_fields?: unknown } | undefined;
+    const currentPayload = current.normalized_payload as { missing_fields?: unknown } | null;
+    const transition = assertDraftReadyTransition({
+      patchStatus: parsed.data.status,
+      patchPayloadMissing: patchPayload?.missing_fields,
+      currentPayloadMissing: currentPayload?.missing_fields,
+    });
+    if (!transition.allowed) {
+      return res.status(422).json({
+        error: transition.reason ?? "Draft não pode ser marcado como 'ready'.",
+        details: { missing_fields: transition.missingFields ?? [] },
+      });
+    }
+
     const [draft] = await db
       .updateTable('discord_import_table_drafts')
       .set({ ...parsed.data, updated_at: new Date() })
