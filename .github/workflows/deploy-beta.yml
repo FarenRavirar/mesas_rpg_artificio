@@ -98,8 +98,13 @@ jobs:
             # Run migrations
             bash ./scripts/deploy/apply_required_migrations.sh docker-compose.beta.yml mesas-beta-db
 
-  deploy-app:
+  smoke-discord:
     needs: migrate
+    uses: ./.github/workflows/_smoke-discord.yml
+    secrets: inherit
+
+  deploy-app:
+    needs: [migrate, smoke-discord]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
