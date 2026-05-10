@@ -264,17 +264,18 @@
 
 ---
 
-## 09/05/2026 (1 sessão)
+## 09/05/2026 (2 sessões)
 
 | # | Arquivo |
 |---|---|
 | 1 | `26-05-09_1_discord-pipeline-diagnostico.md` |
+| 2 | `26-05-09_2_discord-pipeline-fase-1-em-diante.md` |
 
 ---
 
 ## Sessão Mais Recente
 
-`26-05-09_1_discord-pipeline-diagnostico.md`
+`26-05-09_2_discord-pipeline-fase-1-em-diante.md`
 
 ---
 

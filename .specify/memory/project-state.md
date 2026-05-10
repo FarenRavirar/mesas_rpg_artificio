@@ -1,7 +1,7 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-05-06T17:55:00-03:00
-**Atualizado por:** sessão 26-05-04_1_discord-forum-threads
+**Última atualização:** 2026-05-09T13:15:00-03:00
+**Atualizado por:** sessão 26-05-09_1_discord-pipeline-diagnostico
 ---
 
 ## Ambientes
@@ -15,11 +15,45 @@
 
 ## Estado Técnico Atual
 
-**Branch ativa:** `feat/015-discord-draft-pipeline` — BUG-003 com parser/sugestões corrigidos e deploy dev autorizado
-**Último commit base:** `790bd11` — `origin/dev` com reidratacao/filtro temporal parcial
+**Branch ativa:** `feat/015-discord-draft-pipeline` — Fase 0 do plan 016 entregue (BUG-004 corrigido, T-EXEC-1 GREEN, 189/194 mensagens com body, 111 drafts ready limpos, 0 drafts em drift).
+**Último commit em `origin/dev`:** `3baa605` — `docs(session): T-EXEC-1 GREEN após fix BUG-004 — evidência completa`
 
-**Feature ativa:** `specs/015-discord-forum-threads/`
-**Sessão ativa:** `sessoes/26-05-04_1_discord-forum-threads.md`
+**Feature ativa de remediação:** `specs/016-discord-pipeline-rebuild/` (substitui o estado anterior da feature 015 como objetivo do trabalho).
+**Sessão ativa:** `sessoes/26-05-09_2_discord-pipeline-fase-1-em-diante.md` (Fase 1+).
+**Sessão de diagnóstico (encerrável):** `sessoes/26-05-09_1_discord-pipeline-diagnostico.md`.
+
+**Erros canônicos novos:** `E166` (evidência GREEN fabricada — regra anti-recorrência exige `SELECT` no banco-alvo após qualquer write em pipeline de import).
+
+**Reset estrutural do pipeline Discord (09/05/2026):**
+- Diagnóstico via `SELECT` no Beta revelou 170/180 mensagens com `content_raw` vazio, 169/180 `embeds` gravados como objeto vazio, 2 drafts `ready` em drift.
+- Spec 016 entregue (`spec.md`, `plan.md`, `tasks.md`, `research-llm.md`, `research-template.md`).
+- BUG-004 catalogado e corrigido em `backend/src/discord/ingestMessages.ts` (helper `asJsonbArray` com `sql<unknown[]>` e cast `::jsonb`). Anteriormente `persistMessages` enviava arrays JS para colunas JSONB; pg convertia para literal de array Postgres `'{a,b,c}'` (inválido para JSONB).
+- Deploy Beta run `25629337251` GREEN. Health Beta HTTP 200.
+- T-EXEC-1 (reingestão sem janela) GREEN nos dois fóruns:
+  - `📖┃campanhas`: 111 mensagens, 109 com body (98,2%), 109 drafts criados, 2 ignored, 0 falhas.
+  - `🎯┃one-shots`: 83 mensagens, 80 com body (96,4%), 80 drafts criados, 3 ignored, 0 falhas.
+- **Snapshot de invariantes (09/05 13:09 UTC, via `SELECT` literal):**
+  - `discord_import_messages` = 194 (parsed=189, ignored=5)
+  - `discord_import_table_drafts` = 189 (ready=111, needs_review=78)
+  - `ready_dirty (status=ready AND missing≠[])` = **0** ← invariante OK
+  - `embeds typeof = array` para 194/194 mensagens
+- **Decisão LLM (T-RES-1):** 9router (https://github.com/decolua/9router) na VM Oracle, primários `gpt-5.4` e `gemini-3.1-pro-preview`. Detalhes em `specs/016-discord-pipeline-rebuild/research-llm.md`.
+- **Decisão template Discord (T-RES-2):** Forum Guidelines + bot validador. Detalhes em `specs/016-discord-pipeline-rebuild/research-template.md`. Negociação com admin do Covil ainda pendente.
+- **Status:** Fase 0 (reset/backfill) **DONE**. Fase 1 (limpeza de invariantes via constraint + parser não-cria-draft-vazio) **READY** para iniciar.
+
+**Decisões já fechadas (não perguntar de novo):**
+- Escopo α + β + γ + δ + ε
+- Drafts antigos descartados, não corrigidos in-place
+- Reingestão sem janela autorizada (e executada)
+- Branch `feat/015-discord-draft-pipeline` mantida
+- LLM via 9router, modelos primários definidos
+
+**Decisões abertas (registradas em `sessoes/26-05-09_2_*` §"Decisões abertas"):**
+- Lista canônica de cenários (antes da Fase 3)
+- Limiar `θ` de confidence_field (antes da Fase 4, default proposto 0.7)
+- Quem provisiona o 9router (antes da Fase 5.δ)
+- Limite mensal de custo LLM
+- Canal de comunicação com admin do Covil do Lich (antes da Fase 5.ε)
 
 **BUG-003 — Fórum importado vira draft publicável (05–06/05/2026):**
 - Reportado pelo mantenedor: o lançamento não resolveu o objetivo principal porque mensagens vindas do Discord não estavam virando drafts de mesa publicáveis.
@@ -284,13 +318,22 @@
 
 ## Próxima Ação
 
-**Feature 015 — Importação de Posts de Fóruns Discord:**
+**Spec 016 — Reconstrução do Pipeline Discord Sync (lidera roadmap):**
+
+1. ✅ **Fase 0 entregue (09/05/2026):** spec/plan/tasks/research, BUG-004 corrigido, T-EXEC-1 GREEN. Snapshot validado por `SELECT` (E166 obediente).
+2. **Próximo passo:** iniciar **Fase 1** detalhada em `sessoes/26-05-09_2_discord-pipeline-fase-1-em-diante.md`:
+   - Migration 118 com `CHECK CONSTRAINT` para `status='ready' ⇒ missing_fields=[]`.
+   - Guard em `PATCH /drafts/:id` que rejeita 422.
+   - Parser não cria draft sem matéria-prima (body + embeds vazios).
+   - UI: badge "Pronto" só com `missing=[]`.
+   - Smoke test pós-deploy automatizado (lição BUG-004).
+3. **Validação manual recomendada antes da Fase 1:** mantenedor revisa amostra de 5–10 dos 111 drafts ready no painel admin Beta para validar qualidade da extração.
+4. **Critério de fechamento:** spec 016 §9 itens 1, 4 e 6 atendidos; query de invariante GREEN em Beta após deploy.
+
+**Feature 015 — Importação de Posts de Fóruns Discord (status pré-016):**
 1. ✅ **Spec/plan/tasks/implement concluídos:** `specs/015-discord-forum-threads/` com implementação backend/frontend local.
-2. ✅ **Validação técnica:** builds backend e frontend verdes; busca final sem `AbortSignal.timeout`; sem logs de token detectados.
-3. ✅ **Checks da PR #145:** verdes em 2026-05-04T08:10:08-03:00.
-4. ✅ **Merge em dev:** PR #145 mergeada com commit `13655dd`.
-5. ✅ **Deploy Beta:** run `25317356143` GREEN; health público retornou HTTP 200.
-6. **Próximo passo funcional:** mantenedor testar em janela anônima no Beta: cadastrar fórum real como fonte, executar busca e confirmar importação/deduplicação de posts/threads.
+2. ✅ **Bugs catalogados:** BUG-001, BUG-002, BUG-003 todos patched; **BUG-004** (incidente de serialização JSONB) corrigido em 09/05/2026 (sessão 26-05-09_1).
+3. **Status:** feature 015 entrega operacional do pipeline; refinamento estrutural ocorre via spec 016.
 
 **Feature 014 — Descoberta de Canais Discord:**
 1. ✅ **Spec/plan/tasks/implement concluídos:** `specs/014-discord-channel-discovery/` com implementação backend/frontend local.
