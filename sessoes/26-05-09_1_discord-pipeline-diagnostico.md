@@ -84,3 +84,53 @@ Drafts em drift identificados (status=ready com missing≠[]):
 - `75a9df05-…-f41563124bbe` — `One Two Six: Em busca do Símbolo de Wengaltaedhel` (body=0)
 
 Quando a mensagem possui corpo (10 casos), o parser gera draft com `confidence=1.0`, `missing_fields=[]`, todos os campos preenchidos.
+
+---
+
+### Execução T-EXEC-1 (09/05/2026, pós-deploy do fix BUG-004)
+
+**Sequência completa:**
+
+1. T-EXEC-1 1ª tentativa (ainda com bug): DELETE rolou, INSERT falhou em ambos os fóruns com `invalid input syntax for type json`. 180 mensagens locais zeradas; 0 efeito em mesas publicadas.
+2. BUG-004 catalogado e patcheado em `backend/src/discord/ingestMessages.ts` (helper `asJsonbArray` com `sql<unknown[]>` e cast `::jsonb`).
+3. Build backend GREEN. Commits `5894422` (docs 016), `deb857a` (E166), `212c3ec` (fix BUG-004), `5a13a3f` (rebuild dist).
+4. Push `feat/015-discord-draft-pipeline → origin/dev`. Deploy Beta run `25629337251` GREEN. Health Beta HTTP 200.
+5. T-EXEC-1 2ª tentativa (com fix deployado):
+
+```text
+campanhas: {"deleted":0,"inserted":111,"updated":0,"total":111,
+            "threadsScanned":106,"sourceKind":"forum",
+            "parse":{"processed":111,"succeeded":109,"ignored":2,"failed":0}}
+
+one-shots: {"deleted":0,"inserted":83,"updated":0,"total":83,
+            "threadsScanned":76,"sourceKind":"forum",
+            "parse":{"processed":83,"succeeded":80,"ignored":3,"failed":0}}
+```
+
+**Snapshot pós-execução (SELECT literal — E166 obediente):**
+
+```text
+channel_name  | msgs | with_body |  pct
+🎯┃one-shots  |   83 |        80 |  96.4
+📖┃campanhas  |  111 |       109 |  98.2
+
+msgs.status:  parsed=189   ignored=5
+draft.status: ready=111    needs_review=78
+ready_dirty (status=ready AND missing≠[]): 0   ← invariante OK
+embeds typeof: array=194   ← 100% (vs antes 11/180=6%)
+```
+
+**Comparação antes × depois T-EXEC-1:**
+
+| Métrica | Antes (09/05 manhã) | Depois |
+|---|---|---|
+| Mensagens totais | 180 | 194 |
+| Com body | 10 (5.6%) | 189 (97.4%) |
+| Drafts ready limpos | 10 | 111 |
+| Drafts em drift | 2 | **0** |
+| Embeds como array | 11 | 194 |
+
+**Critérios de aceitação spec 016 §9:**
+- ✅ #1 invariantes de banco: `ready_dirty=0`
+- ✅ #2 cobertura body ≥95%: 97.4%
+- ✅ E166: claim acompanhado de `SELECT` literal e métrica numérica
