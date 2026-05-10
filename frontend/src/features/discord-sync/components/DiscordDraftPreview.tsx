@@ -328,7 +328,12 @@ export function DiscordDraftPreview({ draft, onUpdate, onClose }: Props) {
           ) : (
             <>
               <span className="text-white/60 text-sm">Status:</span>
-              <span className="text-white text-sm font-medium">{draft.status}</span>
+              <span className="text-white text-sm font-medium">
+                {canSync ? 'Pronto' : draft.status === 'synced' ? 'Sincronizado' : draft.status === 'rejected' ? 'Rejeitado' : 'Revisar'}
+              </span>
+              {draft.status === 'ready' && !canSync && (
+                <span className="text-amber-300 text-xs">({missingFields.length} pendência{missingFields.length === 1 ? '' : 's'})</span>
+              )}
               {draft.confidence != null && <span className="text-white/40 text-xs">confiança: {(draft.confidence * 100).toFixed(0)}%</span>}
               <button onClick={() => setEditingStatus(true)} className="ml-auto px-2 py-1 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-xs rounded-lg transition-colors">
                 Editar status

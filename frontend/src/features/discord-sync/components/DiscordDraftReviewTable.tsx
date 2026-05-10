@@ -68,7 +68,19 @@ export function DiscordDraftReviewTable() {
     setSelectedDraft(updated);
   };
 
-  const readyCount = drafts.filter(d => d.status === 'ready').length;
+  // T-F1-06: o backend agora garante (CHECK CONSTRAINT) que status='ready' implica
+  // missing_fields=[]. A UI usa o mesmo gate para nunca prometer um sync que o
+  // backend negaria (spec 016 §9 item 4, anti-regressão de E166).
+  const draftMissing = (draft: DiscordDraft): string[] => {
+    const payload = draft.normalized_payload;
+    if (!payload) return [];
+    const raw = (payload as { missing_fields?: unknown }).missing_fields;
+    if (!Array.isArray(raw)) return [];
+    return raw.filter((item): item is string => typeof item === 'string');
+  };
+  const isReady = (draft: DiscordDraft) =>
+    draft.status === 'ready' && draftMissing(draft).length === 0;
+  const readyCount = drafts.filter(isReady).length;
 
   return (
     <div>
@@ -122,9 +134,15 @@ export function DiscordDraftReviewTable() {
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className={`px-2 py-0.5 text-xs rounded-full ${DRAFT_STATUS_COLORS[draft.status]}`}>
-                      {DRAFT_STATUS_LABELS[draft.status]}
-                    </span>
+                    {(() => {
+                      const effectiveStatus: DiscordImportDraftStatus =
+                        draft.status === 'ready' && !isReady(draft) ? 'needs_review' : draft.status;
+                      return (
+                        <span className={`px-2 py-0.5 text-xs rounded-full ${DRAFT_STATUS_COLORS[effectiveStatus]}`}>
+                          {DRAFT_STATUS_LABELS[effectiveStatus]}
+                        </span>
+                      );
+                    })()}
                     {draft.confidence != null && (
                       <span className="text-white/30 text-xs">{(draft.confidence * 100).toFixed(0)}%</span>
                     )}
