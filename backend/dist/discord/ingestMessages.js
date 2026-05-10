@@ -7,9 +7,15 @@ exports.DiscordIngestError = void 0;
 exports.ingestMessages = ingestMessages;
 exports.ingestForumMessages = ingestForumMessages;
 const node_crypto_1 = __importDefault(require("node:crypto"));
+const kysely_1 = require("kysely");
 const zod_1 = require("zod");
 const db_1 = require("../db");
 const config_1 = require("./config");
+// BUG-004: pg driver converte arrays JS para literal de array Postgres ('{a,b,c}'),
+// formato inválido para colunas JSONB. Serializamos como JSON e fazemos cast explícito.
+function asJsonbArray(value) {
+    return (0, kysely_1.sql) `${JSON.stringify(value ?? [])}::jsonb`;
+}
 const DISCORD_API_BASE = 'https://discord.com/api/v10';
 const discordApiMessageSchema = zod_1.z.object({
     id: zod_1.z.string(),
@@ -178,8 +184,8 @@ async function persistMessages(params) {
                 discord_author_name: msg.author?.username ?? null,
                 discord_message_url: messageUrl,
                 content_raw: contentRaw,
-                attachments: (msg.attachments ?? []),
-                embeds: (msg.embeds ?? []),
+                attachments: asJsonbArray(msg.attachments),
+                embeds: asJsonbArray(msg.embeds),
                 message_created_at: msg.timestamp ? new Date(msg.timestamp) : null,
                 message_edited_at: msg.edited_timestamp ? new Date(msg.edited_timestamp) : null,
                 content_hash: contentHash,
@@ -188,7 +194,13 @@ async function persistMessages(params) {
             });
         }
         else if (existing.content_hash !== contentHash) {
-            toUpdate.push({ id: existing.id, contentRaw, contentHash, embeds: (msg.embeds ?? []), attachments: (msg.attachments ?? []) });
+            toUpdate.push({
+                id: existing.id,
+                contentRaw,
+                contentHash,
+                embeds: asJsonbArray(msg.embeds),
+                attachments: asJsonbArray(msg.attachments),
+            });
         }
     }
     if (toInsert.length > 0) {
