@@ -151,6 +151,22 @@ ssh -F C:\projetos\config faren "cd /opt/mesas-beta && bash scripts/deploy/recon
 - **Problema:** `depth`, `aliases`, `has_children`, `children` eram obrigatórios em um tipo, opcionais em outro. Isso causou 17 erros de TypeScript e deploy bloqueado.
 - **Prevenção:** Sempre usar optional chaining (`?.`) e nullish coalescing (`??`).
 
+### L03: CHECK CONSTRAINT idempotente (Migration 118 — 10/05/2026)
+- **Problema:** `ALTER TABLE ... ADD CONSTRAINT ... CHECK (...)` não aceita `IF NOT EXISTS` em Postgres 16. Reaplicar a migration falha com `42710 duplicate_object` se a constraint já existe.
+- **Solução adotada na migration 118:** envolver o `ALTER TABLE` em bloco `DO $$ ... END $$` que consulta `pg_constraint` por `conname` + `conrelid` antes de adicionar.
+  ```sql
+  DO $$ BEGIN
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_constraint
+      WHERE conname = 'meu_check' AND conrelid = 'minha_tabela'::regclass
+    ) THEN
+      ALTER TABLE minha_tabela ADD CONSTRAINT meu_check CHECK (...);
+    END IF;
+  END $$;
+  ```
+- **Pré-requisito antes de adicionar a constraint:** garantir que dados existentes já satisfazem a regra. Se houver linhas em violação, `ADD CONSTRAINT` falha imediatamente. Confirmar com `SELECT count(*) WHERE NOT (regra)` antes da migration.
+- **Aplicado em:** invariante `status='ready' ⇒ missing_fields=[]` em `discord_import_table_drafts` (spec 016 §9 item 1, anti-regressão de E166).
+
 ### Feature 001: Gate de Migrations (21/04/2026)
 - **I2 (Drift Reverso):** Hotfixes manuais aplicados via SSH bypassam `schema_migrations`, causando dessincronização entre banco e disco. **Contramedida:** este guia torna `reconcile_migrations.sh --mark-applied` obrigatório após qualquer intervenção manual. **Ignorar =** próximo deploy bloqueado por drift.
 - **I3 (Validação de Header):** Desenvolvedores criavam migrations ad-hoc sem documentar tipo e autor, dificultando auditoria. **Contramedida:** validação estrita de header e template obrigatório acoplada à esteira de CI. **Ignorar =** push e deploy quebram imediatamente no preflight.
