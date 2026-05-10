@@ -23,26 +23,40 @@ function makeMessage(overrides: Partial<DiscordRawMessage>): DiscordRawMessage {
 }
 
 describe('parseDiscordAnnouncement', () => {
-  it('creates a reviewable draft from a forum starter with empty content using the thread name', () => {
+  it('returns null for forum starters without body and without text in embeds (T-F1-04)', () => {
     const draft = parseDiscordAnnouncement(
       makeMessage({
         discord_message_id: '1499747163977027634',
         discord_channel_id: '1499747163977027634',
         discord_thread_id: '1499747163977027634',
         discord_thread_name: 'Forgotten Realms™: Uma Campanha Sandbox',
+        content_raw: '',
+        embeds: [],
+        attachments: [],
+      }),
+    );
+
+    expect(draft).toBeNull();
+  });
+
+  it('still extracts a draft when the body is empty but embeds carry text (T-F1-05)', () => {
+    const draft = parseDiscordAnnouncement(
+      makeMessage({
+        discord_thread_name: 'Dungeons & Dragons™: Deicídio',
+        content_raw: '',
+        embeds: [
+          {
+            description: '▬ Sistema: Dungeons & Dragons\n▬ Vagas Totais: 4\nQuartas-feiras às 20h\nhttps://forms.gle/example',
+          },
+        ],
       }),
     );
 
     expect(draft).not.toBeNull();
-    expect(draft?.table.title).toBe('Uma Campanha Sandbox');
-    expect(draft?.table.raw_system_hint).toBe('Forgotten Realms');
-    expect(draft?.table.system_name).toBeNull();
-    expect(draft?.missing_fields).toEqual(
-      expect.arrayContaining(['system_name:unmatched_hint', 'description', 'contact_url']),
-    );
+    expect(draft?.table.title).toBe('Deicídio');
   });
 
-  it('creates drafts for real Covil forum starter titles even when only the thread name is available', () => {
+  it('returns null for the full batch of empty-content Covil starters (T-F1-04 batch)', () => {
     const titles = [
       'Forgotten Realms™: Uma Campanha Sandbox',
       'Dungeons & Dragons™: Deicídio',
@@ -66,26 +80,13 @@ describe('parseDiscordAnnouncement', () => {
           discord_thread_id: `starter-${index}`,
           discord_thread_name: threadName,
           content_raw: '',
+          embeds: [],
         }),
       ),
     );
 
     expect(drafts).toHaveLength(12);
-    expect(drafts.every(Boolean)).toBe(true);
-    expect(drafts.map((draft) => draft?.table.title)).toEqual([
-      'Uma Campanha Sandbox',
-      'Deicídio',
-      'A Libertação de Valkaria',
-      'Legends of the Outer Planes',
-      'Lucro, Ossos e Reputação',
-      'O Último Manuscrito',
-      'Wrath of the River King',
-      'The Awakeking: Pó de Osso e Água de Poço',
-      'Dragons Delves',
-      'Dragon Heist + Dungeon of the Mad Mage',
-      'Rise and Fall of Vecna',
-      'Chains of Asmodeus',
-    ]);
+    expect(drafts.every((d) => d === null)).toBe(true);
   });
 
   it('extracts structured table fields from announcement text', () => {

@@ -277,14 +277,6 @@ function normalizeTitle(value: string | null): string | null {
   return cleanTrademark(value.replace(/\*/g, '').replace(/^["“”']|["“”']$/g, '').trim()) || null;
 }
 
-function isThreadStarter(message: DiscordRawMessage): boolean {
-  return Boolean(
-    message.discord_thread_id
-      && message.discord_message_id === message.discord_thread_id
-      && message.discord_channel_id === message.discord_thread_id,
-  );
-}
-
 // Calcula confiança com base nos campos preenchidos
 function calcConfidence(table: DiscordTableDraftTable): number {
   const fields: Array<keyof DiscordTableDraftTable> = [
@@ -311,7 +303,11 @@ export function parseDiscordAnnouncement(
   const rawBody = message.content_raw ?? '';
   // Fóruns Discord frequentemente colocam o conteúdo em embeds em vez do campo content
   const body = rawBody.trim() || extractBodyFromEmbeds(message.embeds ?? []);
-  if (!body.trim() && !isThreadStarter(message)) {
+  // T-F1-05: sem corpo nem texto em embeds não há matéria-prima. Mesmo starters
+  // de fórum agora retornam null em vez de fabricar draft a partir só do thread
+  // name. Drafts vazios eram a maior fonte de needs_review imutável (spec 016
+  // §4 CR-1, anti-regressão de E166).
+  if (!body.trim()) {
     return null;
   }
   const fullText = `${threadName}\n${body}`.trim();
