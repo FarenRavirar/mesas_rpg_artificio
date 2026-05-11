@@ -1,7 +1,7 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-05-09T13:15:00-03:00
-**Atualizado por:** sessão 26-05-09_1_discord-pipeline-diagnostico
+**Última atualização:** 2026-05-11T10:55:00-03:00
+**Atualizado por:** sessão 26-05-09_2_discord-pipeline-fase-1-em-diante (Fase 1 fechada)
 ---
 
 ## Ambientes
@@ -15,8 +15,8 @@
 
 ## Estado Técnico Atual
 
-**Branch ativa:** `feat/015-discord-draft-pipeline` — Fase 0 do plan 016 entregue (BUG-004 corrigido, T-EXEC-1 GREEN, 189/194 mensagens com body, 111 drafts ready limpos, 0 drafts em drift).
-**Último commit em `origin/dev`:** `3baa605` — `docs(session): T-EXEC-1 GREEN após fix BUG-004 — evidência completa`
+**Branch ativa:** `feat/015-discord-draft-pipeline` — Fase 1 do plan 016 entregue (migration 118 aplicada no Beta, guard PATCH 422, parser null para body+embeds vazios, frontend badge consistente, smoke workflow integrado ao Deploy Beta).
+**Último commit em `origin/dev`:** `bc8a9f0` — `fix(ci): smoke discord inclui content_hash NOT NULL no INSERT`
 
 **Feature ativa de remediação:** `specs/016-discord-pipeline-rebuild/` (substitui o estado anterior da feature 015 como objetivo do trabalho).
 **Sessão ativa:** `sessoes/26-05-09_2_discord-pipeline-fase-1-em-diante.md` (Fase 1+).
@@ -39,7 +39,22 @@
   - `embeds typeof = array` para 194/194 mensagens
 - **Decisão LLM (T-RES-1):** 9router (https://github.com/decolua/9router) na VM Oracle, primários `gpt-5.4` e `gemini-3.1-pro-preview`. Detalhes em `specs/016-discord-pipeline-rebuild/research-llm.md`.
 - **Decisão template Discord (T-RES-2):** Forum Guidelines + bot validador. Detalhes em `specs/016-discord-pipeline-rebuild/research-template.md`. Negociação com admin do Covil ainda pendente.
-- **Status:** Fase 0 (reset/backfill) **DONE**. Fase 1 (limpeza de invariantes via constraint + parser não-cria-draft-vazio) **READY** para iniciar.
+- **Status:** Fase 0 (reset/backfill) **DONE**. **Fase 1 (limpeza de invariantes) DONE em 2026-05-11.** Fase 2 (backfill auditável + telemetria) **READY**.
+
+**Fase 1 — Limpeza de invariantes (11/05/2026):**
+- Migration 118 criada com `CHECK CONSTRAINT discord_drafts_ready_requires_no_missing` (idempotente via `DO $$` + `pg_constraint`); padrão documentado como L03 em `migrations_guide.md`.
+- Guard `PATCH /admin/discord-sync/drafts/:id` retorna 422 com `details.missing_fields` quando status='ready' é incoerente com `missing_fields≠[]` (`backend/src/discord/draftValidation.ts` + 7 casos Jest GREEN).
+- Parser `parseDiscordAnnouncement` retorna `null` quando body e embeds estão ambos sem texto, mesmo para starters de fórum (`isThreadStarter` removida; 3 testes atualizados).
+- Frontend: `DiscordDraftReviewTable` e `DiscordDraftPreview` mostram "Pronto" apenas quando `status='ready' AND missing_fields=[]`; drafts em drift exibem "Revisar" com pendências em destaque âmbar; `readyCount` do botão "Sincronizar todos prontos (N)" reflete contagem real.
+- CI: workflow reusável `.github/workflows/_smoke-discord.yml` invocado entre `migrate` e `deploy-app` no Deploy Beta — anti-regressão BUG-004 (INSERT JSONB roundtrip em transação ROLLBACK) + presença da constraint (E166).
+- Deploy Beta run `25674367757` GREEN em todos os jobs (`enforce-dir`, `lint`, `validate`, `migrate`, `smoke-discord`, `deploy-app`, `smoke`).
+- **Evidência GREEN no banco-alvo (E166), 2026-05-11 13:50–13:54 UTC:**
+  - `UPDATE drift` em transação ROLLBACK rejeitado com `23514 check_violation discord_drafts_ready_requires_no_missing` (mesmo draft `db3d7c89` que aceitou drift no RED de 2026-05-10).
+  - `ready_dirty=0` / 189 drafts (`ready=111`, `needs_review=78`).
+  - Constraint presente em `pg_constraint` (`contype='c'`).
+  - `with_body=189/194` (97,4%); `embeds=array` em 194/194 (anti-regressão BUG-004 estável).
+  - HTTP Beta root: 200; `/api/v1/health`: 200.
+- **Commits Fase 1 em `origin/dev`:** `4f2bcee`, `f70f5d2`, `bc86070`, `41fa8bd`, `9f7861c`, `9c2c0a1`, `bc8a9f0`.
 
 **Decisões já fechadas (não perguntar de novo):**
 - Escopo α + β + γ + δ + ε
@@ -321,14 +336,18 @@
 **Spec 016 — Reconstrução do Pipeline Discord Sync (lidera roadmap):**
 
 1. ✅ **Fase 0 entregue (09/05/2026):** spec/plan/tasks/research, BUG-004 corrigido, T-EXEC-1 GREEN. Snapshot validado por `SELECT` (E166 obediente).
-2. **Próximo passo:** iniciar **Fase 1** detalhada em `sessoes/26-05-09_2_discord-pipeline-fase-1-em-diante.md`:
-   - Migration 118 com `CHECK CONSTRAINT` para `status='ready' ⇒ missing_fields=[]`.
-   - Guard em `PATCH /drafts/:id` que rejeita 422.
-   - Parser não cria draft sem matéria-prima (body + embeds vazios).
-   - UI: badge "Pronto" só com `missing=[]`.
-   - Smoke test pós-deploy automatizado (lição BUG-004).
-3. **Validação manual recomendada antes da Fase 1:** mantenedor revisa amostra de 5–10 dos 111 drafts ready no painel admin Beta para validar qualidade da extração.
-4. **Critério de fechamento:** spec 016 §9 itens 1, 4 e 6 atendidos; query de invariante GREEN em Beta após deploy.
+2. ✅ **Fase 1 entregue (11/05/2026):** migration 118 + guard PATCH + parser null + frontend badge + smoke CI; Deploy Beta `25674367757` GREEN; invariantes via `SELECT` no banco-alvo confirmados.
+3. **Próximo passo — Fase 2 (backfill auditável + telemetria):** sessão nova `26-05-12_1_*` a abrir quando mantenedor autorizar; tasks detalhadas em `plan.md` §"Fase 2":
+   - Migration 119 com coluna `discord_import_messages.empty_reason` (enum).
+   - Marcar mensagens sem body como `ignored` + `empty_reason='discord_returned_empty'` quando API Discord retornar vazio.
+   - Endpoint `GET /admin/discord-sync/sources/:id/coverage` agregando cobertura.
+   - Aba "Cobertura" no painel da fonte.
+   - Reingestão final autorizada (anti-regressão E166).
+4. **Validação manual recomendada antes da Fase 2:**
+   - Mantenedor revisa amostra de 5–10 dos 111 drafts ready no painel admin Beta em janela anônima.
+   - Confirma que UI mostra "Pronto" só para drafts realmente prontos.
+   - Confirma que tentativa de PATCH ready em draft drift recebe 422 com mensagem clara.
+5. **Critério de fechamento Fase 2:** spec 016 §9 itens 2 e 7 atendidos; cobertura ≥95% ou empty_reason explícito.
 
 **Feature 015 — Importação de Posts de Fóruns Discord (status pré-016):**
 1. ✅ **Spec/plan/tasks/implement concluídos:** `specs/015-discord-forum-threads/` com implementação backend/frontend local.

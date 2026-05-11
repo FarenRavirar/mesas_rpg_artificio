@@ -277,10 +277,10 @@ Sessão concluída quando:
 
 ## Progresso
 
-- [ ] Sessão aberta e índice atualizado
-- [ ] Pré-requisitos validados
-- [ ] Fase 1 iniciada
-- [ ] Fase 1 fechada
+- [x] Sessão aberta e índice atualizado
+- [x] Pré-requisitos validados (backup `/tmp/backup_discord_pre_m118_20260510.sql`, 1.8 MB)
+- [x] Fase 1 iniciada (2026-05-10)
+- [x] **Fase 1 fechada (2026-05-11)** — ready_dirty=0, constraint ativa, Beta GREEN
 - [ ] Fase 2 iniciada
 - [ ] Fase 2 fechada
 - [ ] Fase 3 iniciada
@@ -293,3 +293,84 @@ Sessão concluída quando:
 - [ ] Fase 5.δ fechada
 - [ ] Fase 5.ε iniciada
 - [ ] Fase 5.ε fechada
+
+---
+
+## Log de execução — Fase 1 (2026-05-10 → 2026-05-11)
+
+### 2026-05-10 14:21 UTC — Backup + snapshot pré-migration
+```
+ssh ... docker exec mesas-beta-db pg_dump ...
+-rw-rw-r-- 1 ubuntu ubuntu 1.8M /tmp/backup_discord_pre_m118_20260510.sql
+
+snapshot:
+  msgs_total=194, with_body=189, parsed=189, ignored=5
+  drafts_total=189, ready=111, needs_review=78
+  ready_dirty=0  ← antes da constraint (convenção, não schema)
+  embeds: array=194 (100%)
+```
+
+### 2026-05-10 14:25 UTC — RED no banco-alvo (E166)
+```sql
+BEGIN;
+SELECT ... WHERE status='needs_review' AND missing_n > 0 LIMIT 1;
+  → id=db3d7c89-4ff6-4218-b6c3-2fbdee2bdc9b, missing_n=1
+UPDATE discord_import_table_drafts SET status='ready' WHERE id = ...;
+  → UPDATE 1  (banco aceitou drift sem constraint)
+SELECT count(*) ... WHERE status='ready' AND missing>0;  → ready_dirty_in_tx=1
+ROLLBACK;
+SELECT count(*) ... ;  → ready_dirty_post_rollback=0
+```
+**Conclusão:** sem constraint, drift é fisicamente possível. RED legítimo.
+
+### 2026-05-10 → 11 — Implementação local (commits atômicos)
+- `4f2bcee` — feat(db): migration 118 + lição L03 em migrations_guide.md
+- `f70f5d2` — feat(discord): guard PATCH 422 + draftValidation.ts + 7 testes Jest
+- `bc86070` — feat(discord): parser retorna null para body+embeds vazios + 3 testes
+- `41fa8bd` — feat(discord-sync): badge "Pronto" frontend usa missing=[]
+- `9f7861c` — ci(deploy-beta): smoke discord pós-migrate
+- `9c2c0a1` — fix(db): header migration 118 (requires-backup=false)
+- `bc8a9f0` — fix(ci): smoke INSERT inclui content_hash NOT NULL
+
+### 2026-05-11 13:48 UTC — Push final + Deploy Beta `25674367757`
+```
+push: 9c2c0a1..bc8a9f0 → origin/dev
+migrate            ✓  (constraint aplicada)
+smoke-discord      ✓  (JSONB roundtrip + check)
+deploy-app         ✓  (TS check + recreate containers)
+smoke (geral)      ✓  (tables, systems tree, oauth)
+```
+
+### 2026-05-11 13:50 UTC — GREEN no banco-alvo (E166)
+Mesmo draft `db3d7c89` que aceitou drift no RED agora rejeita:
+```
+ERROR:  new row for relation "discord_import_table_drafts" violates check constraint
+        "discord_drafts_ready_requires_no_missing"
+DETAIL: Failing row contains (db3d7c89-..., status=ready, missing_n=1)
+ROLLBACK
+```
+
+### 2026-05-11 13:54 UTC — Invariantes finais
+```
+ready_dirty             = 0
+constraint              = presente (contype='c')
+msgs_total=194 | with_body=189 (97,4%) | embeds=array(194)
+drafts: ready=111 | needs_review=78
+HTTP Beta root          = 200
+HTTP Beta /api/v1/health = 200
+```
+
+---
+
+## Próxima sessão
+
+**Status:** Fase 1 DONE. Mantenedor volta em 2026-05-12 para revisar e autorizar Fase 2.
+
+**Antes de iniciar Fase 2:**
+- Revisar 5–10 drafts ready no painel admin Beta (`https://mesasbeta.artificiorpg.com` → /gestao → Discord Sync) em janela anônima.
+- Confirmar que a UI mostra "Pronto" só para drafts realmente prontos e "Revisar" para os 78 incompletos.
+- Confirmar que tentativa de mudar status para "Pronto" num draft em drift recebe 422 com mensagem clara.
+
+**Decisões abertas antes da Fase 2:** nenhuma. Plan §"Fase 2" detalha schema mudanças (coluna `empty_reason`).
+
+**Sessão `26-05-12_1_*` (a criar):** abrirá Fase 2 — backfill auditável + telemetria.
