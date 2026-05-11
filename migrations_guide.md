@@ -39,6 +39,12 @@ Toda migration em `./database/` DEVE ter o seguinte cabeçalho nas primeiras lin
 - **online-safe**: Migrations que não quebram o código atual em runtime (e.g., ADD COLUMN sem restrição estrita, CREATE TABLE).
 - **manual-risk**: Migrations destrutivas (DROP TABLE, ALTER COLUMN TYPE, DELETE). Serão bloqueadas pelo CI a menos que haja flag manual ou fluxo de emergência.
 
+**REGRA DE COERÊNCIA — bloqueada pelo CI (`scripts/deploy/lib_migrations.sh::parse_header`):**
+
+- `@requires-backup: true` **exige** `@class: manual-risk`. Combinação inversa (`online-safe` + `requires-backup=true`) é rejeitada pelo job `validate` do Deploy Beta com "Incoerencia. requires-backup=true exige class=manual-risk".
+- Migration aditiva (CHECK CONSTRAINT, ADD COLUMN com default, CREATE INDEX) → `online-safe` + `requires-backup=false`. Backup pessoal antes de aplicar é precaução opcional, **fora** do contrato.
+- Migration destrutiva → `manual-risk` + `requires-backup=true`. O CI bloqueia até `ALLOW_MANUAL_MIGRATIONS=true` e exige backup formal pelo `PRE_DEPLOY_CHECKLIST.md`.
+
 ---
 
 ## Template de Migration
