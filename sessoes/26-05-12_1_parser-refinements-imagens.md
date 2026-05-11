@@ -102,6 +102,7 @@
 - T-F1-F-03 widget de desambiguação `X/Y` implementado, atualizando `slots_total`, `slots_open`, `slots_filled`, `_slots_ambiguity` e `missing_fields`.
 - T-F1-F-04 frequência exposta como select com semanal, quinzenal, mensal, única e outra.
 - T-F1-F-05 validação local: `npm --prefix frontend run build` GREEN (`tsc -b && vite build`).
+- Pós-deploy Fase F: opção `outra` ajustada para manter draft em revisão, evitando sync com enum não suportado pelo backend.
 
 ### Evidência T-F1-A-02 — RED
 

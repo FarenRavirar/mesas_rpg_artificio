@@ -126,6 +126,7 @@ function validateForm(form: DraftForm): string[] {
   if (!form.contact_url.trim() && !form.contact_discord.trim()) missing.push('Contato');
   if (!form.day_of_week) missing.push('Dia');
   if (!form.start_time.trim()) missing.push('Horário');
+  if (form.frequency === 'outra') missing.push('Frequência');
   return missing;
 }
 
@@ -148,6 +149,7 @@ function buildMissingFields(base: DiscordDraftPayload, form: DraftForm): string[
   setByState('contact_url', !form.contact_url.trim() && !form.contact_discord.trim());
   setByState('day_of_week', !form.day_of_week);
   setByState('start_time', !form.start_time.trim());
+  setByState('frequency', form.frequency === 'outra');
 
   return Array.from(missing);
 }
