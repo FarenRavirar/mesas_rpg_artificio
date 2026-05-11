@@ -430,7 +430,7 @@ SELECT image_upload_status, count(*) FROM discord_import_table_drafts
    ) AND status NOT IN ('synced','rejected');
   COMMIT;
   ```
-- [ ] Validação: `SELECT count(*) FROM discord_import_messages WHERE content_raw=discord_thread_name AND status='parsed'` → 0.
+- [x] Validação: `SELECT count(*) FROM discord_import_messages WHERE content_raw=discord_thread_name AND status='parsed'` → 0.
 
 ### T-F1-E-03 — Re-parse em massa
 
@@ -445,13 +445,14 @@ SELECT image_upload_status, count(*) FROM discord_import_table_drafts
    WHERE status NOT IN ('synced','rejected');
   ```
 - [x] `POST /admin/discord-sync/messages/parse-batch` para regerar todos os drafts sob a nova lógica.
-- [ ] Validar com queries de Fase A e C que `slots_total` cai e `cover_url_source` aparece em ≥95% dos com imagem.
+- [x] Validar com queries de Fase A e C que `slots_total` cai e `cover_url_source` aparece em ≥95% dos com imagem.
   - Primeiro re-parse observou `processed=184`, `succeeded=184`, `failed=0`, mas `slots_total` ficou em 15 por regressão `Vagas: 0` tratado como missing. Correção pontual adicionada antes do re-parse final.
+  - Re-parse final após deploy do fix: `processed=184`, `succeeded=184`, `failed=0`; `slots_total` missing = 2; `cover_url_source` = 184/184 com imagem.
 
 ### T-F1-E-04 — Sessão atualizada com evidência
 
-- [ ] Output literal de cada `SELECT` colado na sessão.
-- [ ] Commit (com docs no mesmo commit, sem código novo — exceção legítima: atualização de sessão e tasks.md).
+- [x] Output literal de cada `SELECT` colado na sessão.
+- [x] Commit (com docs no mesmo commit, sem código novo — exceção legítima: atualização de sessão e tasks.md).
 
 ---
 

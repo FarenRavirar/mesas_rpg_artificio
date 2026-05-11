@@ -92,6 +92,10 @@
 - T-F1-E-03 re-parse em massa executado: `processed=184`, `succeeded=184`, `failed=0`.
 - Invariante Fase E detectou regressão residual: `A_slots_total_missing=15` por `Vagas: 0` ser tratado como ausente em checagem truthy.
 - Correção pontual iniciada: `slots_total=0` e `slots_open=0` passam a ser valores explícitos no parser e normalizador.
+- Correção `Vagas: 0` commitada e enviada para `origin/dev`: `c7db12f fix(discord): preserva vagas zero no parser`.
+- Deploy Beta `25679981015` GREEN para `c7db12f`; CodeQL `25679977452` GREEN.
+- Re-parse final da Fase E executado após deploy: `processed=184`, `succeeded=184`, `failed=0`.
+- Invariantes finais Fase E GREEN: `A_slots_total_missing=2`, `A_oneshot_semanal=0`, `B_hint_parentese=0`, `C_com_imagem=184,C_com_source=184`, `D_discord_cdn_tables=0`, `E_legacy_parsed=0`.
 
 ### Evidência T-F1-A-02 — RED
 
@@ -155,10 +159,10 @@ Ran all test suites matching parseDiscordAnnouncement.
 18. [x] T-F1-D-04 — Cron worker.
 19. [x] T-F1-D-05 — Endpoints admin.
 20. [x] T-F1-D-06 — Build + commit + push Fase D.
-21. [ ] T-F1-E-01 — Identificar drafts legacy.
-22. [ ] T-F1-E-02 — Marcar legacy como ignored + apagar drafts.
-23. [ ] T-F1-E-03 — Re-parse em massa.
-24. [ ] T-F1-E-04 — Sessão atualizada com evidência.
+21. [x] T-F1-E-01 — Identificar drafts legacy.
+22. [x] T-F1-E-02 — Marcar legacy como ignored + apagar drafts.
+23. [x] T-F1-E-03 — Re-parse em massa.
+24. [x] T-F1-E-04 — Sessão atualizada com evidência.
 
 ### Evidência T-F1-B-03 — GREEN local
 
@@ -268,6 +272,28 @@ D_discord_cdn_tables=0
 E_legacy_parsed=0
 draft_status_needs_review=70
 draft_status_ready=114
+message_status_ignored=10
+message_status_parsed=184
+image_status_none=184
+```
+
+Re-parse final após deploy do fix `c7db12f`:
+```text
+BEGIN
+UPDATE 184
+DELETE 184
+COMMIT
+
+{"data":{"processed":184,"succeeded":184,"failed":0}}
+
+A_slots_total_missing=2
+A_oneshot_semanal=0
+B_hint_parentese=0
+C_com_imagem=184,C_com_source=184
+D_discord_cdn_tables=0
+E_legacy_parsed=0
+draft_status_needs_review=60
+draft_status_ready=124
 message_status_ignored=10
 message_status_parsed=184
 image_status_none=184
