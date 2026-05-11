@@ -50,12 +50,13 @@ jobs:
             INSERT INTO discord_import_messages (
               source_id, source_kind, discord_message_id, discord_channel_id, discord_guild_id,
               discord_author_id, discord_author_name, discord_message_url,
-              content_raw, attachments, embeds, message_created_at, status
+              content_raw, content_hash, attachments, embeds, message_created_at, status
             ) VALUES (
               :'src', 'discord_bot',
               'SMOKE-' || extract(epoch from now())::text,
               '0', '0', '0', 'smoke', 'https://smoke',
-              'smoke', '[{"id":"a1","url":"https://x"}]'::jsonb,
+              'smoke', md5('smoke-' || clock_timestamp()::text),
+              '[{"id":"a1","url":"https://x"}]'::jsonb,
               '[{"description":"smoke embed"}]'::jsonb,
               now(), 'pending'
             )
