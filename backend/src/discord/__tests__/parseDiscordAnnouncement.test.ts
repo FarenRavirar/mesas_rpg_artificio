@@ -442,10 +442,67 @@ describe('parseDiscordAnnouncement', () => {
       [{ id: 'dnd', name: 'Dungeons & Dragons', name_pt: null, aliases: ['D&D'] }],
     );
 
-    expect(draft?.table.raw_system_hint).toBe('One Two Six (Sistema Inédito)');
-    expect(draft?.table.system_name).toBe('One Two Six (Sistema Inédito)');
+    expect(draft?.table.raw_system_hint).toBe('One Two Six');
+    expect(draft?.table.system_name).toBe('One Two Six');
     expect(draft?.missing_fields).toContain('system_name:unmatched_hint');
     expect(draft?.table.raw_system_hint).not.toBe('Forgotten Realms');
+  });
+
+  it('strips parenthetical notes from unknown system hints (spec 017 T-F1-B-01)', () => {
+    const draft = parseDiscordAnnouncement(
+      makeMessage({
+        discord_thread_name: 'Pokémon: Jornada em Kanto',
+        content_raw: [
+          '▬ **Sistema:** Pokémon RPG (Sistema próprio usando D&D como base, em fase de desenvolvimento)',
+          '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+          'Vagas: 4',
+          'Contato: https://forms.gle/example',
+        ].join('\n'),
+      }),
+      [{ id: 'dnd', name: 'Dungeons & Dragons', name_pt: null, aliases: ['D&D'] }],
+    );
+
+    expect(draft?.table.raw_system_hint).toBe('Pokémon RPG');
+    expect(draft?.table.system_name).toBe('Pokémon RPG');
+  });
+
+  it('matches D&D after stripping parenthetical notes and version suffix (spec 017 T-F1-B-01)', () => {
+    const draft = parseDiscordAnnouncement(
+      makeMessage({
+        discord_thread_name: 'D&D: Aventura Retrocompatível',
+        content_raw: [
+          '▬ **Sistema:** D&D 5.5 (com retrocompatibilidade)',
+          '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+          'Vagas: 4',
+          'Contato: https://forms.gle/example',
+        ].join('\n'),
+      }),
+      [{ id: 'dnd', name: 'Dungeons & Dragons', name_pt: null, aliases: ['D&D'] }],
+    );
+
+    expect(draft?.table.system_id).toBe('dnd');
+    expect(draft?.table.system_name).toBe('Dungeons & Dragons');
+    expect(draft?.table.raw_system_hint).toBeNull();
+  });
+
+  it('matches Starfinder after stripping 2e version suffix and records a note (spec 017 T-F1-B-01)', () => {
+    const draft = parseDiscordAnnouncement(
+      makeMessage({
+        discord_thread_name: 'Starfinder: Operação Órbita',
+        content_raw: [
+          '▬ **Sistema:** Starfinder 2e',
+          '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+          'Vagas: 4',
+          'Contato: https://forms.gle/example',
+        ].join('\n'),
+      }),
+      [{ id: 'starfinder', name: 'Starfinder', name_pt: null, aliases: [] }],
+    );
+
+    expect(draft?.table.system_id).toBe('starfinder');
+    expect(draft?.table.system_name).toBe('Starfinder');
+    expect(draft?.table.raw_system_hint).toBeNull();
+    expect(draft?.table._notes).toContain('version_mismatch:2e');
   });
 
   it('ignores empty non-starter replies so they do not create duplicate drafts', () => {

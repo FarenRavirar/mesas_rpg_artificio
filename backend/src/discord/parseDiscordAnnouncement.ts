@@ -7,6 +7,11 @@ export interface SystemEntry {
   aliases: string[];
 }
 
+interface SystemMatchResult {
+  system: SystemEntry;
+  notes: string[];
+}
+
 // Extrai texto dos embeds Discord quando content_raw está vazio
 function extractBodyFromEmbeds(embeds: unknown[]): string {
   if (!embeds || embeds.length === 0) return '';
@@ -52,7 +57,16 @@ function normalize(s: string): string {
  * Testa: name, name_pt e todos os aliases de cada entrada.
  * Retorna o primeiro match encontrado.
  */
-function matchSystem(text: string, systems: SystemEntry[]): SystemEntry | null {
+function stripVersionSuffix(value: string): { stripped: string; version: string | null } {
+  const match = value.trim().match(/^(.*?)\s+((?:\d+(?:\.\d+)?e?)|(?:\d+e))$/i);
+  if (!match) return { stripped: value, version: null };
+  const stripped = match[1].trim();
+  const version = match[2].trim();
+  if (!stripped) return { stripped: value, version: null };
+  return { stripped, version };
+}
+
+function findSystemMatch(text: string, systems: SystemEntry[], allowShortAliases = false): SystemEntry | null {
   const normText = normalize(text);
   if (!normText) return null;
 
@@ -76,7 +90,7 @@ function matchSystem(text: string, systems: SystemEntry[]): SystemEntry | null {
       const normCandidate = normalize(candidate.value);
       // Aliases curtos e genericos como "D&D" aparecem em sistemas derivados
       // no banco; usar isso como match automatico gera falsos positivos.
-      if (normCandidate.length < 4 && candidate.priority < 3) continue;
+      if (!allowShortAliases && normCandidate.length < 4 && candidate.priority < 3) continue;
       if (normCandidate.length < 2) continue;
       const pattern = new RegExp(`(?:^|[\\s,;:])${normCandidate.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:[\\s,;:]|$)`);
       const versionedPattern = new RegExp(`^${normCandidate.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\d`);
@@ -98,6 +112,20 @@ function matchSystem(text: string, systems: SystemEntry[]): SystemEntry | null {
     return b.candidate.length - a.candidate.length;
   });
   return matches[0].system;
+}
+
+function matchSystem(text: string, systems: SystemEntry[]): SystemMatchResult | null {
+  const { stripped, version } = stripVersionSuffix(text);
+  if (version && stripped !== text) {
+    const strippedMatch = findSystemMatch(stripped, systems, true);
+    if (strippedMatch) {
+      return { system: strippedMatch, notes: [`version_mismatch:${version}`] };
+    }
+  }
+
+  const direct = findSystemMatch(text, systems);
+  if (direct) return { system: direct, notes: [] };
+  return null;
 }
 
 // Tenta extrair "sistema: titulo" do nome do thread
@@ -306,7 +334,7 @@ function extractLabelValue(text: string, labels: string[]): string | null {
       values.push(next);
     }
 
-    const value = values.join('\n').trim();
+    const value = values.join('\n').replace(/\s*\(.*$/, '').trim();
     return value || null;
   }
 
@@ -361,7 +389,7 @@ export function parseDiscordAnnouncement(
   const title = explicitTitle ?? threadParts.title;
 
   // Detecção de sistema via banco de dados
-  let matchedSystem: SystemEntry | null = null;
+  let matchedSystem: SystemMatchResult | null = null;
   if (systems.length > 0) {
     // Tenta primeiro na parte antes do ":" (systemHint) — mais preciso
     if (systemHint) matchedSystem = matchSystem(systemHint, systems);
@@ -371,8 +399,8 @@ export function parseDiscordAnnouncement(
     if (!matchedSystem && !systemHint) matchedSystem = matchSystem(fullText, systems);
   }
 
-  const systemName = matchedSystem?.name ?? explicitSystem ?? null;
-  const systemId = matchedSystem?.id ?? null;
+  const systemName = matchedSystem?.system.name ?? explicitSystem ?? null;
+  const systemId = matchedSystem?.system.id ?? null;
   // Preserva o hint bruto quando não há correspondência: usado para criar
   // system_suggestion automática e para o revisor ver o que veio do Discord.
   const rawSystemHint = (!matchedSystem && systemHint) ? systemHint : null;
@@ -420,6 +448,7 @@ export function parseDiscordAnnouncement(
     contact_url: contactUrl,
     host_discord_id: hostDiscordId,
     _slots_ambiguity: slotsAmbiguity,
+    _notes: matchedSystem?.notes ?? [],
   };
 
   return {

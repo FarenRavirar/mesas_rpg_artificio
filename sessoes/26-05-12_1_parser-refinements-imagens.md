@@ -61,6 +61,12 @@
 - T-F1-A-05 GREEN: `host_discord_id` extraído de linhas `Mestre`, `GM`, `Narrador` e `DM`, inclusive com mention na linha seguinte.
 - T-F1-A-06 GREEN: normalizador adiciona `slots_open:ambiguous_x_of_y` quando `_slots_ambiguity` existe.
 - T-F1-A-07 validação local: Jest 22/22 GREEN; `npx tsc --noEmit` GREEN. Commit pendente por exigir autorização explícita.
+- Fase A commitada e enviada para `origin/dev`: `61f6cd5 feat(discord): parser extractSlots + frequency por type + host_discord_id`.
+- Deploy Beta `25677246299` GREEN para `61f6cd5`; CodeQL `25677243221` GREEN.
+- Iniciada Fase B: sistemas com parênteses e versões.
+- T-F1-B-01 RED observado: parênteses preservados em hint desconhecido, `D&D 5.5` não resolvido e `Starfinder 2e` sem `_notes`.
+- T-F1-B-02 GREEN: `extractLabelValue` corta a partir de `(` e `matchSystem` tenta versão stripped antes do match amplo; `_notes` registra `version_mismatch:<versao>`.
+- T-F1-B-03 validação local: Jest 25/25 GREEN; `npx tsc --noEmit` GREEN.
 
 ### Evidência T-F1-A-02 — RED
 
@@ -111,6 +117,37 @@ Ran all test suites matching parseDiscordAnnouncement.
 5. [x] T-F1-A-05 — Testes RED + GREEN para `extractHostDiscordId`.
 6. [x] T-F1-A-06 — Propagação de `_slots_ambiguity` no normalizador.
 7. [ ] T-F1-A-07 — Build + Jest concluídos; commit pendente de autorização explícita.
+8. [x] T-F1-B-01 — Testes RED para sistemas com parênteses e versão.
+9. [x] T-F1-B-02 — Implementação de `extractLabelValue`/`matchSystem`.
+10. [ ] T-F1-B-03 — Build concluído; commit + push Fase B em andamento.
+
+### Evidência T-F1-B-03 — GREEN local
+
+Estado: RED -> GREEN técnico local
+
+Comandos:
+```powershell
+npm --prefix backend test -- parseDiscordAnnouncement
+npx tsc --noEmit
+git status --short
+```
+
+Output literal:
+```text
+> backend@1.0.0 test
+> jest parseDiscordAnnouncement
+
+(node:15580) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+Test Suites: 1 passed, 1 total
+Tests:       25 passed, 25 total
+Snapshots:   0 total
+Time:        3.168 s
+Ran all test suites matching parseDiscordAnnouncement.
+
+npx tsc --noEmit
+<sem output; exit code 0>
+```
 
 ### Evidência T-F1-A-07 — GREEN local
 

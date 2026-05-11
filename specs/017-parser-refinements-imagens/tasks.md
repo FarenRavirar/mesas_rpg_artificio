@@ -154,20 +154,58 @@ SELECT count(*) FROM discord_import_table_drafts
 
 ### T-F1-B-01 — Testes RED
 
-- [ ] `Sistema: Pokémon RPG (Sistema próprio usando D&D como base, em fase d)` → `raw_system_hint='Pokémon RPG'`
-- [ ] `Sistema: D&D 5.5 (com retrocompatibilidade)` → `system_id` resolvido para `Dungeons & Dragons`; `raw_system_hint=null`
-- [ ] `Sistema: Starfinder 2e` → `system_id` resolvido para `Starfinder`; campo informativo (não bloqueante) registra `version_mismatch:2e` em `normalized_payload.table._notes`
+- [x] `Sistema: Pokémon RPG (Sistema próprio usando D&D como base, em fase d)` → `raw_system_hint='Pokémon RPG'`
+- [x] `Sistema: D&D 5.5 (com retrocompatibilidade)` → `system_id` resolvido para `Dungeons & Dragons`; `raw_system_hint=null`
+- [x] `Sistema: Starfinder 2e` → `system_id` resolvido para `Starfinder`; campo informativo (não bloqueante) registra `version_mismatch:2e` em `normalized_payload.table._notes`
 
 ### T-F1-B-02 — Implementação
 
-- [ ] Refinar `extractLabelValue('sistema')` para cortar em `(` ou quebra de linha.
-- [ ] Em `matchSystem`: se nome literal não casa, strip sufixo de versão (`5e`, `5.5`, `5.5e`, `2e`, `3e`) e tenta de novo.
-- [ ] GREEN.
+- [x] Refinar `extractLabelValue('sistema')` para cortar em `(` ou quebra de linha.
+- [x] Em `matchSystem`: se nome literal não casa, strip sufixo de versão (`5e`, `5.5`, `5.5e`, `2e`, `3e`) e tenta de novo.
+- [x] GREEN.
 
 ### T-F1-B-03 — Build + commit Fase B
 
-- [ ] `tsc` + `jest` GREEN.
+- [x] `tsc` + `jest` GREEN.
 - [ ] Commit atômico.
+
+#### Evidência local Fase B — RED/GREEN
+
+Estado: NOT STARTED → RED → GREEN técnico local. Commit e push serão feitos em seguida por autorização do mantenedor para executar todo o plano.
+
+Comandos executados:
+```powershell
+npm --prefix backend test -- parseDiscordAnnouncement
+npx tsc --noEmit
+git status --short
+```
+
+Outputs literais relevantes:
+```text
+RED inicial:
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 22 passed, 25 total
+Falhas:
+- Expected raw_system_hint "Pokémon RPG"; Received "Pokémon RPG (Sistema próprio usando D&D como base, em fase de desenvolvimento)"
+- Expected system_id "dnd"; Received null
+- Expected _notes to contain "version_mismatch:2e"; Received []
+
+GREEN Jest final:
+> backend@1.0.0 test
+> jest parseDiscordAnnouncement
+
+(node:15580) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+Test Suites: 1 passed, 1 total
+Tests:       25 passed, 25 total
+Snapshots:   0 total
+Time:        3.168 s
+Ran all test suites matching parseDiscordAnnouncement.
+
+GREEN TypeScript:
+npx tsc --noEmit
+<sem output; exit code 0>
+```
 
 ### Invariante Fase B
 

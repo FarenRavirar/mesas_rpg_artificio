@@ -63,6 +63,7 @@ export interface DiscordTableDraftTable {
   contact_url: string | null;
   host_discord_id: string | null;
   _slots_ambiguity: DiscordSlotsAmbiguity | null;
+  _notes: string[];
 }
 
 export interface DiscordTableDraft {
