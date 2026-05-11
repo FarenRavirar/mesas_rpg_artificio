@@ -454,7 +454,7 @@ export function parseDiscordAnnouncement(
   }
   if (!dayOfWeek) missingFields.push('day_of_week');
   if (!startTime) missingFields.push('start_time');
-  if (!slotsTotal) missingFields.push('slots_total');
+  if (slotsTotal == null && slotsOpen == null) missingFields.push('slots_total');
   if (!contactUrl && !contactDiscord) missingFields.push('contact_url');
   if (!description) missingFields.push('description');
 
@@ -468,7 +468,7 @@ export function parseDiscordAnnouncement(
     price_type: priceType,
     price_value: priceValue,
     slots_total: slotsTotal,
-    slots_filled: slotsTotal && slotsOpen != null ? slotsTotal - slotsOpen : null,
+    slots_filled: slotsTotal != null && slotsOpen != null ? slotsTotal - slotsOpen : null,
     slots_open: slotsOpen,
     day_of_week: dayOfWeek,
     start_time: startTime,

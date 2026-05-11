@@ -223,6 +223,26 @@ describe('parseDiscordAnnouncement', () => {
     expect(draft?.table._slots_ambiguity).toBeNull();
   });
 
+  it('keeps Vagas: 0 as an explicit closed table instead of missing slots (spec 017 Fase E regression)', () => {
+    const draft = parseDiscordAnnouncement(
+      makeMessage({
+        content_raw: [
+          '▬ **Sistema:** Dungeons & Dragons',
+          '▬ **Data & Horário:** Terças-feiras das 19h às 23h',
+          '▬ **Vagas:** 0 VAGA - EM ANDAMENTO',
+          'Contato: https://forms.gle/example',
+        ].join('\n'),
+      }),
+    );
+
+    const normalized = normalizeDiscordTableDraft(draft!);
+
+    expect(draft?.table.slots_total).toBe(0);
+    expect(draft?.table.slots_open).toBe(0);
+    expect(draft?.missing_fields).not.toContain('slots_total');
+    expect(normalized.draft.missing_fields).not.toContain('slots_total');
+  });
+
   it('does not infer weekly frequency for one-shots (spec 017 T-F1-A-04)', () => {
     const draft = parseDiscordAnnouncement(
       makeMessage({

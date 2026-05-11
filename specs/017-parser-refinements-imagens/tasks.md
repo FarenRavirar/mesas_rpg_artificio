@@ -405,7 +405,7 @@ SELECT image_upload_status, count(*) FROM discord_import_table_drafts
 
 ### T-F1-E-01 — Identificar drafts legacy (body == thread_name)
 
-- [ ] Query:
+- [x] Query:
   ```sql
   SELECT m.id, m.discord_thread_name, length(m.content_raw)
     FROM discord_import_messages m
@@ -413,11 +413,11 @@ SELECT image_upload_status, count(*) FROM discord_import_table_drafts
    WHERE m.content_raw = m.discord_thread_name
      AND m.status='parsed';
   ```
-- [ ] Colar output literal na sessão. Esperado: 3 linhas.
+- [x] Colar output literal na sessão. Observado em Beta: 5 linhas (todas `needs_review`, sem `table_id`); spec estimava 3.
 
 ### T-F1-E-02 — Marcar legacy como ignored + apagar draft
 
-- [ ] Em transação:
+- [x] Em transação:
   ```sql
   BEGIN;
   UPDATE discord_import_messages
@@ -434,7 +434,7 @@ SELECT image_upload_status, count(*) FROM discord_import_table_drafts
 
 ### T-F1-E-03 — Re-parse em massa
 
-- [ ] Resetar mensagens parsed não-legacy:
+- [x] Resetar mensagens parsed não-legacy:
   ```sql
   UPDATE discord_import_messages
      SET status='pending', parse_error=NULL
@@ -444,8 +444,9 @@ SELECT image_upload_status, count(*) FROM discord_import_table_drafts
   DELETE FROM discord_import_table_drafts
    WHERE status NOT IN ('synced','rejected');
   ```
-- [ ] `POST /admin/discord-sync/messages/parse-batch` para regerar todos os drafts sob a nova lógica.
+- [x] `POST /admin/discord-sync/messages/parse-batch` para regerar todos os drafts sob a nova lógica.
 - [ ] Validar com queries de Fase A e C que `slots_total` cai e `cover_url_source` aparece em ≥95% dos com imagem.
+  - Primeiro re-parse observou `processed=184`, `succeeded=184`, `failed=0`, mas `slots_total` ficou em 15 por regressão `Vagas: 0` tratado como missing. Correção pontual adicionada antes do re-parse final.
 
 ### T-F1-E-04 — Sessão atualizada com evidência
 

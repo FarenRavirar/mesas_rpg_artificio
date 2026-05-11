@@ -83,6 +83,15 @@
 - T-F1-D-04 `retryDiscordImageUploads.ts` criado e `cronRunner.ts` chama `discord:retry-image-uploads` a cada 1h.
 - T-F1-D-05 endpoints `refresh-image` e `image-uploads/summary` adicionados e documentados em `MAPA_DE_API.md`.
 - T-F1-D-06 validação local: `uploadDiscordImage` + `parseDiscordAnnouncement` GREEN, `npx tsc --noEmit` GREEN, `npm --prefix backend run build` GREEN.
+- Fase D commitada e enviada para `origin/dev`: `be055c9 feat(discord): upload cloudinary para imagens importadas`.
+- Deploy Beta `25679185718` GREEN para `be055c9`; CodeQL `25679182447` GREEN.
+- Invariante Beta Fase D: migration 122 aplicada e `discord_cdn_tables=0`.
+- Iniciada Fase E com autorização do mantenedor para writes no Beta e re-parse em massa.
+- T-F1-E-01 identificou 5 mensagens legacy `content_raw = discord_thread_name` em vez das 3 estimadas no spec; todas `needs_review` e sem `table_id`.
+- T-F1-E-02 transação Beta executada: `UPDATE 5`, `DELETE 5`, `UPDATE 184`, `DELETE 184`, `COMMIT`.
+- T-F1-E-03 re-parse em massa executado: `processed=184`, `succeeded=184`, `failed=0`.
+- Invariante Fase E detectou regressão residual: `A_slots_total_missing=15` por `Vagas: 0` ser tratado como ausente em checagem truthy.
+- Correção pontual iniciada: `slots_total=0` e `slots_open=0` passam a ser valores explícitos no parser e normalizador.
 
 ### Evidência T-F1-A-02 — RED
 
@@ -145,7 +154,11 @@ Ran all test suites matching parseDiscordAnnouncement.
 17. [x] T-F1-D-03 — Integração no sync.
 18. [x] T-F1-D-04 — Cron worker.
 19. [x] T-F1-D-05 — Endpoints admin.
-20. [ ] T-F1-D-06 — Build concluído; commit + push Fase D em andamento.
+20. [x] T-F1-D-06 — Build + commit + push Fase D.
+21. [ ] T-F1-E-01 — Identificar drafts legacy.
+22. [ ] T-F1-E-02 — Marcar legacy como ignored + apagar drafts.
+23. [ ] T-F1-E-03 — Re-parse em massa.
+24. [ ] T-F1-E-04 — Sessão atualizada com evidência.
 
 ### Evidência T-F1-B-03 — GREEN local
 
@@ -209,15 +222,86 @@ npx tsc --noEmit
 > tsc
 ```
 
-Invariantes SQL da Fase D ainda pendem de Deploy Beta + execução real de sync/retry:
-```sql
-SELECT count(*) FROM tables t
-  JOIN discord_import_table_drafts d ON d.table_id = t.id
- WHERE t.cover_url LIKE '%discord%' OR t.cover_url LIKE '%discordapp%'
-    OR t.banner_url LIKE '%discord%' OR t.banner_url LIKE '%discordapp%';
+Invariantes SQL da Fase D após Deploy Beta:
+```text
+image_upload_attempts:integer:NO
+image_upload_last_at:timestamp with time zone:YES
+image_upload_last_error:text:YES
+image_upload_status:text:YES
+discord_cdn_tables=0
+```
 
-SELECT image_upload_status, count(*) FROM discord_import_table_drafts
- WHERE (normalized_payload->'table'->>'cover_url_source') IS NOT NULL GROUP BY 1;
+### Evidência T-F1-E-01/T-F1-E-03 — Operação Beta
+
+Estado: NOT STARTED -> PARTIAL por regressão residual corrigida em código antes do re-parse final
+
+Comandos:
+```powershell
+SELECT m.id, m.discord_thread_name, length(m.content_raw) ...
+BEGIN; UPDATE ...; DELETE ...; UPDATE ...; DELETE ...; COMMIT;
+POST /api/v1/admin/discord-sync/messages/parse-batch
+SELECT invariantes A/B/C/D/E ...
+```
+
+Output literal:
+```text
+8ed103ec-1e21-4220-b89b-f5cd1b9ac369|Dungeons & Dragons: Tomb of Annihilation|40
+20f9e951-3074-4b6e-ae63-d72e2f57ea94|Dungeons & Dragons™: A Queda do Conquistador - Aventura em Galea|64
+9294486a-936a-4e4a-bdee-230252c7c5c9|Forgotten Realms™: Uma Campanha Sandbox|39
+364bf4e7-4450-4869-a9ae-4179cd23f85c|Dungeons & Dragons™: Goblin Trouble - Terras Marginais|54
+7dc7482f-99eb-4014-8513-1182e36ccb05|Ordem Paranormal™: Fortuna e Loucura!|37
+
+BEGIN
+UPDATE 5
+DELETE 5
+UPDATE 184
+DELETE 184
+COMMIT
+
+{"data":{"processed":184,"succeeded":184,"failed":0}}
+
+A_slots_total_missing=15
+A_oneshot_semanal=0
+B_hint_parentese=0
+C_com_imagem=184,C_com_source=184
+D_discord_cdn_tables=0
+E_legacy_parsed=0
+draft_status_needs_review=70
+draft_status_ready=114
+message_status_ignored=10
+message_status_parsed=184
+image_status_none=184
+```
+
+### Evidência correção `Vagas: 0` — GREEN local
+
+Estado: RED observado em Beta -> GREEN técnico local
+
+Comandos:
+```powershell
+npm --prefix backend test -- parseDiscordAnnouncement
+npx tsc --noEmit
+git diff --check
+```
+
+Output literal:
+```text
+> backend@1.0.0 test
+> jest parseDiscordAnnouncement
+
+(node:11600) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+Test Suites: 1 passed, 1 total
+Tests:       32 passed, 32 total
+Snapshots:   0 total
+Time:        3.96 s, estimated 4 s
+Ran all test suites matching parseDiscordAnnouncement.
+
+npx tsc --noEmit
+<sem output; exit code 0>
+
+git diff --check
+<sem erro; apenas avisos CRLF>
 ```
 
 ### Evidência T-F1-C-04 — GREEN local
