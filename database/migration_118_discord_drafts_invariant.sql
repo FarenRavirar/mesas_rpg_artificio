@@ -1,5 +1,5 @@
 -- @class: online-safe
--- @requires-backup: true
+-- @requires-backup: false
 -- @author: sdd-016-discord-pipeline-rebuild
 -- @created: 2026-05-10
 -- @description: CHECK CONSTRAINT garante invariante status='ready' => missing_fields=[] em discord_import_table_drafts.
