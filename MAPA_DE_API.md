@@ -197,7 +197,9 @@
 | **POST** | `/admin/discord-sync/messages/parse-batch` | 🔧 Impl. | DiscordSyncPanel.tsx — processa mensagens pendentes/erro em lote |
 | **GET** | `/admin/discord-sync/drafts` | 🔧 Impl. | DiscordDraftReviewTable.tsx — filtros: `status`, `limit`, `offset` |
 | **GET** | `/admin/discord-sync/drafts/:id` | 🔧 Impl. | DiscordDraftPreview.tsx |
+| **GET** | `/admin/discord-sync/image-uploads/summary` | 🔧 Impl. | DiscordDraftPreview.tsx — resumo operacional dos uploads de imagem (`pending`, `success`, `expired_url`, `network`, `cloudinary`, `permanent_fail`) |
 | **PATCH** | `/admin/discord-sync/drafts/:id` | 🔧 Impl. | DiscordDraftPreview.tsx — edita `normalized_payload`, `status`, `review_notes`; usado pelo editor estruturado para salvar campos e marcar `ready` somente quando completo |
+| **POST** | `/admin/discord-sync/drafts/:id/refresh-image` | 🔧 Impl. | DiscordDraftPreview.tsx — força novo download da imagem Discord e upload para Cloudinary; atualiza `cover_url` e `banner_url` se houver mesa sincronizada |
 | **POST** | `/admin/discord-sync/drafts/:id/reparse` | 🔧 Impl. | DiscordDraftPreview.tsx — reprocessa mensagem pelo parser e atualiza draft |
 | **POST** | `/admin/discord-sync/drafts/:id/sync` | 🔧 Impl. | DiscordDraftPreview.tsx — sincroniza draft para `tables` em status `draft`; retorna 422 se status não for `ready` ou se faltarem título, descrição, sistema, tipo, modalidade, preço, vagas, contato, dia ou horário |
 | **POST** | `/admin/discord-sync/sync-ready` | 🔧 Impl. | DiscordSyncPanel.tsx — sincroniza todos os drafts `ready` em lote, respeitando a mesma validação de campos obrigatórios |

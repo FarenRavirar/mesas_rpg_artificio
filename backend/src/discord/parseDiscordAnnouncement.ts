@@ -477,6 +477,7 @@ export function parseDiscordAnnouncement(
     contact_discord: contactDiscord,
     contact_url: contactUrl,
     host_discord_id: hostDiscordId,
+    cover_url: null,
     cover_url_source: cover?.url ?? null,
     cover_quality: cover?.quality ?? null,
     _slots_ambiguity: slotsAmbiguity,

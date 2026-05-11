@@ -21,6 +21,13 @@ export type TableDraftModality = 'online' | 'presencial' | 'hibrida';
 export type TableDraftPriceType = 'gratuita' | 'paga';
 export type TableDraftFrequency = 'semanal' | 'quinzenal' | 'mensal' | 'avulsa';
 export type CoverQuality = 'standard' | 'low';
+export type DiscordImageUploadStatus =
+  | 'pending'
+  | 'success'
+  | 'expired_url'
+  | 'network'
+  | 'cloudinary'
+  | 'permanent_fail';
 export type SlotsAmbiguitySource = 'x_slash_y';
 
 export interface DiscordSlotsAmbiguity {
@@ -63,6 +70,7 @@ export interface DiscordTableDraftTable {
   contact_discord: string | null;
   contact_url: string | null;
   host_discord_id: string | null;
+  cover_url: string | null;
   cover_url_source: string | null;
   cover_quality: CoverQuality | null;
   _slots_ambiguity: DiscordSlotsAmbiguity | null;

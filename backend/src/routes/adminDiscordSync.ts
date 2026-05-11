@@ -4,7 +4,7 @@ import { db } from '../db';
 import type { DiscordSourceChannelType, NewDiscordSetting } from '../db/types';
 import { authMiddleware } from '../middleware/auth';
 import type { DiscordImportMessageStatus, DiscordImportDraftStatus } from '../discord';
-import { DiscordDiscoveryError, DiscordDraftSyncValidationError, DiscordIngestError, assertDraftReadyTransition, discoverDiscordChannels, discoverDiscordGuilds, ingestForumMessages, ingestMessages, syncDiscordDraftToTable, parseDiscordAnnouncement, normalizeDiscordTableDraft } from '../discord';
+import { DiscordDiscoveryError, DiscordDraftSyncValidationError, DiscordIngestError, assertDraftReadyTransition, discoverDiscordChannels, discoverDiscordGuilds, ingestForumMessages, ingestMessages, refreshDiscordDraftImage, syncDiscordDraftToTable, parseDiscordAnnouncement, normalizeDiscordTableDraft } from '../discord';
 import type { SystemEntry } from '../discord';
 import { requireDiscordBotToken } from '../discord/config';
 import { encryptDiscordSetting, decryptDiscordSetting, DiscordSettingsSecretUnavailableError } from '../discord/settingsCrypto';
@@ -933,6 +933,67 @@ router.get('/drafts/:id', authMiddleware, async (req: Request, res: Response) =>
   } catch (error: unknown) {
     console.error('[GET /admin/discord-sync/drafts/:id]', error);
     return res.status(500).json({ error: 'Erro ao buscar draft.' });
+  }
+});
+
+// GET /image-uploads/summary
+router.get('/image-uploads/summary', authMiddleware, async (req: Request, res: Response) => {
+  if (!isAdmin(req, res)) return;
+  try {
+    const rows = await db
+      .selectFrom('discord_import_table_drafts')
+      .select(['image_upload_status'])
+      .select((eb) => eb.fn.countAll<string>().as('count'))
+      .groupBy('image_upload_status')
+      .execute();
+
+    const summary = {
+      pending: 0,
+      success: 0,
+      expired_url: 0,
+      network: 0,
+      cloudinary: 0,
+      permanent_fail: 0,
+      none: 0,
+    };
+
+    for (const row of rows) {
+      const count = Number(row.count);
+      switch (row.image_upload_status) {
+        case 'pending':
+        case 'success':
+        case 'expired_url':
+        case 'network':
+        case 'cloudinary':
+        case 'permanent_fail':
+          summary[row.image_upload_status] = count;
+          break;
+        default:
+          summary.none = count;
+          break;
+      }
+    }
+
+    return res.json({ data: summary });
+  } catch (error: unknown) {
+    console.error('[GET /admin/discord-sync/image-uploads/summary]', error);
+    return res.status(500).json({ error: 'Erro ao listar uploads de imagem.' });
+  }
+});
+
+// POST /drafts/:id/refresh-image
+router.post('/drafts/:id/refresh-image', authMiddleware, async (req: Request, res: Response) => {
+  if (!isAdmin(req, res)) return;
+  try {
+    const result = await refreshDiscordDraftImage(req.params.id);
+    return res.json({ data: result });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao reenviar imagem.';
+    console.error('[POST /admin/discord-sync/drafts/:id/refresh-image]', error);
+    if (message.includes('não encontrado') || message.includes('sem payload')) {
+      return res.status(422).json({ error: message });
+    }
+    return res.status(500).json({ error: message });
   }
 });
 

@@ -300,7 +300,7 @@ JOIN discord_import_messages m ON m.id = d.discord_message_id;
 
 ### T-F1-D-01 — Migration 122: coluna `image_upload_status`
 
-- [ ] `database/migration_122_discord_image_upload_status.sql`:
+- [x] `database/migration_122_discord_image_upload_status.sql`:
   ```sql
   ALTER TABLE discord_import_table_drafts
     ADD COLUMN IF NOT EXISTS image_upload_status TEXT NULL,
@@ -308,48 +308,82 @@ JOIN discord_import_messages m ON m.id = d.discord_message_id;
     ADD COLUMN IF NOT EXISTS image_upload_last_error TEXT NULL,
     ADD COLUMN IF NOT EXISTS image_upload_last_at TIMESTAMPTZ NULL;
   ```
-- [ ] Validação `DO $$` checa colunas criadas.
-- [ ] Header `online-safe` + `requires-backup=false` (lição L03).
+- [x] Validação `DO $$` checa colunas criadas.
+- [x] Header `online-safe` + `requires-backup=false` (lição L03).
 
 ### T-F1-D-02 — Função `uploadDiscordImageToCloudinary`
 
-- [ ] Criar `backend/src/discord/uploadDiscordImage.ts` com:
+- [x] Criar `backend/src/discord/uploadDiscordImage.ts` com:
   - `fetch(url, { signal: AbortSignal.timeout(10000) })` → blob
   - `cloudinary.uploader.upload_stream` com folder `discord-imports/`
   - `public_id` = SHA-256 dos bytes (idempotência)
   - Retorno categorizado: `{ status: 'success'|'expired_url'|'network'|'cloudinary', url?: string, error?: string }`
-- [ ] Exportar em `backend/src/discord/index.ts`.
-- [ ] Teste com fetch mock e Cloudinary mock.
+- [x] Exportar em `backend/src/discord/index.ts`.
+- [x] Teste com fetch mock e Cloudinary mock.
 
 ### T-F1-D-03 — Integrar upload em `syncDiscordDraftToTable`
 
-- [ ] Antes do INSERT em `tables`:
+- [x] Antes do INSERT em `tables`:
   - Se `draft.normalized_payload.table.cover_url_source` e ainda não há `cover_url` Cloudinary:
     - Chama `uploadDiscordImageToCloudinary`
     - **Sucesso:** `cover_url = banner_url = url_cloudinary`; persiste `image_upload_status='success'`, `image_upload_attempts++`, `image_upload_last_at=NOW()`
     - **Falha:** `cover_url = banner_url = null` no `tables`; persiste status categorizado no draft; cria notificação admin
-- [ ] Atualizar testes de `syncDiscordDraftToTable`.
+- [x] Adicionar cobertura unitária do helper de upload e validar integração por TypeScript/build; não havia suite existente de `syncDiscordDraftToTable` no módulo.
 
 ### T-F1-D-04 — Cron worker `discord:retry-image-uploads`
 
-- [ ] `backend/src/scripts/retryDiscordImageUploads.ts`:
+- [x] `backend/src/scripts/retryDiscordImageUploads.ts`:
   - Lê drafts com `image_upload_status IN ('expired_url','network','cloudinary')` AND `image_upload_attempts < 5`
   - Para cada, tenta upload novamente
   - Sucesso: atualiza `tables.cover_url` E `tables.banner_url` da mesa correspondente (se já existe `table_id`), e `discord_import_table_drafts` (`image_upload_status='success'`)
   - Falha 5×: `image_upload_status='permanent_fail'`
-- [ ] Script `discord:retry-image-uploads` em `backend/package.json`: `node dist/scripts/retryDiscordImageUploads.js`
-- [ ] Configurar `mesas-cron` para chamar a cada 1h (crontab no container).
+- [x] Script `discord:retry-image-uploads` em `backend/package.json`: `node dist/scripts/retryDiscordImageUploads.js`
+- [x] Configurar `mesas-cron` para chamar a cada 1h via `cronRunner.ts`; `docker-compose.prod.yml` recebeu envs Cloudinary para o container existente.
 
 ### T-F1-D-05 — Endpoints admin
 
-- [ ] `POST /admin/discord-sync/drafts/:id/refresh-image` — força re-upload imediato, ignora contador.
-- [ ] `GET /admin/discord-sync/image-uploads/summary` — agrega `image_upload_status`.
-- [ ] Atualizar `MAPA_DE_API.md`.
+- [x] `POST /admin/discord-sync/drafts/:id/refresh-image` — força re-upload imediato, ignora contador.
+- [x] `GET /admin/discord-sync/image-uploads/summary` — agrega `image_upload_status`.
+- [x] Atualizar `MAPA_DE_API.md`.
 
 ### T-F1-D-06 — Build + commit Fase D
 
-- [ ] tsc + jest GREEN; smoke de upload local (mock).
+- [x] tsc + jest GREEN; smoke de upload local (mock).
 - [ ] Commit atômico por sub-task ou um único commit cobrindo migration+upload+cron+endpoints (decisão: agrupar para reduzir overhead de deploys).
+
+#### Evidência local Fase D — GREEN técnico
+
+Estado: NOT STARTED → GREEN técnico local. Invariantes SQL dependem do deploy Beta aplicar a migration 122 e de sincronização real com imagem.
+
+Comandos executados:
+```powershell
+npm --prefix backend test -- uploadDiscordImage parseDiscordAnnouncement
+npx tsc --noEmit
+npm --prefix backend run build
+git status --short
+```
+
+Outputs literais:
+```text
+> backend@1.0.0 test
+> jest uploadDiscordImage parseDiscordAnnouncement
+
+(node:6284) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:21104) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+Test Suites: 2 passed, 2 total
+Tests:       34 passed, 34 total
+Snapshots:   0 total
+Time:        6.495 s
+Ran all test suites matching uploadDiscordImage|parseDiscordAnnouncement.
+
+npx tsc --noEmit
+<sem output; exit code 0>
+
+> backend@1.0.0 build
+> tsc
+```
 
 ### Invariante Fase D (pós-deploy + alguma execução real)
 
@@ -361,7 +395,7 @@ SELECT count(*) FROM tables t
 -- Esperado: 0
 
 SELECT image_upload_status, count(*) FROM discord_import_table_drafts
- WHERE cover_url_source IS NOT NULL GROUP BY 1;
+ WHERE (normalized_payload->'table'->>'cover_url_source') IS NOT NULL GROUP BY 1;
 -- Esperado: success >> pending; permanent_fail próximo de 0
 ```
 

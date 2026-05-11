@@ -74,6 +74,15 @@
 - T-F1-C-02 RED observado: JPEG/PNG não preenchiam `cover_url_source`; SVG/PDF/sem attachments permaneciam nulos.
 - T-F1-C-03 GREEN: `extractCoverFromAttachments` lê `attachments: unknown[]`, ignora SVG e não-imagens, usa primeira imagem válida, e marca `standard`/`low`.
 - T-F1-C-04 validação local: Jest 31/31 GREEN; `npx tsc --noEmit` GREEN.
+- Fase C commitada e enviada para `origin/dev`: `0ed335f feat(discord): captura imagem do post no parser`.
+- Deploy Beta `25678248548` GREEN para `0ed335f`; CodeQL `25678246848` GREEN.
+- Iniciada Fase D: migration 122, upload Cloudinary no sync, retry cron e endpoints admin.
+- T-F1-D-01 migration `migration_122_discord_image_upload_status.sql` criada com colunas auditáveis e validação `DO $$`.
+- T-F1-D-02 `uploadDiscordImageToCloudinary` criado com fetch 10s, SHA-256 como `public_id`, folder `discord-imports/`, e testes unitários com mocks.
+- T-F1-D-03 `syncDiscordDraftToTable` integra upload antes de criar/atualizar mesa; sucesso preenche `cover_url` e `banner_url`, falha não bloqueia sync e notifica admins.
+- T-F1-D-04 `retryDiscordImageUploads.ts` criado e `cronRunner.ts` chama `discord:retry-image-uploads` a cada 1h.
+- T-F1-D-05 endpoints `refresh-image` e `image-uploads/summary` adicionados e documentados em `MAPA_DE_API.md`.
+- T-F1-D-06 validação local: `uploadDiscordImage` + `parseDiscordAnnouncement` GREEN, `npx tsc --noEmit` GREEN, `npm --prefix backend run build` GREEN.
 
 ### Evidência T-F1-A-02 — RED
 
@@ -130,7 +139,13 @@ Ran all test suites matching parseDiscordAnnouncement.
 11. [x] T-F1-C-01 — Estender tipo `DiscordTableDraftTable`.
 12. [x] T-F1-C-02 — Testes RED para captura de attachment.
 13. [x] T-F1-C-03 — Implementação de `extractCoverFromAttachments`.
-14. [ ] T-F1-C-04 — Build concluído; commit + push Fase C em andamento.
+14. [x] T-F1-C-04 — Build + commit + push Fase C.
+15. [x] T-F1-D-01 — Migration 122.
+16. [x] T-F1-D-02 — Função `uploadDiscordImageToCloudinary`.
+17. [x] T-F1-D-03 — Integração no sync.
+18. [x] T-F1-D-04 — Cron worker.
+19. [x] T-F1-D-05 — Endpoints admin.
+20. [ ] T-F1-D-06 — Build concluído; commit + push Fase D em andamento.
 
 ### Evidência T-F1-B-03 — GREEN local
 
@@ -158,6 +173,51 @@ Ran all test suites matching parseDiscordAnnouncement.
 
 npx tsc --noEmit
 <sem output; exit code 0>
+```
+
+### Evidência T-F1-D-06 — GREEN técnico local
+
+Estado: NOT STARTED -> GREEN técnico local
+
+Comandos:
+```powershell
+npm --prefix backend test -- uploadDiscordImage parseDiscordAnnouncement
+npx tsc --noEmit
+npm --prefix backend run build
+git status --short
+```
+
+Output literal:
+```text
+> backend@1.0.0 test
+> jest uploadDiscordImage parseDiscordAnnouncement
+
+(node:6284) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:21104) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+Test Suites: 2 passed, 2 total
+Tests:       34 passed, 34 total
+Snapshots:   0 total
+Time:        6.495 s
+Ran all test suites matching uploadDiscordImage|parseDiscordAnnouncement.
+
+npx tsc --noEmit
+<sem output; exit code 0>
+
+> backend@1.0.0 build
+> tsc
+```
+
+Invariantes SQL da Fase D ainda pendem de Deploy Beta + execução real de sync/retry:
+```sql
+SELECT count(*) FROM tables t
+  JOIN discord_import_table_drafts d ON d.table_id = t.id
+ WHERE t.cover_url LIKE '%discord%' OR t.cover_url LIKE '%discordapp%'
+    OR t.banner_url LIKE '%discord%' OR t.banner_url LIKE '%discordapp%';
+
+SELECT image_upload_status, count(*) FROM discord_import_table_drafts
+ WHERE (normalized_payload->'table'->>'cover_url_source') IS NOT NULL GROUP BY 1;
 ```
 
 ### Evidência T-F1-C-04 — GREEN local
