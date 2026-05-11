@@ -20,6 +20,13 @@ export type TableDraftType = 'campanha' | 'one-shot' | 'oneshot-serie' | 'aberta
 export type TableDraftModality = 'online' | 'presencial' | 'hibrida';
 export type TableDraftPriceType = 'gratuita' | 'paga';
 export type TableDraftFrequency = 'semanal' | 'quinzenal' | 'mensal' | 'avulsa';
+export type SlotsAmbiguitySource = 'x_slash_y';
+
+export interface DiscordSlotsAmbiguity {
+  first: number;
+  second: number;
+  source: SlotsAmbiguitySource;
+}
 
 export interface DiscordTableDraftSource {
   guild_id: string;
@@ -54,6 +61,8 @@ export interface DiscordTableDraftTable {
   description: string | null;
   contact_discord: string | null;
   contact_url: string | null;
+  host_discord_id: string | null;
+  _slots_ambiguity: DiscordSlotsAmbiguity | null;
 }
 
 export interface DiscordTableDraft {

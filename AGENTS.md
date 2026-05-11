@@ -275,6 +275,17 @@ Toda feature SDD deve ter os seguintes artefatos em `specs/NNN-*/` antes de abri
 
 O `pr-description.md` deve conter: sumário executivo · mudanças por fase/componente · testing evidence · checklist pós-merge.
 
+### Eficiência de commits — documentação vai com código
+
+- **Documentação (`spec.md`, `plan.md`, `tasks.md`, sessões em `/sessoes/`, `.specify/memory/*.md`, `migrations_guide.md`, `MAPA_DE_API.md`, etc.) deve ser commitada NO MESMO commit do código que a motivou.**
+- Commits "docs-only" disparam Deploy Beta sem efeito funcional → desperdício de minutos de CI e contexto do agente. Proibidos por padrão.
+- **Atualizar `tasks.md` é parte da task de implementação**, não tarefa separada. O mesmo commit que entrega o código (passo 4 de §9.2 — `git status` listando arquivos) inclui o checkbox marcado em `tasks.md` e a evidência colada.
+- **Exceções permitidas:**
+  - Criação inicial de spec (`/speckit.specify` sem código associado, marco de planejamento autorizado).
+  - Atualização de `project-state.md` ao final de uma sessão (entrada única consolidada).
+  - Registro de novo erro em `errors.md` quando o fix já foi commitado em commit anterior e o erro veio à tona depois.
+- Documentação local (não committada) pode ser usada como rascunho enquanto a task está em andamento. Apenas evite empurrar docs isoladas para `origin/dev`.
+
 ### Changelog
 
 Toda mudança visível que impacte **mestres e/ou usuários finais** exige entrada em `database/changelogs.json` antes do deploy. Mudanças exclusivas de área administrativa interna não exigem registro.

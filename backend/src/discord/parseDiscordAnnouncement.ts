@@ -1,4 +1,4 @@
-import type { DiscordRawMessage, DiscordTableDraft, DiscordTableDraftTable, TableDraftType, TableDraftModality, TableDraftPriceType } from './types';
+import type { DiscordRawMessage, DiscordSlotsAmbiguity, DiscordTableDraft, DiscordTableDraftTable, TableDraftType, TableDraftModality, TableDraftPriceType } from './types';
 
 export interface SystemEntry {
   id: string;
@@ -149,35 +149,46 @@ function extractPrice(text: string): { priceType: TableDraftPriceType; priceValu
 }
 
 // Extrai número de vagas do texto
-function extractSlots(text: string): { total: number | null; open: number | null } {
+function extractSlots(text: string): { total: number | null; open: number | null; ambiguity: DiscordSlotsAmbiguity | null } {
   const cleaned = text.replace(/\*/g, '');
   const totalMatch = cleaned.match(/vagas?\s+(?:totais|total)\s*[:=]\s*(\d+)/i);
   const openMatch = cleaned.match(/vagas?\s+(?:dispon[ií]veis|dispon[ií]vel|abertas|aberta)\s*[:=]\s*(\d+)/i);
   if (totalMatch || openMatch) {
     const total = totalMatch ? parseInt(totalMatch[1], 10) : null;
     const open = openMatch ? parseInt(openMatch[1], 10) : total;
-    return { total, open };
+    return { total, open, ambiguity: null };
   }
 
-  const labeledMatch = text.match(/(?:^|\n)\s*(?:vagas|vagas dispon[ií]veis|jogadores)\s*[:=]\s*(\d+)/i);
+  const ambiguousSlashMatch = cleaned.match(/(?:^|\n)\s*[\s▬•\-–—]*(?:vagas|jogadores)\s*[:=]\s*(\d+)\s*\/\s*(\d+)(?!\s*vagas?)/i);
+  if (ambiguousSlashMatch) {
+    const first = parseInt(ambiguousSlashMatch[1], 10);
+    const second = parseInt(ambiguousSlashMatch[2], 10);
+    return {
+      total: Math.max(first, second),
+      open: null,
+      ambiguity: { first, second, source: 'x_slash_y' },
+    };
+  }
+
+  const labeledMatch = cleaned.match(/(?:^|\n)\s*[\s▬•\-–—]*(?:vagas|vagas dispon[ií]veis|jogadores)\s*[:=]\s*(\d+)(?!\s*\/)/i);
   if (labeledMatch) {
     const n = parseInt(labeledMatch[1], 10);
-    return { total: n, open: n };
+    return { total: n, open: n, ambiguity: null };
   }
 
   const slashMatch = text.match(/(\d+)\s*\/\s*(\d+)\s*vagas?/i);
   if (slashMatch) {
     const filled = parseInt(slashMatch[1], 10);
     const total = parseInt(slashMatch[2], 10);
-    return { total, open: Math.max(0, total - filled) };
+    return { total, open: Math.max(0, total - filled), ambiguity: null };
   }
   const match = text.match(/(\d+)\s*vagas?/i)
     ?? text.match(/vagas?\s*(?:disponíveis?)?\s*[:=]\s*(\d+)/i);
   if (match) {
     const n = parseInt(match[1], 10);
-    return { total: n, open: n };
+    return { total: n, open: n, ambiguity: null };
   }
-  return { total: null, open: null };
+  return { total: null, open: null, ambiguity: null };
 }
 
 // Extrai dia da semana do texto
@@ -207,6 +218,11 @@ function extractStartTime(text: string): string | null {
     const m = (match[2] || '00').padStart(2, '0');
     return `${h}:${m}`;
   }
+  return null;
+}
+
+function deriveFrequency(type: TableDraftType | null, dayOfWeek: string | null): 'semanal' | null {
+  if (type === 'campanha' && dayOfWeek) return 'semanal';
   return null;
 }
 
@@ -242,6 +258,31 @@ function splitLabelLine(line: string): { key: string; value: string } | null {
   const match = cleaned.match(/^(.{1,48}?)\s*[:：]\s*(.*)$/);
   if (!match) return null;
   return { key: normalizeLabelKey(match[1]), value: match[2].trim() };
+}
+
+function extractHostDiscordId(text: string): string | null {
+  const mentionPattern = /<@!?(\d+)>/;
+  const hostLabels = new Set(['mestre', 'gm', 'narrador', 'dm']);
+  const lines = text.split(/\r?\n/);
+
+  for (let i = 0; i < lines.length; i++) {
+    const parsed = splitLabelLine(lines[i]);
+    const cleanedKey = parsed?.key ?? normalizeLabelKey(cleanLabelLine(lines[i]).replace(/[:：].*$/, ''));
+    if (!hostLabels.has(cleanedKey)) continue;
+
+    const sameLineMatch = lines[i].match(mentionPattern);
+    if (sameLineMatch) return sameLineMatch[1];
+
+    for (let j = i + 1; j < lines.length; j++) {
+      const next = lines[j];
+      if (splitLabelLine(next)) break;
+      const nextMatch = next.match(mentionPattern);
+      if (nextMatch) return nextMatch[1];
+      if (!next.trim()) break;
+    }
+  }
+
+  return null;
 }
 
 function extractLabelValue(text: string, labels: string[]): string | null {
@@ -340,11 +381,12 @@ export function parseDiscordAnnouncement(
   const modality = extractModality(body) ?? 'online';
   const type = extractType(fullText) ?? (threadName ? 'campanha' : null);
   const { priceType, priceValue } = extractPrice(body);
-  const { total: slotsTotal, open: slotsOpen } = extractSlots(body);
+  const { total: slotsTotal, open: slotsOpen, ambiguity: slotsAmbiguity } = extractSlots(body);
   const dayOfWeek = extractDayOfWeek(body);
   const startTime = extractStartTime(body);
   const contactUrl = extractContactUrl(body);
   const contactDiscord = extractContactDiscord(body);
+  const hostDiscordId = extractHostDiscordId(body);
   const description = extractLabelValue(body, ['descricao', 'descrição', 'sinopse', 'proposta']) ?? (body.trim() || null);
 
   const missingFields: string[] = [];
@@ -372,10 +414,12 @@ export function parseDiscordAnnouncement(
     slots_open: slotsOpen,
     day_of_week: dayOfWeek,
     start_time: startTime,
-    frequency: dayOfWeek ? 'semanal' : null,
+    frequency: deriveFrequency(type, dayOfWeek),
     description,
     contact_discord: contactDiscord,
     contact_url: contactUrl,
+    host_discord_id: hostDiscordId,
+    _slots_ambiguity: slotsAmbiguity,
   };
 
   return {

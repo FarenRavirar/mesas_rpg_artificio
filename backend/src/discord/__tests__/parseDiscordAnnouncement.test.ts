@@ -1,4 +1,5 @@
 import { parseDiscordAnnouncement } from '../parseDiscordAnnouncement';
+import { normalizeDiscordTableDraft } from '../normalizeDiscordTableDraft';
 import type { DiscordRawMessage } from '../types';
 
 function makeMessage(overrides: Partial<DiscordRawMessage>): DiscordRawMessage {
@@ -151,6 +152,231 @@ describe('parseDiscordAnnouncement', () => {
     expect(draft?.table.day_of_week).toBe('quarta');
     expect(draft?.table.start_time).toBe('21:00');
     expect(draft?.missing_fields).not.toContain('slots_total');
+  });
+
+  it('extracts canonical total and open slots without ambiguity (spec 017 T-F1-A-02)', () => {
+    const draft = parseDiscordAnnouncement(
+      makeMessage({
+        content_raw: [
+          '▬ **Sistema:** Dungeons & Dragons',
+          '▬ **Data & Horários:** Quartas-feiras das 21h às 00h',
+          '▬ **Vagas Totais:** 6',
+          '▬ **Vagas Disponíveis:** 0',
+          'Contato: https://forms.gle/example',
+        ].join('\n'),
+      }),
+    );
+
+    expect(draft?.table.slots_total).toBe(6);
+    expect(draft?.table.slots_open).toBe(0);
+    expect(draft?.table._slots_ambiguity).toBeNull();
+  });
+
+  it('keeps slash slots ambiguous when Covil writes Vagas: 0/6 (spec 017 T-F1-A-02)', () => {
+    const draft = parseDiscordAnnouncement(
+      makeMessage({
+        content_raw: [
+          '▬ **Sistema:** Dungeons & Dragons',
+          '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+          '▬ **Vagas:** 0/6',
+          'Contato: https://forms.gle/example',
+        ].join('\n'),
+      }),
+    );
+
+    expect(draft?.table.slots_total).toBe(6);
+    expect(draft?.table.slots_open).toBeNull();
+    expect(draft?.table._slots_ambiguity).toEqual({ first: 0, second: 6, source: 'x_slash_y' });
+  });
+
+  it('keeps slash slots ambiguous even when both numbers match (spec 017 T-F1-A-02)', () => {
+    const draft = parseDiscordAnnouncement(
+      makeMessage({
+        content_raw: [
+          '▬ **Sistema:** Dungeons & Dragons',
+          '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+          '▬ **Vagas:** 5/5',
+          'Contato: https://forms.gle/example',
+        ].join('\n'),
+      }),
+    );
+
+    expect(draft?.table.slots_total).toBe(5);
+    expect(draft?.table.slots_open).toBeNull();
+    expect(draft?.table._slots_ambiguity).toEqual({ first: 5, second: 5, source: 'x_slash_y' });
+  });
+
+  it('extracts simple Vagas: N as total and open slots without ambiguity (spec 017 T-F1-A-02)', () => {
+    const draft = parseDiscordAnnouncement(
+      makeMessage({
+        content_raw: [
+          '▬ **Sistema:** Dungeons & Dragons',
+          '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+          'Vagas: 4',
+          'Contato: https://forms.gle/example',
+        ].join('\n'),
+      }),
+    );
+
+    expect(draft?.table.slots_total).toBe(4);
+    expect(draft?.table.slots_open).toBe(4);
+    expect(draft?.table._slots_ambiguity).toBeNull();
+  });
+
+  it('does not infer weekly frequency for one-shots (spec 017 T-F1-A-04)', () => {
+    const draft = parseDiscordAnnouncement(
+      makeMessage({
+        content_raw: [
+          '▬ **Sistema:** Dungeons & Dragons',
+          '⚠️ **One-shot Gratuita** ⚠️',
+          '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+          '▬ **Vagas:** 0/6',
+          'Contato: https://forms.gle/example',
+        ].join('\n'),
+      }),
+    );
+
+    expect(draft?.table.type).toBe('one-shot');
+    expect(draft?.table.frequency).toBeNull();
+  });
+
+  it('infers weekly frequency for campaigns with day_of_week (spec 017 T-F1-A-04)', () => {
+    const draft = parseDiscordAnnouncement(
+      makeMessage({
+        content_raw: [
+          '▬ **Sistema:** Dungeons & Dragons',
+          'Tipo: Campanha',
+          '▬ **Data & Horário:** Quarta-feira das 20h às 00h',
+          'Vagas: 4',
+          'Contato: https://forms.gle/example',
+        ].join('\n'),
+      }),
+    );
+
+    expect(draft?.table.type).toBe('campanha');
+    expect(draft?.table.day_of_week).toBe('quarta');
+    expect(draft?.table.frequency).toBe('semanal');
+  });
+
+  it('does not infer frequency for campaigns without day_of_week (spec 017 T-F1-A-04)', () => {
+    const draft = parseDiscordAnnouncement(
+      makeMessage({
+        content_raw: [
+          '▬ **Sistema:** Dungeons & Dragons',
+          'Tipo: Campanha',
+          'Vagas: 4',
+          'Contato: https://forms.gle/example',
+        ].join('\n'),
+      }),
+    );
+
+    expect(draft?.table.type).toBe('campanha');
+    expect(draft?.table.day_of_week).toBeNull();
+    expect(draft?.table.frequency).toBeNull();
+  });
+
+  it('does not infer frequency for open tables (spec 017 T-F1-A-04)', () => {
+    const draft = parseDiscordAnnouncement(
+      makeMessage({
+        content_raw: [
+          '▬ **Sistema:** Dungeons & Dragons',
+          'Mesa aberta para iniciantes',
+          '▬ **Data & Horário:** Quarta-feira das 20h às 00h',
+          'Vagas: 4',
+          'Contato: https://forms.gle/example',
+        ].join('\n'),
+      }),
+    );
+
+    expect(draft?.table.type).toBe('aberta');
+    expect(draft?.table.frequency).toBeNull();
+  });
+
+  it('extracts host_discord_id from Mestre mention on the same line (spec 017 T-F1-A-05)', () => {
+    const draft = parseDiscordAnnouncement(
+      makeMessage({
+        content_raw: [
+          '▬ **Sistema:** Dungeons & Dragons',
+          '▬ **Mestre:** <@225275653333843970>',
+          '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+          'Vagas: 4',
+          'Contato: https://forms.gle/example',
+        ].join('\n'),
+      }),
+    );
+
+    expect(draft?.table.host_discord_id).toBe('225275653333843970');
+  });
+
+  it('extracts host_discord_id from GM mention (spec 017 T-F1-A-05)', () => {
+    const draft = parseDiscordAnnouncement(
+      makeMessage({
+        content_raw: [
+          '▬ **Sistema:** Dungeons & Dragons',
+          '▬ **GM:** <@99999>',
+          '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+          'Vagas: 4',
+          'Contato: https://forms.gle/example',
+        ].join('\n'),
+      }),
+    );
+
+    expect(draft?.table.host_discord_id).toBe('99999');
+  });
+
+  it('extracts host_discord_id when Mestre label and mention are split across lines (spec 017 T-F1-A-05)', () => {
+    const draft = parseDiscordAnnouncement(
+      makeMessage({
+        content_raw: [
+          '▬ **Sistema:** Dungeons & Dragons',
+          '▬** Mestre:**',
+          '- <@186160570133643265>',
+          '▬ **Data & Horários:** Quartas-feiras das 21h às 00h',
+          '▬ **Vagas Totais:** 6',
+          '▬ **Vagas Disponíveis:** 0',
+          'Contato: https://forms.gle/example',
+        ].join('\n'),
+      }),
+    );
+
+    expect(draft?.table.host_discord_id).toBe('186160570133643265');
+  });
+
+  it('keeps host_discord_id null without a host line (spec 017 T-F1-A-05)', () => {
+    const draft = parseDiscordAnnouncement(
+      makeMessage({
+        content_raw: [
+          '▬ **Sistema:** Dungeons & Dragons',
+          '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+          'Vagas: 4',
+          'Contato: https://forms.gle/example',
+        ].join('\n'),
+      }),
+    );
+
+    expect(draft?.table.host_discord_id).toBeNull();
+  });
+
+  it('marks ambiguous slash slots as missing slots_open during normalization (spec 017 T-F1-A-06)', () => {
+    const draft = parseDiscordAnnouncement(
+      makeMessage({
+        content_raw: [
+          '▬ **Sistema:** Dungeons & Dragons',
+          '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+          '▬ **Vagas:** 0/6',
+          'Contato: https://forms.gle/example',
+        ].join('\n'),
+      }),
+      [{ id: 'dnd', name: 'Dungeons & Dragons', name_pt: null, aliases: ['D&D'] }],
+    );
+
+    expect(draft).not.toBeNull();
+    const normalized = normalizeDiscordTableDraft(draft!, [
+      { id: 'dnd', name: 'Dungeons & Dragons', name_pt: null, aliases: ['D&D'] },
+    ]);
+
+    expect(normalized.draft.missing_fields).toContain('slots_open:ambiguous_x_of_y');
+    expect(normalized.status).toBe('needs_review');
   });
 
   it('matches systems by specific names before generic aliases and version suffixes', () => {

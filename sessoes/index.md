@@ -273,9 +273,17 @@
 
 ---
 
+## 12/05/2026 (1 sessão)
+
+| # | Arquivo |
+|---|---|
+| 1 | `26-05-12_1_parser-refinements-imagens.md` |
+
+---
+
 ## Sessão Mais Recente
 
-`26-05-09_2_discord-pipeline-fase-1-em-diante.md`
+`26-05-12_1_parser-refinements-imagens.md`
 
 ---
 
@@ -291,4 +299,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-05-09_2_*` ou nova data
+**Próxima sessão:** `26-05-12_1_*` ou nova data
