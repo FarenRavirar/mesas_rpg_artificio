@@ -103,6 +103,10 @@
 - T-F1-F-04 frequência exposta como select com semanal, quinzenal, mensal, única e outra.
 - T-F1-F-05 validação local: `npm --prefix frontend run build` GREEN (`tsc -b && vite build`).
 - Pós-deploy Fase F: opção `outra` ajustada para manter draft em revisão, evitando sync com enum não suportado pelo backend.
+- Fase F commits enviados para `origin/dev`: `da79df3 feat(discord): melhora revisão de capas e vagas` e `7a9647e fix(discord): bloqueia sync com frequencia outra`.
+- Deploy Beta `25680850486` GREEN para `7a9647e`; CodeQL `25680848361` GREEN.
+- Smokes externos: `https://mesasbeta.artificiorpg.com` HTTP 200 e `/api/v1/health` HTTP 200.
+- API admin de drafts respondeu payloads com `cover_url_source`, `cover_quality` e `_slots_ambiguity`, confirmando dados disponíveis para a UI.
 
 ### Evidência T-F1-A-02 — RED
 
@@ -175,7 +179,7 @@ Ran all test suites matching parseDiscordAnnouncement.
 27. [x] T-F1-F-03 — Widget de desambiguação de slots.
 28. [x] T-F1-F-04 — Select de frequência.
 29. [x] T-F1-F-05 — Build + commit Fase F.
-30. [ ] T-F1-F-06 — Teste funcional Beta.
+30. [ ] T-F1-F-06 — Teste funcional Beta pelo mantenedor em janela anônima.
 
 ### Evidência T-F1-B-03 — GREEN local
 
@@ -449,22 +453,24 @@ Ran all test suites matching parseDiscordAnnouncement.
 
 ## Critério de conclusão explícito
 
-Fase A só será considerada GREEN quando:
+Spec 017 será considerado tecnicamente GREEN quando:
 
-- Jest local de `parseDiscordAnnouncement` passar com os novos casos.
-- TypeScript backend passar.
+- Jest local de `parseDiscordAnnouncement` e `uploadDiscordImage` passar.
+- TypeScript/backend/frontend passar.
 - `git status` listar somente arquivos esperados.
 - `tasks.md` e esta sessão registrarem estado origem → destino, comando exato e output literal.
-- Invariantes SQL da Fase A ficarem registradas como pendentes de re-parse em massa na Fase E, conforme `tasks.md`.
+- Invariantes SQL A-E forem executadas no Beta após re-parse em massa.
+- Deploy Beta e CodeQL ficarem GREEN.
+- T-F1-F-06 permanecer explicitamente como validação funcional do mantenedor em janela anônima.
 
 ---
 
 ## Checklist de fechamento
 
 - [ ] `/speckit.retro.run` ao final da sessão.
-- [ ] Atualizar `.specify/memory/project-state.md` via `/speckit.status`.
+- [x] Atualizar `.specify/memory/project-state.md` via `/speckit.status`.
 - [ ] Mover sessão para `encerradas/` quando autorizado.
-- [ ] Atualizar `sessoes/index.md`.
+- [x] Atualizar `sessoes/index.md`.
 
 ---
 

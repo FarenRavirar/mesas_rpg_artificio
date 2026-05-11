@@ -1,7 +1,7 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-05-11T10:55:00-03:00
-**Atualizado por:** sessão 26-05-09_2_discord-pipeline-fase-1-em-diante (Fase 1 fechada)
+**Última atualização:** 2026-05-11T12:55:00-03:00
+**Atualizado por:** sessão 26-05-12_1_parser-refinements-imagens (spec 017 Fases A-F publicadas no Beta)
 ---
 
 ## Ambientes
@@ -15,14 +15,28 @@
 
 ## Estado Técnico Atual
 
-**Branch ativa:** `feat/015-discord-draft-pipeline` — Fase 1 do plan 016 entregue (migration 118 aplicada no Beta, guard PATCH 422, parser null para body+embeds vazios, frontend badge consistente, smoke workflow integrado ao Deploy Beta).
-**Último commit em `origin/dev`:** `bc8a9f0` — `fix(ci): smoke discord inclui content_hash NOT NULL no INSERT`
+**Branch ativa:** `feat/015-discord-draft-pipeline` — spec 017 entregue no Beta sobre o pipeline Discord: parser refinado, extração de imagem, upload Cloudinary no sync/retry e UI de revisão de capas/vagas/frequência.
+**Último commit em `origin/dev`:** `7a9647e` — `fix(discord): bloqueia sync com frequencia outra`
 
-**Feature ativa de remediação:** `specs/016-discord-pipeline-rebuild/` (substitui o estado anterior da feature 015 como objetivo do trabalho).
-**Sessão ativa:** `sessoes/26-05-09_2_discord-pipeline-fase-1-em-diante.md` (Fase 1+).
+**Feature ativa de remediação:** `specs/017-parser-refinements-imagens/` (refinamento pós-Fase 1 do spec 016).
+**Sessão ativa:** `sessoes/26-05-12_1_parser-refinements-imagens.md`.
 **Sessão de diagnóstico (encerrável):** `sessoes/26-05-09_1_discord-pipeline-diagnostico.md`.
 
 **Erros canônicos novos:** `E166` (evidência GREEN fabricada — regra anti-recorrência exige `SELECT` no banco-alvo após qualquer write em pipeline de import).
+
+**Spec 017 — Parser refinements + imagens (11/05/2026):**
+- Fases A-F implementadas e publicadas em `origin/dev` / Beta.
+- Parser: `Vagas: X/Y` gera ambiguidade revisável, `Vagas: 0` é valor explícito, one-shots não inferem `frequency='semanal'`, `host_discord_id` captura `<@user>` de Mestre/GM/Narrador/DM, sistemas com parênteses/versão não contaminam `raw_system_hint`.
+- Imagens: `cover_url_source` e `cover_quality` extraídos de attachments; SVG/mídia não imagem descartados; migration 122 adicionou status auditável de upload; sync/retry passa imagem do Discord por Cloudinary antes de preencher `tables.cover_url`/`banner_url`.
+- Operação Beta Fase E: 5 legacies `content_raw=discord_thread_name` marcados `ignored`, 184 mensagens reparseadas com sucesso.
+- Evidência E166 pós re-parse final no Beta:
+  - `A_slots_total_missing=2` (limite ≤10), `A_oneshot_semanal=0`, `B_hint_parentese=0`.
+  - `C_com_imagem=184,C_com_source=184` (100% dos posts com imagem).
+  - `D_discord_cdn_tables=0`, `E_legacy_parsed=0`.
+  - Drafts: `ready=124`, `needs_review=60`; mensagens: `parsed=184`, `ignored=10`.
+- Frontend: painel de revisão mostra thumbnail 40x40, preview de capa, upload/remover capa, badge de baixa qualidade, widget de desambiguação `X/Y`, e select de frequência com proteção para `outra` não sincronizar.
+- Deploys finais GREEN: `25680850486` (Deploy Beta) e `25680848361` (CodeQL) para `7a9647e`. Smokes externos root e `/api/v1/health` HTTP 200.
+- Pendência operacional: mantenedor validar visualmente a Fase F em janela anônima no Beta (`mesasbeta.artificiorpg.com`), conforme T-F1-F-06.
 
 **Reset estrutural do pipeline Discord (09/05/2026):**
 - Diagnóstico via `SELECT` no Beta revelou 170/180 mensagens com `content_raw` vazio, 169/180 `embeds` gravados como objeto vazio, 2 drafts `ready` em drift.

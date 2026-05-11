@@ -1,6 +1,6 @@
 # Índice de Sessões
 
-Última atualização: 09/05/2026 BRT
+Última atualização: 11/05/2026 BRT
 
 ---
 
@@ -299,4 +299,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-05-12_1_*` ou nova data
+**Próxima sessão:** `26-05-12_2_*` ou nova data

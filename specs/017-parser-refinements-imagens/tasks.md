@@ -482,7 +482,7 @@ SELECT image_upload_status, count(*) FROM discord_import_table_drafts
 ### T-F1-F-05 — Build + commit Fase F
 
 - [x] `npm --prefix frontend run build` GREEN (`tsc -b && vite build`).
-- [ ] Commit atômico.
+- [x] Commit atômico.
 
 ### T-F1-F-06 — Teste funcional Beta
 
@@ -491,6 +491,7 @@ SELECT image_upload_status, count(*) FROM discord_import_table_drafts
   - Confirma widget de desambiguação aparece nos drafts com `X/Y`
   - Confirma badge "baixa qualidade" quando aplicável
   - Confirma select de frequência
+- [x] Validação técnica pós-deploy: Deploy Beta `25680850486` GREEN; CodeQL `25680848361` GREEN; root e `/api/v1/health` HTTP 200.
 
 ---
 
