@@ -20,6 +20,20 @@ const DRAFT_STATUS_COLORS: Record<DiscordImportDraftStatus, string> = {
   rejected: 'bg-red-700/40 text-red-300',
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function readDraftTable(draft: DiscordDraft): Record<string, unknown> {
+  const normalizedTable = isRecord(draft.normalized_payload?.table) ? draft.normalized_payload.table : null;
+  if (normalizedTable) return normalizedTable;
+  return isRecord(draft.parsed_payload?.table) ? draft.parsed_payload.table : {};
+}
+
+function readString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value : null;
+}
+
 export function DiscordDraftReviewTable() {
   const [drafts, setDrafts] = useState<DiscordDraft[]>([]);
   const [loading, setLoading] = useState(false);
@@ -121,10 +135,11 @@ export function DiscordDraftReviewTable() {
       ) : (
         <div className="space-y-2">
           {drafts.map(draft => {
-            const table = draft.normalized_payload?.table as Record<string, unknown> | undefined
-              ?? draft.parsed_payload?.table as Record<string, unknown> | undefined;
-            const title = typeof table?.title === 'string' ? table.title : '—';
-            const system = typeof table?.system_name === 'string' ? table.system_name : null;
+            const table = readDraftTable(draft);
+            const title = readString(table.title) ?? '—';
+            const system = readString(table.system_name);
+            const coverUrl = readString(table.cover_url) ?? readString(table.cover_url_source);
+            const coverQuality = readString(table.cover_quality);
 
             return (
               <div
@@ -132,6 +147,13 @@ export function DiscordDraftReviewTable() {
                 className="bg-white/5 border border-white/10 rounded-lg px-4 py-3 flex items-center gap-3 cursor-pointer hover:bg-white/[0.08] transition-colors"
                 onClick={() => setSelectedDraft(draft)}
               >
+                <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md border border-white/10 bg-white/5">
+                  {coverUrl ? (
+                    <img src={coverUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
+                  ) : (
+                    <div className="h-full w-full bg-white/5" />
+                  )}
+                </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
                     {(() => {
@@ -148,7 +170,10 @@ export function DiscordDraftReviewTable() {
                     )}
                   </div>
                   <p className="text-white font-medium text-sm truncate">{title}</p>
-                  {system && <p className="text-white/40 text-xs">{system}</p>}
+                  <div className="flex items-center gap-2">
+                    {system && <p className="text-white/40 text-xs truncate">{system}</p>}
+                    {coverQuality === 'low' && <span className="text-amber-300 text-xs">capa baixa</span>}
+                  </div>
                 </div>
                 <div className="text-white/30 text-xs shrink-0 text-right">
                   <p>{new Date(draft.created_at).toLocaleDateString('pt-BR')}</p>

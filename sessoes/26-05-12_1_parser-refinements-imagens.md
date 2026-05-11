@@ -96,6 +96,12 @@
 - Deploy Beta `25679981015` GREEN para `c7db12f`; CodeQL `25679977452` GREEN.
 - Re-parse final da Fase E executado após deploy: `processed=184`, `succeeded=184`, `failed=0`.
 - Invariantes finais Fase E GREEN: `A_slots_total_missing=2`, `A_oneshot_semanal=0`, `B_hint_parentese=0`, `C_com_imagem=184,C_com_source=184`, `D_discord_cdn_tables=0`, `E_legacy_parsed=0`.
+- Iniciada Fase F: UI administrativa de revisão para imagem, vagas ambíguas e frequência.
+- T-F1-F-01 tipos frontend adicionados para payload normalizado do Discord, incluindo capa, qualidade e ambiguidade.
+- T-F1-F-02 preview de capa e thumbnail 40x40 implementados; substituir usa upload padrão `/api/v1/upload`, remover zera capa.
+- T-F1-F-03 widget de desambiguação `X/Y` implementado, atualizando `slots_total`, `slots_open`, `slots_filled`, `_slots_ambiguity` e `missing_fields`.
+- T-F1-F-04 frequência exposta como select com semanal, quinzenal, mensal, única e outra.
+- T-F1-F-05 validação local: `npm --prefix frontend run build` GREEN (`tsc -b && vite build`).
 
 ### Evidência T-F1-A-02 — RED
 
@@ -163,6 +169,12 @@ Ran all test suites matching parseDiscordAnnouncement.
 22. [x] T-F1-E-02 — Marcar legacy como ignored + apagar drafts.
 23. [x] T-F1-E-03 — Re-parse em massa.
 24. [x] T-F1-E-04 — Sessão atualizada com evidência.
+25. [x] T-F1-F-01 — Estender types frontend.
+26. [x] T-F1-F-02 — Preview de capa + thumbnail.
+27. [x] T-F1-F-03 — Widget de desambiguação de slots.
+28. [x] T-F1-F-04 — Select de frequência.
+29. [x] T-F1-F-05 — Build + commit Fase F.
+30. [ ] T-F1-F-06 — Teste funcional Beta.
 
 ### Evidência T-F1-B-03 — GREEN local
 
@@ -297,6 +309,41 @@ draft_status_ready=124
 message_status_ignored=10
 message_status_parsed=184
 image_status_none=184
+```
+
+### Evidência T-F1-F-05 — GREEN local
+
+Estado: NOT STARTED -> GREEN técnico local
+
+Comandos:
+```powershell
+npm --prefix frontend run build
+git diff --check
+```
+
+Output literal:
+```text
+> frontend_temp@0.0.0 build
+> tsc -b && vite build
+
+vite v8.0.3 building client environment for production...
+✓ 2152 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                     1.91 kB │ gzip:   0.71 kB
+dist/assets/banner_placeholder-yIcJpBb9.webp       25.98 kB
+dist/assets/vendor-react-W1ZBun6d.css              29.75 kB │ gzip:  11.52 kB
+dist/assets/index-BzxZ0YsM.css                    152.60 kB │ gzip:  23.54 kB
+dist/assets/rolldown-runtime-Dw2cE7zH.js            0.68 kB │ gzip:   0.41 kB
+dist/assets/mapTableApiToInitialData-BetHjCM2.js    2.34 kB │ gzip:   0.96 kB
+dist/assets/vendor-react-CFloVu4Z.js              346.39 kB │ gzip: 109.08 kB
+dist/assets/index-BvEOhJ2O.js                     692.47 kB │ gzip: 186.14 kB
+✓ built in 1.01s
+
+(!) Some chunks are larger than 500 kB after minification.
+
+git diff --check
+<sem erro; apenas avisos CRLF>
 ```
 
 ### Evidência correção `Vagas: 0` — GREEN local

@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import toast from 'react-hot-toast';
-import type { DiscordDraft, DiscordImportDraftStatus } from '../types';
+import type { DiscordCoverQuality, DiscordDraft, DiscordDraftPayload, DiscordDraftTablePayload, DiscordImportDraftStatus, DiscordSlotsAmbiguity } from '../types';
 import { discordSyncApi } from '../api/discordSyncApi';
 import type { SystemTreeNode } from '../../../types/systems';
 
@@ -14,7 +14,8 @@ type DraftTableType = 'campanha' | 'one-shot' | 'oneshot-serie' | 'aberta';
 type DraftModality = 'online' | 'presencial' | 'hibrida';
 type DraftPriceType = 'gratuita' | 'paga';
 type DraftDayOfWeek = 'segunda' | 'terça' | 'quarta' | 'quinta' | 'sexta' | 'sábado' | 'domingo';
-type DraftFrequency = 'semanal' | 'quinzenal' | 'mensal' | 'avulsa';
+type DraftFrequency = 'semanal' | 'quinzenal' | 'mensal' | 'avulsa' | 'outra';
+type SlotsInterpretation = 'filled_total' | 'open_total';
 
 interface DraftForm {
   title: string;
@@ -32,17 +33,15 @@ interface DraftForm {
   frequency: DraftFrequency;
   contact_url: string;
   contact_discord: string;
-}
-
-interface DraftPayload {
-  kind?: unknown;
-  source?: Record<string, unknown>;
-  table?: Record<string, unknown>;
-  confidence?: unknown;
+  cover_url: string;
+  cover_url_source: string;
+  cover_quality: '' | DiscordCoverQuality;
 }
 
 const STATUS_OPTIONS: DiscordImportDraftStatus[] = ['draft', 'ready', 'needs_review', 'rejected'];
 const API_BASE = import.meta.env.VITE_API_URL || '';
+const MAX_COVER_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+const COVER_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -60,11 +59,26 @@ function asNumberString(value: unknown): string {
   return typeof value === 'number' && Number.isFinite(value) ? String(value) : '';
 }
 
-function normalizePayload(value: unknown): DraftPayload {
+function normalizePayload(value: unknown): DiscordDraftPayload {
   return isRecord(value) ? value : {};
 }
 
-function buildForm(payload: DraftPayload): DraftForm {
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+}
+
+function asSlotsAmbiguity(value: unknown): DiscordSlotsAmbiguity | null {
+  if (!isRecord(value)) return null;
+  return typeof value.first === 'number' && typeof value.second === 'number' && value.source === 'x_slash_y'
+    ? { first: value.first, second: value.second, source: 'x_slash_y' }
+    : null;
+}
+
+function getDraftTable(payload: DiscordDraftPayload): DiscordDraftTablePayload {
+  return isRecord(payload.table) ? payload.table : {};
+}
+
+function buildForm(payload: DiscordDraftPayload): DraftForm {
   const table = asRecord(payload.table);
   return {
     title: asString(table.title),
@@ -82,13 +96,16 @@ function buildForm(payload: DraftPayload): DraftForm {
     frequency: (asString(table.frequency) as DraftFrequency) || 'semanal',
     contact_url: asString(table.contact_url),
     contact_discord: asString(table.contact_discord),
+    cover_url: asString(table.cover_url),
+    cover_url_source: asString(table.cover_url_source),
+    cover_quality: (asString(table.cover_quality) as DraftForm['cover_quality']) || '',
   };
 }
 
-function parseOptionalPositiveInt(value: string): number | null {
+function parseOptionalNonNegativeInt(value: string): number | null {
   if (!value.trim()) return null;
   const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
 }
 
 function parseOptionalMoney(value: string): number | null {
@@ -105,42 +122,76 @@ function validateForm(form: DraftForm): string[] {
   if (!form.type.trim()) missing.push('Tipo');
   if (!form.modality.trim()) missing.push('Modalidade');
   if (!form.price_type.trim()) missing.push('Preço');
-  if (!parseOptionalPositiveInt(form.slots_total) && !parseOptionalPositiveInt(form.slots_open)) missing.push('Vagas');
+  if (parseOptionalNonNegativeInt(form.slots_total) == null && parseOptionalNonNegativeInt(form.slots_open) == null) missing.push('Vagas');
   if (!form.contact_url.trim() && !form.contact_discord.trim()) missing.push('Contato');
   if (!form.day_of_week) missing.push('Dia');
   if (!form.start_time.trim()) missing.push('Horário');
   return missing;
 }
 
-function buildUpdatedPayload(base: DraftPayload, form: DraftForm): Record<string, unknown> {
+function buildMissingFields(base: DiscordDraftPayload, form: DraftForm): string[] {
+  const table = getDraftTable(base);
+  const missing = new Set(asStringArray(base.missing_fields));
+  const setByState = (field: string, isMissing: boolean) => {
+    if (isMissing) missing.add(field);
+    else missing.delete(field);
+  };
+
+  setByState('title', !form.title.trim());
+  setByState('description', !form.description.trim());
+  setByState('system_name', !form.system_id.trim() && !form.system_name.trim());
+  setByState('system_name:unmatched_hint', !form.system_id.trim() && Boolean(table.raw_system_hint));
+  setByState('type', !form.type.trim());
+  setByState('modality', !form.modality.trim());
+  setByState('price_type', !form.price_type.trim());
+  setByState('slots_total', parseOptionalNonNegativeInt(form.slots_total) == null && parseOptionalNonNegativeInt(form.slots_open) == null);
+  setByState('contact_url', !form.contact_url.trim() && !form.contact_discord.trim());
+  setByState('day_of_week', !form.day_of_week);
+  setByState('start_time', !form.start_time.trim());
+
+  return Array.from(missing);
+}
+
+function buildUpdatedPayload(base: DiscordDraftPayload, form: DraftForm): Record<string, unknown> {
   const baseTable = asRecord(base.table);
-  const slotsTotal = parseOptionalPositiveInt(form.slots_total);
-  const slotsOpen = parseOptionalPositiveInt(form.slots_open);
+  const slotsTotal = parseOptionalNonNegativeInt(form.slots_total);
+  const slotsOpen = parseOptionalNonNegativeInt(form.slots_open);
   const priceValue = parseOptionalMoney(form.price_value);
+  const table = {
+    ...baseTable,
+    title: form.title.trim() || null,
+    description: form.description.trim() || null,
+    system_id: form.system_id.trim() || null,
+    system_name: form.system_name.trim() || null,
+    type: form.type,
+    modality: form.modality,
+    price_type: form.price_type,
+    price_value: form.price_type === 'paga' ? priceValue : null,
+    slots_total: slotsTotal,
+    slots_open: slotsOpen ?? slotsTotal,
+    day_of_week: form.day_of_week || null,
+    start_time: form.start_time.trim() || null,
+    frequency: form.frequency,
+    contact_url: form.contact_url.trim() || null,
+    contact_discord: form.contact_discord.trim() || null,
+    cover_url: form.cover_url.trim() || null,
+    cover_url_source: form.cover_url_source.trim() || null,
+    cover_quality: form.cover_quality || null,
+  };
 
   return {
     ...base,
     kind: base.kind ?? 'table_draft',
     source: asRecord(base.source),
-    table: {
-      ...baseTable,
-      title: form.title.trim() || null,
-      description: form.description.trim() || null,
-      system_id: form.system_id.trim() || null,
-      system_name: form.system_name.trim() || null,
-      type: form.type,
-      modality: form.modality,
-      price_type: form.price_type,
-      price_value: form.price_type === 'paga' ? priceValue : null,
-      slots_total: slotsTotal,
-      slots_open: slotsOpen ?? slotsTotal,
-      day_of_week: form.day_of_week || null,
-      start_time: form.start_time.trim() || null,
-      frequency: form.frequency,
-      contact_url: form.contact_url.trim() || null,
-      contact_discord: form.contact_discord.trim() || null,
-    },
+    table,
+    missing_fields: buildMissingFields(base, form),
   };
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function flattenSystems(nodes: SystemTreeNode[]): SystemTreeNode[] {
@@ -179,6 +230,10 @@ export function DiscordDraftPreview({ draft, onUpdate, onClose }: Props) {
   const [savingStatus, setSavingStatus] = useState(false);
   const [savingFields, setSavingFields] = useState(false);
   const [activeTab, setActiveTab] = useState<'editor' | 'parsed' | 'normalized'>('editor');
+  const [coverUploading, setCoverUploading] = useState(false);
+  const [coverError, setCoverError] = useState<string | null>(null);
+  const [slotsInterpretation, setSlotsInterpretation] = useState<SlotsInterpretation>('filled_total');
+  const coverInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setForm(buildForm(initialPayload));
@@ -207,6 +262,11 @@ export function DiscordDraftPreview({ draft, onUpdate, onClose }: Props) {
   const missingFields = validateForm(form);
   const canSync = draft.status === 'ready' && missingFields.length === 0;
   const selectedPayload = activeTab === 'parsed' ? draft.parsed_payload : (draft.normalized_payload ?? draft.parsed_payload);
+  const tablePayload = getDraftTable(initialPayload);
+  const payloadMissingFields = asStringArray(initialPayload.missing_fields);
+  const slotsAmbiguity = asSlotsAmbiguity(tablePayload._slots_ambiguity);
+  const shouldShowSlotsDisambiguation = Boolean(slotsAmbiguity && payloadMissingFields.includes('slots_open:ambiguous_x_of_y'));
+  const coverPreviewUrl = form.cover_url.trim() || form.cover_url_source.trim();
 
   const updateForm = <K extends keyof DraftForm>(key: K, value: DraftForm[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -234,6 +294,93 @@ export function DiscordDraftPreview({ draft, onUpdate, onClose }: Props) {
       onUpdate(updated);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao salvar campos do draft.');
+    } finally {
+      setSavingFields(false);
+    }
+  };
+
+  const handleCoverUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!COVER_MIME_TYPES.includes(file.type)) {
+      setCoverError('Formato inválido. Envie JPG, PNG ou WEBP.');
+      return;
+    }
+    if (file.size > MAX_COVER_FILE_SIZE_BYTES) {
+      setCoverError(`Arquivo muito grande (${formatFileSize(file.size)}). Limite de 5 MB.`);
+      return;
+    }
+
+    setCoverUploading(true);
+    setCoverError(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const apiBase = API_BASE.replace(/\/api\/v1$/, '');
+      const response = await fetch(`${apiBase}/api/v1/upload`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+      const payload: unknown = await response.json();
+      const secureUrl = isRecord(payload) ? asString(payload.secure_url) : '';
+      if (!response.ok || !secureUrl) {
+        throw new Error(isRecord(payload) ? asString(payload.error) || 'Falha ao enviar imagem.' : 'Falha ao enviar imagem.');
+      }
+      setForm((prev) => ({
+        ...prev,
+        cover_url: secureUrl,
+        cover_url_source: '',
+        cover_quality: 'standard',
+      }));
+    } catch (err) {
+      setCoverError(err instanceof Error ? err.message : 'Erro ao substituir capa.');
+    } finally {
+      setCoverUploading(false);
+    }
+  };
+
+  const handleRemoveCover = () => {
+    setCoverError(null);
+    setForm((prev) => ({ ...prev, cover_url: '', cover_url_source: '', cover_quality: '' }));
+  };
+
+  const handleConfirmSlots = async () => {
+    if (!slotsAmbiguity) return;
+    setSavingFields(true);
+    try {
+      const total = Math.max(slotsAmbiguity.first, slotsAmbiguity.second);
+      const filled = slotsInterpretation === 'filled_total' ? slotsAmbiguity.first : Math.max(0, total - slotsAmbiguity.first);
+      const open = slotsInterpretation === 'filled_total' ? Math.max(0, total - slotsAmbiguity.first) : slotsAmbiguity.first;
+      const nextForm = {
+        ...form,
+        slots_total: String(total),
+        slots_open: String(open),
+      };
+      const basePayload = buildUpdatedPayload(initialPayload, nextForm);
+      const baseTable = asRecord(basePayload.table);
+      const missing = asStringArray(basePayload.missing_fields).filter((field) => field !== 'slots_open:ambiguous_x_of_y' && field !== 'slots_total');
+      const normalized_payload = {
+        ...basePayload,
+        missing_fields: missing,
+        table: {
+          ...baseTable,
+          slots_total: total,
+          slots_filled: filled,
+          slots_open: open,
+          _slots_ambiguity: null,
+        },
+      };
+      const updated = await discordSyncApi.updateDraft(draft.id, {
+        normalized_payload,
+        status: missing.length === 0 ? 'ready' : 'needs_review',
+        review_notes: missing.length === 0 ? reviewNotes || undefined : `Campos pendentes: ${missing.join(', ')}`,
+      });
+      toast.success('Vagas desambiguadas.');
+      onUpdate(updated);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao salvar interpretação de vagas.');
     } finally {
       setSavingFields(false);
     }
@@ -357,6 +504,56 @@ export function DiscordDraftPreview({ draft, onUpdate, onClose }: Props) {
                 </div>
               )}
 
+              <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+                <div className="flex items-start gap-3">
+                  <div className="h-24 w-40 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-black/30">
+                    {coverPreviewUrl ? (
+                      <img src={coverPreviewUrl} alt="Capa do draft" className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-xs text-white/30">Sem capa</div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-2 flex items-center gap-2">
+                      <span className="text-sm font-medium text-white">Capa</span>
+                      {form.cover_quality === 'low' && <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs text-amber-200">baixa resolução</span>}
+                    </div>
+                    <p className="truncate text-xs text-white/50">{coverPreviewUrl || 'Nenhuma imagem associada.'}</p>
+                    {coverError && <p className="mt-1 text-xs text-red-300">{coverError}</p>}
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <input ref={coverInputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={handleCoverUpload} className="hidden" />
+                      <button type="button" onClick={() => coverInputRef.current?.click()} disabled={coverUploading} className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs rounded-lg transition-colors disabled:opacity-50">
+                        {coverUploading ? 'Enviando...' : 'Substituir'}
+                      </button>
+                      {coverPreviewUrl && (
+                        <button type="button" onClick={handleRemoveCover} className="px-3 py-1.5 bg-red-500/15 hover:bg-red-500/25 text-red-100 text-xs rounded-lg transition-colors">
+                          Remover
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {shouldShowSlotsDisambiguation && slotsAmbiguity && (
+                <div className="rounded-lg border border-amber-400/30 bg-amber-500/10 p-4 text-sm text-amber-50">
+                  <p className="font-medium">Como interpretar {slotsAmbiguity.first}/{slotsAmbiguity.second} deste post?</p>
+                  <div className="mt-3 space-y-2">
+                    <label className="flex items-center gap-2">
+                      <input type="radio" checked={slotsInterpretation === 'filled_total'} onChange={() => setSlotsInterpretation('filled_total')} className="accent-amber-400" />
+                      <span>{slotsAmbiguity.first} inscritos / {Math.max(slotsAmbiguity.first, slotsAmbiguity.second)} total</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input type="radio" checked={slotsInterpretation === 'open_total'} onChange={() => setSlotsInterpretation('open_total')} className="accent-amber-400" />
+                      <span>{slotsAmbiguity.first} disponíveis / {Math.max(slotsAmbiguity.first, slotsAmbiguity.second)} máximo</span>
+                    </label>
+                  </div>
+                  <button type="button" onClick={handleConfirmSlots} disabled={savingFields} className="mt-3 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-medium rounded-lg transition-colors disabled:opacity-50">
+                    Confirmar
+                  </button>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <label>
                   <span className={labelClass}>Título</span>
@@ -430,7 +627,8 @@ export function DiscordDraftPreview({ draft, onUpdate, onClose }: Props) {
                     <option value="semanal">Semanal</option>
                     <option value="quinzenal">Quinzenal</option>
                     <option value="mensal">Mensal</option>
-                    <option value="avulsa">Avulsa</option>
+                    <option value="avulsa">Única</option>
+                    <option value="outra">Outra</option>
                   </select>
                 </label>
                 <label>

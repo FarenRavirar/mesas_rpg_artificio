@@ -60,12 +60,53 @@ export interface DiscordMessage {
   updated_at: string;
 }
 
+export interface DiscordSlotsAmbiguity {
+  first: number;
+  second: number;
+  source: 'x_slash_y';
+}
+
+export type DiscordCoverQuality = 'standard' | 'low';
+
+export interface DiscordDraftTablePayload extends Record<string, unknown> {
+  title?: string | null;
+  description?: string | null;
+  system_id?: string | null;
+  system_name?: string | null;
+  raw_system_hint?: string | null;
+  type?: string | null;
+  modality?: string | null;
+  price_type?: string | null;
+  price_value?: number | null;
+  slots_total?: number | null;
+  slots_filled?: number | null;
+  slots_open?: number | null;
+  day_of_week?: string | null;
+  start_time?: string | null;
+  frequency?: string | null;
+  contact_url?: string | null;
+  contact_discord?: string | null;
+  host_discord_id?: string | null;
+  cover_url?: string | null;
+  cover_url_source?: string | null;
+  cover_quality?: DiscordCoverQuality | null;
+  _slots_ambiguity?: DiscordSlotsAmbiguity | null;
+}
+
+export interface DiscordDraftPayload extends Record<string, unknown> {
+  kind?: unknown;
+  source?: Record<string, unknown>;
+  table?: DiscordDraftTablePayload;
+  confidence?: unknown;
+  missing_fields?: unknown;
+}
+
 export interface DiscordDraft {
   id: string;
   discord_message_id: string;
   table_id: string | null;
-  parsed_payload: Record<string, unknown>;
-  normalized_payload: Record<string, unknown> | null;
+  parsed_payload: DiscordDraftPayload;
+  normalized_payload: DiscordDraftPayload | null;
   confidence: number | null;
   status: DiscordImportDraftStatus;
   review_notes: string | null;

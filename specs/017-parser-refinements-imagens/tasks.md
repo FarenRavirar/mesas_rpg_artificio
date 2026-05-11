@@ -242,7 +242,7 @@ SELECT count(*) FROM discord_import_table_drafts
 ### T-F1-C-04 — Build + commit Fase C
 
 - [x] Build + jest GREEN.
-- [ ] Commit atômico.
+- [x] Commit atômico.
 
 #### Evidência local Fase C — RED/GREEN
 
@@ -460,16 +460,16 @@ SELECT image_upload_status, count(*) FROM discord_import_table_drafts
 
 ### T-F1-F-01 — Estender types frontend
 
-- [ ] `frontend/src/features/discord-sync/types.ts`: adicionar `cover_url_source`, `cover_quality`, `host_discord_id`, `_slots_ambiguity` na interface `DiscordDraft.normalized_payload.table`.
+- [x] `frontend/src/features/discord-sync/types.ts`: adicionar `cover_url_source`, `cover_quality`, `host_discord_id`, `_slots_ambiguity` na interface `DiscordDraft.normalized_payload.table`.
 
 ### T-F1-F-02 — Preview de capa + thumbnail
 
-- [ ] `DiscordDraftPreview.tsx`: novo campo "Capa". Exibe `cover_url` (Cloudinary) se presente, senão `cover_url_source` (Discord CDN — pode estar expirado). Botão "Substituir" abre input padrão de upload; "Remover" zera ambos. Badge âmbar quando `cover_quality='low'`.
-- [ ] `DiscordDraftReviewTable.tsx`: thumbnail 40×40 ao lado do título; placeholder cinza quando sem capa.
+- [x] `DiscordDraftPreview.tsx`: novo campo "Capa". Exibe `cover_url` (Cloudinary) se presente, senão `cover_url_source` (Discord CDN — pode estar expirado). Botão "Substituir" abre input padrão de upload; "Remover" zera ambos. Badge âmbar quando `cover_quality='low'`.
+- [x] `DiscordDraftReviewTable.tsx`: thumbnail 40×40 ao lado do título; placeholder cinza quando sem capa.
 
 ### T-F1-F-03 — Widget de desambiguação de slots (D1 c)
 
-- [ ] No `DiscordDraftPreview`, quando `missing_fields` inclui `'slots_open:ambiguous_x_of_y'`:
+- [x] No `DiscordDraftPreview`, quando `missing_fields` inclui `'slots_open:ambiguous_x_of_y'`:
   - Bloco destacado com label "Como interpretar `X/Y` deste post?"
   - 2 rádios mostrando interpretações ("X = inscritos / Y = total" e "X = disponíveis / Y = máximo")
   - Exibe valores reais (lê do `_slots_ambiguity`)
@@ -477,11 +477,11 @@ SELECT image_upload_status, count(*) FROM discord_import_table_drafts
 
 ### T-F1-F-04 — Select de frequência
 
-- [ ] Substituir input text por `<select>` com `semanal`, `quinzenal`, `mensal`, `única`, `outra`.
+- [x] Substituir input text por `<select>` com `semanal`, `quinzenal`, `mensal`, `única`, `outra`.
 
 ### T-F1-F-05 — Build + commit Fase F
 
-- [ ] `npx tsc --noEmit` frontend GREEN.
+- [x] `npm --prefix frontend run build` GREEN (`tsc -b && vite build`).
 - [ ] Commit atômico.
 
 ### T-F1-F-06 — Teste funcional Beta
