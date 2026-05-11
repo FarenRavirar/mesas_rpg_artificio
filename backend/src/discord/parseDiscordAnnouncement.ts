@@ -1,4 +1,4 @@
-import type { DiscordRawMessage, DiscordSlotsAmbiguity, DiscordTableDraft, DiscordTableDraftTable, TableDraftType, TableDraftModality, TableDraftPriceType } from './types';
+import type { CoverQuality, DiscordRawMessage, DiscordSlotsAmbiguity, DiscordTableDraft, DiscordTableDraftTable, TableDraftType, TableDraftModality, TableDraftPriceType } from './types';
 
 export interface SystemEntry {
   id: string;
@@ -34,6 +34,35 @@ function extractBodyFromEmbeds(embeds: unknown[]): string {
     }
   }
   return parts.join('\n');
+}
+
+function readStringField(value: Record<string, unknown>, key: string): string | null {
+  const field = value[key];
+  return typeof field === 'string' && field.trim() ? field.trim() : null;
+}
+
+function readNumberField(value: Record<string, unknown>, key: string): number | null {
+  const field = value[key];
+  return typeof field === 'number' && Number.isFinite(field) ? field : null;
+}
+
+function extractCoverFromAttachments(attachments: unknown[]): { url: string; quality: CoverQuality } | null {
+  for (const attachment of attachments) {
+    if (typeof attachment !== 'object' || attachment === null) continue;
+    const record = attachment as Record<string, unknown>;
+    const contentType = readStringField(record, 'content_type')?.toLowerCase() ?? '';
+    if (!contentType.startsWith('image/') || contentType === 'image/svg+xml') continue;
+
+    const url = readStringField(record, 'url');
+    if (!url) continue;
+
+    const width = readNumberField(record, 'width') ?? 0;
+    const size = readNumberField(record, 'size') ?? 0;
+    const quality: CoverQuality = width >= 800 && size >= 50000 ? 'standard' : 'low';
+    return { url, quality };
+  }
+
+  return null;
 }
 
 // Remove sufixo ™ / ® de strings
@@ -415,6 +444,7 @@ export function parseDiscordAnnouncement(
   const contactUrl = extractContactUrl(body);
   const contactDiscord = extractContactDiscord(body);
   const hostDiscordId = extractHostDiscordId(body);
+  const cover = extractCoverFromAttachments(message.attachments ?? []);
   const description = extractLabelValue(body, ['descricao', 'descrição', 'sinopse', 'proposta']) ?? (body.trim() || null);
 
   const missingFields: string[] = [];
@@ -447,6 +477,8 @@ export function parseDiscordAnnouncement(
     contact_discord: contactDiscord,
     contact_url: contactUrl,
     host_discord_id: hostDiscordId,
+    cover_url_source: cover?.url ?? null,
+    cover_quality: cover?.quality ?? null,
     _slots_ambiguity: slotsAmbiguity,
     _notes: matchedSystem?.notes ?? [],
   };

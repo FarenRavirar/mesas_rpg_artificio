@@ -14,9 +14,9 @@
 ## Estado atual
 
 - [x] Spec entregue · Plan entregue · Decisões 1–7 fechadas pelo mantenedor.
-- [ ] **Fase A** — Parser regex: slots, frequência, host (RED→GREEN).
-- [ ] **Fase B** — Parser regex: sistemas com parênteses e versão.
-- [ ] **Fase C** — Parser: captura de imagem (`cover_url_source`, `cover_quality`).
+- [x] **Fase A** — Parser regex: slots, frequência, host (RED→GREEN).
+- [x] **Fase B** — Parser regex: sistemas com parênteses e versão.
+- [x] **Fase C** — Parser: captura de imagem (`cover_url_source`, `cover_quality`).
 - [ ] **Fase D** — Upload Cloudinary + cron retry + migration 122.
 - [ ] **Fase E** — Limpeza de 3 legacy + re-parse em massa.
 - [ ] **Fase F** — Frontend (preview, widget de desambiguação, select de frequência).
@@ -167,7 +167,7 @@ SELECT count(*) FROM discord_import_table_drafts
 ### T-F1-B-03 — Build + commit Fase B
 
 - [x] `tsc` + `jest` GREEN.
-- [ ] Commit atômico.
+- [x] Commit atômico (`d3e2410`) e push para `dev`; Deploy Beta `25677665779` GREEN.
 
 #### Evidência local Fase B — RED/GREEN
 
@@ -221,28 +221,66 @@ SELECT count(*) FROM discord_import_table_drafts
 
 ### T-F1-C-01 — Estender tipo `DiscordTableDraftTable`
 
-- [ ] Adicionar `cover_url_source: string | null` e `cover_quality: 'standard' | 'low' | null`.
+- [x] Adicionar `cover_url_source: string | null` e `cover_quality: 'standard' | 'low' | null`.
 
 ### T-F1-C-02 — Testes RED para captura de attachment
 
-- [ ] Attachment `{ content_type:'image/jpeg', width:1194, height:804, size:550698, url:'https://cdn.discordapp.com/...' }` → `cover_url_source` set, `cover_quality='standard'`
-- [ ] Attachment `image/png` 400×300 30KB → `cover_url_source` set, `cover_quality='low'`
-- [ ] Attachment `image/svg+xml` → `cover_url_source=null`
-- [ ] Attachment `application/pdf` → ignorado
-- [ ] Mensagem sem attachments → `cover_url_source=null`
-- [ ] Mensagem com 2 attachments image: pega o primeiro
+- [x] Attachment `{ content_type:'image/jpeg', width:1194, height:804, size:550698, url:'https://cdn.discordapp.com/...' }` → `cover_url_source` set, `cover_quality='standard'`
+- [x] Attachment `image/png` 400×300 30KB → `cover_url_source` set, `cover_quality='low'`
+- [x] Attachment `image/svg+xml` → `cover_url_source=null`
+- [x] Attachment `application/pdf` → ignorado
+- [x] Mensagem sem attachments → `cover_url_source=null`
+- [x] Mensagem com 2 attachments image: pega o primeiro
 
 ### T-F1-C-03 — Implementação
 
-- [ ] Função `extractCoverFromAttachments(attachments: unknown[]): { url: string; quality: 'standard'|'low' } | null` em `parseDiscordAnnouncement.ts`.
-- [ ] Lógica de quality conforme D7: `width >= 800 AND size >= 50000` → standard; senão → low. (`size` em bytes.)
-- [ ] Em `parseDiscordAnnouncement`, popular `table.cover_url_source` e `table.cover_quality`.
-- [ ] GREEN.
+- [x] Função `extractCoverFromAttachments(attachments: unknown[]): { url: string; quality: 'standard'|'low' } | null` em `parseDiscordAnnouncement.ts`.
+- [x] Lógica de quality conforme D7: `width >= 800 AND size >= 50000` → standard; senão → low. (`size` em bytes.)
+- [x] Em `parseDiscordAnnouncement`, popular `table.cover_url_source` e `table.cover_quality`.
+- [x] GREEN.
 
 ### T-F1-C-04 — Build + commit Fase C
 
-- [ ] Build + jest GREEN.
+- [x] Build + jest GREEN.
 - [ ] Commit atômico.
+
+#### Evidência local Fase C — RED/GREEN
+
+Estado: NOT STARTED → RED → GREEN técnico local. Commit e push serão feitos em seguida por autorização do mantenedor para executar a Fase C.
+
+Comandos executados:
+```powershell
+npm --prefix backend test -- parseDiscordAnnouncement
+npx tsc --noEmit
+git status --short
+```
+
+Outputs literais relevantes:
+```text
+RED inicial:
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 28 passed, 31 total
+Falhas:
+- Expected cover_url_source "https://cdn.discordapp.com/attachments/1/banner.jpg?ex=abc"; Received null
+- Expected cover_url_source "https://cdn.discordapp.com/attachments/1/small.png?ex=abc"; Received null
+- Expected cover_url_source "https://cdn.discordapp.com/attachments/1/first.jpg?ex=abc"; Received null
+
+GREEN Jest final:
+> backend@1.0.0 test
+> jest parseDiscordAnnouncement
+
+(node:9464) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+Test Suites: 1 passed, 1 total
+Tests:       31 passed, 31 total
+Snapshots:   0 total
+Time:        4.038 s
+Ran all test suites matching parseDiscordAnnouncement.
+
+GREEN TypeScript:
+npx tsc --noEmit
+<sem output; exit code 0>
+```
 
 ### Invariante Fase C (pós Fase E re-parse)
 

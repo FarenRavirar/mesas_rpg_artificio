@@ -505,6 +505,158 @@ describe('parseDiscordAnnouncement', () => {
     expect(draft?.table._notes).toContain('version_mismatch:2e');
   });
 
+  it('extracts standard cover image from Discord attachments (spec 017 T-F1-C-02)', () => {
+    const draft = parseDiscordAnnouncement(
+      makeMessage({
+        content_raw: [
+          '▬ **Sistema:** Dungeons & Dragons',
+          '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+          'Vagas: 4',
+          'Contato: https://forms.gle/example',
+        ].join('\n'),
+        attachments: [
+          {
+            content_type: 'image/jpeg',
+            width: 1194,
+            height: 804,
+            size: 550698,
+            url: 'https://cdn.discordapp.com/attachments/1/banner.jpg?ex=abc',
+          },
+        ],
+      }),
+    );
+
+    expect(draft?.table.cover_url_source).toBe('https://cdn.discordapp.com/attachments/1/banner.jpg?ex=abc');
+    expect(draft?.table.cover_quality).toBe('standard');
+  });
+
+  it('flags small cover images as low quality (spec 017 T-F1-C-02)', () => {
+    const draft = parseDiscordAnnouncement(
+      makeMessage({
+        content_raw: [
+          '▬ **Sistema:** Dungeons & Dragons',
+          '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+          'Vagas: 4',
+          'Contato: https://forms.gle/example',
+        ].join('\n'),
+        attachments: [
+          {
+            content_type: 'image/png',
+            width: 400,
+            height: 300,
+            size: 30000,
+            url: 'https://cdn.discordapp.com/attachments/1/small.png?ex=abc',
+          },
+        ],
+      }),
+    );
+
+    expect(draft?.table.cover_url_source).toBe('https://cdn.discordapp.com/attachments/1/small.png?ex=abc');
+    expect(draft?.table.cover_quality).toBe('low');
+  });
+
+  it('ignores SVG attachments for cover extraction (spec 017 T-F1-C-02)', () => {
+    const draft = parseDiscordAnnouncement(
+      makeMessage({
+        content_raw: [
+          '▬ **Sistema:** Dungeons & Dragons',
+          '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+          'Vagas: 4',
+          'Contato: https://forms.gle/example',
+        ].join('\n'),
+        attachments: [
+          {
+            content_type: 'image/svg+xml',
+            width: 1194,
+            height: 804,
+            size: 550698,
+            url: 'https://cdn.discordapp.com/attachments/1/vector.svg?ex=abc',
+          },
+        ],
+      }),
+    );
+
+    expect(draft?.table.cover_url_source).toBeNull();
+    expect(draft?.table.cover_quality).toBeNull();
+  });
+
+  it('ignores non-image attachments for cover extraction (spec 017 T-F1-C-02)', () => {
+    const draft = parseDiscordAnnouncement(
+      makeMessage({
+        content_raw: [
+          '▬ **Sistema:** Dungeons & Dragons',
+          '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+          'Vagas: 4',
+          'Contato: https://forms.gle/example',
+        ].join('\n'),
+        attachments: [
+          {
+            content_type: 'application/pdf',
+            size: 550698,
+            url: 'https://cdn.discordapp.com/attachments/1/handout.pdf?ex=abc',
+          },
+        ],
+      }),
+    );
+
+    expect(draft?.table.cover_url_source).toBeNull();
+    expect(draft?.table.cover_quality).toBeNull();
+  });
+
+  it('keeps cover fields null when no attachments exist (spec 017 T-F1-C-02)', () => {
+    const draft = parseDiscordAnnouncement(
+      makeMessage({
+        content_raw: [
+          '▬ **Sistema:** Dungeons & Dragons',
+          '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+          'Vagas: 4',
+          'Contato: https://forms.gle/example',
+        ].join('\n'),
+        attachments: [],
+      }),
+    );
+
+    expect(draft?.table.cover_url_source).toBeNull();
+    expect(draft?.table.cover_quality).toBeNull();
+  });
+
+  it('uses the first image attachment as cover source (spec 017 T-F1-C-02)', () => {
+    const draft = parseDiscordAnnouncement(
+      makeMessage({
+        content_raw: [
+          '▬ **Sistema:** Dungeons & Dragons',
+          '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+          'Vagas: 4',
+          'Contato: https://forms.gle/example',
+        ].join('\n'),
+        attachments: [
+          {
+            content_type: 'application/pdf',
+            size: 550698,
+            url: 'https://cdn.discordapp.com/attachments/1/handout.pdf?ex=abc',
+          },
+          {
+            content_type: 'image/jpeg',
+            width: 1200,
+            height: 800,
+            size: 120000,
+            url: 'https://cdn.discordapp.com/attachments/1/first.jpg?ex=abc',
+          },
+          {
+            content_type: 'image/jpeg',
+            width: 1200,
+            height: 800,
+            size: 120000,
+            url: 'https://cdn.discordapp.com/attachments/1/second.jpg?ex=abc',
+          },
+        ],
+      }),
+    );
+
+    expect(draft?.table.cover_url_source).toBe('https://cdn.discordapp.com/attachments/1/first.jpg?ex=abc');
+    expect(draft?.table.cover_quality).toBe('standard');
+  });
+
   it('ignores empty non-starter replies so they do not create duplicate drafts', () => {
     const draft = parseDiscordAnnouncement(
       makeMessage({

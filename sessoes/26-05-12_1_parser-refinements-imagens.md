@@ -67,6 +67,13 @@
 - T-F1-B-01 RED observado: parênteses preservados em hint desconhecido, `D&D 5.5` não resolvido e `Starfinder 2e` sem `_notes`.
 - T-F1-B-02 GREEN: `extractLabelValue` corta a partir de `(` e `matchSystem` tenta versão stripped antes do match amplo; `_notes` registra `version_mismatch:<versao>`.
 - T-F1-B-03 validação local: Jest 25/25 GREEN; `npx tsc --noEmit` GREEN.
+- Fase B commitada e enviada para `origin/dev`: `d3e2410 feat(discord): refina match de sistemas com versao`.
+- Deploy Beta `25677665779` GREEN para `d3e2410`; CodeQL `25677663420` GREEN.
+- Iniciada Fase C: captura de imagem do post apenas no payload do parser, sem persistir em `tables`.
+- T-F1-C-01 tipos `cover_url_source` e `cover_quality` adicionados.
+- T-F1-C-02 RED observado: JPEG/PNG não preenchiam `cover_url_source`; SVG/PDF/sem attachments permaneciam nulos.
+- T-F1-C-03 GREEN: `extractCoverFromAttachments` lê `attachments: unknown[]`, ignora SVG e não-imagens, usa primeira imagem válida, e marca `standard`/`low`.
+- T-F1-C-04 validação local: Jest 31/31 GREEN; `npx tsc --noEmit` GREEN.
 
 ### Evidência T-F1-A-02 — RED
 
@@ -119,7 +126,11 @@ Ran all test suites matching parseDiscordAnnouncement.
 7. [ ] T-F1-A-07 — Build + Jest concluídos; commit pendente de autorização explícita.
 8. [x] T-F1-B-01 — Testes RED para sistemas com parênteses e versão.
 9. [x] T-F1-B-02 — Implementação de `extractLabelValue`/`matchSystem`.
-10. [ ] T-F1-B-03 — Build concluído; commit + push Fase B em andamento.
+10. [x] T-F1-B-03 — Build + commit + push Fase B.
+11. [x] T-F1-C-01 — Estender tipo `DiscordTableDraftTable`.
+12. [x] T-F1-C-02 — Testes RED para captura de attachment.
+13. [x] T-F1-C-03 — Implementação de `extractCoverFromAttachments`.
+14. [ ] T-F1-C-04 — Build concluído; commit + push Fase C em andamento.
 
 ### Evidência T-F1-B-03 — GREEN local
 
@@ -143,6 +154,34 @@ Test Suites: 1 passed, 1 total
 Tests:       25 passed, 25 total
 Snapshots:   0 total
 Time:        3.168 s
+Ran all test suites matching parseDiscordAnnouncement.
+
+npx tsc --noEmit
+<sem output; exit code 0>
+```
+
+### Evidência T-F1-C-04 — GREEN local
+
+Estado: RED -> GREEN técnico local
+
+Comandos:
+```powershell
+npm --prefix backend test -- parseDiscordAnnouncement
+npx tsc --noEmit
+git status --short
+```
+
+Output literal:
+```text
+> backend@1.0.0 test
+> jest parseDiscordAnnouncement
+
+(node:9464) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+Test Suites: 1 passed, 1 total
+Tests:       31 passed, 31 total
+Snapshots:   0 total
+Time:        4.038 s
 Ran all test suites matching parseDiscordAnnouncement.
 
 npx tsc --noEmit
