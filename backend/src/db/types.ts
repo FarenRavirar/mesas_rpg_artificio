@@ -365,7 +365,22 @@ export interface SystemSuggestionsTable {
   user_notified: Generated<boolean>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
+  // Migration 123 - auditoria de resolucao (Spec 018)
+  resolution_type: SuggestionResolutionType | null;
+  resolved_system_id: string | null;
+  created_system_id: string | null;
+  created_alias_id: string | null;
+  resolution_notes: string | null;
+  resolution_payload: Generated<unknown>; // JSONB
+  resolved_at: Date | null;
 }
+
+export type SuggestionResolutionType =
+  | 'create_system'
+  | 'create_child'
+  | 'create_alias'
+  | 'merge_existing'
+  | 'reject';
 
 export type SystemSuggestion = Selectable<SystemSuggestionsTable>;
 export type NewSystemSuggestion = Insertable<SystemSuggestionsTable>;

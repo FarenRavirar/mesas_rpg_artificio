@@ -98,3 +98,4 @@
 - Fatia C validada: `npm --prefix backend run build` GREEN; `npm --prefix frontend run build` GREEN; `database/changelogs.json` valido; `git diff --check` sem erro (apenas avisos de EOL).
 - Fatia D nao implementada nesta rodada: exige SDD Completo por contrato/API/DB de `table_schedules`.
 - Deploy Beta autorizado pelo mantenedor em 2026-06-01: comando "faca o deploy" deve ser tratado como aprovacao explicita para commit e `git push origin dev` neste contexto operacional.
+- Planejamento solicitado para proximo chat em 2026-06-01: criar SDD Completo `specs/018-resolucao-sugestoes-sistemas/` para fluxo saudavel de resolucao de sugestoes, evitando redundancia por alias/edicao/mescla.

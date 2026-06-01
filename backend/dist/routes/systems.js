@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.VALID_PARENT = exports.slugify = void 0;
 const express_1 = require("express");
 const db_1 = require("../db");
 const kysely_1 = require("kysely");
@@ -221,7 +222,8 @@ const slugify = (value) => {
         .replace(/\s+/g, '-')
         .replace(/-+/g, '-');
 };
-const VALID_PARENT = {
+exports.slugify = slugify;
+exports.VALID_PARENT = {
     system: null,
     edition: ['system'],
     subsystem: ['system'],
@@ -243,7 +245,7 @@ router.post('/admin', auth_1.authMiddleware, (0, auth_1.requireRole)('admin'), a
         return res.status(400).json({ error: 'Sistema base não pode ter pai.' });
     }
     try {
-        const slug = slugify(name);
+        const slug = (0, exports.slugify)(name);
         // Verificar se slug já existe
         const existing = await db_1.db
             .selectFrom('systems')
@@ -265,7 +267,7 @@ router.post('/admin', auth_1.authMiddleware, (0, auth_1.requireRole)('admin'), a
             if (!parent) {
                 return res.status(404).json({ error: 'Sistema pai não encontrado.' });
             }
-            const allowedParentTypes = VALID_PARENT[node_type];
+            const allowedParentTypes = exports.VALID_PARENT[node_type];
             if (allowedParentTypes && !allowedParentTypes.includes(parent.node_type)) {
                 return res.status(400).json({
                     error: `${node_type} só pode ser filho de: ${allowedParentTypes.join(' ou ')}.`,
@@ -300,7 +302,7 @@ router.post('/admin', auth_1.authMiddleware, (0, auth_1.requireRole)('admin'), a
                         .values({
                         system_id: newSystem.id,
                         alias: alias.trim(),
-                        alias_slug: slugify(alias),
+                        alias_slug: (0, exports.slugify)(alias),
                         is_official: false,
                     })
                         .onConflict((oc) => oc.columns(['system_id', 'alias_slug']).doNothing())
@@ -343,7 +345,7 @@ router.put('/admin/:id', auth_1.authMiddleware, (0, auth_1.requireRole)('admin')
         if (!existing) {
             return res.status(404).json({ error: 'Sistema não encontrado.' });
         }
-        const slug = slugify(name);
+        const slug = (0, exports.slugify)(name);
         // Verificar se slug já existe em outro sistema
         const duplicateSlug = await db_1.db
             .selectFrom('systems')
@@ -366,7 +368,7 @@ router.put('/admin/:id', auth_1.authMiddleware, (0, auth_1.requireRole)('admin')
             if (!parent) {
                 return res.status(404).json({ error: 'Sistema pai não encontrado.' });
             }
-            const allowedParentTypes = VALID_PARENT[node_type];
+            const allowedParentTypes = exports.VALID_PARENT[node_type];
             if (allowedParentTypes && !allowedParentTypes.includes(parent.node_type)) {
                 return res.status(400).json({
                     error: `${node_type} só pode ser filho de: ${allowedParentTypes.join(' ou ')}.`,
@@ -409,7 +411,7 @@ router.put('/admin/:id', auth_1.authMiddleware, (0, auth_1.requireRole)('admin')
                         .values({
                         system_id: id,
                         alias: alias.trim(),
-                        alias_slug: slugify(alias),
+                        alias_slug: (0, exports.slugify)(alias),
                         is_official: false,
                     })
                         .onConflict((oc) => oc.columns(['system_id', 'alias_slug']).doNothing())

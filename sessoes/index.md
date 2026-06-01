@@ -281,17 +281,18 @@
 
 ---
 
-## 01/06/2026 (1 sessão)
+## 01/06/2026 (2 sessões)
 
 | # | Arquivo |
 |---|---|
 | 1 | `26-06-01_1_diagnostico-criacao-mesa-sistemas.md` |
+| 2 | `26-06-01_2_resolucao-sugestoes-sistemas.md` |
 
 ---
 
 ## Sessão Mais Recente
 
-`26-06-01_1_diagnostico-criacao-mesa-sistemas.md`
+`26-06-01_2_resolucao-sugestoes-sistemas.md`
 
 ---
 
@@ -307,4 +308,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-06-01_2_*` ou nova data
+**Próxima sessão:** `26-06-01_3_*` ou nova data

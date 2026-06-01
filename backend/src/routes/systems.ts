@@ -278,7 +278,7 @@ router.get('/', async (req: Request, res: Response) => {
 // =============================================================================
 
 // Função auxiliar para gerar slug
-const slugify = (value: string): string => {
+export const slugify = (value: string): string => {
   return value
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -289,7 +289,7 @@ const slugify = (value: string): string => {
     .replace(/-+/g, '-');
 };
 
-const VALID_PARENT: Record<SystemNodeType, SystemNodeType[] | null> = {
+export const VALID_PARENT: Record<SystemNodeType, SystemNodeType[] | null> = {
   system: null,
   edition: ['system'],
   subsystem: ['system'],

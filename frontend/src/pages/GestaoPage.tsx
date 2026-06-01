@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import { HydrationAdminPanel } from '../modules/admin/hydration/HydrationAdminPanel';
 import { InlineDeleteConfirmation } from '../components/InlineDeleteConfirmation';
 import { DiscordSyncPanel } from '../features/discord-sync/components/DiscordSyncPanel';
+import { SystemSuggestionResolutionDrawer } from '../components/SystemSuggestionResolutionDrawer';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -129,6 +130,7 @@ export const GestaoPage = () => {
 
   const [approvingSuggestionId, setApprovingSuggestionId] = useState<string | null>(null);
   const [rejectingSuggestionId, setRejectingSuggestionId] = useState<string | null>(null);
+  const [resolvingSuggestion, setResolvingSuggestion] = useState<SystemSuggestion | null>(null);
   const [selectedSuggestionIds, setSelectedSuggestionIds] = useState<string[]>([]);
   const [bulkRejectingSuggestions, setBulkRejectingSuggestions] = useState(false);
 
@@ -208,6 +210,35 @@ export const GestaoPage = () => {
     }
   };
 
+  const maybePublishPendingDrafts = async (pending: Array<{ id: string; title: string | null }>) => {
+    if (!pending || pending.length === 0) return;
+    const list = pending.map((d) => `• ${d.title ?? 'Mesa sem título'}`).join('\n');
+    const publish = window.confirm(
+      `${pending.length} mesa(s) pronta(s) para publicar:\n${list}\n\nPublicar agora?`,
+    );
+    if (!publish) return;
+    const results = await Promise.allSettled(
+      pending.map((d) =>
+        fetch(`${API_BASE}/api/v1/admin/discord-sync/drafts/${d.id}/sync`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ),
+    );
+    const succeeded = results.filter((r) => r.status === 'fulfilled' && (r.value as Response).ok).length;
+    toast.success(`${succeeded}/${pending.length} mesa(s) publicada(s)!`);
+  };
+
+  const handleResolved = (data: { system_name?: string; pending_drafts?: Array<{ id: string; title: string | null }> }) => {
+    setResolvingSuggestion(null);
+    setSelectedSuggestionIds((current) =>
+      resolvingSuggestion ? current.filter((selectedId) => selectedId !== resolvingSuggestion.id) : current,
+    );
+    fetchSuggestions();
+    void maybePublishPendingDrafts(data.pending_drafts ?? []);
+  };
+
   const handleApprove = async (suggestion: CatalogSuggestion, editedData?: { name: string; description: string | null }) => {
     if (!isAuthenticated) return;
     setApprovingSuggestionId(suggestion.id);
@@ -228,25 +259,8 @@ export const GestaoPage = () => {
         toast.success(`${label} aprovado e adicionado ao catálogo.`);
         fetchSuggestions();
 
-        const pending: Array<{ id: string; title: string | null }> = data.pending_drafts ?? [];
-        if (suggestion.kind === 'system' && pending.length > 0) {
-          const list = pending.map((d: { id: string; title: string | null }) => `• ${d.title ?? 'Mesa sem título'}`).join('\n');
-          const publish = window.confirm(
-            `${pending.length} mesa(s) pronta(s) para publicar:\n${list}\n\nPublicar agora?`,
-          );
-          if (publish) {
-            const results = await Promise.allSettled(
-              pending.map((d: { id: string; title: string | null }) =>
-                fetch(`${API_BASE}/api/v1/admin/discord-sync/drafts/${d.id}/sync`, {
-                  method: 'POST',
-                  credentials: 'include',
-                  headers: { 'Content-Type': 'application/json' },
-                }),
-              ),
-            );
-            const succeeded = results.filter((r) => r.status === 'fulfilled').length;
-            toast.success(`${succeeded}/${pending.length} mesa(s) publicada(s)!`);
-          }
+        if (suggestion.kind === 'system') {
+          await maybePublishPendingDrafts(data.pending_drafts ?? []);
         }
       } else {
         const errData = await response.json();
@@ -737,13 +751,22 @@ export const GestaoPage = () => {
                       </div>
                       {suggestion.status === 'pending' && (
                         <div className="flex gap-2">
-                          <button
-                            onClick={() => handleApprove(suggestion)}
-                            disabled={approvingSuggestionId === suggestion.id}
-                            className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded-lg transition-colors text-white text-sm disabled:opacity-50"
-                          >
-                            {approvingSuggestionId === suggestion.id ? 'Aprovando...' : 'Aprovar'}
-                          </button>
+                          {suggestion.kind === 'system' ? (
+                            <button
+                              onClick={() => setResolvingSuggestion(suggestion)}
+                              className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors text-white text-sm"
+                            >
+                              Resolver
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleApprove(suggestion)}
+                              disabled={approvingSuggestionId === suggestion.id}
+                              className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded-lg transition-colors text-white text-sm disabled:opacity-50"
+                            >
+                              {approvingSuggestionId === suggestion.id ? 'Aprovando...' : 'Aprovar'}
+                            </button>
+                          )}
                           <button
                             onClick={() => handleReject(suggestion)}
                             disabled={rejectingSuggestionId === suggestion.id}
@@ -769,6 +792,20 @@ export const GestaoPage = () => {
           onSuccess={() => {
             setScenarioEditModal(null);
           }}
+        />
+      )}
+
+      {resolvingSuggestion && (
+        <SystemSuggestionResolutionDrawer
+          suggestion={{
+            id: resolvingSuggestion.id,
+            name: resolvingSuggestion.name,
+            description: resolvingSuggestion.description,
+            node_type: resolvingSuggestion.node_type,
+            parent_id: resolvingSuggestion.parent_id,
+          }}
+          onClose={() => setResolvingSuggestion(null)}
+          onResolved={handleResolved}
         />
       )}
     </div>
