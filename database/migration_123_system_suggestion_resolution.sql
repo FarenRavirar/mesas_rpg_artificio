@@ -14,19 +14,22 @@ ALTER TABLE system_suggestions
   ADD COLUMN IF NOT EXISTS resolution_payload JSONB NOT NULL DEFAULT '{}'::jsonb,
   ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ NULL;
 
--- Constraint de valores validos para resolution_type (idempotente).
+-- Constraint de valores validos para resolution_type, criada apenas se ainda nao existir
+-- (idempotente e sem instrucoes destrutivas, mantendo o status online-safe).
 DO $$
 BEGIN
-  IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'system_suggestions_resolution_type_check') THEN
-    ALTER TABLE system_suggestions DROP CONSTRAINT system_suggestions_resolution_type_check;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'system_suggestions_resolution_type_check'
+      AND conrelid = 'system_suggestions'::regclass
+  ) THEN
+    ALTER TABLE system_suggestions
+      ADD CONSTRAINT system_suggestions_resolution_type_check
+      CHECK (
+        resolution_type IS NULL
+        OR resolution_type IN ('create_system', 'create_child', 'create_alias', 'merge_existing', 'reject')
+      );
   END IF;
-
-  ALTER TABLE system_suggestions
-    ADD CONSTRAINT system_suggestions_resolution_type_check
-    CHECK (
-      resolution_type IS NULL
-      OR resolution_type IN ('create_system', 'create_child', 'create_alias', 'merge_existing', 'reject')
-    );
 END $$;
 
 CREATE INDEX IF NOT EXISTS idx_system_suggestions_resolution_type
