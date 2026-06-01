@@ -18,12 +18,11 @@ on:
       - dev
 
 # Concurrency Policy:
-# - cancel-in-progress: true → Cancels obsolete deploys when new commit arrives
-# - Safe: flock in migrate job prevents cancellation during migration execution
-# - Benefit: Faster feedback (5min vs 25min for 5 commits), reduced CI waste
+# - cancel-in-progress: false keeps deploy jobs serialized instead of cancelled mid-run
+# - flock on the host remains the second guard against concurrent container recreation
 concurrency:
   group: deploy-beta-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   enforce-dir:
