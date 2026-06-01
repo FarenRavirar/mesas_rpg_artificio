@@ -115,3 +115,47 @@ Limitacoes/observacoes:
 - **Validacao funcional do mantenedor em janela anonima** no Beta (`mesasbeta.artificiorpg.com` -> Gestao -> Sugestoes de Sistemas -> Resolver), resolvendo amostra real (alias/edicao/mescla/sistema novo). Unica evidencia funcional conclusiva.
 - T026 (teste unitario do drawer) opcional nao adicionado.
 - Promocao `dev` -> `main`/Producao (migration 123 ainda pendente em Producao) somente em fluxo controlado e autorizado.
+
+## Retomada SDD Lite - clareza de contexto no drawer (01/06/2026)
+
+Objetivo: melhorar a tela `Gestao Administrativa > Sugestoes de Sistemas > Resolver` para que o admin veja, antes de confirmar qualquer resolucao, nomes canonicos, aliases, nome PT, path, tipo e filhos/edicoes/variantes/subsistemas ja existentes do sistema escolhido ou candidato similar.
+
+Problema observado: `/api/v1/systems` ja fornece contexto suficiente (`parent_id`, `name_pt`, `path_slug`, `node_type`, `aliases`, `children_count`), mas o frontend descartava parte disso e o `SearchableSelect` buscava por alias sem mostrar aliases ao usuario.
+
+Classificacao: SDD Lite, pois a solucao esperada e frontend-only usando dados ja existentes da API. Escalar para SDD Completo somente se houver mudanca de migration, permissao, auth ou contrato/API.
+
+Plano:
+- [x] Enriquecer `SystemOption` e `SearchableOption` com contexto visivel sem quebrar busca por alias.
+- [x] Criar lookup local `systemById`, `childrenByParentId` e helpers de contexto.
+- [x] Mostrar aliases/nome PT/path/tipo/filhos nos candidatos similares e no item selecionado.
+- [x] Mostrar contexto especifico para `create_alias`, `merge_existing`, `create_child` e risco de `create_system`.
+- [x] Atualizar previa com alvo/pai canonico, path, efeito concreto e risco quando aplicavel.
+- [x] Rodar `npm --prefix frontend run build` e `git diff --check`.
+
+Arquivos provaveis:
+- `frontend/src/components/SystemSuggestionResolutionDrawer.tsx`
+- `frontend/src/components/SearchableSelect.tsx`
+- `database/changelogs.json` se changelog visivel for necessario
+
+Criterio de conclusao:
+- Admin ve aliases existentes e edicoes/filhos existentes antes de confirmar qualquer resolucao.
+- Busca por alias continua funcionando.
+- Nenhum dado externo entra em estado/render sem normalizador.
+- `npm --prefix frontend run build` GREEN.
+- `git diff --check` limpo.
+- Sessao atualizada com evidencias.
+
+Implementacao:
+- `frontend/src/components/SystemSuggestionResolutionDrawer.tsx`: `SystemOption` preserva `parent_id`, `children_count`, `aliases`, `name_pt`, `node_type` e `path_slug`; cria `systemById`/`childrenByParentId`; candidatos mostram nome canonico, path/tipo/nome PT, aliases e filhos; forms de `create_alias`, `merge_existing`, `create_child` e `create_system` exibem contexto/risco antes da confirmacao; preview descreve alvo/pai e efeito concreto.
+- `frontend/src/components/SearchableSelect.tsx`: busca por alias mantida; resultados e item selecionado mostram badge de tipo, path, nome PT e chips de aliases.
+- `database/changelogs.json`: entrada 01/06 ajustada para mencionar nomes/apelidos/edicoes ja cadastrados antes da confirmacao.
+
+Evidencias:
+- `npm --prefix frontend run build`: GREEN (`tsc -b && vite build`; aviso nao bloqueante de chunk >500 kB).
+- `database/changelogs.json | ConvertFrom-Json`: GREEN.
+- `git diff --check`: sem erros; apenas avisos EOL LF -> CRLF nos dois arquivos TSX.
+- Busca final (`rg parent_id|children_count|aliases existentes|Filhos ja existentes|Risco antes de criar raiz nova|chips`): confirmou campos/contextos no drawer/select.
+
+Pendente:
+- Commit/push/deploy Beta somente apos aprovacao explicita por acao.
+- Validacao funcional conclusiva continua sendo teste do mantenedor no Beta em janela anonima apos deploy.
