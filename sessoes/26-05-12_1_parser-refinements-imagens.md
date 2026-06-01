@@ -107,6 +107,8 @@
 - Deploy Beta `25680850486` GREEN para `7a9647e`; CodeQL `25680848361` GREEN.
 - Smokes externos: `https://mesasbeta.artificiorpg.com` HTTP 200 e `/api/v1/health` HTTP 200.
 - API admin de drafts respondeu payloads com `cover_url_source`, `cover_quality` e `_slots_ambiguity`, confirmando dados disponíveis para a UI.
+- Retomada pontual em 2026-06-01: investigar 404 de imagens `image.png`/`Capa_RPG.png` no Beta. Diagnóstico inicial: mesa Strahd usa Cloudinary, mas 8 mesas ativas ainda expõem `banner_url` de Discord CDN; corrigir resposta pública para cair em placeholder sem tentar carregar URL expirada e preparar saneamento do DB Beta mediante aprovação para `UPDATE`.
+- Saneamento Beta aprovado pelo mantenedor e executado: `UPDATE 8` mesas ativas com `banner_url`/`cover_url` de Discord CDN para `NULL`; invariante pós-UPDATE `discord_cdn_tables=0`. Validação local do hotfix: `npm --prefix backend test -- publicImageUrl` GREEN e `npm --prefix backend run build` GREEN.
 
 ### Evidência T-F1-A-02 — RED
 
