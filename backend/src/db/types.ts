@@ -407,7 +407,9 @@ export type ScenarioSuggestion = Selectable<ScenarioSuggestionsTable>;
 export type NewScenarioSuggestion = Insertable<ScenarioSuggestionsTable>;
 export type ScenarioSuggestionUpdate = Updateable<ScenarioSuggestionsTable>;
 
-export type NotificationType = 'suggestion_approved' | 'suggestion_rejected' | 'suggestion_edited' | 'system';
+export type NotificationType =
+  | 'suggestion_approved' | 'suggestion_rejected' | 'suggestion_edited' | 'system'
+  | 'system_suggestion' | 'scenario_suggestion' | 'table_published' | 'member_joined';
 
 export interface NotificationsTable {
   id: Generated<string>;

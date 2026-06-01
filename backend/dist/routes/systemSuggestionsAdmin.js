@@ -757,11 +757,12 @@ router.post('/system-suggestions/:id/resolve', async (req, res) => {
                     systemName: newSystem.name,
                 };
             }
-            // ----- CRIAR SISTEMA RAIZ -----
+            // ----- CRIAR SISTEMA RAIZ (opcionalmente com edição específica) -----
             // resolutionType === 'create_system'
             const name = readTrimmed(body.name) ?? suggestion.name;
             const namePt = readTrimmed(body.name_pt) ?? suggestion.name_pt;
             const description = readTrimmed(body.description) ?? suggestion.description;
+            const editionName = readTrimmed(body.edition_name);
             const force = body.force === true;
             // NFR-001: nao criar raiz por clique unico se houver candidato similar (sem force).
             if (!force) {
@@ -818,14 +819,51 @@ router.post('/system-suggestions/:id/resolve', async (req, res) => {
                         .execute();
                 }
             }
+            // Edição específica opcional: cria um nó edition sob a nova raiz no mesmo ato.
+            let createdNode = newSystem;
+            let createdEditionId = null;
+            if (editionName) {
+                const editionSlug = (0, systems_1.slugify)(editionName);
+                const editionPath = `${newSystem.path_slug}/${editionSlug}`;
+                const editionCollision = await trx
+                    .selectFrom('systems')
+                    .select('id')
+                    .where('path_slug', '=', editionPath)
+                    .executeTakeFirst();
+                if (editionCollision) {
+                    throw new Error('PATH_SLUG_CONFLICT');
+                }
+                const editionSystem = await trx
+                    .insertInto('systems')
+                    .values({
+                    name: editionName,
+                    name_pt: null,
+                    slug: editionSlug,
+                    path_slug: editionPath,
+                    node_type: 'edition',
+                    depth: 1,
+                    parent_id: newSystem.id,
+                    description,
+                })
+                    .returning(['id', 'name', 'path_slug'])
+                    .executeTakeFirstOrThrow();
+                createdEditionId = editionSystem.id;
+                createdNode = editionSystem;
+            }
+            const resolvedSystemName = editionName ? `${newSystem.name} ${editionName}` : newSystem.name;
             await trx
                 .updateTable('system_suggestions')
                 .set({
                 status: 'approved',
                 resolution_type: 'create_system',
-                created_system_id: newSystem.id,
+                resolved_system_id: createdEditionId ? newSystem.id : null,
+                created_system_id: createdNode.id,
                 resolution_notes: readTrimmed(body.notes),
-                resolution_payload: JSON.stringify({ path_slug: newSystem.path_slug }),
+                resolution_payload: JSON.stringify({
+                    path_slug: createdNode.path_slug,
+                    root_id: newSystem.id,
+                    edition_id: createdEditionId,
+                }),
                 resolved_at: new Date(),
                 reviewed_at: new Date(),
                 reviewed_by: adminId,
@@ -839,13 +877,13 @@ router.post('/system-suggestions/:id/resolve', async (req, res) => {
                 type: 'suggestion_approved',
                 title: 'Sugestão aprovada',
                 message: `Seu sistema "${suggestion.name}" foi adicionado ao catálogo.`,
-                action_url: `/catalogo?system=${newSystem.path_slug}`,
+                action_url: `/catalogo?system=${createdNode.path_slug}`,
                 metadata: JSON.stringify({
                     suggestion_id: id,
                     suggestion_kind: 'system',
                     resolution_type: 'create_system',
-                    system_id: newSystem.id,
-                    path_slug: newSystem.path_slug,
+                    system_id: createdNode.id,
+                    path_slug: createdNode.path_slug,
                 }),
             })
                 .execute();
@@ -857,19 +895,19 @@ router.post('/system-suggestions/:id/resolve', async (req, res) => {
                 entityId: id,
                 entityLabel: suggestion.name,
                 targetUserId: suggestion.user_id,
-                summary: `${adminName} criou o sistema "${newSystem.name}" a partir da sugestão.`,
+                summary: `${adminName} criou o sistema "${resolvedSystemName}" a partir da sugestão.`,
                 metadata: {
                     suggestion_id: id,
                     resolution_type: 'create_system',
-                    system_id: newSystem.id,
-                    path_slug: newSystem.path_slug,
+                    system_id: createdNode.id,
+                    path_slug: createdNode.path_slug,
                 },
             }, trx);
             return {
                 kind: 'create_system',
                 suggestion,
-                systemId: newSystem.id,
-                systemName: newSystem.name,
+                systemId: createdNode.id,
+                systemName: resolvedSystemName,
             };
         });
         // Pós-transação: religar drafts Discord quando a resolução aponta para um sistema.

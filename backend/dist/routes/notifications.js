@@ -26,6 +26,26 @@ router.get('/', async (req, res) => {
         return res.status(500).json({ error: 'Erro ao buscar notificações.' });
     }
 });
+// PATCH /api/v1/notifications/read-all - Marcar todas as notificações do usuário como lidas
+router.patch('/read-all', async (req, res) => {
+    try {
+        const userId = req.user?.userId;
+        if (!userId) {
+            return res.status(401).json({ error: 'Não autenticado.' });
+        }
+        await db_1.db
+            .updateTable('notifications')
+            .set({ read: true })
+            .where('user_id', '=', userId)
+            .where('read', '=', false)
+            .execute();
+        return res.json({ success: true });
+    }
+    catch (error) {
+        console.error('[PATCH /notifications/read-all]', error);
+        return res.status(500).json({ error: 'Erro ao marcar notificações como lidas.' });
+    }
+});
 // PATCH /api/v1/notifications/:id/read - Marcar notificação como lida
 router.patch('/:id/read', async (req, res) => {
     try {

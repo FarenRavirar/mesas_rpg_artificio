@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { db } from '../db';
 import { authMiddleware } from '../middleware/auth';
 import { logActivity } from '../services/activityLogger';
+import { notifyAdmins } from '../services/adminNotifications';
 
 const router = Router();
 
@@ -193,6 +194,14 @@ router.get('/google/callback', async (req: Request, res: Response) => {
             provider: 'google',
             email: newUser.email,
           },
+        }, trx);
+
+        await notifyAdmins({
+          type: 'member_joined',
+          title: 'Novo membro',
+          message: `${displayName} entrou na comunidade.`,
+          action_url: '/gestao',
+          metadata: { user_id: user.id },
         }, trx);
       });
     } else if (tokens.refresh_token) {

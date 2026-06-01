@@ -140,6 +140,7 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
   const [parentId, setParentId] = useState('');
   const [childNodeType, setChildNodeType] = useState<'edition' | 'variant' | 'subsystem'>('edition');
   const [name, setName] = useState(suggestion.name);
+  const [editionName, setEditionName] = useState('');
   const [namePt, setNamePt] = useState('');
   const [description, setDescription] = useState(suggestion.description ?? '');
   const [aliasText, setAliasText] = useState(suggestion.name);
@@ -227,13 +228,26 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
           ? `Novo ${childNodeType}: ${parentSystem.path_slug || parentSystem.name}/${slugifyPreview(name)}`
           : 'Escolha o sistema pai.';
       case 'create_system':
-        return `Novo sistema raiz: ${slugifyPreview(name)}`;
+        return editionName.trim()
+          ? `Novo sistema: ${slugifyPreview(name)} + edição ${slugifyPreview(name)}/${slugifyPreview(editionName)}`
+          : `Novo sistema raiz: ${slugifyPreview(name)}`;
       case 'reject':
         return 'Rejeitar a sugestão.';
       default:
         return '';
     }
-  }, [resolutionType, targetSystem, parentSystem, aliasText, childNodeType, name]);
+  }, [resolutionType, targetSystem, parentSystem, aliasText, childNodeType, name, editionName]);
+
+  const splitEdition = () => {
+    const m = name.trim().match(/^(.*?)[\s-]+(\d+(?:\.\d+)?|\d+e|\d+[ªaA]|(?:19|20)\d{2})$/);
+    if (m && m[1].trim()) {
+      setName(m[1].trim());
+      setEditionName(m[2]);
+      toast.success(`Separado: ${m[1].trim()} + ${m[2]}`);
+    } else {
+      toast.error('Nenhuma edição detectada no nome.');
+    }
+  };
 
   const buildBody = (): Record<string, unknown> => {
     switch (resolutionType) {
@@ -257,6 +271,7 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
           name: name.trim(),
           name_pt: namePt.trim() || undefined,
           description: description.trim() || undefined,
+          edition_name: editionName.trim() || undefined,
           notes: notes.trim() || undefined,
           force: forceNew || undefined,
         };
@@ -542,6 +557,30 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
                 />
               </label>
             </>
+          )}
+
+          {resolutionType === 'create_system' && (
+            <label className="block">
+              <span className="text-white/70 text-sm">Edição específica (opcional)</span>
+              <div className="flex gap-2 mt-1">
+                <input
+                  className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
+                  value={editionName}
+                  onChange={(e) => setEditionName(e.target.value)}
+                  placeholder="ex.: 1.3, 5e, 2024"
+                />
+                <button
+                  type="button"
+                  onClick={splitEdition}
+                  className="shrink-0 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm"
+                >
+                  Separar do nome
+                </button>
+              </div>
+              <span className="text-white/40 text-xs mt-1 block">
+                Cria a raiz e, se preenchido, uma edição abaixo dela (ex.: CAIN → CAIN/1.3).
+              </span>
+            </label>
           )}
 
           {resolutionType === 'create_system' && candidates.length > 0 && (

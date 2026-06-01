@@ -4,6 +4,7 @@ const express_1 = require("express");
 const auth_1 = require("../middleware/auth");
 const db_1 = require("../db");
 const activityLogger_1 = require("../services/activityLogger");
+const adminNotifications_1 = require("../services/adminNotifications");
 const router = (0, express_1.Router)();
 async function resolveActorName(userId) {
     try {
@@ -58,11 +59,6 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ error: 'Você já possui 5 sugestões pendentes. Aguarde a revisão.' });
         }
         const userName = await resolveActorName(userId);
-        const admins = await db_1.db
-            .selectFrom('users')
-            .select('id')
-            .where('role', '=', 'admin')
-            .execute();
         const newSuggestion = await db_1.db.transaction().execute(async (trx) => {
             const created = await trx
                 .insertInto('system_suggestions')
@@ -77,24 +73,19 @@ router.post('/', async (req, res) => {
             })
                 .returningAll()
                 .executeTakeFirstOrThrow();
-            if (admins.length > 0) {
-                await trx
-                    .insertInto('notifications')
-                    .values(admins.map((admin) => ({
-                    user_id: admin.id,
-                    type: 'system',
-                    title: 'Nova sugestão de sistema',
-                    message: `${userName} sugeriu "${created.name}" para o catálogo.`,
-                    action_url: '/gestao',
-                    metadata: JSON.stringify({
-                        suggestion_id: created.id,
-                        suggestion_kind: 'system',
-                        node_type: created.node_type,
-                        parent_id: created.parent_id,
-                    }),
-                })))
-                    .execute();
-            }
+            await (0, adminNotifications_1.notifyAdmins)({
+                type: 'system_suggestion',
+                title: 'Nova sugestão de sistema',
+                message: `${userName} sugeriu "${created.name}" para o catálogo.`,
+                action_url: '/gestao',
+                metadata: {
+                    suggestion_id: created.id,
+                    suggestion_kind: 'system',
+                    node_type: created.node_type,
+                    parent_id: created.parent_id,
+                },
+                excludeUserId: userId,
+            }, trx);
             return created;
         });
         void (0, activityLogger_1.logActivity)({
