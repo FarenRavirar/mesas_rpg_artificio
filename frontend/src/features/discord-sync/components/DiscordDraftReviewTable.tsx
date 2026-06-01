@@ -20,6 +20,30 @@ const DRAFT_STATUS_COLORS: Record<DiscordImportDraftStatus, string> = {
   rejected: 'bg-red-700/40 text-red-300',
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return isRecord(value) ? value : {};
+}
+
+function getMissingFields(value: unknown): string[] | null {
+  const payload = asRecord(value);
+  const missingFields = payload.missing_fields;
+  if (!Array.isArray(missingFields)) return null;
+  return missingFields.filter((field): field is string => typeof field === 'string');
+}
+
+function isDraftReadyToSync(draft: DiscordDraft): boolean {
+  const missingFields = getMissingFields(draft.normalized_payload);
+  return draft.status === 'ready' && missingFields !== null && missingFields.length === 0;
+}
+
+function getDisplayStatus(draft: DiscordDraft): DiscordImportDraftStatus {
+  return draft.status === 'ready' && !isDraftReadyToSync(draft) ? 'needs_review' : draft.status;
+}
+
 export function DiscordDraftReviewTable() {
   const [drafts, setDrafts] = useState<DiscordDraft[]>([]);
   const [loading, setLoading] = useState(false);
@@ -47,7 +71,7 @@ export function DiscordDraftReviewTable() {
   }, [statusFilter]);
 
   const handleSyncReady = async () => {
-    if (!confirm('Sincronizar todos os drafts com status "pronto" como mesas reais?')) return;
+    if (!confirm('Sincronizar todos os drafts prontos e completos como mesas reais?')) return;
     setSyncingAll(true);
     try {
       const result = await discordSyncApi.syncReady();
@@ -68,7 +92,7 @@ export function DiscordDraftReviewTable() {
     setSelectedDraft(updated);
   };
 
-  const readyCount = drafts.filter(d => d.status === 'ready').length;
+  const readyCount = drafts.filter(isDraftReadyToSync).length;
 
   return (
     <div>
@@ -109,10 +133,12 @@ export function DiscordDraftReviewTable() {
       ) : (
         <div className="space-y-2">
           {drafts.map(draft => {
-            const table = draft.normalized_payload?.table as Record<string, unknown> | undefined
-              ?? draft.parsed_payload?.table as Record<string, unknown> | undefined;
+            const normalizedPayload = asRecord(draft.normalized_payload);
+            const parsedPayload = asRecord(draft.parsed_payload);
+            const table = asRecord(normalizedPayload.table ?? parsedPayload.table);
             const title = typeof table?.title === 'string' ? table.title : '—';
             const system = typeof table?.system_name === 'string' ? table.system_name : null;
+            const displayStatus = getDisplayStatus(draft);
 
             return (
               <div
@@ -122,8 +148,8 @@ export function DiscordDraftReviewTable() {
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className={`px-2 py-0.5 text-xs rounded-full ${DRAFT_STATUS_COLORS[draft.status]}`}>
-                      {DRAFT_STATUS_LABELS[draft.status]}
+                    <span className={`px-2 py-0.5 text-xs rounded-full ${DRAFT_STATUS_COLORS[displayStatus]}`}>
+                      {DRAFT_STATUS_LABELS[displayStatus]}
                     </span>
                     {draft.confidence != null && (
                       <span className="text-white/30 text-xs">{(draft.confidence * 100).toFixed(0)}%</span>

@@ -258,11 +258,6 @@ function normalizeTitle(value) {
         return null;
     return cleanTrademark(value.replace(/\*/g, '').replace(/^["“”']|["“”']$/g, '').trim()) || null;
 }
-function isThreadStarter(message) {
-    return Boolean(message.discord_thread_id
-        && message.discord_message_id === message.discord_thread_id
-        && message.discord_channel_id === message.discord_thread_id);
-}
 // Calcula confiança com base nos campos preenchidos
 function calcConfidence(table) {
     const fields = [
@@ -285,7 +280,7 @@ function parseDiscordAnnouncement(message, systems = []) {
     const rawBody = message.content_raw ?? '';
     // Fóruns Discord frequentemente colocam o conteúdo em embeds em vez do campo content
     const body = rawBody.trim() || extractBodyFromEmbeds(message.embeds ?? []);
-    if (!body.trim() && !isThreadStarter(message)) {
+    if (!body.trim()) {
         return null;
     }
     const fullText = `${threadName}\n${body}`.trim();

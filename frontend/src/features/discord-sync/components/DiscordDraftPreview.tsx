@@ -43,6 +43,13 @@ interface DraftPayload {
 
 const STATUS_OPTIONS: DiscordImportDraftStatus[] = ['draft', 'ready', 'needs_review', 'rejected'];
 const API_BASE = import.meta.env.VITE_API_URL || '';
+const STATUS_LABELS: Record<DiscordImportDraftStatus, string> = {
+  draft: 'Rascunho',
+  ready: 'Pronto',
+  needs_review: 'Revisar',
+  synced: 'Sincronizado',
+  rejected: 'Rejeitado',
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -206,6 +213,7 @@ export function DiscordDraftPreview({ draft, onUpdate, onClose }: Props) {
 
   const missingFields = validateForm(form);
   const canSync = draft.status === 'ready' && missingFields.length === 0;
+  const displayStatus: DiscordImportDraftStatus = draft.status === 'ready' && !canSync ? 'needs_review' : draft.status;
   const selectedPayload = activeTab === 'parsed' ? draft.parsed_payload : (draft.normalized_payload ?? draft.parsed_payload);
 
   const updateForm = <K extends keyof DraftForm>(key: K, value: DraftForm[K]) => {
@@ -328,7 +336,7 @@ export function DiscordDraftPreview({ draft, onUpdate, onClose }: Props) {
           ) : (
             <>
               <span className="text-white/60 text-sm">Status:</span>
-              <span className="text-white text-sm font-medium">{draft.status}</span>
+              <span className="text-white text-sm font-medium">{STATUS_LABELS[displayStatus]}</span>
               {draft.confidence != null && <span className="text-white/40 text-xs">confiança: {(draft.confidence * 100).toFixed(0)}%</span>}
               <button onClick={() => setEditingStatus(true)} className="ml-auto px-2 py-1 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-xs rounded-lg transition-colors">
                 Editar status

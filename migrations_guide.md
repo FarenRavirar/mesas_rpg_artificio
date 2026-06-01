@@ -156,3 +156,9 @@ ssh -F C:\projetos\config faren "cd /opt/mesas-beta && bash scripts/deploy/recon
 - **I3 (Validação de Header):** Desenvolvedores criavam migrations ad-hoc sem documentar tipo e autor, dificultando auditoria. **Contramedida:** validação estrita de header e template obrigatório acoplada à esteira de CI. **Ignorar =** push e deploy quebram imediatamente no preflight.
 - **I5 (Classificação Divergente):** Intervenções perigosas eram realizadas por descuido em operações de rotina sob a tag `online-safe`. **Contramedida:** pipeline intercepta operações destrutivas via regex bloqueando aprovações automáticas. **Ignorar =** bloqueio formal do deploy via CI exigindo classificação explícita `manual-risk`.
 - **Manual-Risk:** Riscos destrutivos passavam despercebidos sem backup prévio e explícito no ambiente. **Contramedida:** deploy classificado como manual fica bloqueado em Produção até que intervenção exija `ALLOW_MANUAL_MIGRATIONS=true` acompanhado de backup validado. **Ignorar =** bloqueio completo antes da alteração do schema de produção.
+
+### Feature 016: Invariante de drafts Discord (01/06/2026)
+- `migration_118_discord_drafts_invariant.sql` adiciona a constraint `discord_drafts_ready_requires_no_missing`.
+- A constraint impede `status='ready'` quando `normalized_payload->'missing_fields'` não existe como array vazio.
+- A migration usa `NOT VALID` seguido de `VALIDATE CONSTRAINT`; se o banco ainda tiver drift, a validação falha antes de liberar o deploy.
+- `@requires-backup: true` porque a constraint endurece regra de escrita em tabela operacional do Discord Sync.

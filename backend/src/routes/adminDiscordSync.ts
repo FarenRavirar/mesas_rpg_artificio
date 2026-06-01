@@ -47,6 +47,19 @@ const updateMessageSchema = z.object({
   status: z.enum(['pending', 'parsed', 'needs_review', 'synced', 'ignored', 'error']),
 });
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function extractMissingFields(payload: unknown): string[] | null {
+  const record = asRecord(payload);
+  if (!record) return null;
+  const missingFields = record.missing_fields;
+  if (!Array.isArray(missingFields)) return null;
+  return missingFields.filter((field): field is string => typeof field === 'string');
+}
+
 const fetchSchema = z.object({
   source_id: z.string().uuid(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
@@ -947,6 +960,26 @@ router.patch('/drafts/:id', authMiddleware, async (req: Request, res: Response) 
     return res.status(400).json({ error: 'Nenhum dado para atualizar.' });
   }
   try {
+    if (parsed.data.status === 'ready') {
+      const currentDraft = await db
+        .selectFrom('discord_import_table_drafts')
+        .select(['id', 'normalized_payload'])
+        .where('id', '=', req.params.id)
+        .executeTakeFirst();
+
+      if (!currentDraft) return res.status(404).json({ error: 'Draft não encontrado.' });
+
+      const candidatePayload = parsed.data.normalized_payload ?? currentDraft.normalized_payload;
+      const missingFields = extractMissingFields(candidatePayload);
+
+      if (!missingFields || missingFields.length > 0) {
+        return res.status(422).json({
+          error: 'Draft não pode ser marcado como pronto enquanto houver campos obrigatórios pendentes.',
+          details: { missingFields: missingFields ?? ['missing_fields'] },
+        });
+      }
+    }
+
     const [draft] = await db
       .updateTable('discord_import_table_drafts')
       .set({ ...parsed.data, updated_at: new Date() })

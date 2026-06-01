@@ -23,26 +23,53 @@ function makeMessage(overrides: Partial<DiscordRawMessage>): DiscordRawMessage {
 }
 
 describe('parseDiscordAnnouncement', () => {
-  it('creates a reviewable draft from a forum starter with empty content using the thread name', () => {
+  it('ignores forum starters with no body and no embed text', () => {
+    const draft = parseDiscordAnnouncement(
+      makeMessage({
+        discord_message_id: 'empty-starter-1',
+        discord_channel_id: 'empty-starter-1',
+        discord_thread_id: 'empty-starter-1',
+        discord_thread_name: 'Forgotten Realms™: Uma Campanha Sandbox',
+        content_raw: '',
+        embeds: [],
+        attachments: [],
+      }),
+    );
+
+    expect(draft).toBeNull();
+  });
+
+  it('creates a reviewable draft from a forum starter when embed text provides the body', () => {
     const draft = parseDiscordAnnouncement(
       makeMessage({
         discord_message_id: '1499747163977027634',
         discord_channel_id: '1499747163977027634',
         discord_thread_id: '1499747163977027634',
         discord_thread_name: 'Forgotten Realms™: Uma Campanha Sandbox',
+        embeds: [{
+          description: [
+            'Vagas: 4',
+            'Dia: sexta',
+            'Horario: 20:00',
+            'Contato: https://forms.gle/example',
+            'Descricao: Mesa sandbox com exploração e diplomacia.',
+          ].join('\n'),
+        }],
       }),
     );
 
     expect(draft).not.toBeNull();
     expect(draft?.table.title).toBe('Uma Campanha Sandbox');
-    expect(draft?.table.raw_system_hint).toBe('Forgotten Realms');
+    expect(draft?.table.description).toContain('Mesa sandbox');
     expect(draft?.table.system_name).toBeNull();
     expect(draft?.missing_fields).toEqual(
-      expect.arrayContaining(['system_name:unmatched_hint', 'description', 'contact_url']),
+      expect.arrayContaining(['system_name']),
     );
+    expect(draft?.missing_fields).not.toContain('description');
+    expect(draft?.missing_fields).not.toContain('contact_url');
   });
 
-  it('creates drafts for real Covil forum starter titles even when only the thread name is available', () => {
+  it('ignores real Covil forum starter titles when only the thread name is available', () => {
     const titles = [
       'Forgotten Realms™: Uma Campanha Sandbox',
       'Dungeons & Dragons™: Deicídio',
@@ -71,21 +98,7 @@ describe('parseDiscordAnnouncement', () => {
     );
 
     expect(drafts).toHaveLength(12);
-    expect(drafts.every(Boolean)).toBe(true);
-    expect(drafts.map((draft) => draft?.table.title)).toEqual([
-      'Uma Campanha Sandbox',
-      'Deicídio',
-      'A Libertação de Valkaria',
-      'Legends of the Outer Planes',
-      'Lucro, Ossos e Reputação',
-      'O Último Manuscrito',
-      'Wrath of the River King',
-      'The Awakeking: Pó de Osso e Água de Poço',
-      'Dragons Delves',
-      'Dragon Heist + Dungeon of the Mad Mage',
-      'Rise and Fall of Vecna',
-      'Chains of Asmodeus',
-    ]);
+    expect(drafts.every((draft) => draft === null)).toBe(true);
   });
 
   it('extracts structured table fields from announcement text', () => {

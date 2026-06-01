@@ -197,7 +197,7 @@
 | **POST** | `/admin/discord-sync/messages/parse-batch` | 🔧 Impl. | DiscordSyncPanel.tsx — processa mensagens pendentes/erro em lote |
 | **GET** | `/admin/discord-sync/drafts` | 🔧 Impl. | DiscordDraftReviewTable.tsx — filtros: `status`, `limit`, `offset` |
 | **GET** | `/admin/discord-sync/drafts/:id` | 🔧 Impl. | DiscordDraftPreview.tsx |
-| **PATCH** | `/admin/discord-sync/drafts/:id` | 🔧 Impl. | DiscordDraftPreview.tsx — edita `normalized_payload`, `status`, `review_notes`; usado pelo editor estruturado para salvar campos e marcar `ready` somente quando completo |
+| **PATCH** | `/admin/discord-sync/drafts/:id` | 🔧 Impl. | DiscordDraftPreview.tsx — edita `normalized_payload`, `status`, `review_notes`; retorna 422 ao tentar marcar `ready` quando `normalized_payload.missing_fields` não for array vazio |
 | **POST** | `/admin/discord-sync/drafts/:id/reparse` | 🔧 Impl. | DiscordDraftPreview.tsx — reprocessa mensagem pelo parser e atualiza draft |
 | **POST** | `/admin/discord-sync/drafts/:id/sync` | 🔧 Impl. | DiscordDraftPreview.tsx — sincroniza draft para `tables` em status `draft`; retorna 422 se status não for `ready` ou se faltarem título, descrição, sistema, tipo, modalidade, preço, vagas, contato, dia ou horário |
 | **POST** | `/admin/discord-sync/sync-ready` | 🔧 Impl. | DiscordSyncPanel.tsx — sincroniza todos os drafts `ready` em lote, respeitando a mesma validação de campos obrigatórios |

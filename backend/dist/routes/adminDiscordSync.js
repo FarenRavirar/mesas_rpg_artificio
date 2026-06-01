@@ -38,6 +38,20 @@ const updateDraftSchema = zod_1.z.object({
 const updateMessageSchema = zod_1.z.object({
     status: zod_1.z.enum(['pending', 'parsed', 'needs_review', 'synced', 'ignored', 'error']),
 });
+function asRecord(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value))
+        return null;
+    return value;
+}
+function extractMissingFields(payload) {
+    const record = asRecord(payload);
+    if (!record)
+        return null;
+    const missingFields = record.missing_fields;
+    if (!Array.isArray(missingFields))
+        return null;
+    return missingFields.filter((field) => typeof field === 'string');
+}
 const fetchSchema = zod_1.z.object({
     source_id: zod_1.z.string().uuid(),
     limit: zod_1.z.coerce.number().int().min(1).max(100).default(50),
@@ -881,6 +895,23 @@ router.patch('/drafts/:id', auth_1.authMiddleware, async (req, res) => {
         return res.status(400).json({ error: 'Nenhum dado para atualizar.' });
     }
     try {
+        if (parsed.data.status === 'ready') {
+            const currentDraft = await db_1.db
+                .selectFrom('discord_import_table_drafts')
+                .select(['id', 'normalized_payload'])
+                .where('id', '=', req.params.id)
+                .executeTakeFirst();
+            if (!currentDraft)
+                return res.status(404).json({ error: 'Draft não encontrado.' });
+            const candidatePayload = parsed.data.normalized_payload ?? currentDraft.normalized_payload;
+            const missingFields = extractMissingFields(candidatePayload);
+            if (!missingFields || missingFields.length > 0) {
+                return res.status(422).json({
+                    error: 'Draft não pode ser marcado como pronto enquanto houver campos obrigatórios pendentes.',
+                    details: { missingFields: missingFields ?? ['missing_fields'] },
+                });
+            }
+        }
         const [draft] = await db_1.db
             .updateTable('discord_import_table_drafts')
             .set({ ...parsed.data, updated_at: new Date() })

@@ -92,11 +92,11 @@ SELECT count(*) FROM discord_import_table_drafts
 
 ## Fase 1 — Limpeza de invariantes (2 dias)
 
-**Estado:** bloqueada por Fase 0.
+**Estado:** em execução local. Fase 0 foi entregue em 09/05/2026 conforme `project-state.md`; aplicação de migration/smoke em Beta permanece dependente de aprovação explícita.
 
 ### T-F1-01 — Migration check constraint
 
-- [ ] Criar `database/migration_118_discord_drafts_invariant.sql`:
+- [x] Criar `database/migration_118_discord_drafts_invariant.sql`:
   ```sql
   ALTER TABLE discord_import_table_drafts
     ADD CONSTRAINT discord_drafts_ready_requires_no_missing
@@ -105,33 +105,36 @@ SELECT count(*) FROM discord_import_table_drafts
       OR COALESCE(jsonb_array_length(normalized_payload->'missing_fields'),0) = 0
     );
   ```
-- [ ] Aplicar localmente em DB de teste, validar migrate up/down.
-- [ ] Adicionar entrada em `migrations_guide.md`.
+- [ ] Aplicar em DB de teste/Beta, validar migrate up/down. Pendente: exige ambiente de banco e, no Beta, aprovação explícita para `ALTER`.
+- [x] Adicionar entrada em `migrations_guide.md`.
 
 ### T-F1-02 — Teste RED para PATCH /drafts/:id
 
-- [ ] Criar `backend/src/routes/__tests__/adminDiscordSync.drafts.patch.test.ts`:
+- [x] Criar `backend/src/routes/__tests__/adminDiscordSync.drafts.patch.test.ts`:
   - `PATCH /drafts/:id { status: 'ready' }` em draft com `missing_fields=['day_of_week']` deve retornar **422**.
-- [ ] Confirmar RED contra código atual (rota aceita).
+- [x] Confirmar RED contra código atual (rota aceita). Evidência: `npm --prefix backend test -- adminDiscordSync.drafts.patch.test.ts` retornou Expected 422 / Received 200 antes do guard.
 
 ### T-F1-03 — Implementação do guard no PATCH
 
-- [ ] No handler `PATCH /drafts/:id`: se `parsed.data.status === 'ready'`, ler `missing_fields` do draft atual; se ≠ [], retornar 422 com mensagem clara.
-- [ ] Re-rodar teste, observar GREEN.
+- [x] No handler `PATCH /drafts/:id`: se `parsed.data.status === 'ready'`, ler `missing_fields` do draft atual; se ≠ [], retornar 422 com mensagem clara.
+- [x] Re-rodar teste, observar GREEN. Evidência: `npm --prefix backend test -- adminDiscordSync.drafts.patch.test.ts` passou 1/1.
 
 ### T-F1-04 — Teste RED para parser sem conteúdo
 
-- [ ] Em `backend/src/discord/__tests__/parseDiscordAnnouncement.test.ts`:
+- [x] Em `backend/src/discord/__tests__/parseDiscordAnnouncement.test.ts`:
   - Mensagem starter de fórum com `content_raw=''`, `embeds=[]`, `attachments=[]` → parser deve retornar `null`.
+- [x] Confirmar RED contra código atual. Evidência: `npm --prefix backend test -- parseDiscordAnnouncement` retornou objeto de draft quando o teste esperava `null`.
 
 ### T-F1-05 — Implementação no parser
 
-- [ ] Em `parseDiscordAnnouncement`: se `body.trim() === ''` E `extractBodyFromEmbeds(embeds) === ''` → return `null`, mesmo para starters.
-- [ ] Em `createOrUpdateDraftFromMessage`: quando parser retorna `null`, marcar mensagem com `status='ignored'` e adicionar futuro campo `empty_reason` (criado em Fase 2).
+- [x] Em `parseDiscordAnnouncement`: se `body.trim() === ''` E `extractBodyFromEmbeds(embeds) === ''` → return `null`, mesmo para starters.
+- [x] Em `createOrUpdateDraftFromMessage`: quando parser retorna `null`, marcar mensagem com `status='ignored'`; campo `empty_reason` permanece para a Fase 2, quando a coluna existir.
+- [x] Re-rodar teste, observar GREEN. Evidência: `npm --prefix backend test -- parseDiscordAnnouncement` passou 9/9.
 
 ### T-F1-06 — Frontend: badge consistente
 
-- [ ] Em `DiscordDraftPreview` e na lista (`DiscordSyncPanel`): badge "Pronto" só quando `missing_fields.length===0`. Caso contrário "Revisar". O número (44%) vira indicador secundário, não substitui o status.
+- [x] Em `DiscordDraftPreview` e na lista (`DiscordDraftReviewTable`): badge "Pronto" só quando `missing_fields.length===0`. Caso contrário "Revisar". O número (44%) vira indicador secundário, não substitui o status.
+- [x] Validação: `npm --prefix frontend run build` GREEN.
 
 ### T-F1-07 — Migration + smoke
 
