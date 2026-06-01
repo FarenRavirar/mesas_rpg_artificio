@@ -363,28 +363,39 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
             <p className="text-white/50 text-sm mt-2">Nenhum candidato similar encontrado.</p>
           ) : (
             <ul className="mt-2 space-y-2">
-              {candidates.map((c) => (
-                <li key={c.system_id} className="rounded-lg bg-white/5 border border-white/10 p-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-white text-sm font-medium truncate">{c.name}</p>
-                      <p className="text-white/40 text-xs truncate">{c.path_slug ?? c.system_id}</p>
-                      <p className="text-white/40 text-xs mt-0.5">
-                        {Math.round(c.score * 100)}% · {c.reasons.map((r) => REASON_LABELS[r] ?? r).join(', ')}
-                      </p>
+              {candidates.map((c) => {
+                const isSelected = targetSystemId === c.system_id || parentId === c.system_id;
+                return (
+                  <li
+                    key={c.system_id}
+                    className={`rounded-lg border p-2 transition-colors ${
+                      isSelected ? 'bg-blue-600/20 border-blue-500' : 'bg-white/5 border-white/10'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-white text-sm font-medium truncate">{c.name}</p>
+                        <p className="text-white/40 text-xs truncate">{c.path_slug ?? c.system_id}</p>
+                        <p className="text-white/40 text-xs mt-0.5">
+                          {Math.round(c.score * 100)}% · {c.reasons.map((r) => REASON_LABELS[r] ?? r).join(', ')}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setTargetSystemId(c.system_id);
+                          if (c.node_type === 'system') setParentId(c.system_id);
+                          toast.success(`Alvo: ${c.name}`);
+                        }}
+                        className={`shrink-0 text-xs px-2 py-1 rounded text-white ${
+                          isSelected ? 'bg-blue-600' : 'bg-white/10 hover:bg-white/20'
+                        }`}
+                      >
+                        {isSelected ? '✓ Selecionado' : 'Usar'}
+                      </button>
                     </div>
-                    <button
-                      onClick={() => {
-                        setTargetSystemId(c.system_id);
-                        if (c.node_type === 'system') setParentId(c.system_id);
-                      }}
-                      className="shrink-0 text-xs px-2 py-1 rounded bg-white/10 hover:bg-white/20 text-white"
-                    >
-                      Usar
-                    </button>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
