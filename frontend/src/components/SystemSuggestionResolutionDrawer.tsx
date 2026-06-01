@@ -1,6 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { TagInput } from './TagInput';
+import { SearchableSelect, type SearchableOption } from './SearchableSelect';
+
+const toSearchOption = (s: {
+  id: string;
+  name: string;
+  name_pt: string | null;
+  path_slug: string;
+  node_type: string;
+  aliases: string[];
+}): SearchableOption => ({
+  id: s.id,
+  label: `${s.name} (${s.node_type})`,
+  sublabel: s.path_slug,
+  keywords: [s.name, s.name_pt ?? '', s.path_slug, ...s.aliases],
+});
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -17,9 +32,11 @@ export interface ResolvableSuggestion {
 interface SystemOption {
   id: string;
   name: string;
+  name_pt: string | null;
   path_slug: string;
   node_type: string;
   depth: number;
+  aliases: string[];
 }
 
 type CandidateReason = string;
@@ -58,9 +75,11 @@ const normalizeSystemOptions = (value: unknown): SystemOption[] => {
     out.push({
       id,
       name,
+      name_pt: readNullableString(row.name_pt),
       path_slug: readString(row.path_slug),
       node_type: readString(row.node_type) || 'system',
       depth: readNumber(row.depth),
+      aliases: Array.isArray(row.aliases) ? row.aliases.filter((a): a is string => typeof a === 'string') : [],
     });
   }
   return out.sort((a, b) => a.path_slug.localeCompare(b.path_slug) || a.name.localeCompare(b.name));
@@ -211,6 +230,9 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
     if (childNodeType === 'variant') return editionsAndSubsystems;
     return rootSystems; // edition e subsystem -> filhos de system
   }, [childNodeType, editionsAndSubsystems, rootSystems]);
+
+  const systemOptions = useMemo(() => systems.map(toSearchOption), [systems]);
+  const parentOptions = useMemo(() => validParents.map(toSearchOption), [validParents]);
 
   const targetSystem = systems.find((s) => s.id === targetSystemId) || null;
   const parentSystem = systems.find((s) => s.id === parentId) || null;
@@ -470,19 +492,12 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
           {(resolutionType === 'create_alias' || resolutionType === 'merge_existing') && (
             <label className="block">
               <span className="text-white/70 text-sm">Sistema alvo</span>
-              <select
-                className="app-select w-full mt-1"
+              <SearchableSelect
+                options={systemOptions}
                 value={targetSystemId}
-                onChange={(e) => setTargetSystemId(e.target.value)}
-              >
-                <option value="">Selecione…</option>
-                {systems.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {' '.repeat(s.depth * 2)}
-                    {s.name} ({s.node_type})
-                  </option>
-                ))}
-              </select>
+                onChange={setTargetSystemId}
+                placeholder="Buscar sistema (ex.: dnd, cthulhu)"
+              />
             </label>
           )}
 
@@ -516,19 +531,12 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
               </label>
               <label className="block">
                 <span className="text-white/70 text-sm">Sistema pai</span>
-                <select
-                  className="app-select w-full mt-1"
+                <SearchableSelect
+                  options={parentOptions}
                   value={parentId}
-                  onChange={(e) => setParentId(e.target.value)}
-                >
-                  <option value="">Selecione…</option>
-                  {validParents.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {' '.repeat(s.depth * 2)}
-                      {s.name} ({s.node_type})
-                    </option>
-                  ))}
-                </select>
+                  onChange={setParentId}
+                  placeholder="Buscar sistema pai"
+                />
               </label>
             </>
           )}
