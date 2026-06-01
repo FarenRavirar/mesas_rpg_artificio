@@ -1,7 +1,7 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-06-01T16:20:00-03:00
-**Atualizado por:** sessão 26-06-01_1_diagnostico-criacao-mesa-sistemas (diagnóstico + fatias A-C locais)
+**Última atualização:** 2026-06-01T17:15:00-03:00
+**Atualizado por:** sessão 26-06-01_2_resolucao-sugestoes-sistemas (spec 018 implementada + Deploy Beta GREEN)
 ---
 
 ## Ambientes
@@ -14,6 +14,15 @@
 ---
 
 ## Estado Técnico Atual
+
+**Spec 018 — Resolução de Sugestões de Sistemas (01/06/2026, em Beta):**
+- Implementada e deployada em Beta. Commits `2ddb399` (feature) + `722f596` (fix migration online-safe) em `origin/dev`.
+- Backend: helper puro `systemSuggestionCandidates.ts` (normalizador + score, TDD 14/14), `GET /admin/system-suggestions/:id/candidates`, `POST /admin/system-suggestions/:id/resolve` (create_system com guard NFR-001/`force`, create_child com hierarquia, create_alias idempotente, merge_existing, reject), relink de drafts Discord. `slugify`/`VALID_PARENT` exportados de `systems.ts`.
+- DB: migration 123 adiciona colunas de auditoria em `system_suggestions` (`resolution_type` + CHECK, `resolved_system_id`, `created_system_id`, `created_alias_id`, `resolution_notes`, `resolution_payload`, `resolved_at`). **Online-safe sem DROP** (constraint via `IF NOT EXISTS`). Decisões: colunas em `system_suggestions`; status `approved`+`resolution_type`; alias idempotente; lote só rejeita.
+- Frontend: ação primária **Resolver** (sistemas) com `SystemSuggestionResolutionDrawer` (candidatos com score/razões, forms por tipo, prévia, tratamento 409 SIMILAR_EXISTS). Cenários mantêm Aprovar/Rejeitar.
+- **Deploy Beta run `26778999597` GREEN** (validate, lint, enforce-dir, migrate, smoke-discord, deploy-app, smoke). Run anterior `26778729349` falhou no migrate (123 marcada online-safe com `DROP CONSTRAINT`); corrigido.
+- Evidência E166 (SELECT no Beta pós-deploy): 7 colunas de auditoria presentes, constraint presente, `system_suggestions` = 37 (pending=33, approved=2, rejected=2). Health Beta root 200 / `/api/v1/health` ok+connected.
+- **Pendente:** mantenedor validar em janela anônima resolvendo amostra real (alias/edição/mescla/sistema novo). T026 (teste unitário do drawer) opcional não adicionado.
 
 **Sessão ativa atual (01/06/2026):** `sessoes/26-06-01_1_diagnostico-criacao-mesa-sistemas.md` — diagnóstico de cinco itens no fluxo Nova Mesa/sugestões/horários; fatias A-C implementadas localmente (contraste do editor, modais de sugestão fora do form pai, admin cria sistema direto, gestão lista sistemas + cenários). Fatia D (`dia/horário a definir`) classificada como SDD Completo por impacto em contrato/API/DB de `table_schedules`.
 

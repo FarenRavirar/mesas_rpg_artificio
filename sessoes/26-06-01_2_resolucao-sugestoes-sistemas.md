@@ -98,8 +98,20 @@ Limitacoes/observacoes:
 - Relink de drafts Discord espelha o `approve` (status -> ready); drafts com outros campos faltando podem ser barrados pela constraint da migration 118 (try/catch por draft evita quebra). Validacao real em Beta.
 - T026 (teste unitario do drawer) nao adicionado; normalizadores cobertos por TS build. Pendente opcional.
 
+## Deploy Beta (autorizado pelo mantenedor: "pode prosseguir", 01/06)
+
+- Commit `2ddb399` (feature) + push `dev`.
+- **Run `26778729349` FALHOU no migrate:** migration 123 estava `online-safe` com `DROP CONSTRAINT` (classificador `scripts/deploy/lib_migrations.sh:61` busca `\b(DROP|TRUNCATE|DELETE\s+FROM)\b`). Falhou na classificacao **antes** de aplicar; banco Beta intacto.
+- Correcao: migration 123 reescrita idempotente sem DROP (constraint via `IF NOT EXISTS` em `pg_constraint`). Commit `722f596` + push.
+- **Run `26778999597` GREEN** em todos os jobs: validate, lint, enforce-dir, migrate, smoke-discord, deploy-app, smoke.
+- Health Beta: root HTTP 200; `/api/v1/health` = ok/beta/connected.
+- Evidencia E166 (SELECT read-only no Beta pos-deploy):
+  - 7 colunas de auditoria presentes em `system_suggestions`.
+  - constraint `system_suggestions_resolution_type_check` presente.
+  - fila intacta: pending=33, approved=2, rejected=2 (total 37).
+
 ## Pendente
 
-- Deploy Beta (migration 123 + backend + frontend) **somente apos autorizacao explicita** do mantenedor.
-- Validacao funcional do mantenedor em janela anonima resolvendo amostra real das 35 pendentes.
-- Atualizar `.specify/memory/project-state.md` quando o estado operacional mudar (apos deploy).
+- **Validacao funcional do mantenedor em janela anonima** no Beta (`mesasbeta.artificiorpg.com` -> Gestao -> Sugestoes de Sistemas -> Resolver), resolvendo amostra real (alias/edicao/mescla/sistema novo). Unica evidencia funcional conclusiva.
+- T026 (teste unitario do drawer) opcional nao adicionado.
+- Promocao `dev` -> `main`/Producao (migration 123 ainda pendente em Producao) somente em fluxo controlado e autorizado.
