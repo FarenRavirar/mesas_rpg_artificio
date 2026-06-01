@@ -1315,3 +1315,151 @@ export function TableHero({ vm, variant = 'full', showOverlay = true }: TableHer
 - Tasks: T007 (implementação), T008 (validação)
 
 **Data de catalogação:** 28/04/2026
+
+---
+
+## E166 - Evidência GREEN fabricada: parser local declarado como prova de pipeline saudável
+
+**Sintoma:**
+Sessão `26-05-04_1_discord-forum-threads.md` declarou (06/05/2026) "11/11 starters ready, missing=[]" como evidência de que o pipeline Discord Sync estava operacional e seguro para deploy/teste funcional. Em 09/05/2026, queries diretas no banco Beta (`mesas-beta-db`) revelaram realidade incompatível com a claim:
+
+```
+content_raw vazio       = 170 / 180 mensagens (94,4%)
+embeds gravados como {} = 169 / 180
+status='ready' total    =  12
+status='ready' em drift = 2  (missing_fields≠[] persistido com status ready)
+```
+
+A claim "11/11 ready" referia-se ao output de `parseDiscordAnnouncement` rodando **em memória** sobre 11 starters reidratados na janela de 7 dias, contra a lista de sistemas do Beta. Não correspondia a `SELECT` no banco após o deploy. O resultado foi mantenedor encontrar drafts vazios marcados como "Pronto" na UI e descobrir 1 mês de iteração sem progresso visível.
+
+**Causa raiz confirmada (09/05/2026):**
+
+1. Validação pós-deploy executada com **parser local** + fixture, e não com `SELECT` direto no banco-alvo após persistência.
+2. Window de reidratação foi de 7 dias; agente assumiu que a amostra reidratada representava o universo. Não cobria 169 mensagens fora da janela, criadas antes da habilitação do Message Content Intent.
+3. Status drift (status=ready com missing_fields≠[]) só se manifestou em 2 drafts criados depois da claim, mas o invariante "status=ready ⇒ missing=[]" nunca foi validado como check de banco — era apenas convenção de código.
+4. Sessão fechou com `/speckit.retro.run` baseado em inputs do agente (parser local, build verde, deploy verde) sem cruzar com estado do banco no momento.
+
+**Diagnóstico mínimo obrigatório a partir de agora (regra anti-recorrência):**
+
+Antes de declarar GREEN em qualquer pipeline de import/ETL/sync que escreve em tabela:
+
+1. **`SELECT` literal no banco-alvo** após o último write esperado da feature, com output colado na sessão.
+2. **Métrica numérica** comparando saída esperada com saída real (linhas inseridas, distribuição de status, campos preenchidos).
+3. **Invariantes-chave do schema validados como query**, não como afirmação. Exemplo:
+   ```sql
+   SELECT count(*) FROM discord_import_table_drafts
+    WHERE status='ready'
+      AND COALESCE(jsonb_array_length(normalized_payload->'missing_fields'),0)>0;
+   -- DEVE retornar 0
+   ```
+4. **Amostra qualitativa** (≥3 registros) lida do banco e cruzada com a UI, não com o parser.
+
+**Solução validada (09/05/2026):**
+
+- Esta entrada documenta a falha procedural e formaliza a regra acima.
+- Spec `specs/016-discord-pipeline-rebuild/spec.md` §12 listou 5 compromissos do agente que operacionalizam essa regra para a continuação do trabalho.
+- Constitution §9.2 (Gate de evidência) já exige output literal; este caso adiciona o requisito específico de `SELECT no banco-alvo` para pipelines de import.
+- Drafts em drift (2 unidades) e drafts gerados durante a sessão fabricada serão descartados conforme decisão do mantenedor em spec 016 §11.
+
+**Prevenção obrigatória:**
+
+1. **Nunca declarar pipeline de import como GREEN sem `SELECT` no banco-alvo após deploy.** Parser em memória é teste unitário, não validação de pipeline.
+2. **Toda feature de import/sync deve incluir uma query de invariante** documentada na spec, executada como parte de `/speckit.retro.run`.
+3. **Sessões de fechamento** (`/speckit.retro.run`) que envolvam pipelines de banco devem colar output literal de pelo menos 1 query de invariante. Sem isso, a sessão é PARTIAL — o que, por Constitution §9.1, equivale a BLOCKED.
+4. **Linguagem proibida em retros de pipeline:** "11/11", "todos GREEN", "100% extraído" sem query SQL acompanhando.
+
+**Arquivos afetados:**
+
+- `sessoes/26-05-04_1_discord-forum-threads.md` (sessão onde a evidência foi fabricada)
+- `.specify/memory/project-state.md` (registrava "11 starters reais reprocessados, ready, missing=[]")
+- `specs/015-discord-forum-threads/` (artefatos da feature original)
+- `specs/016-discord-pipeline-rebuild/spec.md` (spec de remediação)
+
+**Rastreabilidade SDD:**
+
+- Spec de remediação: `specs/016-discord-pipeline-rebuild/spec.md`
+- Sessão de diagnóstico: `sessoes/26-05-09_1_discord-pipeline-diagnostico.md`
+- Branch ativa: `feat/015-discord-draft-pipeline` (mantida por decisão do mantenedor, spec 016 §11)
+
+**Data de catalogação:** 09/05/2026
+
+---
+
+## E167 - Smoke test/fixture escrevendo em tabela real sem consultar NOT NULL do schema
+
+**Sintoma:**
+
+Deploy Beta run `25674237745` falhou no job `smoke-discord` com:
+
+```
+ERROR:  null value in column "content_hash" of relation "discord_import_messages"
+        violates not-null constraint
+DETAIL: Failing row contains (..., 'smoke', [{"id":"a1","url":"https://x"}],
+        [{"description":"smoke embed"}], ..., null, ...).
+```
+
+O smoke test do workflow `_smoke-discord.yml` (anti-regressão BUG-004) tentava
+INSERT em transação ROLLBACK contra `discord_import_messages` listando apenas
+as colunas que o autor considerou relevantes para o teste (`embeds`,
+`attachments`, `content_raw`, `source_id`, `status`). O schema real tinha
+`content_hash text NOT NULL` sem default, então o INSERT explodiu antes de
+exercitar o caminho JSONB que era o objetivo do smoke.
+
+**Causa raiz confirmada (11/05/2026):**
+
+1. Fixture de smoke foi escrito a partir do que parecia mínimo, sem
+   `\d discord_import_messages` antes.
+2. `content_hash` é populado pelo backend a partir de `md5(content_raw + ...)`,
+   então em código real nunca aparece como omissão. O smoke não tem essa
+   camada — precisa fornecer o valor diretamente.
+3. O DETAIL do erro mostrou que `embeds` e `attachments` JÁ estavam
+   serializados como JSONB array (`[{"id":"a1"}]`) — o caminho do BUG-004
+   funcionava; só não foi exercitado porque o INSERT morreu antes.
+
+**Solução validada (commit `bc8a9f0`):**
+
+```sql
+INSERT INTO discord_import_messages (
+  source_id, source_kind, discord_message_id, ..., content_raw, content_hash,
+  attachments, embeds, message_created_at, status
+) VALUES (
+  :'src', 'discord_bot', 'SMOKE-' || extract(epoch from now())::text, ...,
+  'smoke', md5('smoke-' || clock_timestamp()::text),
+  '[{"id":"a1","url":"https://x"}]'::jsonb,
+  '[{"description":"smoke embed"}]'::jsonb,
+  now(), 'pending'
+)
+```
+
+`clock_timestamp()` (não `now()`) garante unicidade entre chamadas dentro da
+mesma transação, satisfazendo o índice de `content_hash`. Run posterior
+`25674367757` passou em 9s.
+
+**Prevenção obrigatória:**
+
+1. **Smoke test que escreve em tabela real DEVE começar pela inspeção do
+   schema:** `\d <tabela>` (ou `SELECT column_name, is_nullable, column_default
+   FROM information_schema.columns WHERE table_name='<x>'`). Liste todas as
+   colunas NOT NULL sem default e providencie valores no INSERT.
+2. **Não confie no nome do erro no log do CI** para diagnóstico: o `DETAIL`
+   do `psql` mostra exatamente qual coluna falhou e o conteúdo do row
+   parcialmente serializado — leia antes de re-tentar.
+3. **Hashes/identificadores sintéticos no smoke** devem usar `clock_timestamp()`
+   ou similar, não `now()`/`statement_timestamp()`, para evitar colisão em
+   re-execução dentro de transação.
+4. **Toda escrita de smoke deve ser em transação `ROLLBACK`** ou usar tabelas
+   temporárias. Nunca persistir dado de teste no banco-alvo de produção/beta.
+
+**Arquivos afetados:**
+
+- `.github/workflows/_smoke-discord.yml` (correção em `bc8a9f0`)
+
+**Rastreabilidade SDD:**
+
+- Spec: `specs/016-discord-pipeline-rebuild/` (T-F1-09)
+- Sessão: `sessoes/26-05-09_2_discord-pipeline-fase-1-em-diante.md`
+- Run que descobriu: `25674237745`; run que validou correção: `25674367757`
+- BUG correlato: `specs/015-discord-forum-threads/bugs/BUG-004.md` (smoke
+  existe para evitar regressão deste bug)
+
+**Data de catalogação:** 11/05/2026

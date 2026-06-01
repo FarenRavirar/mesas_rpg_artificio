@@ -64,6 +64,38 @@ const getErrorMessage = (error: unknown): string => {
   return 'Erro interno';
 };
 
+async function resolveActorName(userId: string): Promise<string> {
+  try {
+    const profile = await db
+      .selectFrom('profiles')
+      .select('display_name')
+      .where('user_id', '=', userId)
+      .executeTakeFirst();
+
+    if (profile?.display_name && profile.display_name.trim().length > 0) {
+      return profile.display_name.trim();
+    }
+
+    const user = await db
+      .selectFrom('users')
+      .select(['username', 'email'])
+      .where('id', '=', userId)
+      .executeTakeFirst();
+
+    if (user?.username && user.username.trim().length > 0) {
+      return user.username.trim();
+    }
+
+    if (user?.email) {
+      return user.email.split('@')[0];
+    }
+  } catch (error) {
+    console.error('[vttPlatforms][resolveActorName]', error);
+  }
+
+  return 'Usuário';
+}
+
 /**
  * GET /api/v1/vtt-platforms
  * Lista todas as plataformas VTT ativas
@@ -142,16 +174,45 @@ router.post('/suggest', authMiddleware, async (req, res) => {
       });
     }
 
-    const suggestion = await db
-      .insertInto('vtt_platform_suggestions')
-      .values({
-        suggested_name: suggested_name.trim(),
-        suggested_by_user_id: userId,
-        table_id: table_id || null,
-        status: 'pending',
-      })
-      .returning(['id', 'suggested_name', 'created_at'])
-      .executeTakeFirst();
+    const userName = await resolveActorName(userId);
+    const admins = await db
+      .selectFrom('users')
+      .select('id')
+      .where('role', '=', 'admin')
+      .execute();
+
+    const suggestion = await db.transaction().execute(async (trx) => {
+      const created = await trx
+        .insertInto('vtt_platform_suggestions')
+        .values({
+          suggested_name: suggested_name.trim(),
+          suggested_by_user_id: userId,
+          table_id: table_id || null,
+          status: 'pending',
+        })
+        .returning(['id', 'suggested_name', 'created_at'])
+        .executeTakeFirstOrThrow();
+
+      if (admins.length > 0) {
+        await trx
+          .insertInto('notifications')
+          .values(admins.map((admin) => ({
+            user_id: admin.id,
+            type: 'system',
+            title: 'Nova sugestão de plataforma',
+            message: `${userName} sugeriu "${created.suggested_name}" como plataforma de jogo.`,
+            action_url: '/gestao',
+            metadata: JSON.stringify({
+              suggestion_id: created.id,
+              suggestion_kind: 'vtt_platform',
+              table_id: table_id || null,
+            }),
+          })))
+          .execute();
+      }
+
+      return created;
+    });
 
     console.log(`[POST /vtt-platforms/suggest] Nova sugestão: "${suggested_name}" por user ${userId}`);
 

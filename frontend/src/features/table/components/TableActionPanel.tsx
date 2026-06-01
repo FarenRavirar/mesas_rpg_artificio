@@ -1,11 +1,15 @@
+import { useState } from 'react';
+import toast from 'react-hot-toast';
 import type { TableViewModel, TableActionPanelVariant } from '../types/tableView.types';
-import { getButtonStyle, getUrgencyColor, handleCTA, handleEdit, handleStatus, handleDelete } from '../utils/uiHelpers';
+import { InlineDeleteConfirmation } from '../../../components/InlineDeleteConfirmation';
+import { getButtonStyle, getUrgencyColor, handleCTA, handleEdit, handleStatus } from '../utils/uiHelpers';
 import { TableContactsBlock } from './TableContactsBlock';
 import { useTracking } from '../../../hooks/useTracking';
 
 interface TableActionPanelProps {
   vm: TableViewModel;
   variant?: TableActionPanelVariant;
+  deleteEndpointScope?: 'gm' | 'admin';
 }
 
 /**
@@ -13,8 +17,42 @@ interface TableActionPanelProps {
  * Ordem fixa: CTA → Urgência → Preço → Info → Contato
  * Reutilizável em: MesaPage, Painel do Mestre, Card expandido
  */
-export function TableActionPanel({ vm, variant = 'full' }: TableActionPanelProps) {
+export function TableActionPanel({ vm, variant = 'full', deleteEndpointScope = 'gm' }: TableActionPanelProps) {
   const { trackTableClick } = useTracking();
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteTable = async () => {
+    if (isDeleting) return;
+
+    setIsDeleting(true);
+    try {
+      const deleteEndpoint = deleteEndpointScope === 'admin'
+        ? `/api/v1/admin/tables/${vm.id}`
+        : `/api/v1/gm/tables/${vm.id}`;
+
+      const res = await fetch(deleteEndpoint, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      if (!res.ok) {
+        const error = await res.json().catch(() => null) as { error?: string } | null;
+        toast.error(error?.error || 'Erro ao excluir mesa.');
+        return;
+      }
+
+      toast.success('Mesa excluida com sucesso.');
+      window.location.href = deleteEndpointScope === 'admin' ? '/gestao' : '/painel';
+    } catch {
+      toast.error('Erro ao excluir mesa. Tente novamente.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Modo owner: gestão + preview completo (como visitante vê)
   if (variant === 'owner') {
@@ -72,12 +110,16 @@ export function TableActionPanel({ vm, variant = 'full' }: TableActionPanelProps
 
         {/* Ação destrutiva isolada */}
         <div className="pt-3 border-t border-red-500/20">
-          <button
-            onClick={() => handleDelete(vm.id, vm.title)}
-            className="w-full py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm font-medium transition"
-          >
-            🗑 Excluir permanentemente
-          </button>
+          <InlineDeleteConfirmation
+            title={vm.title}
+            isOpen={isDeleteConfirmOpen}
+            onOpen={() => setIsDeleteConfirmOpen(true)}
+            onCancel={() => setIsDeleteConfirmOpen(false)}
+            onConfirm={handleDeleteTable}
+            isProcessing={isDeleting}
+            triggerLabel="Excluir permanentemente"
+            className="w-full bg-red-500/10 text-red-300 hover:bg-red-500/20"
+          />
           <p className="text-xs text-red-400/60 mt-2 text-center">
             Ação irreversível
           </p>

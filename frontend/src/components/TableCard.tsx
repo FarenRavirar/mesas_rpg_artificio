@@ -7,7 +7,7 @@ import { getSlotsVisualState } from '../utils/slots';
 import { SlotsIndicator } from './SlotsIndicator';
 import { SystemBadge } from './SystemBadge';
 import { CertificationBadges } from './CertificationBadges';
-import bannerPlaceholder from '../assets/banner_placeholder.webp';
+import { applyTableImageFallback, resolveTableImageSource } from '../utils/tableImage';
 
 const modalityLabels: Record<string, string> = {
   online: 'Online',
@@ -18,7 +18,7 @@ const modalityLabels: Record<string, string> = {
 export function TableCardSkeleton() {
   // CORREÇÃO UX-SENIOR-05: Skeleton realista que imita layout do card
   return (
-    <div className="w-full h-[380px] rounded-2xl bg-[#1B2A4A] border border-white/10 overflow-hidden">
+    <div className="relative w-full min-h-[380px] rounded-2xl bg-[#1B2A4A] border border-white/10 overflow-hidden">
       {/* Cover placeholder */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#2A3F6D] to-[#1B2A4A] animate-pulse" />
       
@@ -90,25 +90,20 @@ export function TableCardComponent({ table }: { table: TableCard }) {
       to={`/mesas/${table.slug}`}
       onClick={handleClick}
       onMouseEnter={handleMouseEnter}
-      className="group relative w-full flex flex-col rounded-2xl overflow-hidden bg-[#1B2A4A] border border-white/10 hover:border-[var(--color-artificio-orange)]/40 transition-all duration-300 cursor-pointer shadow-lg hover:shadow-[0_0_30px_rgba(232,82,26,0.15)] hover:-translate-y-1"
+      className="group relative flex h-full min-h-[430px] w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#1B2A4A] shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-[var(--color-artificio-orange)]/40 hover:shadow-[0_0_30px_rgba(232,82,26,0.15)]"
       id={`table-card-${table.slug}`}
     >
       {/* BLOCO 1: HEADER (Imagem + Badges críticos) */}
       <div className="aspect-[16/10] w-full relative overflow-hidden">
         <img
-          src={table.cover_url || bannerPlaceholder}
+          src={resolveTableImageSource(table.cover_url)}
           alt={table.title}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          onError={(event) => {
-            const img = event.currentTarget;
-            if (img.dataset.fallbackApplied === 'true') return;
-            img.dataset.fallbackApplied = 'true';
-            img.src = bannerPlaceholder;
-          }}
+          onError={applyTableImageFallback}
         />
 
         {/* Badges críticos apenas */}
-        <div className="absolute top-3 left-3 flex flex-wrap gap-2">
+        <div className="absolute left-3 right-14 top-3 flex flex-wrap gap-2">
           <CertificationBadges is_covil={table.is_covil} is_ddal={table.is_ddal} />
           {isFull && (
             <span className="px-2 py-1 rounded-md text-[11px] font-black tracking-wide text-white bg-red-600 backdrop-blur-sm">
@@ -118,7 +113,7 @@ export function TableCardComponent({ table }: { table: TableCard }) {
         </div>
 
         {table.featured && (
-          <span className="absolute top-3 right-3 px-2 py-1 bg-[var(--color-artificio-orange)] rounded-md text-xs font-bold text-white">
+          <span className="absolute top-3 right-3 max-w-[45%] truncate rounded-md bg-[var(--color-artificio-orange)] px-2 py-1 text-xs font-bold text-white">
             ★ Destaque
           </span>
         )}
@@ -161,8 +156,8 @@ export function TableCardComponent({ table }: { table: TableCard }) {
       </div>
 
       {/* BLOCO 2: CONTENT (Título + Sistema/Modalidade) */}
-      <div className="flex-1 p-4 flex flex-col">
-        <div className="flex items-center gap-2 mb-3 min-h-[34px]">
+      <div className="flex flex-1 flex-col p-4">
+        <div className="mb-3 flex min-h-[34px] min-w-0 flex-wrap items-center gap-2">
           {table.system_name && (
             <SystemBadge
               name={table.system_name}
@@ -176,14 +171,14 @@ export function TableCardComponent({ table }: { table: TableCard }) {
           </span>
         </div>
 
-        <h3 className="shrink-0 min-h-[3.25rem] text-lg font-bold text-white group-hover:text-[var(--color-artificio-orange)] transition-colors line-clamp-2 leading-tight mb-4">
+        <h3 className="mb-4 min-h-[4.75rem] shrink-0 text-lg font-bold leading-tight text-white transition-colors line-clamp-3 group-hover:text-[var(--color-artificio-orange)]">
           {table.title}
         </h3>
 
         {/* BLOCO 3: METADATA (Mestre + Vagas + Preço) */}
-        <div className="mt-auto space-y-3">
+        <div className="mt-auto min-w-0 space-y-3">
           {table.gm_display_name && (
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2">
               {table.gm_avatar_url ? (
                 <img 
                   src={table.gm_avatar_url} 
@@ -199,28 +194,28 @@ export function TableCardComponent({ table }: { table: TableCard }) {
                 <Link
                   to={`/mestre/${table.gm_slug}`}
                   onClick={(e) => e.stopPropagation()}
-                  className="text-sm text-white/70 hover:text-white font-medium truncate transition-colors hover:underline"
+                  className="min-w-0 truncate text-sm font-medium text-white/70 transition-colors hover:text-white hover:underline"
                 >
                   {table.gm_display_name}
                 </Link>
               ) : (
-                <span className="text-sm text-white/70 font-medium truncate">
+                <span className="min-w-0 truncate text-sm font-medium text-white/70">
                   {table.gm_display_name}
                 </span>
               )}
             </div>
           )}
 
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-wrap items-end justify-between gap-x-3 gap-y-2">
             {/* Vagas */}
             <SlotsIndicator table={table} />
 
             {/* Preço */}
             {table.price_type === 'gratuita' ? (
-              <span className="text-sm font-bold text-green-400">Gratuito</span>
+              <span className="shrink-0 text-sm font-bold text-green-400">Gratuito</span>
             ) : table.price_value ? (
-              <span className="text-sm font-bold text-yellow-400">
-                R$ {table.price_value}<span className="text-[10px] text-white/50 ml-1">/ sessão</span>
+              <span className="flex shrink-0 items-baseline gap-1 whitespace-nowrap text-sm font-bold text-yellow-400">
+                R$ {table.price_value}<span className="text-[10px] font-semibold text-white/50">/ sessão</span>
               </span>
             ) : null}
           </div>

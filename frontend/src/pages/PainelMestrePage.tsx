@@ -7,13 +7,13 @@ import toast from 'react-hot-toast';
 import type { TableContact } from '../types/tables';
 import { TableCardDashboard } from '../components/TableCardDashboard';
 import { LinksManager } from '../components/LinksManager';
-import { EditGmProfileForm } from './Painel/EditGmProfileForm';
 import { HelpCenter } from '../components/HelpCenter';
 import { VttPlatformsEditor } from '../components/mestre/VttPlatformsEditor';
 import { ContactMethodsEditor } from '../components/mestre/ContactMethodsEditor';
 import { GmInsightsDashboard } from '../components/mestre/GmInsightsDashboard';
 // Componente refatorado
 import { CreateTableForm } from '../features/create-table/components/CreateTableForm';
+import { MarkdownEditor } from '../components/MarkdownEditor';
 
 type TableStatus = 'draft' | 'active' | 'full' | 'cancelled' | 'ended' | 'pending_review';
 
@@ -188,14 +188,12 @@ function CreateGmProfileForm({ onSuccess }: { onSuccess: () => void }) {
         </button>
       )}
       <div className="flex flex-col gap-1">
-        <label htmlFor="gm-bio" className="text-sm font-medium text-white/70">Bio (opcional)</label>
-        <textarea
-          id="gm-bio"
+        <label className="text-sm font-medium text-white/70">Bio (opcional)</label>
+        <MarkdownEditor
           value={bio}
-          onChange={(e) => setBio(e.target.value)}
-          rows={3}
+          onChange={setBio}
           placeholder="Conte um pouco sobre você como mestre..."
-          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all resize-none"
+          height={200}
         />
       </div>
       {error && <div className="p-3 bg-red-900/40 border border-red-700/50 rounded-xl text-red-300 text-sm">{error}</div>}
@@ -217,7 +215,7 @@ export const PainelMestrePage = () => {
 
   const [gmProfile, setGmProfile] = useState<GmProfile | null>(null);
   const [myTables, setMyTables] = useState<MyTableEnhanced[]>([]);
-  const [view, setView] = useState<'dashboard' | 'create-table' | 'create-profile' | 'edit-profile' | 'help'>('dashboard');
+  const [view, setView] = useState<'dashboard' | 'create-table' | 'create-profile' | 'help'>('dashboard');
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [editingTableId, setEditingTableId] = useState<string | null>(null);
   const [editingTableData, setEditingTableData] = useState<any>(null);
@@ -437,9 +435,8 @@ export const PainelMestrePage = () => {
     }
   };
 
-  const handleDeleteTable = async (tableId: string, title: string) => {
+  const handleDeleteTable = async (tableId: string) => {
     if (!isAuthenticated) return;
-    if (!confirm(`Deletar mesa "${title}"? Esta ação não pode ser desfeita.`)) return;
 
     setDeletingTableId(tableId);
     try {
@@ -522,20 +519,6 @@ export const PainelMestrePage = () => {
             </button>
             <HelpCenter />
           </div>
-        ) : view === 'edit-profile' && gmProfile ? (
-          <div className="max-w-5xl mx-auto space-y-6">
-            <div>
-              <h1 className="text-2xl font-extrabold">Editar perfil do mestre</h1>
-              <p className="text-sm text-white/50 mt-1">
-                Atualize seus dados públicos, benefícios e configurações de grupo fechado.
-              </p>
-            </div>
-            <EditGmProfileForm
-              profile={gmProfile}
-              onSuccess={refreshData}
-              onCancel={() => setView('dashboard')}
-            />
-          </div>
         ) : (
           <div className="space-y-8">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -563,7 +546,7 @@ export const PainelMestrePage = () => {
                 {gmProfile && (
                   <button
                     id="btn-editar-perfil-mestre"
-                    onClick={() => setView('edit-profile')}
+                    onClick={() => navigate('/perfil?tab=mestre')}
                     className="flex items-center gap-2 px-4 py-3 border border-white/20 hover:border-white/35 text-white font-semibold rounded-xl transition-colors cursor-pointer"
                   >
                     <PencilLine className="w-4 h-4" />
@@ -657,7 +640,7 @@ export const PainelMestrePage = () => {
                       table={table}
                       onEdit={(id: string) => navigate(`/painel?edit=${id}`)}
                       onToggle={(table) => handleToggleTableStatus(table.id, table.status, table.title)}
-                      onDelete={(table) => handleDeleteTable(table.id, table.title)}
+                      onDelete={(table) => handleDeleteTable(table.id)}
                       isToggling={togglingTableId === table.id}
                       isDeleting={deletingTableId === table.id}
                     />

@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { getSlotsVisualState } from '../utils/slots';
 import { SystemBadge } from './SystemBadge';
 import { CertificationBadges } from './CertificationBadges';
-import bannerPlaceholder from '../assets/banner_placeholder.webp';
+import { applyTableImageFallback, resolveTableImageSource } from '../utils/tableImage';
+import { InlineDeleteConfirmation } from './InlineDeleteConfirmation';
 
 interface TableMetrics {
   views: number;
@@ -52,6 +54,7 @@ export function TableCardDashboard({
   isToggling,
   isDeleting,
 }: TableCardDashboardProps) {
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const { open: openSlots } = getSlotsVisualState(table);
   const metrics = table.metrics || { views: 0, clicks: 0, contacts: 0, favorites: 0 };
 
@@ -82,15 +85,10 @@ export function TableCardDashboard({
         }`}
       >
         <img
-          src={table.image_url || bannerPlaceholder}
+          src={resolveTableImageSource(table.image_url)}
           alt={table.title}
           className="w-full h-full object-cover"
-          onError={(event) => {
-            const img = event.currentTarget;
-            if (img.dataset.fallbackApplied === 'true') return;
-            img.dataset.fallbackApplied = 'true';
-            img.src = bannerPlaceholder;
-          }}
+          onError={applyTableImageFallback}
         />
 
         <div className="absolute top-2 left-2 flex flex-wrap gap-1.5 z-10">
@@ -189,10 +187,10 @@ export function TableCardDashboard({
       )}
 
       {/* ACTIONS */}
-      <div className="flex gap-2 mt-2">
+      <div className="mt-2 grid grid-cols-2 gap-2">
         <button
           onClick={() => onEdit(table.id)}
-          className="flex-1 py-2 text-xs bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors"
+          className="py-2 text-xs bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors"
         >
           Editar
         </button>
@@ -200,18 +198,22 @@ export function TableCardDashboard({
         <button
           onClick={() => onToggle(table)}
           disabled={isToggling}
-          className="flex-1 py-2 text-xs bg-yellow-500 hover:bg-yellow-600 disabled:opacity-50 rounded-lg transition-colors"
+          className="py-2 text-xs bg-yellow-500 hover:bg-yellow-600 disabled:opacity-50 rounded-lg transition-colors"
         >
           {isToggling ? '⏳' : table.status === 'active' ? 'Desativar' : 'Ativar'}
         </button>
 
-        <button
-          onClick={() => onDelete(table)}
-          disabled={isDeleting}
-          className="flex-1 py-2 text-xs bg-red-500 hover:bg-red-600 disabled:opacity-50 rounded-lg transition-colors"
-        >
-          {isDeleting ? '⏳' : 'Deletar'}
-        </button>
+        <InlineDeleteConfirmation
+          title={table.title}
+          isOpen={isDeleteConfirmOpen}
+          onOpen={() => setIsDeleteConfirmOpen(true)}
+          onCancel={() => setIsDeleteConfirmOpen(false)}
+          onConfirm={() => onDelete(table)}
+          isProcessing={isDeleting}
+          disabled={isToggling}
+          className="col-span-2 w-full"
+          compact
+        />
       </div>
     </div>
   );

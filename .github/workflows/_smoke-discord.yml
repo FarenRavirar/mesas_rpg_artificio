@@ -1,0 +1,108 @@
+# ============================================================================
+# WORKFLOW: Smoke Discord Pipeline
+# RESPONSIBILITY: Smoke test pos-migrate / pre-deploy-app para o pipeline Discord
+# TRIGGER: workflow_call (invocado por deploy-beta.yml apos migrate, antes de deploy-app)
+# SCOPE:
+#   1. Anti-regressao BUG-004: serializacao JSONB de embeds/attachments arrays
+#   2. Anti-regressao E166: CHECK CONSTRAINT discord_drafts_ready_requires_no_missing
+#      ativo e rejeita drift com 23514.
+# DEPENDENCIES: migrate job ja rodou (migration_118 aplicada)
+# CONSUMERS: deploy-beta.yml (smoke-discord job)
+# MAINTAINER: spec 016 (T-F1-09, licao BUG-004)
+# LAST UPDATED: 2026-05-10
+# NOTES: Toda escrita acontece dentro de transacoes ROLLBACK; nenhum dado
+#        persiste apos a execucao.
+# ============================================================================
+
+name: Smoke Discord Pipeline
+
+on:
+  workflow_call: {}
+
+jobs:
+  smoke-discord:
+    runs-on: ubuntu-latest
+    steps:
+      - name: JSONB array roundtrip + ready/missing CHECK constraint
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -euo pipefail
+
+            SOURCE_ID=$(docker exec mesas-beta-db psql -U admin -d mesas_rpg -At -c \
+              "SELECT id FROM discord_import_sources WHERE channel_type='forum' ORDER BY created_at LIMIT 1;")
+
+            if [ -z "$SOURCE_ID" ]; then
+              echo "ERRO: nenhuma fonte forum encontrada no Beta para usar como FK do smoke."
+              exit 1
+            fi
+
+            echo "smoke source_id: $SOURCE_ID"
+
+            docker exec -i mesas-beta-db psql -U admin -d mesas_rpg -v ON_ERROR_STOP=1 \
+              -v src="$SOURCE_ID" <<'SQL'
+            BEGIN;
+
+            -- 1) Anti-regressao BUG-004: insert com embeds e attachments como arrays JSONB
+            INSERT INTO discord_import_messages (
+              source_id, source_kind, discord_message_id, discord_channel_id, discord_guild_id,
+              discord_author_id, discord_author_name, discord_message_url,
+              content_raw, content_hash, attachments, embeds, message_created_at, status
+            ) VALUES (
+              :'src', 'discord_bot',
+              'SMOKE-' || extract(epoch from now())::text,
+              '0', '0', '0', 'smoke', 'https://smoke',
+              'smoke', md5('smoke-' || clock_timestamp()::text),
+              '[{"id":"a1","url":"https://x"}]'::jsonb,
+              '[{"description":"smoke embed"}]'::jsonb,
+              now(), 'pending'
+            )
+            RETURNING jsonb_typeof(embeds) AS embeds_type,
+                      jsonb_array_length(embeds) AS embeds_len,
+                      jsonb_typeof(attachments) AS attachments_type,
+                      jsonb_array_length(attachments) AS attachments_len;
+
+            -- 2) Anti-regressao E166: confirmar que constraint existe
+            SELECT
+              CASE WHEN EXISTS (
+                SELECT 1 FROM pg_constraint
+                WHERE conname = 'discord_drafts_ready_requires_no_missing'
+                  AND conrelid = 'discord_import_table_drafts'::regclass
+              ) THEN 'CONSTRAINT_PRESENT' ELSE 'CONSTRAINT_MISSING' END AS status;
+
+            ROLLBACK;
+            SQL
+
+            # 3) Verificar que constraint efetivamente bloqueia drift
+            CHECK_OUTPUT=$(docker exec -i mesas-beta-db psql -U admin -d mesas_rpg -At <<'SQL' 2>&1 || true
+            BEGIN;
+            UPDATE discord_import_table_drafts
+               SET status='ready'
+             WHERE id = (
+               SELECT id FROM discord_import_table_drafts
+                WHERE status='needs_review'
+                  AND COALESCE(jsonb_array_length(normalized_payload->'missing_fields'),0) > 0
+                LIMIT 1
+             );
+            ROLLBACK;
+            SQL
+            )
+
+            if echo "$CHECK_OUTPUT" | grep -q '23514\|discord_drafts_ready_requires_no_missing'; then
+              echo "OK: CHECK constraint rejeita drift como esperado"
+            else
+              # Se nao havia draft em needs_review com missing!=[], a query passa sem
+              # disparar a constraint. Ainda tem que checar que constraint existe.
+              CONSTRAINT_OK=$(docker exec mesas-beta-db psql -U admin -d mesas_rpg -At -c \
+                "SELECT count(*) FROM pg_constraint WHERE conname='discord_drafts_ready_requires_no_missing';")
+              if [ "$CONSTRAINT_OK" != "1" ]; then
+                echo "ERRO: constraint discord_drafts_ready_requires_no_missing ausente"
+                exit 1
+              fi
+              echo "AVISO: nao ha drafts needs_review com missing!=[] para teste in-vivo; constraint existe."
+            fi
+
+            echo "smoke discord OK"

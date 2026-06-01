@@ -5,7 +5,7 @@
 
 ## Phase 1: Setup
 
-- [x] T001 Registrar baseline read-only de `mesas-cron`, Node.js e npm em `sessoes/26-04-28_1_fix-publicacao-mesa-opcao.md`
+- [x] T001 Registrar baseline read-only de `mesas-cron`, Node.js e npm em `sessoes/encerradas/26-04-28_1_fix-publicacao-mesa-opcao.md`
 - [x] T002 Confirmar arquivos candidatos e working tree antes de alterações em `specs/005-runtime-workflows/plan.md`
 
 ## Phase 2: Foundational
@@ -25,7 +25,7 @@
 - [x] T008 [US1] Preservar comandos de desenvolvimento TypeScript em `backend/package.json` quando necessário para uso local/manual
 - [x] T009 [US1] Validar build backend com `npm run build` em `backend/package.json`
 - [x] T010 [US1] Verificar que `backend/dist/scripts/cronRunner.js`, `backend/dist/scripts/processLinkMetadataJobs.js` e `backend/dist/scripts/cleanupLinkMetadataCache.js` são gerados após build
-- [x] T011 [US1] Preparar pedido de aprovação para rebuild/recreate remoto do `mesas-cron` em `sessoes/26-04-28_1_fix-publicacao-mesa-opcao.md`
+- [x] T011 [US1] Preparar pedido de aprovação para rebuild/recreate remoto do `mesas-cron` em `sessoes/encerradas/26-04-28_1_fix-publicacao-mesa-opcao.md`
 - [x] T012 [US1] Após aprovação explícita, validar `mesas-cron` remoto por logs/status e janela de 30 minutos
 
 ## Phase 4: User Story 2 - Runtime Atualizado com Segurança (P2)
@@ -34,7 +34,7 @@
 
 **Independent Test**: Versões antes/depois registradas; builds continuam passando; CI, VM e Dockerfiles apontam para Node 25.9.0/npm 11.13.0.
 
-- [x] T013 [US2] Registrar versões atuais de Node.js/npm da VM e containers em `sessoes/26-04-28_1_fix-publicacao-mesa-opcao.md`
+- [x] T013 [US2] Registrar versões atuais de Node.js/npm da VM e containers em `sessoes/encerradas/26-04-28_1_fix-publicacao-mesa-opcao.md`
 - [x] T014 [US2] Confirmar compatibilidade do npm candidato e registrar decisão em `specs/005-runtime-workflows/research.md`
 - [x] T015 [US2] Preparar pedido de aprovação para atualização de npm na VM sem alterar Node major
 - [x] T016 [US2] Após aprovação explícita, aplicar atualização npm na VM e registrar output literal
@@ -57,8 +57,9 @@
 
 - [x] T024 Atualizar `specs/005-runtime-workflows/quickstart.md` com evidências finais e comandos efetivamente usados
 - [x] T025 Atualizar `.specify/memory/project-state.md` com progresso da feature 005
-- [x] T026 Atualizar `sessoes/26-04-28_1_fix-publicacao-mesa-opcao.md` com outputs literais, arquivos alterados e próximo passo
+- [x] T026 Atualizar `sessoes/encerradas/26-04-28_1_fix-publicacao-mesa-opcao.md` com outputs literais, arquivos alterados e próximo passo
 - [x] T027 Executar busca final por `ts-node` em caminhos de produção e registrar resultado
+- [x] T028 Criar `specs/005-runtime-workflows/pr-description.md` com sumário executivo, mudanças por componente, evidências e checklist pós-merge
 
 ## Dependencies
 

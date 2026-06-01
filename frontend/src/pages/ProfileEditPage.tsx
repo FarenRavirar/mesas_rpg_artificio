@@ -6,6 +6,8 @@ import { UserSystemsSelector } from '../components/UserSystemsSelector';
 import { LinksManager } from '../components/LinksManager';
 import { showSuccess, showError } from '../utils/toast';
 import { track } from '../services/analytics';
+import { useImageUrlImport } from '../hooks/useImageUrlImport';
+import { MarkdownEditor } from '../components/MarkdownEditor';
 import './ProfileEditPage.css';
 
 /**
@@ -29,6 +31,11 @@ export default function ProfileEditPage() {
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const [showSaved, setShowSaved] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+
+  useEffect(() => {
+    const tabFromUrl = sanitizeTab(searchParams.get('tab'));
+    setActiveTab((currentTab) => (currentTab === tabFromUrl ? currentTab : tabFromUrl));
+  }, [searchParams]);
 
   // Sincronizar aba com URL
   const handleTabChange = (tab: TabType) => {
@@ -277,16 +284,23 @@ export default function ProfileEditPage() {
 function TabGeral() {
   const { profile, updateUser, updateProfile } = useProfileContext();
   const [avatarError, setAvatarError] = useState(false);
-
-  if (!profile) return null;
+  const [bio, setBio] = useState(profile?.profile?.bio || '');
+  const currentAvatar = profile?.profile?.avatar_url || '';
 
   const handleAvatarChange = (url: string) => {
     setAvatarError(false);
     updateProfile({ avatar_url: url });
   };
 
-  // CORREÇÃO P12: Usar apenas profile.avatar_url (Google OAuth deve copiar para profiles)
-  const currentAvatar = profile.profile?.avatar_url || '';
+  const avatarUrlImport = useImageUrlImport({
+    purpose: 'profile_avatar',
+    getUrl: () => currentAvatar,
+    onImported: handleAvatarChange,
+    onError: showError,
+    onSuccess: showSuccess,
+  });
+
+  if (!profile) return null;
 
   return (
     <div className="tab-geral">
@@ -417,9 +431,22 @@ function TabGeral() {
                       id="avatar_url"
                       value={currentAvatar}
                       onChange={(e) => handleAvatarChange(e.target.value)}
+                      onBlur={avatarUrlImport.importUrlIfNeeded}
                       placeholder="https://exemplo.com/avatar.jpg"
                     />
-                    <small>Cole a URL de uma imagem hospedada (Imgur, Gravatar, etc.)</small>
+                    <label className="avatar-direct-link-option" title={avatarUrlImport.directLinkTooltip}>
+                      <input
+                        type="checkbox"
+                        checked={avatarUrlImport.keepDirectLink}
+                        onChange={(e) => avatarUrlImport.setKeepDirectLink(e.target.checked)}
+                      />
+                      <span>Manter link direto</span>
+                    </label>
+                    <small>
+                      {avatarUrlImport.isImportingUrl
+                        ? 'Importando imagem para a hospedagem do Artifício...'
+                        : 'Desativado por padrão: links externos são importados ao sair do campo.'}
+                    </small>
                     {avatarError && currentAvatar && (
                       <small className="error-text">❌ Não foi possível carregar a imagem</small>
                     )}
@@ -455,13 +482,12 @@ function TabGeral() {
         </div>
 
         <div className="form-group">
-          <label htmlFor="bio">Bio</label>
-          <textarea
-            id="bio"
-            defaultValue={profile.profile?.bio || ''}
-            onChange={(e) => updateProfile({ bio: e.target.value })}
+          <label>Bio</label>
+          <MarkdownEditor
+            value={bio}
+            onChange={(text) => { setBio(text); updateProfile({ bio: text }); }}
             placeholder="Conte um pouco sobre você..."
-            rows={4}
+            height={200}
           />
         </div>
 
@@ -501,6 +527,7 @@ function TabJogador() {
           <select
             id="experience_level"
             defaultValue={playerProfile.experience_level || ''}
+            className="app-select w-full"
             onChange={(e) =>
               updatePlayer({
                 experience_level: e.target.value as 'iniciante' | 'intermediario' | 'veterano',
@@ -612,6 +639,7 @@ function TabJogador() {
           <select
             id="preferred_time"
             defaultValue={playerProfile.preferred_time || ''}
+            className="app-select w-full"
             onChange={(e) =>
               updatePlayer({ preferred_time: e.target.value as 'manha' | 'tarde' | 'noite' })
             }
@@ -628,6 +656,7 @@ function TabJogador() {
           <select
             id="pricing_preference"
             defaultValue={playerProfile.pricing_preference || ''}
+            className="app-select w-full"
             onChange={(e) =>
               updatePlayer({ pricing_preference: e.target.value as 'free' | 'paid' | 'both' })
             }
@@ -672,10 +701,18 @@ function TabMestre({
 }) {
   const { profile, updateGm, addSystem, removeSystem } = useProfileContext();
   const [connecting, setConnecting] = useState(false);
+  const gmProfile = (profile?.gm || {}) as Partial<GmProfile>;
+  const [bioLong, setBioLong] = useState(gmProfile.bio_long || '');
+
+  const gmAvatarUrlImport = useImageUrlImport({
+    purpose: 'profile_avatar',
+    getUrl: () => gmProfile.avatar_url || '',
+    onImported: (url) => updateGm({ avatar_url: url }),
+    onError: showError,
+    onSuccess: showSuccess,
+  });
 
   if (!profile) return null;
-
-  const gmProfile = (profile.gm || {}) as Partial<GmProfile>;
 
   return (
     <div className="tab-mestre">
@@ -708,13 +745,12 @@ function TabMestre({
         </div>
 
         <div className="form-group">
-          <label htmlFor="bio_long">Bio Detalhada</label>
-          <textarea
-            id="bio_long"
-            defaultValue={gmProfile.bio_long || ''}
-            onChange={(e) => updateGm({ bio_long: e.target.value })}
+          <label>Bio Detalhada</label>
+          <MarkdownEditor
+            value={bioLong}
+            onChange={(text) => { setBioLong(text); updateGm({ bio_long: text }); }}
             placeholder="Conte sobre sua experiência como mestre..."
-            rows={6}
+            height={300}
           />
         </div>
 
@@ -841,11 +877,24 @@ function TabMestre({
                     <input
                       type="url"
                       id="gm_avatar_url"
-                      defaultValue={gmProfile.avatar_url || ''}
+                      value={gmProfile.avatar_url || ''}
                       onChange={(e) => updateGm({ avatar_url: e.target.value })}
+                      onBlur={gmAvatarUrlImport.importUrlIfNeeded}
                       placeholder="https://exemplo.com/avatar.jpg"
                     />
-                    <small>Cole a URL de uma imagem hospedada</small>
+                    <label className="avatar-direct-link-option" title={gmAvatarUrlImport.directLinkTooltip}>
+                      <input
+                        type="checkbox"
+                        checked={gmAvatarUrlImport.keepDirectLink}
+                        onChange={(e) => gmAvatarUrlImport.setKeepDirectLink(e.target.checked)}
+                      />
+                      <span>Manter link direto</span>
+                    </label>
+                    <small>
+                      {gmAvatarUrlImport.isImportingUrl
+                        ? 'Importando imagem para a hospedagem do Artifício...'
+                        : 'Desativado por padrão: links externos são importados ao sair do campo.'}
+                    </small>
                   </div>
                 </details>
               </div>

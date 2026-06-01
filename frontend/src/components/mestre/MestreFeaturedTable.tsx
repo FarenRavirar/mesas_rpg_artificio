@@ -5,7 +5,7 @@ import { SlotsIndicator } from '../SlotsIndicator';
 import { SystemBadge } from '../SystemBadge';
 import { CertificationBadges } from '../CertificationBadges';
 import { getSlotsVisualState } from '../../utils/slots';
-import bannerPlaceholder from '../../assets/banner_placeholder.webp';
+import { applyTableImageFallback, resolveTableImageSource } from '../../utils/tableImage';
 
 interface Props {
   table: TableCard;
@@ -32,14 +32,9 @@ export function MestreFeaturedTable({ table }: Props) {
       >
         <div className="mestre-featured-table-cover">
           <img
-            src={table.cover_url || bannerPlaceholder}
+            src={resolveTableImageSource(table.cover_url)}
             alt={table.title}
-            onError={(event) => {
-              const img = event.currentTarget;
-              if (img.dataset.fallbackApplied === 'true') return;
-              img.dataset.fallbackApplied = 'true';
-              img.src = bannerPlaceholder;
-            }}
+            onError={applyTableImageFallback}
           />
 
           {/* Badges de certificação */}

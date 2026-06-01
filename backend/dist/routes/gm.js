@@ -5,7 +5,9 @@ const kysely_1 = require("kysely");
 const db_1 = require("../db");
 const auth_1 = require("../middleware/auth");
 const rateLimit_1 = require("../middleware/rateLimit");
+const validation_1 = require("../utils/validation");
 const linkService_1 = require("../services/linkService");
+const publicImageUrl_1 = require("../utils/publicImageUrl");
 const urlValidation_1 = require("../utils/urlValidation");
 const router = (0, express_1.Router)();
 function buildRecommendations(metrics) {
@@ -126,7 +128,7 @@ router.get('/:slug', rateLimit_1.publicRateLimiter, auth_1.optionalAuth, async (
             't.slug',
             't.title',
             't.description',
-            't.cover_url',
+            (0, kysely_1.sql) `t.banner_url`.as('cover_url'),
             't.status',
             't.type',
             't.audience',
@@ -171,6 +173,10 @@ router.get('/:slug', rateLimit_1.publicRateLimiter, auth_1.optionalAuth, async (
             .orderBy('t.featured', 'desc')
             .orderBy('t.created_at', 'desc')
             .execute();
+        const publicTables = tables.map((table) => ({
+            ...table,
+            cover_url: (0, publicImageUrl_1.sanitizePublicImageUrl)(table.cover_url),
+        }));
         let tablesWithContacts = [];
         if (tables.length > 0) {
             const tableIds = tables.map((table) => table.id);
@@ -193,7 +199,7 @@ router.get('/:slug', rateLimit_1.publicRateLimiter, auth_1.optionalAuth, async (
                     sort_order: contact.sort_order,
                 });
             }
-            tablesWithContacts = tables.map((table) => ({
+            tablesWithContacts = publicTables.map((table) => ({
                 ...table,
                 contacts: contactsByTable.get(table.id) ?? [],
             }));
@@ -392,8 +398,7 @@ router.post('/:slug/contact', rateLimit_1.publicRateLimiter, async (req, res) =>
             return res.status(400).json({ error: 'Mensagem muito longa (máximo 1000 caracteres).' });
         }
         // Validar formato de email
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
+        if (!(0, validation_1.isValidEmail)(email)) {
             return res.status(400).json({ error: 'Email inválido.' });
         }
         // Buscar email do mestre

@@ -1,4 +1,5 @@
 import { useRef, useState, type ChangeEvent } from 'react';
+import { useImageUrlImport } from '../hooks/useImageUrlImport';
 
 interface AvatarUploaderProps {
   label: string;
@@ -33,7 +34,8 @@ export function AvatarUploader({
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const cloudName = (import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '').trim();
-  const uploadEndpoint = (import.meta.env.VITE_API_URL || '').replace(/\/api\/v1$/, '') + '/api/v1/upload';
+  const apiBase = (import.meta.env.VITE_API_URL || '').replace(/\/api\/v1$/, '');
+  const uploadEndpoint = apiBase + '/api/v1/upload';
 
   const isCloudinaryConfigured = cloudName.length > 0;
   const previewSource = value.trim() || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="50" fill="%23334"/%3E%3Ccircle cx="50" cy="38" r="18" fill="%23666"/%3E%3Ccircle cx="50" cy="85" r="25" fill="%23666"/%3E%3C/svg%3E';
@@ -47,6 +49,23 @@ export function AvatarUploader({
     setUploadError(message);
     onError(true);
   };
+
+  const {
+    keepDirectLink,
+    setKeepDirectLink,
+    isImportingUrl,
+    importUrlIfNeeded,
+    directLinkTooltip,
+  } = useImageUrlImport({
+    purpose: 'profile_avatar',
+    getUrl: () => value,
+    onImported: (url) => {
+      onChange(url);
+      onError(false);
+      setUploadError(null);
+    },
+    onError: setError,
+  });
 
   const handleFileSelect = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -131,10 +150,10 @@ export function AvatarUploader({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
+            disabled={isUploading || isImportingUrl}
             className="px-3 py-1.5 rounded-lg bg-[var(--color-artificio-orange)] hover:bg-[var(--color-artificio-orange-hover)] disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs font-semibold transition-colors"
           >
-            {isUploading ? 'Enviando...' : 'Enviar foto'}
+            {isUploading ? 'Enviando...' : isImportingUrl ? 'Importando...' : 'Enviar foto'}
           </button>
 
           <span className="text-xs text-white/60">
@@ -154,9 +173,25 @@ export function AvatarUploader({
             onChange(event.target.value);
             clearError();
           }}
+          onBlur={importUrlIfNeeded}
           placeholder="https://res.cloudinary.com/..."
           className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 focus:ring-1 focus:ring-[var(--color-artificio-orange)]/30 transition-all"
         />
+        <label
+          className="mt-2 inline-flex items-center gap-2 text-xs text-white/70"
+          title={directLinkTooltip}
+        >
+          <input
+            type="checkbox"
+            checked={keepDirectLink}
+            onChange={(event) => setKeepDirectLink(event.target.checked)}
+            className="h-4 w-4 rounded border-white/20 bg-white/5 accent-[var(--color-artificio-orange)]"
+          />
+          <span>Manter link direto</span>
+        </label>
+        <p className="text-xs text-white/50">
+          Desativado por padrão: links externos são importados para nossa hospedagem ao sair do campo.
+        </p>
       </div>
 
       {(uploadError || hasError) && (

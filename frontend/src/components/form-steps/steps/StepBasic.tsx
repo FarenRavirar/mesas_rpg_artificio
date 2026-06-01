@@ -1,5 +1,5 @@
 import type { ChangeEvent } from 'react';
-import { RichTextArea } from '../../RichTextArea';
+import { MarkdownEditor } from '../../MarkdownEditor';
 
 interface StepBasicProps {
   form: {
@@ -30,15 +30,15 @@ export function StepBasic({ form, setForm }: StepBasicProps) {
         />
       </div>
 
-      <RichTextArea
-        id="description"
-        label="Descrição da Mesa"
-        value={form.description}
-        onChange={(value) => setForm({ ...form, description: value })}
-        placeholder="Descreva sua campanha, o tom da história, o que esperar..."
-        rows={6}
-        maxLength={5000}
-      />
+      <div className="flex flex-col gap-1">
+        <label className="text-sm font-medium text-white/70">Descrição da Mesa</label>
+        <MarkdownEditor
+          value={form.description}
+          onChange={(text) => setForm({ ...form, description: text })}
+          placeholder="Descreva sua campanha, o tom da história, o que esperar..."
+          height={300}
+        />
+      </div>
     </div>
   );
 }

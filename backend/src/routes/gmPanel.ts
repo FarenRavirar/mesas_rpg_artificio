@@ -800,7 +800,7 @@ router.get('/tables', authMiddleware, async (req: Request, res: Response) => {
         't.slug',
         't.title',
         't.description',
-        sql<string | null>`COALESCE(t.cover_url, t.banner_url)`.as('image_url'),
+        sql<string | null>`COALESCE(t.banner_url, t.cover_url)`.as('image_url'),
         't.status',
         't.modality',
         't.system_id',

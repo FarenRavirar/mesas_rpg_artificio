@@ -199,30 +199,33 @@ export const CatalogoPage = () => {
   // ============================================================================
   
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[#0a1628] to-[#13213f] text-white">
+    <main className="min-h-screen overflow-x-hidden bg-gradient-to-b from-[#0a1628] to-[#13213f] text-white">
       {/* HEADER */}
-      <div className="border-b border-white/10 bg-[#0a1628]/80 backdrop-blur-sm sticky top-0 z-30">
-        <div className="container mx-auto px-6 py-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-3xl font-black text-white mb-1">Catálogo de Mesas</h1>
-              <p className="text-sm text-white/60">Encontre a mesa perfeita para você</p>
+      <div className="border-b border-white/10 bg-[#0a1628]/90">
+        <div className="container mx-auto px-4 py-6 sm:px-6">
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-black text-white sm:text-3xl">Catálogo de Mesas</h1>
+              <p className="mt-1 text-sm text-white/60">Encontre a mesa perfeita para você</p>
             </div>
-            {activeFiltersCount > 0 && (
-              <button
-                onClick={clearFilters}
-                className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm font-semibold transition-colors"
-              >
-                <RotateCcw className="w-4 h-4" />
-                Limpar filtros
-              </button>
-            )}
+            <div className="flex items-center gap-3 text-xs text-white/50">
+              <span>{totalCount} {totalCount === 1 ? 'mesa encontrada' : 'mesas encontradas'}</span>
+              {activeFiltersCount > 0 && (
+                <button
+                  onClick={clearFilters}
+                  className="hidden items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/10 md:flex"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Limpar
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {systemsTreeError && (
-        <section className="container mx-auto px-6 pt-4" aria-live="polite">
+        <section className="container mx-auto px-4 pt-4 sm:px-6" aria-live="polite">
           <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 flex items-center justify-between gap-3">
             <p className="text-sm text-amber-100">{systemsTreeError}</p>
             <button
@@ -238,83 +241,70 @@ export const CatalogoPage = () => {
       )}
 
       {/* FILTROS - DESKTOP */}
-      <div className="hidden md:block border-b border-white/10 bg-[#0a1628]/60 backdrop-blur-sm sticky top-[88px] z-20">
+      <section className="hidden border-b border-white/10 bg-[#0a1628]/65 md:block">
         <div className="container mx-auto px-6 py-4">
-          {/* ZONA 1: Busca */}
-          <div className="mb-3">
-            <div className="relative max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" />
-              <input
-                type="text"
-                value={filters.search}
-                onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                placeholder="Buscar mesas..."
-                className="w-full rounded-lg bg-[#13213f] border border-white/10 pl-9 pr-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors"
+          <div className="rounded-xl border border-white/10 bg-[#10203a]/80 p-4 shadow-lg">
+            <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="relative min-w-[18rem] flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+                <input
+                  type="text"
+                  value={filters.search}
+                  onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                  placeholder="Buscar mesas..."
+                  className="w-full rounded-lg border border-white/10 bg-[#0F1A2E] py-2.5 pl-9 pr-3 text-sm outline-none transition-colors focus:border-[var(--color-artificio-orange)]"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={filters.modality}
+                  onChange={(e) => setFilters(prev => ({ ...prev, modality: e.target.value as any }))}
+                  className="app-select py-2.5"
+                >
+                  <option value="">Modalidade</option>
+                  <option value="online">Online</option>
+                  <option value="presencial">Presencial</option>
+                  <option value="hibrida">Híbrida</option>
+                </select>
+
+                <select
+                  value={filters.priceType}
+                  onChange={(e) => setFilters(prev => ({ ...prev, priceType: e.target.value as any }))}
+                  className="app-select py-2.5"
+                >
+                  <option value="">Preço</option>
+                  <option value="gratuita">Gratuita</option>
+                  <option value="paga">Paga</option>
+                </select>
+
+                <select
+                  value={filters.experience}
+                  onChange={(e) => setFilters(prev => ({ ...prev, experience: e.target.value as any }))}
+                  className="app-select py-2.5"
+                >
+                  <option value="">Nível</option>
+                  <option value="iniciante">Iniciante</option>
+                  <option value="intermediario">Intermediário</option>
+                  <option value="veterano">Veterano</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <SystemTreeSelector
+                tree={systemsTree}
+                selectedIds={selectedSystemIds}
+                onToggle={handleSystemToggle}
+                search={systemSearch}
+                onSearchChange={setSystemSearch}
+                idPrefix="catalog-desktop"
+                singleSelect={true}
               />
             </div>
-          </div>
 
-          {/* ZONA 2: Seletor de Sistema */}
-          <div className="mb-3">
-            <SystemTreeSelector
-              tree={systemsTree}
-              selectedIds={selectedSystemIds}
-              onToggle={handleSystemToggle}
-              search={systemSearch}
-              onSearchChange={setSystemSearch}
-              idPrefix="catalog-desktop"
-              singleSelect={true}
-            />
-          </div>
-
-          {/* ZONA 3: Outros Filtros */}
-          <div className="flex items-center gap-2 mb-3 flex-wrap">
-
-            <select
-              value={filters.modality}
-              onChange={(e) => setFilters(prev => ({ ...prev, modality: e.target.value as any }))}
-              className="rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
-            >
-              <option value="">Modalidade</option>
-              <option value="online">Online</option>
-              <option value="presencial">Presencial</option>
-              <option value="hibrida">Híbrida</option>
-            </select>
-
-            <select
-              value={filters.priceType}
-              onChange={(e) => setFilters(prev => ({ ...prev, priceType: e.target.value as any }))}
-              className="rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
-            >
-              <option value="">Preço</option>
-              <option value="gratuita">Gratuita</option>
-              <option value="paga">Paga</option>
-            </select>
-
-            <select
-              value={filters.experience}
-              onChange={(e) => setFilters(prev => ({ ...prev, experience: e.target.value as any }))}
-              className="rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
-            >
-              <option value="">Nível</option>
-              <option value="iniciante">Iniciante</option>
-              <option value="intermediario">Intermediário</option>
-              <option value="veterano">Veterano</option>
-            </select>
-
-            <select
-              value={filters.sort}
-              onChange={(e) => setFilters(prev => ({ ...prev, sort: e.target.value as any }))}
-              className="rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
-            >
-              <option value="popular">Mais populares</option>
-              <option value="recent">Mais recentes</option>
-              <option value="ending_soon">Encerrando em breve</option>
-            </select>
-          </div>
-
-          {/* ZONA 3: Selos + Estilos */}
-          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <span className="shrink-0 text-xs font-semibold uppercase tracking-wide text-white/40">Selos e estilos</span>
             <button
               type="button"
               onClick={() => toggleSeal('ddal')}
@@ -357,12 +347,13 @@ export const CatalogoPage = () => {
             ))}
           </div>
         </div>
-      </div>
+        </div>
+      </section>
 
       {/* BOTÃO FILTROS - MOBILE */}
       <button
         onClick={() => setIsFilterOpen(true)}
-        className="md:hidden fixed bottom-6 right-6 z-40 flex items-center gap-2 px-5 py-3 rounded-full bg-[var(--color-artificio-orange)] hover:bg-[var(--color-artificio-orange-hover)] text-white font-bold shadow-lg transition-colors"
+        className="fixed bottom-5 right-4 z-30 flex items-center gap-2 rounded-full bg-[var(--color-artificio-orange)] px-5 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] font-bold text-white shadow-lg transition-colors hover:bg-[var(--color-artificio-orange-hover)] md:hidden"
       >
         <SlidersHorizontal className="w-5 h-5" />
         Filtros
@@ -407,7 +398,7 @@ export const CatalogoPage = () => {
           <select
             value={filters.modality}
             onChange={(e) => setFilters(prev => ({ ...prev, modality: e.target.value as any }))}
-            className="w-full rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
+            className="app-select w-full py-2.5"
           >
             <option value="">Modalidade</option>
             <option value="online">Online</option>
@@ -418,7 +409,7 @@ export const CatalogoPage = () => {
           <select
             value={filters.priceType}
             onChange={(e) => setFilters(prev => ({ ...prev, priceType: e.target.value as any }))}
-            className="w-full rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
+            className="app-select w-full py-2.5"
           >
             <option value="">Preço</option>
             <option value="gratuita">Gratuita</option>
@@ -428,7 +419,7 @@ export const CatalogoPage = () => {
           <select
             value={filters.experience}
             onChange={(e) => setFilters(prev => ({ ...prev, experience: e.target.value as any }))}
-            className="w-full rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
+            className="app-select w-full py-2.5"
           >
             <option value="">Nível</option>
             <option value="iniciante">Iniciante</option>
@@ -439,7 +430,7 @@ export const CatalogoPage = () => {
           <select
             value={filters.sort}
             onChange={(e) => setFilters(prev => ({ ...prev, sort: e.target.value as any }))}
-            className="w-full rounded-lg bg-[#13213f] border border-white/10 px-3 py-2.5 text-sm outline-none focus:border-[var(--color-artificio-orange)] transition-colors cursor-pointer"
+            className="app-select w-full py-2.5"
           >
             <option value="popular">Mais populares</option>
             <option value="recent">Mais recentes</option>
@@ -500,7 +491,7 @@ export const CatalogoPage = () => {
       </FilterDrawer>
 
       {/* CONTEÚDO */}
-      <section className="container mx-auto px-6 py-8">
+      <section className="container mx-auto px-4 py-6 sm:px-6 lg:py-8">
         {/* LINHA DE CONTEXTO */}
         <div className="mb-6 space-y-4">
           {isRefreshing && (
@@ -537,7 +528,7 @@ export const CatalogoPage = () => {
 
         {/* ERROR */}
         {error && (
-          <div className="mb-6 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-red-200 flex items-center justify-between">
+          <div className="mb-6 flex flex-col gap-3 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-red-200 sm:flex-row sm:items-center sm:justify-between">
             <span>{error}</span>
             <button
               onClick={() => window.location.reload()}
@@ -550,7 +541,7 @@ export const CatalogoPage = () => {
 
         {/* EMPTY STATE */}
         {!isLoading && !isRefreshing && tables.length === 0 ? (
-          <div className="rounded-2xl border border-white/10 bg-white/5 py-20 text-center">
+          <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-16 text-center sm:py-20">
             <div className="text-6xl mb-4 opacity-30">🔍</div>
             <p className="text-xl font-bold text-white mb-2">Nenhuma mesa encontrada</p>
             <p className="text-sm text-white/50 mb-6">Tente ajustar os filtros ou fazer uma nova busca</p>
@@ -566,7 +557,7 @@ export const CatalogoPage = () => {
         ) : (
           <>
             {/* GRID */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-[repeat(auto-fit,minmax(280px,1fr))]">
               {isLoading
                 ? Array.from({ length: 12 }).map((_, idx) => <TableCardSkeleton key={idx} />)
                 : tables.map((table) => <TableCardComponent key={table.id} table={table} />)}
@@ -574,7 +565,7 @@ export const CatalogoPage = () => {
 
             {/* PAGINATION */}
             {!isLoading && tables.length > 0 && (filters.page > 1 || hasMore) && (
-              <div className="flex items-center justify-center gap-2 mt-8">
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-2 pb-20 md:pb-0">
                 <button
                   onClick={() => setFilters(prev => ({ ...prev, page: prev.page - 1 }))}
                   disabled={filters.page === 1}

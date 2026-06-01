@@ -2,6 +2,7 @@ import { useRef, useState, useCallback, type ChangeEvent } from 'react';
 import { ImageEditor } from './ImageEditor';
 import type { PixelCrop } from 'react-image-crop';
 import bannerPlaceholder from '../assets/banner_placeholder.webp';
+import { useImageUrlImport } from '../hooks/useImageUrlImport';
 
 interface ImageUploaderProps {
   label: string;
@@ -53,7 +54,8 @@ export function ImageUploader({
   } | null>(initialCropData ? { crop: initialCropData as unknown as PixelCrop, originalWidth: 0, originalHeight: 0 } : null);
 
   const cloudName = (import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '').trim();
-  const uploadEndpoint = (import.meta.env.VITE_API_URL || '').replace(/\/api\/v1$/, '') + '/api/v1/upload';
+  const apiBase = (import.meta.env.VITE_API_URL || '').replace(/\/api\/v1$/, '');
+  const uploadEndpoint = apiBase + '/api/v1/upload';
 
   const isCloudinaryConfigured = cloudName.length > 0;
   const previewSource = value.trim() || bannerPlaceholder;
@@ -67,6 +69,23 @@ export function ImageUploader({
     setUploadError(message);
     onError(true);
   };
+
+  const {
+    keepDirectLink,
+    setKeepDirectLink,
+    isImportingUrl,
+    importUrlIfNeeded,
+    directLinkTooltip,
+  } = useImageUrlImport({
+    purpose: 'table_banner',
+    getUrl: () => value,
+    onImported: (url) => {
+      onChange(url);
+      onError(false);
+      setUploadError(null);
+    },
+    onError: setError,
+  });
 
   const handleFileSelect = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -178,7 +197,7 @@ export function ImageUploader({
             id={`${idPrefix}-select-file`}
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
+            disabled={isUploading || isImportingUrl}
             className="px-4 py-2 rounded-lg bg-[var(--color-artificio-orange)] hover:bg-[var(--color-artificio-orange-hover)] disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors"
           >
             {isUploading ? 'Enviando imagem...' : 'Selecionar imagem'}
@@ -207,9 +226,25 @@ export function ImageUploader({
               onChange(event.target.value);
               clearError();
             }}
+            onBlur={importUrlIfNeeded}
             placeholder="https://res.cloudinary.com/..."
             className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 outline-none focus:border-[var(--color-artificio-orange)]/60 focus:ring-1 focus:ring-[var(--color-artificio-orange)]/30 transition-all"
           />
+          <label
+            className="mt-2 inline-flex items-center gap-2 text-xs text-white/70"
+            title={directLinkTooltip}
+          >
+            <input
+              type="checkbox"
+              checked={keepDirectLink}
+              onChange={(event) => setKeepDirectLink(event.target.checked)}
+              className="h-4 w-4 rounded border-white/20 bg-white/5 accent-[var(--color-artificio-orange)]"
+            />
+            <span>Manter link direto</span>
+          </label>
+          <p className="text-xs text-white/50">
+            Desativado por padrão: links externos são importados para a hospedagem do Artifício ao sair do campo.
+          </p>
         </div>
       </div>
 
@@ -230,6 +265,11 @@ export function ImageUploader({
           <span className="text-xs text-white/70">
             {value ? 'Banner personalizado em uso' : 'Banner padrão em uso'}
           </span>
+          {isImportingUrl && (
+            <span className="text-xs text-amber-200">
+              Importando link...
+            </span>
+          )}
           {value ? (
             <button
               id={`${idPrefix}-remove-image`}

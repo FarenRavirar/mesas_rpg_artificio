@@ -33,7 +33,7 @@ export function SystemBadge({ name, logoFilename, websiteUrl, className = '' }: 
     </>
   );
 
-  const baseClasses = `flex min-w-0 max-w-[72%] items-center gap-1 px-2 py-1 bg-[#13213f] rounded-md text-xs font-semibold text-[var(--color-artificio-orange)] border border-white/10 ${className}`;
+  const baseClasses = `flex min-w-0 max-w-full items-center gap-1 px-2 py-1 bg-[#13213f] rounded-md text-xs font-semibold text-[var(--color-artificio-orange)] border border-white/10 ${className}`;
 
   if (websiteUrl) {
     return (

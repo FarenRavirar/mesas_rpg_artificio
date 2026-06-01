@@ -3,7 +3,7 @@ import { Crown, ShieldCheck } from 'lucide-react';
 // REMOVIDO: bannerPlaceholder (modo review desacoplado)
 import { SettingStylesField } from '../../SettingStylesField';
 import { ContactsFormBlock, type ContactFormEntry } from '../../ContactsFormBlock';
-import { RichTextArea } from '../../RichTextArea';
+import { MarkdownEditor } from '../../MarkdownEditor';
 import { ImageUploader } from '../../ImageUploader';
 import type {
   ChangeEvent,
@@ -110,7 +110,7 @@ function SelectField({
       <select
         id={id}
         {...props}
-        className="w-full bg-[#1B2A4A] border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all cursor-pointer"
+        className="app-select w-full px-4 py-3"
       >
         {children}
       </select>
@@ -161,15 +161,16 @@ export function StepFinal(props: StepFinalProps) {
       />
 
       {/* Rules Notes */}
-      <RichTextArea
-        id="rules_notes"
-        label="Regras/Observações da Mesa (opcional)"
-        value={props.rulesNotes}
-        onChange={props.setRulesNotes}
-        placeholder="Ex: Usamos regras homebrew para combate, proibido PvP, etc."
-        rows={3}
-        maxLength={1500}
-      />
+      <div className="flex flex-col gap-1">
+        <label className="text-sm font-medium text-white/70">Regras/Observações da Mesa (opcional)</label>
+        <MarkdownEditor
+          value={props.rulesNotes}
+          onChange={(text) => props.setRulesNotes(text.slice(0, 1500))}
+          placeholder="Ex: Usamos regras homebrew para combate, proibido PvP, etc."
+          height={200}
+        />
+        <p className="text-xs text-white/40 text-right">{props.rulesNotes.length}/1500</p>
+      </div>
 
       {/* Toggle Campos Avançados */}
       <button
@@ -255,25 +256,27 @@ export function StepFinal(props: StepFinalProps) {
           <div className="space-y-3">
             <p className="text-sm font-semibold text-white/80">Descrições Expandidas</p>
             
-            <RichTextArea
-              id="synopsis"
-              label="Sinopse Narrativa (opcional)"
-              value={props.synopsis}
-              onChange={props.setSynopsis}
-              placeholder="Uma sinopse mais longa e imersiva da campanha..."
-              rows={4}
-              maxLength={2000}
-            />
-            
-            <RichTextArea
-              id="style_text"
-              label="Estilo de Jogo (opcional)"
-              value={props.styleText}
-              onChange={props.setStyleText}
-              placeholder="Ex: Roleplay pesado, Combate tático, Sandbox político"
-              rows={2}
-              maxLength={500}
-            />
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-white/70">Sinopse Narrativa (opcional)</label>
+              <MarkdownEditor
+                value={props.synopsis}
+                onChange={(text) => props.setSynopsis(text.slice(0, 2000))}
+                placeholder="Uma sinopse mais longa e imersiva da campanha..."
+                height={250}
+              />
+              <p className="text-xs text-white/40 text-right">{props.synopsis.length}/2000</p>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-white/70">Estilo de Jogo (opcional)</label>
+              <MarkdownEditor
+                value={props.styleText}
+                onChange={(text) => props.setStyleText(text.slice(0, 500))}
+                placeholder="Ex: Roleplay pesado, Combate tático, Sandbox político"
+                height={180}
+              />
+              <p className="text-xs text-white/40 text-right">{props.styleText.length}/500</p>
+            </div>
             
             <InputField
               label="Resumo Curto (opcional)"
@@ -287,15 +290,16 @@ export function StepFinal(props: StepFinalProps) {
           {/* Requisitos técnicos */}
           <div className="space-y-3">
             <p className="text-sm font-semibold text-white/80">Requisitos Técnicos</p>
-            <RichTextArea
-              id="technical_requirements"
-              label="Requisitos Detalhados (opcional)"
-              value={props.technicalRequirements}
-              onChange={props.setTechnicalRequirements}
-              placeholder="Ex: Roll20 + Discord, Foundry VTT com módulos X, Y"
-              rows={2}
-              maxLength={1000}
-            />
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-white/70">Requisitos Detalhados (opcional)</label>
+              <MarkdownEditor
+                value={props.technicalRequirements}
+                onChange={(text) => props.setTechnicalRequirements(text.slice(0, 1000))}
+                placeholder="Ex: Roll20 + Discord, Foundry VTT com módulos X, Y"
+                height={180}
+              />
+              <p className="text-xs text-white/40 text-right">{props.technicalRequirements.length}/1000</p>
+            </div>
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <input

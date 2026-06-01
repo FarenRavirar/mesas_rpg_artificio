@@ -92,15 +92,16 @@ export function ActiveFiltersChips({ filters, systemName, onRemove }: ActiveFilt
   if (activeFilters.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-2 overflow-hidden">
       {activeFilters.map((filter, idx) => (
         <button
           key={`${filter.key}-${filter.value}-${idx}`}
           onClick={() => onRemove(filter.key, filter.value)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--color-artificio-orange)]/20 border border-[var(--color-artificio-orange)]/40 text-sm text-white hover:bg-[var(--color-artificio-orange)]/30 transition-colors group"
+          className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-[var(--color-artificio-orange)]/40 bg-[var(--color-artificio-orange)]/20 px-3 py-1.5 text-sm text-white transition-colors hover:bg-[var(--color-artificio-orange)]/30 group"
+          title={`Remover filtro ${filter.label}`}
         >
-          <span>{filter.label}</span>
-          <X className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100" />
+          <span className="min-w-0 truncate">{filter.label}</span>
+          <X className="h-3.5 w-3.5 shrink-0 opacity-70 group-hover:opacity-100" />
         </button>
       ))}
     </div>

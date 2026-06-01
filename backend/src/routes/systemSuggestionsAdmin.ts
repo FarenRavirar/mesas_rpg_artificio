@@ -210,11 +210,45 @@ router.patch('/system-suggestions/:id/approve', async (req: Request, res: Respon
       return {
         suggestion_id: id,
         system_id: newSystem.id,
+        system_name: suggestion.name,
         path_slug: newSystem.path_slug,
       };
     });
 
-    return res.json({ success: true, data: result });
+    // Pós-transação: linkar drafts Discord que aguardavam este sistema
+    const pendingDrafts: Array<{ id: string; title: string | null }> = [];
+    try {
+      const drafts = await db
+        .selectFrom('discord_import_table_drafts')
+        .select(['id', 'parsed_payload'])
+        .where('status', 'not in', ['synced', 'rejected'])
+        .execute();
+
+      for (const draft of drafts) {
+        const payload = draft.parsed_payload as Record<string, any> | null;
+        if (payload?.table?.raw_system_hint === result.system_name) {
+          const updated = {
+            ...payload,
+            table: {
+              ...payload.table,
+              system_id: result.system_id,
+              system_name: result.system_name,
+              raw_system_hint: null,
+            },
+          };
+          await db
+            .updateTable('discord_import_table_drafts')
+            .set({ parsed_payload: updated as any, status: 'ready' })
+            .where('id', '=', draft.id)
+            .execute();
+          pendingDrafts.push({ id: draft.id, title: payload.table?.title ?? null });
+        }
+      }
+    } catch (linkErr) {
+      console.error('[approve] Erro ao linkar drafts:', linkErr);
+    }
+
+    return res.json({ success: true, data: { ...result, pending_drafts: pendingDrafts } });
   } catch (error: any) {
     console.error('[PATCH /admin/system-suggestions/:id/approve]', error);
     
@@ -236,15 +270,12 @@ router.patch('/system-suggestions/:id/approve', async (req: Request, res: Respon
 router.patch('/system-suggestions/:id/reject', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { reason } = req.body;
+    const rawReason = typeof req.body?.reason === 'string' ? req.body.reason.trim() : '';
+    const reason = rawReason.length > 0 ? rawReason : null;
     const adminId = req.user?.userId;
 
     if (!adminId) {
       return res.status(401).json({ error: 'Não autenticado.' });
-    }
-
-    if (!reason || typeof reason !== 'string' || reason.trim().length === 0) {
-      return res.status(400).json({ error: 'Motivo da rejeição é obrigatório.' });
     }
 
     // Transação: UPDATE status + INSERT notification
@@ -268,7 +299,7 @@ router.patch('/system-suggestions/:id/reject', async (req: Request, res: Respons
         .updateTable('system_suggestions')
         .set({
           status: 'rejected',
-          rejection_reason: reason.trim(),
+          rejection_reason: reason,
           reviewed_at: new Date(),
           reviewed_by: adminId,
         })
@@ -287,7 +318,7 @@ router.patch('/system-suggestions/:id/reject', async (req: Request, res: Respons
           metadata: JSON.stringify({
             suggestion_id: id,
             suggestion_kind: 'system',
-            reason: reason.trim(),
+            ...(reason ? { reason } : {}),
           }),
         })
         .execute();
@@ -303,7 +334,7 @@ router.patch('/system-suggestions/:id/reject', async (req: Request, res: Respons
         summary: `${adminName} rejeitou a sugestão "${suggestion.name}".`,
         metadata: {
           suggestion_id: id,
-          reason: reason.trim(),
+          ...(reason ? { reason } : {}),
         },
       }, trx);
     });

@@ -6,9 +6,10 @@ import { ScenariosAdminView } from './ScenariosAdminView';
 import { PlatformsPage } from '../modules/admin/platforms/PlatformsPage';
 import { ActivityPanel } from '../modules/admin/activity/components/ActivityPanel';
 import { ScenarioEditModal } from '../components/ScenarioEditModal';
-import { Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { HydrationAdminPanel } from '../modules/admin/hydration/HydrationAdminPanel';
+import { InlineDeleteConfirmation } from '../components/InlineDeleteConfirmation';
+import { DiscordSyncPanel } from '../features/discord-sync/components/DiscordSyncPanel';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -32,14 +33,18 @@ export const GestaoPage = () => {
   const [suggestions, setSuggestions] = useState<SystemSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
-  const [activeTab, setActiveTab] = useState<'systems' | 'crud' | 'activity' | 'hydration'>('crud');
+  const [activeTab, setActiveTab] = useState<'systems' | 'crud' | 'activity' | 'hydration' | 'discord'>('crud');
   const [crudSubTab, setCrudSubTab] = useState<'systems' | 'platforms' | 'scenarios' | 'tables'>('systems');
   const [scenarioEditModal, setScenarioEditModal] = useState<any>(null);
   const [allTables, setAllTables] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [deleteConfirmTableId, setDeleteConfirmTableId] = useState<string | null>(null);
+  const [deletingTableId, setDeletingTableId] = useState<string | null>(null);
 
   const [approvingSuggestionId, setApprovingSuggestionId] = useState<string | null>(null);
   const [rejectingSuggestionId, setRejectingSuggestionId] = useState<string | null>(null);
+  const [selectedSuggestionIds, setSelectedSuggestionIds] = useState<string[]>([]);
+  const [bulkRejectingSuggestions, setBulkRejectingSuggestions] = useState(false);
 
   useEffect(() => {
     if (!user || user.role !== 'admin') {
@@ -70,7 +75,14 @@ export const GestaoPage = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setSuggestions(data.data || []);
+        const nextSuggestions: SystemSuggestion[] = data.data || [];
+        setSuggestions(nextSuggestions);
+        const validPendingIds = new Set(
+          nextSuggestions
+            .filter((suggestion) => suggestion.status === 'pending')
+            .map((suggestion) => suggestion.id),
+        );
+        setSelectedSuggestionIds((current) => current.filter((id) => validPendingIds.has(id)));
       }
     } catch (error) {
       console.error('[GestaoPage] Erro ao buscar sugestões:', error);
@@ -112,20 +124,35 @@ export const GestaoPage = () => {
 
       if (response.ok) {
         const result = await response.json();
-        
-        // Novo contrato: { success: true, data: { suggestion_id, system_id, path_slug } }
-        // Antigo contrato: { success: true }
-        if (result.data && result.data.system_id) {
-          toast.success(`Sistema aprovado! ID: ${result.data.system_id}`);
-        } else {
-          // Fallback retrocompatível
-          toast.success('Sistema aprovado com sucesso!');
-        }
-        
+        const data = result.data ?? {};
+
+        const systemLabel = data.system_name ? `"${data.system_name}"` : 'Sistema';
+        toast.success(`${systemLabel} aprovado e adicionado ao catálogo.`);
         fetchSuggestions();
+
+        const pending: Array<{ id: string; title: string | null }> = data.pending_drafts ?? [];
+        if (pending.length > 0) {
+          const list = pending.map((d: { id: string; title: string | null }) => `• ${d.title ?? 'Mesa sem título'}`).join('\n');
+          const publish = window.confirm(
+            `${pending.length} mesa(s) pronta(s) para publicar:\n${list}\n\nPublicar agora?`,
+          );
+          if (publish) {
+            const results = await Promise.allSettled(
+              pending.map((d: { id: string; title: string | null }) =>
+                fetch(`${API_BASE}/api/v1/admin/discord-sync/drafts/${d.id}/sync`, {
+                  method: 'POST',
+                  credentials: 'include',
+                  headers: { 'Content-Type': 'application/json' },
+                }),
+              ),
+            );
+            const succeeded = results.filter((r) => r.status === 'fulfilled').length;
+            toast.success(`${succeeded}/${pending.length} mesa(s) publicada(s)!`);
+          }
+        }
       } else {
-        const data = await response.json();
-        toast.error(`Erro: ${data.error}`);
+        const errData = await response.json();
+        toast.error(`Erro: ${errData.error}`);
       }
     } catch (error) {
       console.error('[GestaoPage] Erro ao aprovar:', error);
@@ -136,8 +163,7 @@ export const GestaoPage = () => {
   };
 
   const handleReject = async (id: string) => {
-    const reason = prompt('Motivo da rejeição:');
-    if (!reason || !isAuthenticated) return;
+    if (!isAuthenticated) return;
 
     setRejectingSuggestionId(id);
 
@@ -146,11 +172,12 @@ export const GestaoPage = () => {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ reason }),
+        body: JSON.stringify({}),
       });
 
       if (response.ok) {
         toast.success('Sistema rejeitado!');
+        setSelectedSuggestionIds((current) => current.filter((selectedId) => selectedId !== id));
         fetchSuggestions();
       } else {
         const data = await response.json();
@@ -164,10 +191,55 @@ export const GestaoPage = () => {
     }
   };
 
-  const handleDeleteTable = async (id: string, title: string) => {
-    if (!isAuthenticated) return;
-    if (!confirm(`Deletar mesa "${title}"? Esta ação não pode ser desfeita.`)) return;
+  const toggleSuggestionSelection = (id: string) => {
+    setSelectedSuggestionIds((current) =>
+      current.includes(id)
+        ? current.filter((selectedId) => selectedId !== id)
+        : [...current, id],
+    );
+  };
 
+  const handleSelectAllPendingSuggestions = () => {
+    const pendingIds = suggestions
+      .filter((suggestion) => suggestion.status === 'pending')
+      .map((suggestion) => suggestion.id);
+    const allSelected = pendingIds.length > 0 && pendingIds.every((id) => selectedSuggestionIds.includes(id));
+    setSelectedSuggestionIds(allSelected ? [] : pendingIds);
+  };
+
+  const handleRejectSelectedSuggestions = async () => {
+    if (!isAuthenticated || selectedSuggestionIds.length === 0) return;
+    setBulkRejectingSuggestions(true);
+
+    try {
+      const results = await Promise.allSettled(
+        selectedSuggestionIds.map((id) =>
+          fetch(`${API_BASE}/api/v1/admin/system-suggestions/${id}/reject`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({}),
+          }),
+        ),
+      );
+      const succeeded = results.filter((result) => result.status === 'fulfilled' && result.value.ok).length;
+      const failed = selectedSuggestionIds.length - succeeded;
+      if (succeeded > 0) toast.success(`${succeeded} sugestão(ões) rejeitada(s).`);
+      if (failed > 0) toast.error(`${failed} sugestão(ões) não foram rejeitadas.`);
+      setSelectedSuggestionIds([]);
+      fetchSuggestions();
+    } catch (error) {
+      console.error('[GestaoPage] Erro ao rejeitar sugestões em lote:', error);
+      toast.error('Erro ao rejeitar sugestões selecionadas');
+    } finally {
+      setBulkRejectingSuggestions(false);
+    }
+  };
+
+  const handleDeleteTable = async (id: string) => {
+    if (!isAuthenticated) return;
+
+    setDeletingTableId(id);
     try {
       // CORREÇÃO DT-013: Rota correta é /api/v1/admin/tables/:id
       const response = await fetch(`${API_BASE}/api/v1/admin/tables/${id}`, {
@@ -177,6 +249,7 @@ export const GestaoPage = () => {
 
       if (response.ok) {
         toast.success('Mesa deletada!');
+        setDeleteConfirmTableId(null);
         fetchAllTables();
       } else {
         // CORREÇÃO: Tratamento robusto de erro (pode retornar HTML em vez de JSON)
@@ -201,6 +274,8 @@ export const GestaoPage = () => {
     } catch (error) {
       console.error('[GestaoPage] Erro ao deletar mesa:', error);
       toast.error('Erro ao deletar mesa');
+    } finally {
+      setDeletingTableId(null);
     }
   };
 
@@ -256,6 +331,11 @@ export const GestaoPage = () => {
   const filteredTables = allTables.filter(t =>
     t.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
+  const pendingSuggestionIds = suggestions
+    .filter((suggestion) => suggestion.status === 'pending')
+    .map((suggestion) => suggestion.id);
+  const allPendingSuggestionsSelected = pendingSuggestionIds.length > 0
+    && pendingSuggestionIds.every((id) => selectedSuggestionIds.includes(id));
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0F1A2E] via-[#1B2A4A] to-[#0F1A2E] py-8">
@@ -305,12 +385,22 @@ export const GestaoPage = () => {
           >
             Hidratação de Dados
           </button>
+          <button
+            onClick={() => setActiveTab('discord')}
+            className={`px-6 py-3 font-semibold transition-all ${
+              activeTab === 'discord'
+                ? 'text-white border-b-2 border-blue-500'
+                : 'text-white/60 hover:text-white/80'
+            }`}
+          >
+            Discord Sync
+          </button>
         </div>
 
         {/* Conteúdo das abas */}
         {activeTab === 'crud' && (
           <div>
-            <div className="flex gap-3 mb-6">
+            <div className="flex flex-wrap items-center gap-3 mb-6">
               <button
                 onClick={() => setCrudSubTab('systems')}
                 className={`px-4 py-2 rounded-lg transition-all ${
@@ -378,7 +468,8 @@ export const GestaoPage = () => {
                 ) : (
                   <div className="space-y-3">
                     {filteredTables.map((table) => (
-                      <div key={table.id} className="bg-white/5 border border-white/10 rounded-lg p-4 flex justify-between items-center">
+                      <div key={table.id} className="bg-white/5 border border-white/10 rounded-lg p-4">
+                        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                         <div>
                           <h3 className="text-white font-semibold">{table.title}</h3>
                           <p className="text-white/60 text-sm mt-1">
@@ -418,12 +509,18 @@ export const GestaoPage = () => {
                           >
                             {table.status === 'active' ? 'Cancelar' : 'Ativar'}
                           </button>
-                          <button
-                            onClick={() => handleDeleteTable(table.id, table.title)}
-                            className="p-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4 text-white" />
-                          </button>
+                          <InlineDeleteConfirmation
+                            title={table.title}
+                            isOpen={deleteConfirmTableId === table.id}
+                            onOpen={() => setDeleteConfirmTableId(table.id)}
+                            onCancel={() => setDeleteConfirmTableId(null)}
+                            onConfirm={() => handleDeleteTable(table.id)}
+                            isProcessing={deletingTableId === table.id}
+                            triggerLabel=""
+                            className="min-w-10"
+                            compact
+                          />
+                        </div>
                         </div>
                       </div>
                     ))}
@@ -440,6 +537,10 @@ export const GestaoPage = () => {
 
         {activeTab === 'hydration' && (
           <HydrationAdminPanel />
+        )}
+
+        {activeTab === 'discord' && (
+          <DiscordSyncPanel />
         )}
 
         {activeTab === 'systems' && (
@@ -485,6 +586,26 @@ export const GestaoPage = () => {
               >
                 Todas
               </button>
+              {pendingSuggestionIds.length > 0 && (
+                <div className="ml-auto flex flex-wrap items-center gap-3">
+                  <label className="flex items-center gap-2 text-sm text-white/80">
+                    <input
+                      type="checkbox"
+                      checked={allPendingSuggestionsSelected}
+                      onChange={handleSelectAllPendingSuggestions}
+                      className="h-4 w-4"
+                    />
+                    Selecionar todas pendentes
+                  </label>
+                  <button
+                    onClick={handleRejectSelectedSuggestions}
+                    disabled={selectedSuggestionIds.length === 0 || bulkRejectingSuggestions}
+                    className="px-4 py-2 rounded-lg bg-red-600 text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {bulkRejectingSuggestions ? 'Descartando...' : `Descartar selecionadas (${selectedSuggestionIds.length})`}
+                  </button>
+                </div>
+              )}
             </div>
 
             {loading ? (
@@ -493,15 +614,26 @@ export const GestaoPage = () => {
               <div className="space-y-3">
                 {suggestions.map((suggestion) => (
                   <div key={suggestion.id} className="bg-white/5 border border-white/10 rounded-lg p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="text-white font-semibold">{suggestion.name}</h3>
-                        {suggestion.description && (
-                          <p className="text-white/60 text-sm mt-1">{suggestion.description}</p>
+                    <div className="flex justify-between items-start gap-4">
+                      <div className="flex min-w-0 gap-3">
+                        {suggestion.status === 'pending' && (
+                          <input
+                            type="checkbox"
+                            checked={selectedSuggestionIds.includes(suggestion.id)}
+                            onChange={() => toggleSuggestionSelection(suggestion.id)}
+                            className="mt-1 h-4 w-4 shrink-0"
+                            aria-label={`Selecionar sugestão ${suggestion.name}`}
+                          />
                         )}
-                        <p className="text-white/40 text-xs mt-2">
-                          Tipo: {suggestion.node_type} | Status: {suggestion.status}
-                        </p>
+                        <div className="min-w-0">
+                          <h3 className="text-white font-semibold">{suggestion.name}</h3>
+                          {suggestion.description && (
+                            <p className="text-white/60 text-sm mt-1">{suggestion.description}</p>
+                          )}
+                          <p className="text-white/40 text-xs mt-2">
+                            Tipo: {suggestion.node_type} | Status: {suggestion.status}
+                          </p>
+                        </div>
                       </div>
                       {suggestion.status === 'pending' && (
                         <div className="flex gap-2">

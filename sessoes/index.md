@@ -1,6 +1,6 @@
 # Índice de Sessões
 
-Última atualização: 24/04/2026 18:15 BRT
+Última atualização: 11/05/2026 BRT
 
 ---
 
@@ -208,6 +208,14 @@
 
 ---
 
+## 26/04/2026 (1 sessão)
+
+| # | Arquivo |
+|---|---|
+| 2 | `encerradas/26-04-26_2_atualizacao-readme-governanca.md` |
+
+---
+
 ## 28/04/2026 (1 sessão)
 
 | # | Arquivo |
@@ -216,9 +224,66 @@
 
 ---
 
+## 29/04/2026 (4 sessões)
+
+| # | Arquivo |
+|---|---|
+| 1 | `encerradas/26-04-29_1_imagens-banners-placeholder.md` |
+| 2 | `encerradas/26-04-29_2_lancamento-itens-sdd.md` |
+| 3 | `encerradas/26-04-29_3_exclusao-mesa-sem-popup.md` |
+| 4 | `encerradas/26-04-29_4_catalogo-painel-ux-bugs.md` |
+
+---
+
+---
+
+## 01/05/2026 (1 sessão)
+
+| # | Arquivo |
+|---|---|
+| 1 | `encerradas/26-05-01_1_editor-rico-textareas.md` |
+
+---
+
+## 03/05/2026 (3 sessões)
+
+| # | Arquivo |
+|---|---|
+| 1 | `encerradas/26-05-03_1_verificacao-sugestoes-sistemas-admin.md` |
+| 2 | `encerradas/26-05-03_2_refatoracao-changelog.md` |
+| 3 | `encerradas/26-05-03_3_discord-covil-sync.md` |
+| 4 | `26-05-03_4_discord-settings-config.md` |
+
+---
+
+## 04/05/2026 (1 sessão)
+
+| # | Arquivo |
+|---|---|
+| 1 | `26-05-04_1_discord-forum-threads.md` |
+
+---
+
+## 09/05/2026 (2 sessões)
+
+| # | Arquivo |
+|---|---|
+| 1 | `26-05-09_1_discord-pipeline-diagnostico.md` |
+| 2 | `26-05-09_2_discord-pipeline-fase-1-em-diante.md` |
+
+---
+
+## 12/05/2026 (1 sessão)
+
+| # | Arquivo |
+|---|---|
+| 1 | `26-05-12_1_parser-refinements-imagens.md` |
+
+---
+
 ## Sessão Mais Recente
 
-`encerradas/26-04-28_1_fix-publicacao-mesa-opcao.md`
+`26-05-12_1_parser-refinements-imagens.md`
 
 ---
 
@@ -234,4 +299,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-04-28_2_*`
+**Próxima sessão:** `26-05-12_2_*` ou nova data

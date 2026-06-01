@@ -161,7 +161,7 @@ export function ActivityFilters({ filters, filtersMeta, onChange, onClear }: Act
               const selected = Array.from(event.target.selectedOptions).map((option) => option.value);
               handleActionsChange(selected);
             }}
-            className={`${INPUT_CLASS} min-h-[132px] w-full`}
+            className="app-select min-h-[132px] w-full"
           >
             {grouped.map((group) => (
               <optgroup key={group.id} label={group.label}>
@@ -229,7 +229,7 @@ export function ActivityFilters({ filters, filtersMeta, onChange, onClear }: Act
             id="activity-filter-actor"
             value={filters.actor_id ?? ''}
             onChange={(event) => handleActorChange(event.target.value)}
-            className={INPUT_CLASS}
+            className="app-select w-full"
           >
             <option value="">Todos</option>
             {filtersMeta.actors.map((actor) => (
@@ -246,7 +246,7 @@ export function ActivityFilters({ filters, filtersMeta, onChange, onClear }: Act
             id="activity-filter-target"
             value={filters.target_user_id ?? ''}
             onChange={(event) => handleTargetChange(event.target.value)}
-            className={INPUT_CLASS}
+            className="app-select w-full"
           >
             <option value="">Todos</option>
             {filtersMeta.target_users.map((target) => (

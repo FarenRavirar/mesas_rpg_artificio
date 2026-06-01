@@ -139,7 +139,7 @@ export function SessionRepeater({ sessions, onChange, disabled = false }: Sessio
                     handleUpdateSession(index, 'day_of_week', e.target.value as SessionSchedule['day_of_week'])
                   }
                   disabled={disabled}
-                  className="w-full bg-[#1B2A4A] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all cursor-pointer disabled:opacity-50"
+                  className="app-select w-full px-4 py-2.5"
                 >
                   {DAYS_OF_WEEK.map((day) => (
                     <option key={day.value} value={day.value}>
@@ -163,7 +163,7 @@ export function SessionRepeater({ sessions, onChange, disabled = false }: Sessio
                     handleUpdateSession(index, 'frequency', e.target.value as SessionSchedule['frequency'])
                   }
                   disabled={disabled}
-                  className="w-full bg-[#1B2A4A] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-[var(--color-artificio-orange)]/60 transition-all cursor-pointer disabled:opacity-50"
+                  className="app-select w-full px-4 py-2.5"
                 >
                   {SCHEDULE_FREQUENCIES.map((freq) => (
                     <option key={freq.value} value={freq.value}>

@@ -13,7 +13,6 @@ secrets.txt
 id_rsa*
 
 # Build
-dist/
 build/
 
 # IDE
@@ -30,24 +29,20 @@ temp/
 # Logs
 logs/
 *.log
-/.github/workflows/COPIA
-.github/workflows/deploy-prod - Copia.yml
 
 # Configuração local de desenvolvimento
 frontend/vite.config.local.ts
 /.clinerules
-docker-compose.prod - backup2.yml
-docker-compose.beta - backup 2.yml
 /.gemini
 CLOUDINARY_INTEGRATION_GUIDE.md
-docs/Reformulacao_mestre.md
-docs/Reformulacao_mestre_v-final.md
+
 
 prompt_claude.md
 /testes
 bats_full_output.txt
-specify_help.txt
-/sessoes
+specify_help.txts
 /.specify/extensions/verify-tasks
 /.specify/features
 /.specify/extensions/.cache
+/.claude
+/.claire

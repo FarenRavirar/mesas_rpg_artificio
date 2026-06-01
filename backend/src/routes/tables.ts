@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { sql } from 'kysely';
 import { db } from '../db';
 import { logDatabaseError } from '../middleware/requestLogger';
+import { sanitizePublicImageUrl } from '../utils/publicImageUrl';
 
 const router = Router();
 
@@ -214,8 +215,12 @@ router.get('/', async (req: Request, res: Response) => {
     query = query.limit(limitNum).offset(offset);
 
     const tables = await query.execute();
+    const publicTables = tables.map((table) => ({
+      ...table,
+      cover_url: sanitizePublicImageUrl(table.cover_url),
+    }));
 
-    let tablesWithContacts = tables as Array<typeof tables[number] & { contacts: PublicTableContact[] }>;
+    let tablesWithContacts = publicTables as Array<typeof publicTables[number] & { contacts: PublicTableContact[] }>;
 
     if (tables.length > 0) {
       const tableIds = tables.map((table) => table.id);
@@ -242,7 +247,7 @@ router.get('/', async (req: Request, res: Response) => {
         });
       }
 
-      tablesWithContacts = tables.map((table) => ({
+      tablesWithContacts = publicTables.map((table) => ({
         ...table,
         contacts: contactsByTable.get(table.id) ?? [],
       }));
@@ -428,7 +433,15 @@ router.get('/:slug', async (req: Request, res: Response) => {
       .where('gm.user_id', '=', table.gm_user_id)
       .execute() : [];
 
-    res.json({ data: { ...table, contacts, schedules, gm_vtt_platforms: gmVttPlatforms } });
+    res.json({
+      data: {
+        ...table,
+        cover_url: sanitizePublicImageUrl(table.cover_url),
+        contacts,
+        schedules,
+        gm_vtt_platforms: gmVttPlatforms,
+      },
+    });
   } catch (error: any) {
     // Log detalhado de erro de banco de dados
     logDatabaseError(req, error, {

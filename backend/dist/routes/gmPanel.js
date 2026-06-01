@@ -13,6 +13,7 @@ const tableService_1 = require("../services/tableService");
 const tableRepository_1 = require("../repositories/tableRepository");
 const benchmarkService_1 = require("../services/benchmarkService");
 const activityLogger_1 = require("../services/activityLogger");
+const validation_1 = require("../utils/validation");
 const router = (0, express_1.Router)();
 // ============================================================================
 // CONSTANTES
@@ -277,8 +278,7 @@ router.put('/profile', auth_1.authMiddleware, async (req, res) => {
             }
             // Validar Email
             if (channel === 'email') {
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!emailRegex.test(value)) {
+                if (!(0, validation_1.isValidEmail)(value)) {
                     return null; // Email inválido
                 }
             }
@@ -644,7 +644,7 @@ router.get('/tables', auth_1.authMiddleware, async (req, res) => {
             't.slug',
             't.title',
             't.description',
-            (0, kysely_1.sql) `COALESCE(t.cover_url, t.banner_url)`.as('image_url'),
+            (0, kysely_1.sql) `COALESCE(t.banner_url, t.cover_url)`.as('image_url'),
             't.status',
             't.modality',
             't.system_id',
