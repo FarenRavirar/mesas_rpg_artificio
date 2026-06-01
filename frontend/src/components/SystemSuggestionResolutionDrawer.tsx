@@ -324,6 +324,32 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
     }
   };
 
+  const handleDiscard = async () => {
+    if (!window.confirm(`Descartar a sugestão "${suggestion.name}"? Ela sai da fila pendente.`)) return;
+    setSubmitting(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/admin/system-suggestions/${suggestion.id}/resolve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ resolution_type: 'reject' }),
+      });
+      const json: unknown = await response.json().catch(() => ({}));
+      const payload = json && typeof json === 'object' ? (json as Record<string, unknown>) : {};
+      if (response.ok) {
+        toast.success('Sugestão descartada.');
+        onResolved({});
+        return;
+      }
+      toast.error(`Erro: ${readString(payload.error) || 'falha ao descartar'}`);
+    } catch (error) {
+      console.error('[ResolutionDrawer] erro ao descartar', error);
+      toast.error('Erro ao descartar sugestão.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/60" onClick={onClose}>
       <div
@@ -556,9 +582,16 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
         </div>
 
         {/* 5. Acoes */}
-        <div className="flex gap-2 justify-end">
+        <div className="flex flex-wrap gap-2 justify-end">
           <button onClick={onClose} className="px-4 py-2 rounded-lg bg-white/5 text-white/70 hover:bg-white/10">
             Cancelar
+          </button>
+          <button
+            onClick={handleDiscard}
+            disabled={submitting || loading}
+            className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 mr-auto"
+          >
+            Descartar sugestão
           </button>
           <button
             onClick={handleSubmit}
