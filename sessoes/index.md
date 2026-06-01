@@ -1,14 +1,6 @@
 # Índice de Sessões
 
-Última atualização: 31/05/2026 BRT
-
----
-
-## 31/05/2026 (1 sessão)
-
-| # | Arquivo |
-|---|---|
-| 1 | `26-05-31_1_migracao-governanca-skills.md` |
+Última atualização: 11/05/2026 BRT
 
 ---
 
@@ -281,9 +273,17 @@
 
 ---
 
+## 12/05/2026 (1 sessão)
+
+| # | Arquivo |
+|---|---|
+| 1 | `26-05-12_1_parser-refinements-imagens.md` |
+
+---
+
 ## Sessão Mais Recente
 
-`26-05-09_2_discord-pipeline-fase-1-em-diante.md`
+`26-05-12_1_parser-refinements-imagens.md`
 
 ---
 
@@ -299,4 +299,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-05-09_2_*` ou nova data
+**Próxima sessão:** `26-05-12_2_*` ou nova data

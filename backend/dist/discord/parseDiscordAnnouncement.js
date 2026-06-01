@@ -26,6 +26,32 @@ function extractBodyFromEmbeds(embeds) {
     }
     return parts.join('\n');
 }
+function readStringField(value, key) {
+    const field = value[key];
+    return typeof field === 'string' && field.trim() ? field.trim() : null;
+}
+function readNumberField(value, key) {
+    const field = value[key];
+    return typeof field === 'number' && Number.isFinite(field) ? field : null;
+}
+function extractCoverFromAttachments(attachments) {
+    for (const attachment of attachments) {
+        if (typeof attachment !== 'object' || attachment === null)
+            continue;
+        const record = attachment;
+        const contentType = readStringField(record, 'content_type')?.toLowerCase() ?? '';
+        if (!contentType.startsWith('image/') || contentType === 'image/svg+xml')
+            continue;
+        const url = readStringField(record, 'url');
+        if (!url)
+            continue;
+        const width = readNumberField(record, 'width') ?? 0;
+        const size = readNumberField(record, 'size') ?? 0;
+        const quality = width >= 800 && size >= 50000 ? 'standard' : 'low';
+        return { url, quality };
+    }
+    return null;
+}
 // Remove sufixo ™ / ® de strings
 function cleanTrademark(s) {
     return s.replace(/[™®]/g, '').trim();
@@ -45,7 +71,17 @@ function normalize(s) {
  * Testa: name, name_pt e todos os aliases de cada entrada.
  * Retorna o primeiro match encontrado.
  */
-function matchSystem(text, systems) {
+function stripVersionSuffix(value) {
+    const match = value.trim().match(/^(.*?)\s+((?:\d+(?:\.\d+)?e?)|(?:\d+e))$/i);
+    if (!match)
+        return { stripped: value, version: null };
+    const stripped = match[1].trim();
+    const version = match[2].trim();
+    if (!stripped)
+        return { stripped: value, version: null };
+    return { stripped, version };
+}
+function findSystemMatch(text, systems, allowShortAliases = false) {
     const normText = normalize(text);
     if (!normText)
         return null;
@@ -62,7 +98,7 @@ function matchSystem(text, systems) {
             const normCandidate = normalize(candidate.value);
             // Aliases curtos e genericos como "D&D" aparecem em sistemas derivados
             // no banco; usar isso como match automatico gera falsos positivos.
-            if (normCandidate.length < 4 && candidate.priority < 3)
+            if (!allowShortAliases && normCandidate.length < 4 && candidate.priority < 3)
                 continue;
             if (normCandidate.length < 2)
                 continue;
@@ -88,6 +124,19 @@ function matchSystem(text, systems) {
         return b.candidate.length - a.candidate.length;
     });
     return matches[0].system;
+}
+function matchSystem(text, systems) {
+    const { stripped, version } = stripVersionSuffix(text);
+    if (version && stripped !== text) {
+        const strippedMatch = findSystemMatch(stripped, systems, true);
+        if (strippedMatch) {
+            return { system: strippedMatch, notes: [`version_mismatch:${version}`] };
+        }
+    }
+    const direct = findSystemMatch(text, systems);
+    if (direct)
+        return { system: direct, notes: [] };
+    return null;
 }
 // Tenta extrair "sistema: titulo" do nome do thread
 function splitThreadName(threadName) {
@@ -147,26 +196,36 @@ function extractSlots(text) {
     if (totalMatch || openMatch) {
         const total = totalMatch ? parseInt(totalMatch[1], 10) : null;
         const open = openMatch ? parseInt(openMatch[1], 10) : total;
-        return { total, open };
+        return { total, open, ambiguity: null };
     }
-    const labeledMatch = text.match(/(?:^|\n)\s*(?:vagas|vagas dispon[ií]veis|jogadores)\s*[:=]\s*(\d+)/i);
+    const ambiguousSlashMatch = cleaned.match(/(?:^|\n)\s*[\s▬•\-–—]*(?:vagas|jogadores)\s*[:=]\s*(\d+)\s*\/\s*(\d+)(?!\s*vagas?)/i);
+    if (ambiguousSlashMatch) {
+        const first = parseInt(ambiguousSlashMatch[1], 10);
+        const second = parseInt(ambiguousSlashMatch[2], 10);
+        return {
+            total: Math.max(first, second),
+            open: null,
+            ambiguity: { first, second, source: 'x_slash_y' },
+        };
+    }
+    const labeledMatch = cleaned.match(/(?:^|\n)\s*[\s▬•\-–—]*(?:vagas|vagas dispon[ií]veis|jogadores)\s*[:=]\s*(\d+)(?!\s*\/)/i);
     if (labeledMatch) {
         const n = parseInt(labeledMatch[1], 10);
-        return { total: n, open: n };
+        return { total: n, open: n, ambiguity: null };
     }
     const slashMatch = text.match(/(\d+)\s*\/\s*(\d+)\s*vagas?/i);
     if (slashMatch) {
         const filled = parseInt(slashMatch[1], 10);
         const total = parseInt(slashMatch[2], 10);
-        return { total, open: Math.max(0, total - filled) };
+        return { total, open: Math.max(0, total - filled), ambiguity: null };
     }
     const match = text.match(/(\d+)\s*vagas?/i)
         ?? text.match(/vagas?\s*(?:disponíveis?)?\s*[:=]\s*(\d+)/i);
     if (match) {
         const n = parseInt(match[1], 10);
-        return { total: n, open: n };
+        return { total: n, open: n, ambiguity: null };
     }
-    return { total: null, open: null };
+    return { total: null, open: null, ambiguity: null };
 }
 // Extrai dia da semana do texto
 function extractDayOfWeek(text) {
@@ -195,6 +254,11 @@ function extractStartTime(text) {
         const m = (match[2] || '00').padStart(2, '0');
         return `${h}:${m}`;
     }
+    return null;
+}
+function deriveFrequency(type, dayOfWeek) {
+    if (type === 'campanha' && dayOfWeek)
+        return 'semanal';
     return null;
 }
 // Extrai URL de contato (discord invite, forms, etc.)
@@ -227,6 +291,31 @@ function splitLabelLine(line) {
         return null;
     return { key: normalizeLabelKey(match[1]), value: match[2].trim() };
 }
+function extractHostDiscordId(text) {
+    const mentionPattern = /<@!?(\d+)>/;
+    const hostLabels = new Set(['mestre', 'gm', 'narrador', 'dm']);
+    const lines = text.split(/\r?\n/);
+    for (let i = 0; i < lines.length; i++) {
+        const parsed = splitLabelLine(lines[i]);
+        const cleanedKey = parsed?.key ?? normalizeLabelKey(cleanLabelLine(lines[i]).replace(/[:：].*$/, ''));
+        if (!hostLabels.has(cleanedKey))
+            continue;
+        const sameLineMatch = lines[i].match(mentionPattern);
+        if (sameLineMatch)
+            return sameLineMatch[1];
+        for (let j = i + 1; j < lines.length; j++) {
+            const next = lines[j];
+            if (splitLabelLine(next))
+                break;
+            const nextMatch = next.match(mentionPattern);
+            if (nextMatch)
+                return nextMatch[1];
+            if (!next.trim())
+                break;
+        }
+    }
+    return null;
+}
 function extractLabelValue(text, labels) {
     const wanted = new Set(labels.map(normalizeLabelKey));
     const lines = text.split(/\r?\n/);
@@ -248,7 +337,7 @@ function extractLabelValue(text, labels) {
                 break;
             values.push(next);
         }
-        const value = values.join('\n').trim();
+        const value = values.join('\n').replace(/\s*\(.*$/, '').trim();
         return value || null;
     }
     return null;
@@ -280,6 +369,10 @@ function parseDiscordAnnouncement(message, systems = []) {
     const rawBody = message.content_raw ?? '';
     // Fóruns Discord frequentemente colocam o conteúdo em embeds em vez do campo content
     const body = rawBody.trim() || extractBodyFromEmbeds(message.embeds ?? []);
+    // T-F1-05: sem corpo nem texto em embeds não há matéria-prima. Mesmo starters
+    // de fórum agora retornam null em vez de fabricar draft a partir só do thread
+    // name. Drafts vazios eram a maior fonte de needs_review imutável (spec 016
+    // §4 CR-1, anti-regressão de E166).
     if (!body.trim()) {
         return null;
     }
@@ -302,8 +395,8 @@ function parseDiscordAnnouncement(message, systems = []) {
         if (!matchedSystem && !systemHint)
             matchedSystem = matchSystem(fullText, systems);
     }
-    const systemName = matchedSystem?.name ?? explicitSystem ?? null;
-    const systemId = matchedSystem?.id ?? null;
+    const systemName = matchedSystem?.system.name ?? explicitSystem ?? null;
+    const systemId = matchedSystem?.system.id ?? null;
     // Preserva o hint bruto quando não há correspondência: usado para criar
     // system_suggestion automática e para o revisor ver o que veio do Discord.
     const rawSystemHint = (!matchedSystem && systemHint) ? systemHint : null;
@@ -311,11 +404,13 @@ function parseDiscordAnnouncement(message, systems = []) {
     const modality = extractModality(body) ?? 'online';
     const type = extractType(fullText) ?? (threadName ? 'campanha' : null);
     const { priceType, priceValue } = extractPrice(body);
-    const { total: slotsTotal, open: slotsOpen } = extractSlots(body);
+    const { total: slotsTotal, open: slotsOpen, ambiguity: slotsAmbiguity } = extractSlots(body);
     const dayOfWeek = extractDayOfWeek(body);
     const startTime = extractStartTime(body);
     const contactUrl = extractContactUrl(body);
     const contactDiscord = extractContactDiscord(body);
+    const hostDiscordId = extractHostDiscordId(body);
+    const cover = extractCoverFromAttachments(message.attachments ?? []);
     const description = extractLabelValue(body, ['descricao', 'descrição', 'sinopse', 'proposta']) ?? (body.trim() || null);
     const missingFields = [];
     if (!systemId) {
@@ -326,7 +421,7 @@ function parseDiscordAnnouncement(message, systems = []) {
         missingFields.push('day_of_week');
     if (!startTime)
         missingFields.push('start_time');
-    if (!slotsTotal)
+    if (slotsTotal == null && slotsOpen == null)
         missingFields.push('slots_total');
     if (!contactUrl && !contactDiscord)
         missingFields.push('contact_url');
@@ -342,14 +437,20 @@ function parseDiscordAnnouncement(message, systems = []) {
         price_type: priceType,
         price_value: priceValue,
         slots_total: slotsTotal,
-        slots_filled: slotsTotal && slotsOpen != null ? slotsTotal - slotsOpen : null,
+        slots_filled: slotsTotal != null && slotsOpen != null ? slotsTotal - slotsOpen : null,
         slots_open: slotsOpen,
         day_of_week: dayOfWeek,
         start_time: startTime,
-        frequency: dayOfWeek ? 'semanal' : null,
+        frequency: deriveFrequency(type, dayOfWeek),
         description,
         contact_discord: contactDiscord,
         contact_url: contactUrl,
+        host_discord_id: hostDiscordId,
+        cover_url: null,
+        cover_url_source: cover?.url ?? null,
+        cover_quality: cover?.quality ?? null,
+        _slots_ambiguity: slotsAmbiguity,
+        _notes: matchedSystem?.notes ?? [],
     };
     return {
         source: {

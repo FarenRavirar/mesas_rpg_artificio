@@ -18,6 +18,9 @@ console.log('[CronRunner] Iniciado com sucesso. Agendamentos registrados.');
 setInterval(() => runCommand('npm run og:worker'), 5 * 60 * 1000);
 // Limpeza e Invalidação (Roda 1 vez por dia)
 setInterval(() => runCommand('npm run og:cleanup'), 24 * 60 * 60 * 1000);
+// Retry de uploads Discord para Cloudinary (Roda 1 vez por hora)
+setInterval(() => runCommand('npm run discord:retry-image-uploads'), 60 * 60 * 1000);
 // Execução imediata no BOOT
 runCommand('npm run og:worker');
 runCommand('npm run og:cleanup');
+runCommand('npm run discord:retry-image-uploads');

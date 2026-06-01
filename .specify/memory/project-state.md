@@ -1,7 +1,7 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-06-01T00:20:00-03:00
-**Atualizado por:** sessão 26-05-31_1_migracao-governanca-skills
+**Última atualização:** 2026-05-11T12:55:00-03:00
+**Atualizado por:** sessão 26-05-12_1_parser-refinements-imagens (spec 017 Fases A-F publicadas no Beta)
 ---
 
 ## Ambientes
@@ -15,41 +15,28 @@
 
 ## Estado Técnico Atual
 
-**Migração de governança/skills dos agentes (31/05/2026):**
-- Sessão dedicada aberta em `sessoes/26-05-31_1_migracao-governanca-skills.md`.
-- `AGENTS.md` foi enxugado para atuar como constituição operacional curta: regras pétreas, produto, segurança, dados, Git, deploy, validação Beta, normalização de fronteira e protocolo de sessão permanecem preservados.
-- Novo modelo operacional documentado em `docs/agents/operating-model.md`: Sem SDD, SDD Lite e SDD Completo, escolhidos por risco.
-- Nova matriz criada em `docs/agents/skill-decision-matrix.md`: `mattpocock/skills` como fluxo diário, `JuliusBrussee/caveman` para economia de contexto quando solicitado, `obra/superpowers` apenas como referência seletiva.
-- `docs/agents/context-capsule.md` criado como leitura mínima de retomada; nova sessão deve conseguir operar lendo `project-state.md`, `AGENTS.md` e o capsule.
-- `docs/agents/skill-stack.md` atualizado para apontar para o modelo operacional, matriz e capsule.
-- `.specify/integrations/agy.manifest.json` aposentado com `status: retired`; comandos `/speckit.*` permanecem como procedimentos documentais, não CLI nem skills locais ativas.
-- Referências a `.agent/skills`, `.agents/skills` e `.gemini/skills` permanecem apenas como histórico/desativação explícita; não são fonte ativa.
-- Revisão de prontidão operacional executada: regras de changelog visível, `pr-description.md`, fechamento via `/speckit.retro.run`/`session-log`, protocolo de erro conhecido e uso de `apply_patch` foram mantidos na leitura mínima.
-- Correção final de 01/06/2026: `.agent/workflows`, `.agents/rules`, `.agents/workflows`, `.gemini/default-rules.md` e `.gemini/workflows` foram aposentados/removidos para eliminar workflows/regras antigas apontando para skills removidas. `.gemini/default-rules.md` fica como tombstone rastreado; `.gemini/workflows` ficou sem workflows ativos/rastreados.
-- Último remanescente legado corrigido em 01/06/2026: `.agents/default-rules.md` foi convertido em tombstone curto apontando para `AGENTS.md` e `docs/agents/`, sem instruções operacionais antigas.
-- A aposentadoria do AGY é intencional: `.specify/integrations/agy.manifest.json` permanece com `status: retired`; `/speckit.*` é procedimento documental, não integração de skills ativa.
-- SDD Completo preserva preflight seletivo de governança: `.specify/memory/constitution.md`, `docs/sdd/SESSION_FAILURES_REGISTRY.md`, `docs/sdd/MAINTAINER_REVIEW_CHECKLIST.md` e, para análise/auditoria, `docs/sdd/analyze-governance-gate.md`.
-- Não houve alteração de código de produto, migrations, banco, deploy ou runtime.
+**Branch ativa:** `feat/015-discord-draft-pipeline` — spec 017 entregue no Beta sobre o pipeline Discord: parser refinado, extração de imagem, upload Cloudinary no sync/retry e UI de revisão de capas/vagas/frequência.
+**Último commit em `origin/dev`:** `7a9647e` — `fix(discord): bloqueia sync com frequencia outra`
 
-**Atualização operacional local — ambiente Codex (31/05/2026):**
-- Skills antigas do projeto desativadas removendo os diretórios ativos `.agent/skills`, `.agents/skills` e `.gemini/skills`.
-- Backup completo criado em `C:\Users\paulo\.codex\backups\skills-reform-20260531-174406`.
-- Skills pessoais instaladas em `C:\Users\paulo\.codex\skills`: coleção `mattpocock/skills` (sem `deprecated`/`in-progress`) + suíte atualizada `JuliusBrussee/caveman`.
-- Checkouts de referência atualizados em `C:\Users\paulo\.codex\vendor_imports\mattpocock-skills` (`aaf2453`) e `C:\Users\paulo\.codex\vendor_imports\caveman` (`655b7d9`).
-- `obra/superpowers` avaliado e mantido apenas como referência em `C:\Users\paulo\.codex\vendor_imports\superpowers` (`6fd4507`); não instalado como pacote ativo por sobrepor SDD/Matt e conflitar com gates locais de branch, commit e sessão.
-- Diretrizes novas documentadas em `docs/agents/skill-stack.md`, `docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md` e `docs/agents/domain.md`.
-- Plano executivo de migração criado e revisado em `docs/agents/migration-action-plan.md`, incluindo Fase 0 de preservação, invariantes que não podem ser perdidos, fases, riscos, rollback condicionado a aprovação, métricas e prompt para nova sessão.
-- Para o Codex carregar a nova lista, reiniciar o aplicativo/sessão.
-
-**Branch ativa:** `feat/015-discord-draft-pipeline` — Fase 0 do plan 016 entregue (BUG-004 corrigido, T-EXEC-1 GREEN, 189/194 mensagens com body, 111 drafts ready limpos, 0 drafts em drift).
-**Último commit em `origin/dev`:** `3baa605` — `docs(session): T-EXEC-1 GREEN após fix BUG-004 — evidência completa`
-
-**Feature ativa de remediação:** `specs/016-discord-pipeline-rebuild/` (substitui o estado anterior da feature 015 como objetivo do trabalho).
-**Sessão ativa de governança:** `sessoes/26-05-31_1_migracao-governanca-skills.md`.
-**Sessão ativa do pipeline Discord:** `sessoes/26-05-09_2_discord-pipeline-fase-1-em-diante.md` (Fase 1+).
+**Feature ativa de remediação:** `specs/017-parser-refinements-imagens/` (refinamento pós-Fase 1 do spec 016).
+**Sessão ativa:** `sessoes/26-05-12_1_parser-refinements-imagens.md`.
 **Sessão de diagnóstico (encerrável):** `sessoes/26-05-09_1_discord-pipeline-diagnostico.md`.
 
 **Erros canônicos novos:** `E166` (evidência GREEN fabricada — regra anti-recorrência exige `SELECT` no banco-alvo após qualquer write em pipeline de import).
+
+**Spec 017 — Parser refinements + imagens (11/05/2026):**
+- Fases A-F implementadas e publicadas em `origin/dev` / Beta.
+- Parser: `Vagas: X/Y` gera ambiguidade revisável, `Vagas: 0` é valor explícito, one-shots não inferem `frequency='semanal'`, `host_discord_id` captura `<@user>` de Mestre/GM/Narrador/DM, sistemas com parênteses/versão não contaminam `raw_system_hint`.
+- Imagens: `cover_url_source` e `cover_quality` extraídos de attachments; SVG/mídia não imagem descartados; migration 122 adicionou status auditável de upload; sync/retry passa imagem do Discord por Cloudinary antes de preencher `tables.cover_url`/`banner_url`.
+- Operação Beta Fase E: 5 legacies `content_raw=discord_thread_name` marcados `ignored`, 184 mensagens reparseadas com sucesso.
+- Evidência E166 pós re-parse final no Beta:
+  - `A_slots_total_missing=2` (limite ≤10), `A_oneshot_semanal=0`, `B_hint_parentese=0`.
+  - `C_com_imagem=184,C_com_source=184` (100% dos posts com imagem).
+  - `D_discord_cdn_tables=0`, `E_legacy_parsed=0`.
+  - Drafts: `ready=124`, `needs_review=60`; mensagens: `parsed=184`, `ignored=10`.
+- Frontend: painel de revisão mostra thumbnail 40x40, preview de capa, upload/remover capa, badge de baixa qualidade, widget de desambiguação `X/Y`, e select de frequência com proteção para `outra` não sincronizar.
+- Deploys finais GREEN: `25680850486` (Deploy Beta) e `25680848361` (CodeQL) para `7a9647e`. Smokes externos root e `/api/v1/health` HTTP 200.
+- Pendência operacional: mantenedor validar visualmente a Fase F em janela anônima no Beta (`mesasbeta.artificiorpg.com`), conforme T-F1-F-06.
 
 **Reset estrutural do pipeline Discord (09/05/2026):**
 - Diagnóstico via `SELECT` no Beta revelou 170/180 mensagens com `content_raw` vazio, 169/180 `embeds` gravados como objeto vazio, 2 drafts `ready` em drift.
@@ -66,7 +53,22 @@
   - `embeds typeof = array` para 194/194 mensagens
 - **Decisão LLM (T-RES-1):** 9router (https://github.com/decolua/9router) na VM Oracle, primários `gpt-5.4` e `gemini-3.1-pro-preview`. Detalhes em `specs/016-discord-pipeline-rebuild/research-llm.md`.
 - **Decisão template Discord (T-RES-2):** Forum Guidelines + bot validador. Detalhes em `specs/016-discord-pipeline-rebuild/research-template.md`. Negociação com admin do Covil ainda pendente.
-- **Status:** Fase 0 (reset/backfill) **DONE**. Fase 1 iniciada localmente em 01/06/2026: migration 118 criada em arquivo, guard 422 em `PATCH /drafts/:id`, parser bloqueando draft sem matéria-prima e UI usando "Pronto" apenas para `missing_fields=[]`. Aplicação em Beta, smoke com escrita e validação E166 via `SELECT` ainda dependem de aprovação explícita.
+- **Status:** Fase 0 (reset/backfill) **DONE**. **Fase 1 (limpeza de invariantes) DONE em 2026-05-11.** Fase 2 (backfill auditável + telemetria) **READY**.
+
+**Fase 1 — Limpeza de invariantes (11/05/2026):**
+- Migration 118 criada com `CHECK CONSTRAINT discord_drafts_ready_requires_no_missing` (idempotente via `DO $$` + `pg_constraint`); padrão documentado como L03 em `migrations_guide.md`.
+- Guard `PATCH /admin/discord-sync/drafts/:id` retorna 422 com `details.missing_fields` quando status='ready' é incoerente com `missing_fields≠[]` (`backend/src/discord/draftValidation.ts` + 7 casos Jest GREEN).
+- Parser `parseDiscordAnnouncement` retorna `null` quando body e embeds estão ambos sem texto, mesmo para starters de fórum (`isThreadStarter` removida; 3 testes atualizados).
+- Frontend: `DiscordDraftReviewTable` e `DiscordDraftPreview` mostram "Pronto" apenas quando `status='ready' AND missing_fields=[]`; drafts em drift exibem "Revisar" com pendências em destaque âmbar; `readyCount` do botão "Sincronizar todos prontos (N)" reflete contagem real.
+- CI: workflow reusável `.github/workflows/_smoke-discord.yml` invocado entre `migrate` e `deploy-app` no Deploy Beta — anti-regressão BUG-004 (INSERT JSONB roundtrip em transação ROLLBACK) + presença da constraint (E166).
+- Deploy Beta run `25674367757` GREEN em todos os jobs (`enforce-dir`, `lint`, `validate`, `migrate`, `smoke-discord`, `deploy-app`, `smoke`).
+- **Evidência GREEN no banco-alvo (E166), 2026-05-11 13:50–13:54 UTC:**
+  - `UPDATE drift` em transação ROLLBACK rejeitado com `23514 check_violation discord_drafts_ready_requires_no_missing` (mesmo draft `db3d7c89` que aceitou drift no RED de 2026-05-10).
+  - `ready_dirty=0` / 189 drafts (`ready=111`, `needs_review=78`).
+  - Constraint presente em `pg_constraint` (`contype='c'`).
+  - `with_body=189/194` (97,4%); `embeds=array` em 194/194 (anti-regressão BUG-004 estável).
+  - HTTP Beta root: 200; `/api/v1/health`: 200.
+- **Commits Fase 1 em `origin/dev`:** `4f2bcee`, `f70f5d2`, `bc86070`, `41fa8bd`, `9f7861c`, `9c2c0a1`, `bc8a9f0`.
 
 **Decisões já fechadas (não perguntar de novo):**
 - Escopo α + β + γ + δ + ε
@@ -348,14 +350,18 @@
 **Spec 016 — Reconstrução do Pipeline Discord Sync (lidera roadmap):**
 
 1. ✅ **Fase 0 entregue (09/05/2026):** spec/plan/tasks/research, BUG-004 corrigido, T-EXEC-1 GREEN. Snapshot validado por `SELECT` (E166 obediente).
-2. ✅ **Fase 1 local iniciada (01/06/2026):**
-   - Migration 118 criada em `database/migration_118_discord_drafts_invariant.sql`, ainda não aplicada em Beta.
-   - Guard em `PATCH /drafts/:id` retorna 422 quando `status='ready'` teria `missing_fields` pendente.
-   - Parser retorna `null` quando não há `content_raw` nem texto em embeds; fluxo existente marca mensagem como `ignored`.
-   - UI do Discord Sync mostra "Pronto" apenas para drafts `ready` com `missing_fields=[]`; confiança fica indicador secundário.
-   - Validação local GREEN: testes focados backend, build backend, build frontend e busca de consistência.
-3. **Próximo passo pendente de aprovação:** backup leve do banco Beta, aplicar migration 118, smoke com escrita controlada, re-rodar parse-batch e validar invariantes Fase 1 via `SELECT` no Beta.
-4. **Critério de fechamento:** spec 016 §9 itens 1, 4 e 6 atendidos; query de invariante GREEN em Beta após deploy.
+2. ✅ **Fase 1 entregue (11/05/2026):** migration 118 + guard PATCH + parser null + frontend badge + smoke CI; Deploy Beta `25674367757` GREEN; invariantes via `SELECT` no banco-alvo confirmados.
+3. **Próximo passo — Fase 2 (backfill auditável + telemetria):** sessão nova `26-05-12_1_*` a abrir quando mantenedor autorizar; tasks detalhadas em `plan.md` §"Fase 2":
+   - Migration 119 com coluna `discord_import_messages.empty_reason` (enum).
+   - Marcar mensagens sem body como `ignored` + `empty_reason='discord_returned_empty'` quando API Discord retornar vazio.
+   - Endpoint `GET /admin/discord-sync/sources/:id/coverage` agregando cobertura.
+   - Aba "Cobertura" no painel da fonte.
+   - Reingestão final autorizada (anti-regressão E166).
+4. **Validação manual recomendada antes da Fase 2:**
+   - Mantenedor revisa amostra de 5–10 dos 111 drafts ready no painel admin Beta em janela anônima.
+   - Confirma que UI mostra "Pronto" só para drafts realmente prontos.
+   - Confirma que tentativa de PATCH ready em draft drift recebe 422 com mensagem clara.
+5. **Critério de fechamento Fase 2:** spec 016 §9 itens 2 e 7 atendidos; cobertura ≥95% ou empty_reason explícito.
 
 **Feature 015 — Importação de Posts de Fóruns Discord (status pré-016):**
 1. ✅ **Spec/plan/tasks/implement concluídos:** `specs/015-discord-forum-threads/` com implementação backend/frontend local.
@@ -432,9 +438,9 @@
 - Rollback explícito documentado para todas as ações
 - Validação: nenhum workflow será removido
 
-**Procedimentos documentais disponíveis (`/speckit.*`):**
+**Comandos disponíveis:**
 - `/speckit.status` — dashboard de estado SDD
-- `/speckit.plan` — gerar `plan.md` para feature específica quando SDD Completo for necessário
+- `/speckit.plan` — gerar `plan.md` para feature específica
 - `/speckit.tasks` — gerar/ajustar `tasks.md`
 - `/speckit.retro.run` — análise retrospectiva de sprint
 - `/speckit.bugfix.*` — correção estruturada de bugs
@@ -443,8 +449,6 @@
 - `/speckit.doctor` — diagnóstico de saúde do projeto
 - `/speckit.verify-tasks` — detecção de phantom completions
 - `/speckit.memorylint.run` — auditoria de governança
-
-Observação: `/speckit.*` é guia procedural do agente, não comando de shell nem skill local ativa.
 
 ---
 

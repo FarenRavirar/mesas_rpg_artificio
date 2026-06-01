@@ -1,5 +1,22 @@
 # Session Log
 
+## 2026-05-11T10:55:00-03:00 — discord-pipeline-fase-1
+
+**Tipo:** Implementação SDD com deploy Beta autorizado
+**Feature:** `specs/016-discord-pipeline-rebuild/`
+**Sessão:** `sessoes/26-05-09_2_discord-pipeline-fase-1-em-diante.md`
+**Fase entregue:** Fase 1 — Limpeza de invariantes (T-F1-01 a T-F1-09).
+**Correção/entrega:** migration 118 com `CHECK CONSTRAINT discord_drafts_ready_requires_no_missing` (idempotente via `pg_constraint`); guard `PATCH /admin/discord-sync/drafts/:id` retorna 422 com `details.missing_fields`; `parseDiscordAnnouncement` retorna `null` quando body+embeds estão sem texto, mesmo para starters (função `isThreadStarter` removida); frontend `DiscordDraftReviewTable` e `DiscordDraftPreview` mostram "Pronto" só com `missing=[]` e drift exibe "Revisar" em âmbar; CI ganhou `_smoke-discord.yml` reusável entre `migrate` e `deploy-app` validando JSONB roundtrip (BUG-004) + presença da constraint (E166).
+**Evidências principais (E166 cumprido com `SELECT` no banco-alvo):**
+  - RED no Beta (10/05 14:25 UTC): `UPDATE drift` em transação ROLLBACK aceito antes da constraint (`UPDATE 1`, `ready_dirty_in_tx=1`).
+  - Deploy Beta `25674367757` GREEN em todos os jobs (`enforce-dir`, `lint`, `validate`, `migrate`, `smoke-discord`, `deploy-app`, `smoke`).
+  - GREEN no Beta (11/05 13:50 UTC): mesmo `UPDATE` rejeitado com `23514 violates check constraint discord_drafts_ready_requires_no_missing`.
+  - Estado final (13:54 UTC): `ready_dirty=0` / 189 drafts, constraint presente (`contype='c'`), 194 msgs com `embeds=array` (anti-regressão BUG-004 estável), Beta HTTP 200, `/api/v1/health` 200.
+  - Jest 16/16 GREEN nos testes do módulo Discord (2 suites: `draftValidation.test.ts` 7 casos + `parseDiscordAnnouncement.test.ts` 9 casos atualizados).
+**Commits em `origin/dev`:** `4f2bcee` (migration 118 + L03 no guia), `f70f5d2` (guard PATCH + testes), `bc86070` (parser null + testes), `41fa8bd` (frontend badge), `9f7861c` (smoke workflow), `9c2c0a1` (fix header migration), `bc8a9f0` (fix content_hash no smoke).
+**Risco residual:** validação funcional em janela anônima no Beta pendente; mantenedor revisa 5–10 drafts ready no painel antes de autorizar Fase 2.
+**Sessão mantida aberta em:** `sessoes/26-05-09_2_discord-pipeline-fase-1-em-diante.md` (Fase 2 começa em sessão nova `26-05-12_1_*`).
+
 ## 2026-05-05T18:20:00-03:00 — discord-draft-pipeline
 
 **Tipo:** Bugfix SDD pós-diagnóstico Beta

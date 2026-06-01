@@ -24,24 +24,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
-function asRecord(value: unknown): Record<string, unknown> {
-  return isRecord(value) ? value : {};
+function readDraftTable(draft: DiscordDraft): Record<string, unknown> {
+  const normalizedTable = isRecord(draft.normalized_payload?.table) ? draft.normalized_payload.table : null;
+  if (normalizedTable) return normalizedTable;
+  return isRecord(draft.parsed_payload?.table) ? draft.parsed_payload.table : {};
 }
 
-function getMissingFields(value: unknown): string[] | null {
-  const payload = asRecord(value);
-  const missingFields = payload.missing_fields;
-  if (!Array.isArray(missingFields)) return null;
-  return missingFields.filter((field): field is string => typeof field === 'string');
-}
-
-function isDraftReadyToSync(draft: DiscordDraft): boolean {
-  const missingFields = getMissingFields(draft.normalized_payload);
-  return draft.status === 'ready' && missingFields !== null && missingFields.length === 0;
-}
-
-function getDisplayStatus(draft: DiscordDraft): DiscordImportDraftStatus {
-  return draft.status === 'ready' && !isDraftReadyToSync(draft) ? 'needs_review' : draft.status;
+function readString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value : null;
 }
 
 export function DiscordDraftReviewTable() {
@@ -71,7 +61,7 @@ export function DiscordDraftReviewTable() {
   }, [statusFilter]);
 
   const handleSyncReady = async () => {
-    if (!confirm('Sincronizar todos os drafts prontos e completos como mesas reais?')) return;
+    if (!confirm('Sincronizar todos os drafts com status "pronto" como mesas reais?')) return;
     setSyncingAll(true);
     try {
       const result = await discordSyncApi.syncReady();
@@ -92,7 +82,19 @@ export function DiscordDraftReviewTable() {
     setSelectedDraft(updated);
   };
 
-  const readyCount = drafts.filter(isDraftReadyToSync).length;
+  // T-F1-06: o backend agora garante (CHECK CONSTRAINT) que status='ready' implica
+  // missing_fields=[]. A UI usa o mesmo gate para nunca prometer um sync que o
+  // backend negaria (spec 016 §9 item 4, anti-regressão de E166).
+  const draftMissing = (draft: DiscordDraft): string[] => {
+    const payload = draft.normalized_payload;
+    if (!payload) return [];
+    const raw = (payload as { missing_fields?: unknown }).missing_fields;
+    if (!Array.isArray(raw)) return [];
+    return raw.filter((item): item is string => typeof item === 'string');
+  };
+  const isReady = (draft: DiscordDraft) =>
+    draft.status === 'ready' && draftMissing(draft).length === 0;
+  const readyCount = drafts.filter(isReady).length;
 
   return (
     <div>
@@ -133,12 +135,11 @@ export function DiscordDraftReviewTable() {
       ) : (
         <div className="space-y-2">
           {drafts.map(draft => {
-            const normalizedPayload = asRecord(draft.normalized_payload);
-            const parsedPayload = asRecord(draft.parsed_payload);
-            const table = asRecord(normalizedPayload.table ?? parsedPayload.table);
-            const title = typeof table?.title === 'string' ? table.title : '—';
-            const system = typeof table?.system_name === 'string' ? table.system_name : null;
-            const displayStatus = getDisplayStatus(draft);
+            const table = readDraftTable(draft);
+            const title = readString(table.title) ?? '—';
+            const system = readString(table.system_name);
+            const coverUrl = readString(table.cover_url) ?? readString(table.cover_url_source);
+            const coverQuality = readString(table.cover_quality);
 
             return (
               <div
@@ -146,17 +147,33 @@ export function DiscordDraftReviewTable() {
                 className="bg-white/5 border border-white/10 rounded-lg px-4 py-3 flex items-center gap-3 cursor-pointer hover:bg-white/[0.08] transition-colors"
                 onClick={() => setSelectedDraft(draft)}
               >
+                <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md border border-white/10 bg-white/5">
+                  {coverUrl ? (
+                    <img src={coverUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
+                  ) : (
+                    <div className="h-full w-full bg-white/5" />
+                  )}
+                </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className={`px-2 py-0.5 text-xs rounded-full ${DRAFT_STATUS_COLORS[displayStatus]}`}>
-                      {DRAFT_STATUS_LABELS[displayStatus]}
-                    </span>
+                    {(() => {
+                      const effectiveStatus: DiscordImportDraftStatus =
+                        draft.status === 'ready' && !isReady(draft) ? 'needs_review' : draft.status;
+                      return (
+                        <span className={`px-2 py-0.5 text-xs rounded-full ${DRAFT_STATUS_COLORS[effectiveStatus]}`}>
+                          {DRAFT_STATUS_LABELS[effectiveStatus]}
+                        </span>
+                      );
+                    })()}
                     {draft.confidence != null && (
                       <span className="text-white/30 text-xs">{(draft.confidence * 100).toFixed(0)}%</span>
                     )}
                   </div>
                   <p className="text-white font-medium text-sm truncate">{title}</p>
-                  {system && <p className="text-white/40 text-xs">{system}</p>}
+                  <div className="flex items-center gap-2">
+                    {system && <p className="text-white/40 text-xs truncate">{system}</p>}
+                    {coverQuality === 'low' && <span className="text-amber-300 text-xs">capa baixa</span>}
+                  </div>
                 </div>
                 <div className="text-white/30 text-xs shrink-0 text-right">
                   <p>{new Date(draft.created_at).toLocaleDateString('pt-BR')}</p>

@@ -38,20 +38,6 @@ const updateDraftSchema = zod_1.z.object({
 const updateMessageSchema = zod_1.z.object({
     status: zod_1.z.enum(['pending', 'parsed', 'needs_review', 'synced', 'ignored', 'error']),
 });
-function asRecord(value) {
-    if (!value || typeof value !== 'object' || Array.isArray(value))
-        return null;
-    return value;
-}
-function extractMissingFields(payload) {
-    const record = asRecord(payload);
-    if (!record)
-        return null;
-    const missingFields = record.missing_fields;
-    if (!Array.isArray(missingFields))
-        return null;
-    return missingFields.filter((field) => typeof field === 'string');
-}
 const fetchSchema = zod_1.z.object({
     source_id: zod_1.z.string().uuid(),
     limit: zod_1.z.coerce.number().int().min(1).max(100).default(50),
@@ -883,6 +869,66 @@ router.get('/drafts/:id', auth_1.authMiddleware, async (req, res) => {
         return res.status(500).json({ error: 'Erro ao buscar draft.' });
     }
 });
+// GET /image-uploads/summary
+router.get('/image-uploads/summary', auth_1.authMiddleware, async (req, res) => {
+    if (!isAdmin(req, res))
+        return;
+    try {
+        const rows = await db_1.db
+            .selectFrom('discord_import_table_drafts')
+            .select(['image_upload_status'])
+            .select((eb) => eb.fn.countAll().as('count'))
+            .groupBy('image_upload_status')
+            .execute();
+        const summary = {
+            pending: 0,
+            success: 0,
+            expired_url: 0,
+            network: 0,
+            cloudinary: 0,
+            permanent_fail: 0,
+            none: 0,
+        };
+        for (const row of rows) {
+            const count = Number(row.count);
+            switch (row.image_upload_status) {
+                case 'pending':
+                case 'success':
+                case 'expired_url':
+                case 'network':
+                case 'cloudinary':
+                case 'permanent_fail':
+                    summary[row.image_upload_status] = count;
+                    break;
+                default:
+                    summary.none = count;
+                    break;
+            }
+        }
+        return res.json({ data: summary });
+    }
+    catch (error) {
+        console.error('[GET /admin/discord-sync/image-uploads/summary]', error);
+        return res.status(500).json({ error: 'Erro ao listar uploads de imagem.' });
+    }
+});
+// POST /drafts/:id/refresh-image
+router.post('/drafts/:id/refresh-image', auth_1.authMiddleware, async (req, res) => {
+    if (!isAdmin(req, res))
+        return;
+    try {
+        const result = await (0, discord_1.refreshDiscordDraftImage)(req.params.id);
+        return res.json({ data: result });
+    }
+    catch (error) {
+        const message = error instanceof Error ? error.message : 'Erro ao reenviar imagem.';
+        console.error('[POST /admin/discord-sync/drafts/:id/refresh-image]', error);
+        if (message.includes('não encontrado') || message.includes('sem payload')) {
+            return res.status(422).json({ error: message });
+        }
+        return res.status(500).json({ error: message });
+    }
+});
 // PATCH /drafts/:id
 router.patch('/drafts/:id', auth_1.authMiddleware, async (req, res) => {
     if (!isAdmin(req, res))
@@ -895,22 +941,27 @@ router.patch('/drafts/:id', auth_1.authMiddleware, async (req, res) => {
         return res.status(400).json({ error: 'Nenhum dado para atualizar.' });
     }
     try {
-        if (parsed.data.status === 'ready') {
-            const currentDraft = await db_1.db
-                .selectFrom('discord_import_table_drafts')
-                .select(['id', 'normalized_payload'])
-                .where('id', '=', req.params.id)
-                .executeTakeFirst();
-            if (!currentDraft)
-                return res.status(404).json({ error: 'Draft não encontrado.' });
-            const candidatePayload = parsed.data.normalized_payload ?? currentDraft.normalized_payload;
-            const missingFields = extractMissingFields(candidatePayload);
-            if (!missingFields || missingFields.length > 0) {
-                return res.status(422).json({
-                    error: 'Draft não pode ser marcado como pronto enquanto houver campos obrigatórios pendentes.',
-                    details: { missingFields: missingFields ?? ['missing_fields'] },
-                });
-            }
+        const current = await db_1.db
+            .selectFrom('discord_import_table_drafts')
+            .select(['id', 'normalized_payload'])
+            .where('id', '=', req.params.id)
+            .executeTakeFirst();
+        if (!current)
+            return res.status(404).json({ error: 'Draft não encontrado.' });
+        // T-F1-03: invariante status='ready' => missing_fields=[] aplicado em runtime,
+        // espelhando o CHECK CONSTRAINT da migration 118 com mensagem clara para a UI.
+        const patchPayload = parsed.data.normalized_payload;
+        const currentPayload = current.normalized_payload;
+        const transition = (0, discord_1.assertDraftReadyTransition)({
+            patchStatus: parsed.data.status,
+            patchPayloadMissing: patchPayload?.missing_fields,
+            currentPayloadMissing: currentPayload?.missing_fields,
+        });
+        if (!transition.allowed) {
+            return res.status(422).json({
+                error: transition.reason ?? "Draft não pode ser marcado como 'ready'.",
+                details: { missing_fields: transition.missingFields ?? [] },
+            });
         }
         const [draft] = await db_1.db
             .updateTable('discord_import_table_drafts')

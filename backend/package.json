@@ -21,7 +21,9 @@
     "og:cleanup:dev": "ts-node src/scripts/cleanupLinkMetadataCache.ts",
     "og:cron:dev": "ts-node src/scripts/cronRunner.ts",
     "discord:sync": "node dist/scripts/syncDiscordChannels.js",
-    "discord:sync:dev": "ts-node src/scripts/syncDiscordChannels.ts"
+    "discord:sync:dev": "ts-node src/scripts/syncDiscordChannels.ts",
+    "discord:retry-image-uploads": "node dist/scripts/retryDiscordImageUploads.js",
+    "discord:retry-image-uploads:dev": "ts-node src/scripts/retryDiscordImageUploads.ts"
   },
   "keywords": [],
   "author": "",

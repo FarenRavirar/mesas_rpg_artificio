@@ -1382,3 +1382,84 @@ Antes de declarar GREEN em qualquer pipeline de import/ETL/sync que escreve em t
 - Branch ativa: `feat/015-discord-draft-pipeline` (mantida por decisão do mantenedor, spec 016 §11)
 
 **Data de catalogação:** 09/05/2026
+
+---
+
+## E167 - Smoke test/fixture escrevendo em tabela real sem consultar NOT NULL do schema
+
+**Sintoma:**
+
+Deploy Beta run `25674237745` falhou no job `smoke-discord` com:
+
+```
+ERROR:  null value in column "content_hash" of relation "discord_import_messages"
+        violates not-null constraint
+DETAIL: Failing row contains (..., 'smoke', [{"id":"a1","url":"https://x"}],
+        [{"description":"smoke embed"}], ..., null, ...).
+```
+
+O smoke test do workflow `_smoke-discord.yml` (anti-regressão BUG-004) tentava
+INSERT em transação ROLLBACK contra `discord_import_messages` listando apenas
+as colunas que o autor considerou relevantes para o teste (`embeds`,
+`attachments`, `content_raw`, `source_id`, `status`). O schema real tinha
+`content_hash text NOT NULL` sem default, então o INSERT explodiu antes de
+exercitar o caminho JSONB que era o objetivo do smoke.
+
+**Causa raiz confirmada (11/05/2026):**
+
+1. Fixture de smoke foi escrito a partir do que parecia mínimo, sem
+   `\d discord_import_messages` antes.
+2. `content_hash` é populado pelo backend a partir de `md5(content_raw + ...)`,
+   então em código real nunca aparece como omissão. O smoke não tem essa
+   camada — precisa fornecer o valor diretamente.
+3. O DETAIL do erro mostrou que `embeds` e `attachments` JÁ estavam
+   serializados como JSONB array (`[{"id":"a1"}]`) — o caminho do BUG-004
+   funcionava; só não foi exercitado porque o INSERT morreu antes.
+
+**Solução validada (commit `bc8a9f0`):**
+
+```sql
+INSERT INTO discord_import_messages (
+  source_id, source_kind, discord_message_id, ..., content_raw, content_hash,
+  attachments, embeds, message_created_at, status
+) VALUES (
+  :'src', 'discord_bot', 'SMOKE-' || extract(epoch from now())::text, ...,
+  'smoke', md5('smoke-' || clock_timestamp()::text),
+  '[{"id":"a1","url":"https://x"}]'::jsonb,
+  '[{"description":"smoke embed"}]'::jsonb,
+  now(), 'pending'
+)
+```
+
+`clock_timestamp()` (não `now()`) garante unicidade entre chamadas dentro da
+mesma transação, satisfazendo o índice de `content_hash`. Run posterior
+`25674367757` passou em 9s.
+
+**Prevenção obrigatória:**
+
+1. **Smoke test que escreve em tabela real DEVE começar pela inspeção do
+   schema:** `\d <tabela>` (ou `SELECT column_name, is_nullable, column_default
+   FROM information_schema.columns WHERE table_name='<x>'`). Liste todas as
+   colunas NOT NULL sem default e providencie valores no INSERT.
+2. **Não confie no nome do erro no log do CI** para diagnóstico: o `DETAIL`
+   do `psql` mostra exatamente qual coluna falhou e o conteúdo do row
+   parcialmente serializado — leia antes de re-tentar.
+3. **Hashes/identificadores sintéticos no smoke** devem usar `clock_timestamp()`
+   ou similar, não `now()`/`statement_timestamp()`, para evitar colisão em
+   re-execução dentro de transação.
+4. **Toda escrita de smoke deve ser em transação `ROLLBACK`** ou usar tabelas
+   temporárias. Nunca persistir dado de teste no banco-alvo de produção/beta.
+
+**Arquivos afetados:**
+
+- `.github/workflows/_smoke-discord.yml` (correção em `bc8a9f0`)
+
+**Rastreabilidade SDD:**
+
+- Spec: `specs/016-discord-pipeline-rebuild/` (T-F1-09)
+- Sessão: `sessoes/26-05-09_2_discord-pipeline-fase-1-em-diante.md`
+- Run que descobriu: `25674237745`; run que validou correção: `25674367757`
+- BUG correlato: `specs/015-discord-forum-threads/bugs/BUG-004.md` (smoke
+  existe para evitar regressão deste bug)
+
+**Data de catalogação:** 11/05/2026

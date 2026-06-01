@@ -277,10 +277,10 @@ Sessão concluída quando:
 
 ## Progresso
 
-- [ ] Sessão aberta e índice atualizado
-- [ ] Pré-requisitos validados
-- [x] Fase 1 iniciada
-- [ ] Fase 1 fechada
+- [x] Sessão aberta e índice atualizado
+- [x] Pré-requisitos validados (backup `/tmp/backup_discord_pre_m118_20260510.sql`, 1.8 MB)
+- [x] Fase 1 iniciada (2026-05-10)
+- [x] **Fase 1 fechada (2026-05-11)** — ready_dirty=0, constraint ativa, Beta GREEN
 - [ ] Fase 2 iniciada
 - [ ] Fase 2 fechada
 - [ ] Fase 3 iniciada
@@ -296,147 +296,81 @@ Sessão concluída quando:
 
 ---
 
-## Retomada operacional — 2026-06-01 — Início local da Fase 1
+## Log de execução — Fase 1 (2026-05-10 → 2026-05-11)
 
-**Pedido do mantenedor:** "seguindo as skills ordenadas e a governança, caverman e o resto, faça o spec 016".
+### 2026-05-10 14:21 UTC — Backup + snapshot pré-migration
+```
+ssh ... docker exec mesas-beta-db pg_dump ...
+-rw-rw-r-- 1 ubuntu ubuntu 1.8M /tmp/backup_discord_pre_m118_20260510.sql
 
-**Modo escolhido:** SDD Completo, porque a Fase 1 da spec 016 envolve migration, contrato de API, backend, frontend e validação de invariantes.
+snapshot:
+  msgs_total=194, with_body=189, parsed=189, ignored=5
+  drafts_total=189, ready=111, needs_review=78
+  ready_dirty=0  ← antes da constraint (convenção, não schema)
+  embeds: array=194 (100%)
+```
 
-**Skills/fluxo aplicados:**
-- `tdd`: ciclos RED->GREEN pequenos para rota PATCH e parser.
-- `caveman`: compressão de comunicação quando útil, sem reduzir rigor documental.
-- `/speckit.*`: apenas procedimento documental; nada será executado como CLI.
+### 2026-05-10 14:25 UTC — RED no banco-alvo (E166)
+```sql
+BEGIN;
+SELECT ... WHERE status='needs_review' AND missing_n > 0 LIMIT 1;
+  → id=db3d7c89-4ff6-4218-b6c3-2fbdee2bdc9b, missing_n=1
+UPDATE discord_import_table_drafts SET status='ready' WHERE id = ...;
+  → UPDATE 1  (banco aceitou drift sem constraint)
+SELECT count(*) ... WHERE status='ready' AND missing>0;  → ready_dirty_in_tx=1
+ROLLBACK;
+SELECT count(*) ... ;  → ready_dirty_post_rollback=0
+```
+**Conclusão:** sem constraint, drift é fisicamente possível. RED legítimo.
 
-**O que vou fazer nesta rodada:**
-1. Implementar localmente a Fase 1 até onde não exigir write em banco Beta/deploy.
-2. Criar migration 118 em arquivo, sem aplicar em Beta sem aprovação explícita.
-3. Criar/ajustar testes backend para PATCH `/drafts/:id` e parser sem conteúdo.
-4. Ajustar guard backend e badge/contagem frontend para não prometer "Pronto" quando `missing_fields` não estiver vazio.
-5. Atualizar contrato/documentação proporcional ao delta local.
-6. Validar com testes/builds/buscas locais e registrar evidência.
+### 2026-05-10 → 11 — Implementação local (commits atômicos)
+- `4f2bcee` — feat(db): migration 118 + lição L03 em migrations_guide.md
+- `f70f5d2` — feat(discord): guard PATCH 422 + draftValidation.ts + 7 testes Jest
+- `bc86070` — feat(discord): parser retorna null para body+embeds vazios + 3 testes
+- `41fa8bd` — feat(discord-sync): badge "Pronto" frontend usa missing=[]
+- `9f7861c` — ci(deploy-beta): smoke discord pós-migrate
+- `9c2c0a1` — fix(db): header migration 118 (requires-backup=false)
+- `bc8a9f0` — fix(ci): smoke INSERT inclui content_hash NOT NULL
 
-**Limites de aprovação nesta rodada:**
-- Não executar `ALTER`, `UPDATE`, `DELETE`, `INSERT`, migration, parse-batch ou smoke com escrita no Beta sem aprovação no formato obrigatório.
-- Não fazer `git commit`.
-- Não fazer `git push origin dev`/`main`.
-- Não mover sessão para `encerradas/`.
+### 2026-05-11 13:48 UTC — Push final + Deploy Beta `25674367757`
+```
+push: 9c2c0a1..bc8a9f0 → origin/dev
+migrate            ✓  (constraint aplicada)
+smoke-discord      ✓  (JSONB roundtrip + check)
+deploy-app         ✓  (TS check + recreate containers)
+smoke (geral)      ✓  (tables, systems tree, oauth)
+```
 
-**Arquivos que podem ser modificados:**
-- `database/migration_118_discord_drafts_invariant.sql`
-- `migrations_guide.md`
-- `backend/src/routes/adminDiscordSync.ts`
-- `backend/src/routes/__tests__/adminDiscordSync.drafts.patch.test.ts`
-- `backend/src/discord/parseDiscordAnnouncement.ts`
-- `backend/src/discord/ingestMessages.ts`
-- `backend/src/discord/__tests__/parseDiscordAnnouncement.test.ts`
-- `frontend/src/features/discord-sync/components/DiscordDraftPreview.tsx`
-- lista/equivalente de drafts em `frontend/src/features/discord-sync/components/`
-- `MAPA_DE_API.md`
-- `specs/016-discord-pipeline-rebuild/tasks.md`
-- `sessoes/26-05-09_2_discord-pipeline-fase-1-em-diante.md`
+### 2026-05-11 13:50 UTC — GREEN no banco-alvo (E166)
+Mesmo draft `db3d7c89` que aceitou drift no RED agora rejeita:
+```
+ERROR:  new row for relation "discord_import_table_drafts" violates check constraint
+        "discord_drafts_ready_requires_no_missing"
+DETAIL: Failing row contains (db3d7c89-..., status=ready, missing_n=1)
+ROLLBACK
+```
 
-**Critério de conclusão local desta rodada:**
-- RED observado para o guard de PATCH antes da implementação, ou teste equivalente mostra comportamento já protegido.
-- GREEN observado após implementação para testes backend relevantes.
-- Build/teste frontend proporcional executado.
-- Busca final confirma que status visual "Pronto" depende de `missing_fields.length === 0` ou normalizador equivalente.
-- Pendências de Beta ficam listadas como dependentes de aprovação explícita.
-
-**Progresso desta retomada:**
-- [x] Retomada mínima e preflight SDD Completo lidos.
-- [x] Sessão atualizada antes de alterações técnicas.
-- [ ] T-F1-01 local concluída. Arquivo e guia criados; validação DB/migrate ainda pendente.
-- [x] T-F1-02 RED observado.
-- [x] T-F1-03 GREEN observado.
-- [x] T-F1-04 RED observado.
-- [x] T-F1-05 GREEN observado.
-- [x] T-F1-06 frontend ajustado e validado.
-- [x] T-F1-07/T-F1-08 pendências de Beta registradas para aprovação.
-
-**Evidência local — 2026-06-01:**
-- RED T-F1-02: `npm --prefix backend test -- adminDiscordSync.drafts.patch.test.ts` falhou com `Expected: 422` / `Received: 200`.
-- GREEN T-F1-03: `npm --prefix backend test -- adminDiscordSync.drafts.patch.test.ts` passou: 1 suite, 1 test.
-- RED T-F1-04: `npm --prefix backend test -- parseDiscordAnnouncement` falhou porque starter vazio retornou draft em vez de `null`.
-- GREEN T-F1-05: `npm --prefix backend test -- parseDiscordAnnouncement` passou: 1 suite, 9 tests.
-- Build backend: `npm --prefix backend run build` GREEN.
-- Build frontend: `npm --prefix frontend run build` GREEN.
-- Busca/consistência: `rg` confirmou `discord_drafts_ready_requires_no_missing`, guard 422, `isDraftReadyToSync` e documentação do contrato.
-- `git diff --check` retornou exit 0; houve apenas avisos de normalização CRLF/LF.
-
-**Pendências dependentes de aprovação explícita:**
-- Backup leve do banco Beta antes da migration 118.
-- Aplicar `migration_118_discord_drafts_invariant.sql` no Beta (`ALTER TABLE`).
-- Smoke com escrita controlada no banco-alvo.
-- Re-rodar parse-batch e validar invariantes Fase 1 via `SELECT` no Beta, conforme E166.
+### 2026-05-11 13:54 UTC — Invariantes finais
+```
+ready_dirty             = 0
+constraint              = presente (contype='c')
+msgs_total=194 | with_body=189 (97,4%) | embeds=array(194)
+drafts: ready=111 | needs_review=78
+HTTP Beta root          = 200
+HTTP Beta /api/v1/health = 200
+```
 
 ---
 
-## Retomada operacional — 2026-05-31 — Atualização de ambiente Codex
+## Próxima sessão
 
-**Pedido do mantenedor:** reformular o ambiente local de skills para usar apenas `mattpocock/skills` e atualizar o `JuliusBrussee/caveman`.
+**Status:** Fase 1 DONE. Mantenedor volta em 2026-05-12 para revisar e autorizar Fase 2.
 
-**O que vou fazer:**
-1. Inventariar skills locais em `C:\Users\paulo\.codex\skills` e checkouts locais relacionados a `mattpocock/skills` e `caveman`.
-2. Criar backup antes de remover/substituir skills antigas.
-3. Instalar/sincronizar `mattpocock/skills` como fonte única de skills pessoais.
-4. Atualizar o checkout local de `JuliusBrussee/caveman`, preservando alterações locais se existirem.
-5. Validar o estado final com listagem e `git status`.
+**Antes de iniciar Fase 2:**
+- Revisar 5–10 drafts ready no painel admin Beta (`https://mesasbeta.artificiorpg.com` → /gestao → Discord Sync) em janela anônima.
+- Confirmar que a UI mostra "Pronto" só para drafts realmente prontos e "Revisar" para os 78 incompletos.
+- Confirmar que tentativa de mudar status para "Pronto" num draft em drift recebe 422 com mensagem clara.
 
-**Arquivos/diretórios que podem ser modificados:**
-- `C:\Users\paulo\.codex\skills`
-- checkouts locais existentes de `mattpocock/skills` e `JuliusBrussee/caveman`, se encontrados
-- `sessoes/26-05-09_2_discord-pipeline-fase-1-em-diante.md`
+**Decisões abertas antes da Fase 2:** nenhuma. Plan §"Fase 2" detalha schema mudanças (coluna `empty_reason`).
 
-**Critério de conclusão deste bloco operacional:**
-- Backup criado para as skills removidas/substituídas.
-- Skills pessoais ativas derivadas apenas de `mattpocock/skills`, sem manter coleção antiga ativa.
-- `caveman` atualizado ou bloqueio registrado com causa objetiva.
-- Estado final registrado nesta sessão.
-
-**Progresso do bloco operacional:**
-- [x] `project-state.md`, `AGENTS.md` e cabeçalhos de governança lidos.
-- [x] Sessão ativa incompleta identificada; este bloco foi registrado antes de alterações técnicas.
-- [x] Inventário de skills e checkouts concluído: fonte antiga ativa localizada em `.agent/skills`, `.agents/skills`, `.gemini/skills`; `~\.codex\vendor_imports\skills` era clone antigo de `openai/skills`.
-- [x] Backup das skills antigas concluído em `C:\Users\paulo\.codex\backups\skills-reform-20260531-174406`.
-- [x] `mattpocock/skills` instalado/sincronizado em `C:\Users\paulo\.codex\skills`, excluindo `deprecated`, `in-progress` e o `caveman` minimalista do Matt.
-- [x] `JuliusBrussee/caveman` atualizado e instalado como suíte principal de caveman (`caveman`, `caveman-commit`, `caveman-review`, `caveman-compress`, `caveman-stats`, `caveman-help`, `cavecrew`).
-- [x] Validação final registrada: diretórios antigos de skills não existem mais; checkouts locais limpos em `vendor_imports`; `project-state.md` atualizado.
-
-**Resultado do bloco operacional:**
-- `mattpocock/skills` em `C:\Users\paulo\.codex\vendor_imports\mattpocock-skills` no commit `aaf2453`.
-- `JuliusBrussee/caveman` em `C:\Users\paulo\.codex\vendor_imports\caveman` no commit `655b7d9`.
-- Skills pessoais ativas: 26 diretórios não-sistema em `C:\Users\paulo\.codex\skills`.
-- Próxima ação operacional: reiniciar Codex para recarregar a lista de skills.
-
-### Extensão solicitada — análise `obra/superpowers` e documentação de uso
-
-**Pedido do mantenedor:** avaliar a utilidade de `obra/superpowers` para complementar o novo stack de skills, e atualizar `AGENTS.md`/documentos necessários para usar corretamente as novas skills e diretrizes.
-
-**Plano de execução adicional:**
-1. Clonar/inspecionar `https://github.com/obra/superpowers` em área temporária.
-2. Comparar o conteúdo com `mattpocock/skills` e `JuliusBrussee/caveman`, identificando sobreposição e valor incremental.
-3. Instalar/sincronizar somente se houver ganho claro e sem reintroduzir excesso de skills antigas.
-4. Atualizar `AGENTS.md` e documentação local de agente com diretrizes de uso do stack novo.
-5. Registrar validação e estado final.
-
-**Progresso adicional:**
-- [x] Solicitação registrada antes de novas alterações técnicas.
-- [x] `obra/superpowers` inspecionado no commit `6fd4507` (2026-05-29): 14 skills de metodologia completa para brainstorming, worktrees, planos, TDD, debugging, subagentes, review e fechamento.
-- [x] Decisão de adoção registrada: manter como referência seletiva, não instalar como pacote ativo obrigatório, por sobreposição com `mattpocock/skills` e conflito potencial com SDD/local gates.
-- [x] Documentação do stack novo atualizada em `AGENTS.md` e `docs/agents/`.
-- [x] Validação final registrada: `superpowers` sincronizado apenas em `C:\Users\paulo\.codex\vendor_imports\superpowers`; skills ativas continuam limitadas a Matt + Caveman + `.system`.
-
-**Avaliação resumida de `obra/superpowers`:**
-- Útil: `verification-before-completion`, `systematic-debugging`, `receiving-code-review` como referência de disciplina operacional.
-- Redundante: `brainstorming`, `writing-plans`, `test-driven-development` já cobertos por SDD + Matt.
-- Arriscado neste projeto: `using-git-worktrees`, `finishing-a-development-branch` e fluxos automáticos de commit/PR precisam de adaptação às regras pétreas locais.
-
-### Extensão solicitada — plano de ação de migração
-
-**Pedido do mantenedor:** criar um Markdown completo do plano estratégico de migração da governança/skills e entregar um prompt para iniciar nova sessão de implementação.
-
-**Progresso:**
-- [x] Solicitação registrada antes da edição documental.
-- [x] Plano de ação criado em `docs/agents/migration-action-plan.md`.
-- [x] Prompt de nova sessão incluído no próprio plano e entregue ao mantenedor na resposta final.
-- [x] Revisão de segurança do plano executada a pedido do mantenedor: adicionados invariantes que não podem ser perdidos, Fase 0 de preservação, buscas de validação por regras críticas e rollback condicionado a aprovação explícita.
+**Sessão `26-05-12_1_*` (a criar):** abrirá Fase 2 — backfill auditável + telemetria.

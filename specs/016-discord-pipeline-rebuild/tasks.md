@@ -12,8 +12,10 @@
 ## Estado atual
 
 - [x] Sessão aberta · Spec entregue · Plan entregue · E166 registrado.
-- [ ] T-EXEC-1: Reingestão sem janela autorizada — **aguardando comando do mantenedor** para executar.
-- [ ] Fase 0–5 conforme plan.
+- [x] T-EXEC-1: Reingestão sem janela — **GREEN** em 2026-05-09 (194 msgs, 189 com body).
+- [x] **Fase 0**: BUG-004 corrigido, parse-batch regenerou drafts limpos.
+- [x] **Fase 1**: GREEN em 2026-05-11 (Deploy Beta `25674367757`; ready_dirty=0; constraint ativa).
+- [ ] Fases 2–5 conforme plan.
 
 ---
 
@@ -92,70 +94,106 @@ SELECT count(*) FROM discord_import_table_drafts
 
 ## Fase 1 — Limpeza de invariantes (2 dias)
 
-**Estado:** em execução local. Fase 0 foi entregue em 09/05/2026 conforme `project-state.md`; aplicação de migration/smoke em Beta permanece dependente de aprovação explícita.
+**Estado:** **DONE** em 2026-05-11. Deploy Beta run `25674367757` GREEN; constraint aplicada; invariantes validados via `SELECT` no banco-alvo (E166).
 
-### T-F1-01 — Migration check constraint
+### T-F1-01 — Migration check constraint — **DONE**
 
-- [x] Criar `database/migration_118_discord_drafts_invariant.sql`:
-  ```sql
-  ALTER TABLE discord_import_table_drafts
-    ADD CONSTRAINT discord_drafts_ready_requires_no_missing
-    CHECK (
-      status <> 'ready'
-      OR COALESCE(jsonb_array_length(normalized_payload->'missing_fields'),0) = 0
-    );
-  ```
-- [ ] Aplicar em DB de teste/Beta, validar migrate up/down. Pendente: exige ambiente de banco e, no Beta, aprovação explícita para `ALTER`.
-- [x] Adicionar entrada em `migrations_guide.md`.
+- [x] `database/migration_118_discord_drafts_invariant.sql` criada com bloco `DO $$` consultando `pg_constraint` (idempotente; CHECK não aceita `IF NOT EXISTS` nativo).
+- [x] Header validado por `bash testes/deploy/header_contract.sh` (após correção `requires-backup=false` para coerência com `class=online-safe`).
+- [x] Entrada L03 adicionada em `migrations_guide.md` documentando o padrão idempotente.
+- [x] Migration aplicada no Beta via `apply_required_migrations.sh` no Deploy Beta run `25674237745` job `migrate` GREEN; presença confirmada em `pg_constraint`.
 
-### T-F1-02 — Teste RED para PATCH /drafts/:id
+**Commits:** `4f2bcee` (migration + guia), `9c2c0a1` (fix header requires-backup).
+**Evidência GREEN:** `SELECT count(*) FROM pg_constraint WHERE conname='discord_drafts_ready_requires_no_missing'` → `1`.
 
-- [x] Criar `backend/src/routes/__tests__/adminDiscordSync.drafts.patch.test.ts`:
-  - `PATCH /drafts/:id { status: 'ready' }` em draft com `missing_fields=['day_of_week']` deve retornar **422**.
-- [x] Confirmar RED contra código atual (rota aceita). Evidência: `npm --prefix backend test -- adminDiscordSync.drafts.patch.test.ts` retornou Expected 422 / Received 200 antes do guard.
+### T-F1-02 — Teste para validação de `ready` transition — **DONE**
 
-### T-F1-03 — Implementação do guard no PATCH
+- [x] `backend/src/discord/__tests__/draftValidation.test.ts` criado com 7 casos (status undefined, ready com missing=[], ready bloqueado, fallback para current, null payload, truncamento de preview, payload não-array defensivo).
+- [x] **Evidência RED no banco-alvo (E166)**: `BEGIN; UPDATE drift WHERE missing≠[]; ROLLBACK;` aceitou o UPDATE antes da migration — `UPDATE 1`, `ready_dirty_in_tx=1` (sessão `26-05-09_2_*` log de 14:21 UTC).
 
-- [x] No handler `PATCH /drafts/:id`: se `parsed.data.status === 'ready'`, ler `missing_fields` do draft atual; se ≠ [], retornar 422 com mensagem clara.
-- [x] Re-rodar teste, observar GREEN. Evidência: `npm --prefix backend test -- adminDiscordSync.drafts.patch.test.ts` passou 1/1.
+**Commit:** `f70f5d2`.
+**Evidência GREEN:** `npx jest --testPathPatterns 'discord/__tests__'` — 16/16 tests passed, 2 suites.
 
-### T-F1-04 — Teste RED para parser sem conteúdo
+### T-F1-03 — Implementação do guard no PATCH — **DONE**
+
+- [x] Função pura `assertDraftReadyTransition({ patchStatus, patchPayloadMissing, currentPayloadMissing })` em `backend/src/discord/draftValidation.ts`; patch payload tem precedência sobre estado atual.
+- [x] Handler `PATCH /admin/discord-sync/drafts/:id` em `backend/src/routes/adminDiscordSync.ts` agora lê o draft atual (404 se ausente), invoca a função, e retorna `422 { error, details: { missing_fields } }` quando bloqueado.
+
+**Commit:** `f70f5d2`.
+**Evidência GREEN no banco-alvo (E166)**: pós-migration, `UPDATE drift` em transação ROLLBACK foi rejeitado com `ERROR: new row for relation "discord_import_table_drafts" violates check constraint "discord_drafts_ready_requires_no_missing"` (run manual via ssh às 13:50 UTC de 2026-05-11). Mesmo draft `db3d7c89` que aceitou em RED.
+
+### T-F1-04 — Teste para parser sem conteúdo — **DONE**
 
 - [x] Em `backend/src/discord/__tests__/parseDiscordAnnouncement.test.ts`:
-  - Mensagem starter de fórum com `content_raw=''`, `embeds=[]`, `attachments=[]` → parser deve retornar `null`.
-- [x] Confirmar RED contra código atual. Evidência: `npm --prefix backend test -- parseDiscordAnnouncement` retornou objeto de draft quando o teste esperava `null`.
+  - Caso novo "returns null for forum starters without body and without text in embeds" (T-F1-04).
+  - Caso novo "still extracts a draft when body is empty but embeds carry text" (T-F1-05 — garante que `extractBodyFromEmbeds` continua sendo respeitado).
+  - Caso batch atualizado: 12 starters reais do Covil com `content_raw=''` e `embeds=[]` agora esperam `null` em vez de drafts fabricados.
 
-### T-F1-05 — Implementação no parser
+**Commit:** `bc86070`.
+**Evidência GREEN:** jest 16/16.
 
-- [x] Em `parseDiscordAnnouncement`: se `body.trim() === ''` E `extractBodyFromEmbeds(embeds) === ''` → return `null`, mesmo para starters.
-- [x] Em `createOrUpdateDraftFromMessage`: quando parser retorna `null`, marcar mensagem com `status='ignored'`; campo `empty_reason` permanece para a Fase 2, quando a coluna existir.
-- [x] Re-rodar teste, observar GREEN. Evidência: `npm --prefix backend test -- parseDiscordAnnouncement` passou 9/9.
+### T-F1-05 — Implementação no parser — **DONE**
 
-### T-F1-06 — Frontend: badge consistente
+- [x] Em `parseDiscordAnnouncement.ts`: substituído `if (!body.trim() && !isThreadStarter(message)) return null;` por `if (!body.trim()) return null;`. Função `isThreadStarter` removida (sem mais usos).
+- [x] **Não foi necessário** modificar `createOrUpdateDraftFromMessage` para `status='ignored'` nesta fase — o handler atual já trata `parsed === null` como ignorado por design da feature 015. Fase 2 introduzirá `empty_reason` na coluna conforme `plan.md`.
 
-- [x] Em `DiscordDraftPreview` e na lista (`DiscordDraftReviewTable`): badge "Pronto" só quando `missing_fields.length===0`. Caso contrário "Revisar". O número (44%) vira indicador secundário, não substitui o status.
-- [x] Validação: `npm --prefix frontend run build` GREEN.
+**Commit:** `bc86070`.
+**Evidência GREEN:** mesmos 16 testes; tsc --noEmit GREEN.
 
-### T-F1-07 — Migration + smoke
+### T-F1-06 — Frontend: badge consistente — **DONE**
 
-- [ ] Executar migration 118 em Beta.
-- [ ] Smoke: rodar T-F0-05 novamente; constraint deve impedir inserção/atualização inválida.
+- [x] `DiscordDraftReviewTable.tsx`: helper `isReady(draft)` cruza `status='ready'` com `missing_fields=[]`. Badge da lista mostra "Revisar" para drafts em drift (defensivo, mesmo com constraint o backend pode emitir status desatualizado durante reload). `readyCount` do botão "Sincronizar todos prontos (N)" usa o mesmo gate.
+- [x] `DiscordDraftPreview.tsx`: cabeçalho mostra "Pronto" só quando `canSync === true`; drafts em drift recebem badge âmbar `({n} pendência{s})`. Confidence numérica continua presente como indicador secundário.
 
-### T-F1-08 — Validação final
+**Commit:** `41fa8bd`.
+**Evidência GREEN:** `npx tsc --noEmit` frontend GREEN; build dependency satisfeito no Deploy Beta job `deploy-app` (TypeScript check passou).
 
-- [ ] Rodar invariante Fase 1 (plan §6) — esperado: 0.
+### T-F1-07 — Migration + smoke deploy — **DONE**
 
-### Invariante Fase 1
+- [x] Constraint efetivamente aplicada via CI: Deploy Beta run `25674237745` job `migrate` GREEN. Job posterior do smoke detectou um bug do próprio smoke (content_hash NOT NULL omitido), corrigido em `bc8a9f0`. Re-deploy run `25674367757` GREEN em todos os jobs.
+- [x] Workflow `_smoke-discord.yml` agora ativo entre `migrate` e `deploy-app`, validando JSONB roundtrip (BUG-004) e presença da constraint (E166).
+
+**Commits:** `9f7861c` (smoke workflow inicial), `bc8a9f0` (fix content_hash).
+**Evidência GREEN:** Deploy Beta `25674367757` — todos os jobs verdes; constraint presente; smoke discord verde.
+
+### T-F1-08 — Validação final no banco-alvo (E166) — **DONE**
+
+- [x] Snapshot pós-deploy executado via `ssh ... docker exec mesas-beta-db psql ...` em 2026-05-11 13:54 UTC.
+
+**Evidência GREEN (output literal):**
+
+```
+ready_dirty                                = 0
+constraint discord_drafts_ready_requires_no_missing  presente (contype='c')
+msgs_total=194 | with_body=189 | parsed=189 | ignored=5
+drafts: ready=111 | needs_review=78
+embeds: array=194 (100%)
+Beta root: HTTP 200
+Beta /api/v1/health: HTTP 200
+```
+
+### T-F1-09 — Smoke test workflow pós-deploy automatizado — **DONE**
+
+- [x] `.github/workflows/_smoke-discord.yml` criado como `workflow_call` reusável.
+- [x] Validações ativas:
+  1. INSERT em transação ROLLBACK com `embeds=[obj]` e `attachments=[obj]` — anti-regressão BUG-004 (serialização JSONB).
+  2. `pg_constraint` confirma presença da constraint da migration 118.
+  3. UPDATE drift em transação ROLLBACK exercita a constraint quando há draft candidato.
+- [x] `deploy-beta.yml` atualizado: `deploy-app: needs: [migrate, smoke-discord]`. Falha do smoke bloqueia deploy.
+
+**Commits:** `9f7861c`, `bc8a9f0`.
+**Evidência GREEN:** Deploy Beta `25674367757` job `smoke-discord` verde em 9s.
+
+### Invariante Fase 1 — todos GREEN
 
 ```sql
 SELECT count(*) FROM discord_import_table_drafts
  WHERE status='ready' AND COALESCE(jsonb_array_length(normalized_payload->'missing_fields'),0)>0;
--- Esperado: 0
+-- Output literal: 0
 
-SELECT count(*) FROM discord_import_messages m
- WHERE length(m.content_raw)=0 AND COALESCE(jsonb_typeof(m.embeds::jsonb),'object')='object'
-   AND EXISTS (SELECT 1 FROM discord_import_table_drafts d WHERE d.discord_message_id=m.id);
--- Esperado: 0
+SELECT conname FROM pg_constraint
+ WHERE conname='discord_drafts_ready_requires_no_missing';
+-- Output literal: discord_drafts_ready_requires_no_missing
 ```
 
 ---

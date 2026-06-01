@@ -65,8 +65,8 @@ describe('PATCH /admin/discord-sync/drafts/:id', () => {
             .send({ status: 'ready' });
         expect(response.status).toBe(422);
         expect(response.body).toEqual({
-            error: 'Draft não pode ser marcado como pronto enquanto houver campos obrigatórios pendentes.',
-            details: { missingFields: ['day_of_week'] },
+            error: "Draft ainda tem 1 campo(s) faltando (day_of_week); não pode ser marcado como 'ready'.",
+            details: { missing_fields: ['day_of_week'] },
         });
         expect(mockDb.updateTable).not.toHaveBeenCalled();
     });

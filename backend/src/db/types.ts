@@ -515,6 +515,13 @@ export type DiscordImportSourceKind = 'discord_bot' | 'discord_chat_exporter_jso
 export type DiscordSourceChannelType = 'text' | 'announcement' | 'forum';
 export type DiscordImportMessageStatus = 'pending' | 'parsed' | 'needs_review' | 'synced' | 'ignored' | 'error';
 export type DiscordImportDraftStatus = 'draft' | 'ready' | 'needs_review' | 'synced' | 'rejected';
+export type DiscordImageUploadStatus =
+  | 'pending'
+  | 'success'
+  | 'expired_url'
+  | 'network'
+  | 'cloudinary'
+  | 'permanent_fail';
 
 export interface DiscordImportSourcesTable {
   id: Generated<string>;
@@ -572,6 +579,10 @@ export interface DiscordImportTableDraftsTable {
   confidence: number | null;
   status: Generated<DiscordImportDraftStatus>;
   review_notes: string | null;
+  image_upload_status: DiscordImageUploadStatus | null;
+  image_upload_attempts: Generated<number>;
+  image_upload_last_error: string | null;
+  image_upload_last_at: Date | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
