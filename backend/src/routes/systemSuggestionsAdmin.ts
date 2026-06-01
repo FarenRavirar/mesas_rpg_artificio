@@ -458,6 +458,27 @@ router.patch('/system-suggestions/:id/reject', async (req: Request, res: Respons
   }
 });
 
+// Insere aliases em system_aliases, deduplicando por slug e ignorando conflitos.
+async function insertSystemAliases(
+  trx: Transaction<Database>,
+  systemId: string,
+  aliases: Array<string | null | undefined>,
+): Promise<void> {
+  const seen = new Set<string>();
+  for (const raw of aliases) {
+    const alias = typeof raw === 'string' ? raw.trim() : '';
+    if (!alias) continue;
+    const aliasSlug = slugify(alias);
+    if (!aliasSlug || seen.has(aliasSlug)) continue;
+    seen.add(aliasSlug);
+    await trx
+      .insertInto('system_aliases')
+      .values({ system_id: systemId, alias, alias_slug: aliasSlug, is_official: false })
+      .onConflict((oc) => oc.columns(['system_id', 'alias_slug']).doNothing())
+      .execute();
+  }
+}
+
 // POST /api/v1/admin/system-suggestions/:id/resolve - Resolver sugestão (alias/edição/variante/mescla/sistema novo/rejeição)
 router.post('/system-suggestions/:id/resolve', async (req: Request, res: Response) => {
   const { id } = req.params;
@@ -469,6 +490,9 @@ router.post('/system-suggestions/:id/resolve', async (req: Request, res: Respons
 
   const body = (req.body ?? {}) as Record<string, unknown>;
   const resolutionType = typeof body.resolution_type === 'string' ? body.resolution_type : '';
+  const extraAliases = Array.isArray(body.aliases)
+    ? body.aliases.filter((a): a is string => typeof a === 'string')
+    : [];
 
   if (!VALID_RESOLUTION_TYPES.has(resolutionType)) {
     return res.status(400).json({
@@ -907,19 +931,7 @@ router.post('/system-suggestions/:id/resolve', async (req: Request, res: Respons
         .returning(['id', 'name', 'path_slug'])
         .executeTakeFirstOrThrow();
 
-      if (suggestion.aliases && suggestion.aliases.length > 0) {
-        for (const alias of suggestion.aliases) {
-          await trx
-            .insertInto('system_aliases')
-            .values({
-              system_id: newSystem.id,
-              alias,
-              alias_slug: slugify(alias),
-              is_official: false,
-            })
-            .execute();
-        }
-      }
+      await insertSystemAliases(trx, newSystem.id, [...(suggestion.aliases ?? []), ...extraAliases]);
 
       // Edição específica opcional: cria um nó edition sob a nova raiz no mesmo ato.
       let createdNode: { id: string; name: string; path_slug: string | null } = newSystem;

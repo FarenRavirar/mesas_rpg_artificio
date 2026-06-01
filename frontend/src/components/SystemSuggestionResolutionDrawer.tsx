@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import { TagInput } from './TagInput';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -141,6 +142,7 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
   const [childNodeType, setChildNodeType] = useState<'edition' | 'variant' | 'subsystem'>('edition');
   const [name, setName] = useState(suggestion.name);
   const [editionName, setEditionName] = useState('');
+  const [aliases, setAliases] = useState<string[]>([]);
   const [namePt, setNamePt] = useState('');
   const [description, setDescription] = useState(suggestion.description ?? '');
   const [aliasText, setAliasText] = useState(suggestion.name);
@@ -263,6 +265,7 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
           name: name.trim(),
           name_pt: namePt.trim() || undefined,
           description: description.trim() || undefined,
+          aliases: aliases.length > 0 ? aliases : undefined,
           notes: notes.trim() || undefined,
         };
       case 'create_system':
@@ -272,6 +275,7 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
           name_pt: namePt.trim() || undefined,
           description: description.trim() || undefined,
           edition_name: editionName.trim() || undefined,
+          aliases: aliases.length > 0 ? aliases : undefined,
           notes: notes.trim() || undefined,
           force: forceNew || undefined,
         };
@@ -555,6 +559,17 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                 />
+              </label>
+              <label className="block">
+                <span className="text-white/70 text-sm">Apelidos (opcional)</span>
+                <TagInput
+                  value={aliases}
+                  onChange={setAliases}
+                  placeholder="Digite e Enter (ex.: M&M, Mutantes & Malfeitores)"
+                />
+                <span className="text-white/40 text-xs mt-1 block">
+                  Nomes alternativos PT/EN, siglas e variações. Enter ou vírgula adiciona.
+                </span>
               </label>
             </>
           )}
