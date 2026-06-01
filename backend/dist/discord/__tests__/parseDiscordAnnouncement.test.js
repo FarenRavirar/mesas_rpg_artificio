@@ -367,6 +367,22 @@ describe('parseDiscordAnnouncement', () => {
         expect(draft?.missing_fields).toContain('system_name:unmatched_hint');
         expect(draft?.table.raw_system_hint).not.toBe('Forgotten Realms');
     });
+    it('preserves unknown systems from the thread title when the body has no explicit system field', () => {
+        const draft = (0, parseDiscordAnnouncement_1.parseDiscordAnnouncement)(makeMessage({
+            discord_thread_name: 'Shadowdark: Torre da Lua',
+            content_raw: [
+                '▬ Data & Horário:',
+                '- Sextas-feiras das 18h às 21h',
+                '▬ Vagas Totais: 6',
+                '▬ Vagas Disponíveis: 6',
+                'Contato: https://forms.gle/example',
+            ].join('\n'),
+        }), [{ id: 'dnd', name: 'Dungeons & Dragons', name_pt: null, aliases: ['D&D'] }]);
+        expect(draft?.table.title).toBe('Torre da Lua');
+        expect(draft?.table.system_name).toBe('Shadowdark');
+        expect(draft?.table.raw_system_hint).toBe('Shadowdark');
+        expect(draft?.missing_fields).toContain('system_name:unmatched_hint');
+    });
     it('strips parenthetical notes from unknown system hints (spec 017 T-F1-B-01)', () => {
         const draft = (0, parseDiscordAnnouncement_1.parseDiscordAnnouncement)(makeMessage({
             discord_thread_name: 'Pokémon: Jornada em Kanto',

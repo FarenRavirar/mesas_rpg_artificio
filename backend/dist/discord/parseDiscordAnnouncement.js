@@ -381,7 +381,7 @@ function parseDiscordAnnouncement(message, systems = []) {
     const threadParts = splitThreadName(threadName || body.split('\n')[0] || 'Mesa sem título');
     const explicitTitle = normalizeTitle(extractLabelValue(body, ['mesa', 'titulo', 'título', 'nome da mesa', 'aventura']));
     const explicitSystem = normalizeTitle(extractLabelValue(body, ['sistema', 'jogo', 'rpg']));
-    const systemHint = explicitSystem ?? (body.trim() ? null : threadParts.systemHint);
+    const systemHint = explicitSystem ?? threadParts.systemHint;
     const title = explicitTitle ?? threadParts.title;
     // Detecção de sistema via banco de dados
     let matchedSystem = null;
@@ -395,7 +395,7 @@ function parseDiscordAnnouncement(message, systems = []) {
         if (!matchedSystem && !systemHint)
             matchedSystem = matchSystem(fullText, systems);
     }
-    const systemName = matchedSystem?.system.name ?? explicitSystem ?? null;
+    const systemName = matchedSystem?.system.name ?? systemHint ?? null;
     const systemId = matchedSystem?.system.id ?? null;
     // Preserva o hint bruto quando não há correspondência: usado para criar
     // system_suggestion automática e para o revisor ver o que veio do Discord.

@@ -30,6 +30,9 @@ const discordThreadSchema = z.object({
   parent_id: z.string().nullable().optional(),
   name: z.string().nullable().optional(),
   archived: z.boolean().optional(),
+  thread_metadata: z.object({
+    archive_timestamp: z.string().nullable().optional(),
+  }).optional(),
 });
 
 const discordActiveThreadsSchema = z.object({
@@ -291,7 +294,7 @@ async function persistMessages(params: {
   return { inserted: toInsert.length, updated: toUpdate.length, total: messages.length, newestMessageId };
 }
 
-async function listForumThreads(params: {
+export async function listForumThreads(params: {
   guildId: string;
   forumChannelId: string;
   token: string;
@@ -302,17 +305,35 @@ async function listForumThreads(params: {
     throw new DiscordIngestError('Discord retornou threads ativas em formato inesperado.', 502);
   }
 
-  const archivedPayload = await discordGetUnknown(`/channels/${encodeURIComponent(params.forumChannelId)}/threads/archived/public?limit=50`, params.token);
-  const archivedParsed = discordArchivedThreadsSchema.safeParse(archivedPayload);
-  if (!archivedParsed.success) {
-    throw new DiscordIngestError('Discord retornou threads arquivadas em formato inesperado.', 502);
+  const archivedThreads: DiscordApiThread[] = [];
+  let before: string | null = null;
+
+  for (let page = 0; page < 20; page += 1) {
+    const qs = new URLSearchParams({ limit: '100' });
+    if (before) qs.set('before', before);
+
+    const archivedPayload = await discordGetUnknown(
+      `/channels/${encodeURIComponent(params.forumChannelId)}/threads/archived/public?${qs}`,
+      params.token
+    );
+    const archivedParsed = discordArchivedThreadsSchema.safeParse(archivedPayload);
+    if (!archivedParsed.success) {
+      throw new DiscordIngestError('Discord retornou threads arquivadas em formato inesperado.', 502);
+    }
+
+    archivedThreads.push(...archivedParsed.data.threads);
+    if (!archivedParsed.data.has_more || archivedParsed.data.threads.length === 0) break;
+
+    const lastThread = archivedParsed.data.threads[archivedParsed.data.threads.length - 1];
+    before = lastThread.thread_metadata?.archive_timestamp ?? getSnowflakeCreatedAt(lastThread.id)?.toISOString() ?? null;
+    if (!before) break;
   }
 
   const byId = new Map<string, DiscordApiThread>();
   for (const thread of activeParsed.data.threads) {
     if (thread.parent_id === params.forumChannelId) byId.set(thread.id, thread);
   }
-  for (const thread of archivedParsed.data.threads) {
+  for (const thread of archivedThreads) {
     byId.set(thread.id, thread);
   }
 

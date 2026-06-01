@@ -111,6 +111,9 @@
 - Saneamento Beta aprovado pelo mantenedor e executado: `UPDATE 8` mesas ativas com `banner_url`/`cover_url` de Discord CDN para `NULL`; invariante pós-UPDATE `discord_cdn_tables=0`. Validação local do hotfix: `npm --prefix backend test -- publicImageUrl` GREEN e `npm --prefix backend run build` GREEN.
 - Preparação de publicação em Produção solicitada em 2026-06-01: executar checklist pré-deploy, comparar `origin/dev` → `origin/main`, validar testes locais/CI/Beta/rotas críticas e só promover via PR `dev` → `main` após aprovação explícita do mantenedor.
 - Checklist pré-deploy encontrou divergência E146: `deploy-beta.yml` tinha `cancel-in-progress: true`, mas `PRE_DEPLOY_CHECKLIST.md` exige `false`; corrigido em branch `feat/019-prod-readiness-checklist` antes de qualquer promoção para Produção.
+- PR #149 mergeado em `dev`; Deploy Beta `26758832853` GREEN. PR #150 `dev` -> `main` criado; checks GREEN, preflight `ATTENTION` por 5 migrations pendentes em Produção (`115`, `116`, `117`, `118`, `122`), sem drift fatal e com todas já aplicadas no Beta.
+- Validações pré-publicação: backend Jest 54/54 GREEN; backend build GREEN; frontend build GREEN; frontend Vitest 4/4 GREEN; Beta rotas `/`, `/health`, `/tables?limit=1`, `/systems?view=tree` e mesa Strahd HTTP 200; OAuth Beta/Prod HTTP 302 para Google; frontends Prod/Beta `healthy`; containers Beta ativos.
+- Antes de promover Produção, reviews do PR #150 trouxeram 3 ajustes: salt criptográfico por valor em `settingsCrypto`, paginação de tópicos arquivados Discord e preservação de `systemHint` do título. Correções aplicadas em `feat/020-prod-review-fixes`; validação alvo `npm --prefix backend test -- ingestMessages settingsCrypto parseDiscordAnnouncement` GREEN (36/36) e backend build GREEN.
 
 ### Evidência T-F1-A-02 — RED
 
