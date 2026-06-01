@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DiscordIngestError = void 0;
+exports.listForumThreads = listForumThreads;
 exports.ingestMessages = ingestMessages;
 exports.ingestForumMessages = ingestForumMessages;
 const node_crypto_1 = __importDefault(require("node:crypto"));
@@ -32,6 +33,9 @@ const discordThreadSchema = zod_1.z.object({
     parent_id: zod_1.z.string().nullable().optional(),
     name: zod_1.z.string().nullable().optional(),
     archived: zod_1.z.boolean().optional(),
+    thread_metadata: zod_1.z.object({
+        archive_timestamp: zod_1.z.string().nullable().optional(),
+    }).optional(),
 });
 const discordActiveThreadsSchema = zod_1.z.object({
     threads: zod_1.z.array(discordThreadSchema),
@@ -229,17 +233,31 @@ async function listForumThreads(params) {
     if (!activeParsed.success) {
         throw new DiscordIngestError('Discord retornou threads ativas em formato inesperado.', 502);
     }
-    const archivedPayload = await discordGetUnknown(`/channels/${encodeURIComponent(params.forumChannelId)}/threads/archived/public?limit=50`, params.token);
-    const archivedParsed = discordArchivedThreadsSchema.safeParse(archivedPayload);
-    if (!archivedParsed.success) {
-        throw new DiscordIngestError('Discord retornou threads arquivadas em formato inesperado.', 502);
+    const archivedThreads = [];
+    let before = null;
+    for (let page = 0; page < 20; page += 1) {
+        const qs = new URLSearchParams({ limit: '100' });
+        if (before)
+            qs.set('before', before);
+        const archivedPayload = await discordGetUnknown(`/channels/${encodeURIComponent(params.forumChannelId)}/threads/archived/public?${qs}`, params.token);
+        const archivedParsed = discordArchivedThreadsSchema.safeParse(archivedPayload);
+        if (!archivedParsed.success) {
+            throw new DiscordIngestError('Discord retornou threads arquivadas em formato inesperado.', 502);
+        }
+        archivedThreads.push(...archivedParsed.data.threads);
+        if (!archivedParsed.data.has_more || archivedParsed.data.threads.length === 0)
+            break;
+        const lastThread = archivedParsed.data.threads[archivedParsed.data.threads.length - 1];
+        before = lastThread.thread_metadata?.archive_timestamp ?? getSnowflakeCreatedAt(lastThread.id)?.toISOString() ?? null;
+        if (!before)
+            break;
     }
     const byId = new Map();
     for (const thread of activeParsed.data.threads) {
         if (thread.parent_id === params.forumChannelId)
             byId.set(thread.id, thread);
     }
-    for (const thread of archivedParsed.data.threads) {
+    for (const thread of archivedThreads) {
         byId.set(thread.id, thread);
     }
     return [...byId.values()].sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '', 'pt-BR'));
