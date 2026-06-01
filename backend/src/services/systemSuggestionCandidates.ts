@@ -12,6 +12,8 @@ export interface NormalizedSystemName {
   normalized: string;
   /** Nome base normalizado sem tokens/palavras de edicao nem sufixo generico. */
   base: string;
+  /** Chaves de comparacao tolerantes: compacta, sigla e variacao &/and/n. */
+  matchKeys: string[];
   /** Tokens de edicao detectados, ex.: ['5a', '2024'], ['1.3'], ['2e']. */
   editionTokens: string[];
   /** Slug do nome base. */
@@ -90,6 +92,22 @@ function isEditionToken(token: string): boolean {
   );
 }
 
+function buildMatchKeys(base: string): string[] {
+  if (!base) return [];
+  const tokens = base.split(/\s+/).filter(Boolean);
+  const keys = new Set<string>();
+  const compact = tokens.join('');
+  if (compact) keys.add(compact);
+
+  const compactWithN = tokens.map((token) => (token === 'and' ? 'n' : token)).join('');
+  if (compactWithN) keys.add(compactWithN);
+
+  const acronym = tokens.map((token) => (token === 'and' ? 'n' : token[0] ?? '')).join('');
+  if (acronym.length > 1) keys.add(acronym);
+
+  return [...keys];
+}
+
 export function normalizeSystemName(raw: unknown): NormalizedSystemName {
   const original = typeof raw === 'string' ? raw : '';
 
@@ -106,7 +124,10 @@ export function normalizeSystemName(raw: unknown): NormalizedSystemName {
     .trim();
 
   const normalized = cleaned;
-  const tokens = normalized.split(/[\s-]+/).filter(Boolean);
+  const tokens = normalized
+    .split(/[\s-]+/)
+    .map((token) => token.replace(/^\.+|\.+$/g, ''))
+    .filter(Boolean);
 
   const editionTokens: string[] = [];
   const baseTokens: string[] = [];
@@ -127,8 +148,9 @@ export function normalizeSystemName(raw: unknown): NormalizedSystemName {
 
   const base = baseTokens.join(' ').trim();
   const slug = base.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const matchKeys = buildMatchKeys(base);
 
-  return { raw: original, normalized, base, editionTokens, slug };
+  return { raw: original, normalized, base, matchKeys, editionTokens, slug };
 }
 
 function levenshtein(a: string, b: string): number {
@@ -159,6 +181,15 @@ function similarity(a: string, b: string): number {
 }
 
 const round2 = (value: number): number => Math.round(value * 100) / 100;
+
+function sharesMatchKey(a: NormalizedSystemName, b: NormalizedSystemName): boolean {
+  if (a.base && a.base === b.base) return true;
+  const bKeys = new Set(b.matchKeys);
+  for (const key of a.matchKeys) {
+    if (bKeys.has(key)) return true;
+  }
+  return false;
+}
 
 interface ScoredMatch {
   score: number;
@@ -192,7 +223,7 @@ function scoreOne(
       continue;
     }
     // 2. Mesma base.
-    if (suggestion.base && suggestion.base === field.value.base) {
+    if (suggestion.base && sharesMatchKey(suggestion, field.value)) {
       if (suggestion.editionTokens.length > 0) {
         consider({ score: 0.85, reasons: ['base_plus_edition'] });
       } else {
@@ -253,6 +284,8 @@ export function scoreSystemCandidates(
   let recommended_action: RecommendedAction;
   if (!best) {
     recommended_action = 'create_system';
+  } else if (best.reasons.includes('base_plus_edition')) {
+    recommended_action = 'create_child';
   } else if (best.score >= 0.97) {
     recommended_action = 'merge_existing';
   } else if (best.score >= 0.7) {

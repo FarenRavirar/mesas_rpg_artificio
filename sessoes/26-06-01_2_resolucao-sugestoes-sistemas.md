@@ -159,3 +159,58 @@ Evidencias:
 Pendente:
 - Commit/push/deploy Beta somente apos aprovacao explicita por acao.
 - Validacao funcional conclusiva continua sendo teste do mantenedor no Beta em janela anonima apos deploy.
+
+## Deploy Beta - clareza de contexto no drawer (autorizado pelo mantenedor, 01/06)
+
+- Commit `def29f2` criado em `dev`: `feat(018): mostra contexto ao resolver sugestao de sistema`.
+- Push `origin dev` concluido.
+- **Deploy Beta run `26787673936` GREEN**:
+  - `validate`: GREEN.
+  - `enforce-dir`: GREEN.
+  - `lint`: GREEN.
+  - `migrate`: GREEN.
+  - `smoke-discord`: GREEN.
+  - `deploy-app`: GREEN.
+  - `smoke`: GREEN.
+- `git status` pos-push antes da atualizacao documental: branch `dev...origin/dev`, limpa.
+- `project-state.md` atualizado localmente com o novo commit/run.
+
+Pendente pos-deploy:
+- Validacao funcional do mantenedor em janela anonima no Beta.
+- Commit/push das atualizacoes documentais pos-deploy exigem nova aprovacao explicita por acao.
+
+## Retomada SDD Lite - inteligencia de candidato base + edicao (01/06)
+
+Problema reportado pelo mantenedor no Beta: sugestao `D&D 5e 2014.` foi apresentada como `Sugerido: Criar sistema novo`, sem candidato similar. O esperado e reconhecer `D&D`/`dnd` como sistema existente e induzir resolucao como edicao/variante/subsistema, nao raiz nova.
+
+Hipotese inicial:
+- Normalizador detecta `2014` como token de edicao, mas nao `2014.` com ponto final vindo do parser.
+- Recomendacao atual para `base_plus_edition` cai em `create_alias`; para nomes com base existente + tokens de edicao deveria recomendar `create_child`.
+
+Plano:
+- [x] Criar teste RED para `D&D 5e 2014.` com alias `D&D`, esperando candidato `Dungeons & Dragons` e `recommended_action=create_child`.
+- [x] Ajustar normalizacao de pontuacao terminal sem quebrar versoes `1.3`.
+- [x] Ajustar recomendacao de `base_plus_edition` para `create_child`.
+- [x] Rodar teste focado, build backend e build frontend se contrato exibido afetar UI.
+
+Arquivos provaveis:
+- `backend/src/services/systemSuggestionCandidates.ts`
+- `backend/src/services/__tests__/systemSuggestionCandidates.test.ts`
+
+Implementacao:
+- `normalizeSystemName` agora remove pontuacao terminal de tokens (`2014.` -> `2014`) sem quebrar versoes pontuadas (`1.3`).
+- `normalizeSystemName` cria `matchKeys` tolerantes para compacto/sigla (`Dungeons & Dragons`, `D&D`, `DnD` -> chave `dnd`).
+- `scoreOne` considera equivalencia por `matchKeys` alem de base literal.
+- `scoreSystemCandidates` recomenda `create_child` quando a razao do melhor candidato inclui `base_plus_edition`.
+- `SystemSuggestionResolutionDrawer` reconhece `recommended_action=create_child` e preseleciona o pai quando o candidato e raiz ou quando o candidato tem pai no catalogo local.
+
+Evidencias:
+- RED confirmado: `npm --prefix backend test -- systemSuggestionCandidates` falhou para `D&D 5e 2014.` com zero candidatos.
+- GREEN: `npm --prefix backend test -- systemSuggestionCandidates` (15/15).
+- GREEN: `npm --prefix backend run build`.
+- GREEN: `npm --prefix frontend run build` (aviso nao bloqueante de chunk >500 kB).
+- `git diff --check`: sem erros; apenas avisos EOL LF/CRLF.
+- URL reportada `http://mesabeta.artificiorpg.com`: `nslookup` sem registro A/AAAA. URL canonica `https://mesasbeta.artificiorpg.com/`: HTTP 200; `/api/v1/health`: HTTP 200.
+
+Pendente:
+- Commit/push/deploy da correcao de inteligencia somente apos aprovacao explicita por acao.

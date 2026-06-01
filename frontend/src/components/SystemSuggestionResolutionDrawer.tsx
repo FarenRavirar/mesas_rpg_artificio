@@ -291,6 +291,7 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
           // Pré-seleciona a acao recomendada e o melhor candidato.
           if (rec === 'merge_existing') setResolutionType('merge_existing');
           else if (rec === 'create_alias') setResolutionType('create_alias');
+          else if (rec === 'create_child') setResolutionType('create_child');
           else if (rec === 'create_system') setResolutionType('create_system');
           if (cands[0]) {
             setTargetSystemId(cands[0].system_id);
@@ -341,6 +342,17 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
     }
     return map;
   }, [systems]);
+
+  useEffect(() => {
+    if (recommended !== 'create_child' || parentId || candidates.length === 0 || systems.length === 0) return;
+    const candidate = systemById.get(candidates[0].system_id);
+    if (!candidate) return;
+    if (candidate.node_type === 'system') {
+      setParentId(candidate.id);
+    } else if (candidate.parent_id) {
+      setParentId(candidate.parent_id);
+    }
+  }, [recommended, parentId, candidates, systems, systemById]);
 
   // Pais validos por tipo de filho (espelha VALID_PARENT do backend).
   const validParents = useMemo(() => {

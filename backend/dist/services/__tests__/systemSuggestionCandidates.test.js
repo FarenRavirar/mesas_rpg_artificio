@@ -65,11 +65,17 @@ describe('scoreSystemCandidates', () => {
         expect(r.candidates[0].reasons).toContain('name_exact');
         expect(r.recommended_action).toBe('merge_existing');
     });
-    it('flags base + edition token (CAIN 1.3) against the existing root, recommends alias not new system', () => {
+    it('flags base + edition token (CAIN 1.3) against the existing root, recommends child not new system', () => {
         const r = (0, systemSuggestionCandidates_1.scoreSystemCandidates)('CAIN 1.3', SYSTEMS, ALIASES);
         expect(r.candidates[0].system_id).toBe('cain');
         expect(r.candidates[0].reasons).toContain('base_plus_edition');
-        expect(r.recommended_action).toBe('create_alias');
+        expect(r.recommended_action).toBe('create_child');
+    });
+    it('recognizes D&D 5e 2014. as edition context of existing Dungeons & Dragons, not a new root', () => {
+        const r = (0, systemSuggestionCandidates_1.scoreSystemCandidates)('D&D 5e 2014.', SYSTEMS, [{ system_id: 'dd', alias: 'DnD' }]);
+        expect(r.candidates[0].system_id).toBe('dd');
+        expect(r.candidates[0].reasons).toContain('base_plus_edition');
+        expect(r.recommended_action).toBe('create_child');
     });
     it('matches Pokemon RPG to existing Pokemon by base', () => {
         const r = (0, systemSuggestionCandidates_1.scoreSystemCandidates)('Pokémon RPG', SYSTEMS, ALIASES);
