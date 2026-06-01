@@ -1,6 +1,14 @@
 # Índice de Sessões
 
-Última atualização: 09/05/2026 BRT
+Última atualização: 31/05/2026 BRT
+
+---
+
+## 31/05/2026 (1 sessão)
+
+| # | Arquivo |
+|---|---|
+| 1 | `26-05-31_1_migracao-governanca-skills.md` |
 
 ---
 

@@ -1,7 +1,7 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-05-09T13:15:00-03:00
-**Atualizado por:** sessão 26-05-09_1_discord-pipeline-diagnostico
+**Última atualização:** 2026-06-01T00:20:00-03:00
+**Atualizado por:** sessão 26-05-31_1_migracao-governanca-skills
 ---
 
 ## Ambientes
@@ -15,11 +15,38 @@
 
 ## Estado Técnico Atual
 
+**Migração de governança/skills dos agentes (31/05/2026):**
+- Sessão dedicada aberta em `sessoes/26-05-31_1_migracao-governanca-skills.md`.
+- `AGENTS.md` foi enxugado para atuar como constituição operacional curta: regras pétreas, produto, segurança, dados, Git, deploy, validação Beta, normalização de fronteira e protocolo de sessão permanecem preservados.
+- Novo modelo operacional documentado em `docs/agents/operating-model.md`: Sem SDD, SDD Lite e SDD Completo, escolhidos por risco.
+- Nova matriz criada em `docs/agents/skill-decision-matrix.md`: `mattpocock/skills` como fluxo diário, `JuliusBrussee/caveman` para economia de contexto quando solicitado, `obra/superpowers` apenas como referência seletiva.
+- `docs/agents/context-capsule.md` criado como leitura mínima de retomada; nova sessão deve conseguir operar lendo `project-state.md`, `AGENTS.md` e o capsule.
+- `docs/agents/skill-stack.md` atualizado para apontar para o modelo operacional, matriz e capsule.
+- `.specify/integrations/agy.manifest.json` aposentado com `status: retired`; comandos `/speckit.*` permanecem como procedimentos documentais, não CLI nem skills locais ativas.
+- Referências a `.agent/skills`, `.agents/skills` e `.gemini/skills` permanecem apenas como histórico/desativação explícita; não são fonte ativa.
+- Revisão de prontidão operacional executada: regras de changelog visível, `pr-description.md`, fechamento via `/speckit.retro.run`/`session-log`, protocolo de erro conhecido e uso de `apply_patch` foram mantidos na leitura mínima.
+- Correção final de 01/06/2026: `.agent/workflows`, `.agents/rules`, `.agents/workflows`, `.gemini/default-rules.md` e `.gemini/workflows` foram aposentados/removidos para eliminar workflows/regras antigas apontando para skills removidas. `.gemini/default-rules.md` fica como tombstone rastreado; `.gemini/workflows` ficou sem workflows ativos/rastreados.
+- Último remanescente legado corrigido em 01/06/2026: `.agents/default-rules.md` foi convertido em tombstone curto apontando para `AGENTS.md` e `docs/agents/`, sem instruções operacionais antigas.
+- A aposentadoria do AGY é intencional: `.specify/integrations/agy.manifest.json` permanece com `status: retired`; `/speckit.*` é procedimento documental, não integração de skills ativa.
+- SDD Completo preserva preflight seletivo de governança: `.specify/memory/constitution.md`, `docs/sdd/SESSION_FAILURES_REGISTRY.md`, `docs/sdd/MAINTAINER_REVIEW_CHECKLIST.md` e, para análise/auditoria, `docs/sdd/analyze-governance-gate.md`.
+- Não houve alteração de código de produto, migrations, banco, deploy ou runtime.
+
+**Atualização operacional local — ambiente Codex (31/05/2026):**
+- Skills antigas do projeto desativadas removendo os diretórios ativos `.agent/skills`, `.agents/skills` e `.gemini/skills`.
+- Backup completo criado em `C:\Users\paulo\.codex\backups\skills-reform-20260531-174406`.
+- Skills pessoais instaladas em `C:\Users\paulo\.codex\skills`: coleção `mattpocock/skills` (sem `deprecated`/`in-progress`) + suíte atualizada `JuliusBrussee/caveman`.
+- Checkouts de referência atualizados em `C:\Users\paulo\.codex\vendor_imports\mattpocock-skills` (`aaf2453`) e `C:\Users\paulo\.codex\vendor_imports\caveman` (`655b7d9`).
+- `obra/superpowers` avaliado e mantido apenas como referência em `C:\Users\paulo\.codex\vendor_imports\superpowers` (`6fd4507`); não instalado como pacote ativo por sobrepor SDD/Matt e conflitar com gates locais de branch, commit e sessão.
+- Diretrizes novas documentadas em `docs/agents/skill-stack.md`, `docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md` e `docs/agents/domain.md`.
+- Plano executivo de migração criado e revisado em `docs/agents/migration-action-plan.md`, incluindo Fase 0 de preservação, invariantes que não podem ser perdidos, fases, riscos, rollback condicionado a aprovação, métricas e prompt para nova sessão.
+- Para o Codex carregar a nova lista, reiniciar o aplicativo/sessão.
+
 **Branch ativa:** `feat/015-discord-draft-pipeline` — Fase 0 do plan 016 entregue (BUG-004 corrigido, T-EXEC-1 GREEN, 189/194 mensagens com body, 111 drafts ready limpos, 0 drafts em drift).
 **Último commit em `origin/dev`:** `3baa605` — `docs(session): T-EXEC-1 GREEN após fix BUG-004 — evidência completa`
 
 **Feature ativa de remediação:** `specs/016-discord-pipeline-rebuild/` (substitui o estado anterior da feature 015 como objetivo do trabalho).
-**Sessão ativa:** `sessoes/26-05-09_2_discord-pipeline-fase-1-em-diante.md` (Fase 1+).
+**Sessão ativa de governança:** `sessoes/26-05-31_1_migracao-governanca-skills.md`.
+**Sessão ativa do pipeline Discord:** `sessoes/26-05-09_2_discord-pipeline-fase-1-em-diante.md` (Fase 1+).
 **Sessão de diagnóstico (encerrável):** `sessoes/26-05-09_1_discord-pipeline-diagnostico.md`.
 
 **Erros canônicos novos:** `E166` (evidência GREEN fabricada — regra anti-recorrência exige `SELECT` no banco-alvo após qualquer write em pipeline de import).
@@ -39,7 +66,7 @@
   - `embeds typeof = array` para 194/194 mensagens
 - **Decisão LLM (T-RES-1):** 9router (https://github.com/decolua/9router) na VM Oracle, primários `gpt-5.4` e `gemini-3.1-pro-preview`. Detalhes em `specs/016-discord-pipeline-rebuild/research-llm.md`.
 - **Decisão template Discord (T-RES-2):** Forum Guidelines + bot validador. Detalhes em `specs/016-discord-pipeline-rebuild/research-template.md`. Negociação com admin do Covil ainda pendente.
-- **Status:** Fase 0 (reset/backfill) **DONE**. Fase 1 (limpeza de invariantes via constraint + parser não-cria-draft-vazio) **READY** para iniciar.
+- **Status:** Fase 0 (reset/backfill) **DONE**. Fase 1 iniciada localmente em 01/06/2026: migration 118 criada em arquivo, guard 422 em `PATCH /drafts/:id`, parser bloqueando draft sem matéria-prima e UI usando "Pronto" apenas para `missing_fields=[]`. Aplicação em Beta, smoke com escrita e validação E166 via `SELECT` ainda dependem de aprovação explícita.
 
 **Decisões já fechadas (não perguntar de novo):**
 - Escopo α + β + γ + δ + ε
@@ -321,13 +348,13 @@
 **Spec 016 — Reconstrução do Pipeline Discord Sync (lidera roadmap):**
 
 1. ✅ **Fase 0 entregue (09/05/2026):** spec/plan/tasks/research, BUG-004 corrigido, T-EXEC-1 GREEN. Snapshot validado por `SELECT` (E166 obediente).
-2. **Próximo passo:** iniciar **Fase 1** detalhada em `sessoes/26-05-09_2_discord-pipeline-fase-1-em-diante.md`:
-   - Migration 118 com `CHECK CONSTRAINT` para `status='ready' ⇒ missing_fields=[]`.
-   - Guard em `PATCH /drafts/:id` que rejeita 422.
-   - Parser não cria draft sem matéria-prima (body + embeds vazios).
-   - UI: badge "Pronto" só com `missing=[]`.
-   - Smoke test pós-deploy automatizado (lição BUG-004).
-3. **Validação manual recomendada antes da Fase 1:** mantenedor revisa amostra de 5–10 dos 111 drafts ready no painel admin Beta para validar qualidade da extração.
+2. ✅ **Fase 1 local iniciada (01/06/2026):**
+   - Migration 118 criada em `database/migration_118_discord_drafts_invariant.sql`, ainda não aplicada em Beta.
+   - Guard em `PATCH /drafts/:id` retorna 422 quando `status='ready'` teria `missing_fields` pendente.
+   - Parser retorna `null` quando não há `content_raw` nem texto em embeds; fluxo existente marca mensagem como `ignored`.
+   - UI do Discord Sync mostra "Pronto" apenas para drafts `ready` com `missing_fields=[]`; confiança fica indicador secundário.
+   - Validação local GREEN: testes focados backend, build backend, build frontend e busca de consistência.
+3. **Próximo passo pendente de aprovação:** backup leve do banco Beta, aplicar migration 118, smoke com escrita controlada, re-rodar parse-batch e validar invariantes Fase 1 via `SELECT` no Beta.
 4. **Critério de fechamento:** spec 016 §9 itens 1, 4 e 6 atendidos; query de invariante GREEN em Beta após deploy.
 
 **Feature 015 — Importação de Posts de Fóruns Discord (status pré-016):**
@@ -405,9 +432,9 @@
 - Rollback explícito documentado para todas as ações
 - Validação: nenhum workflow será removido
 
-**Comandos disponíveis:**
+**Procedimentos documentais disponíveis (`/speckit.*`):**
 - `/speckit.status` — dashboard de estado SDD
-- `/speckit.plan` — gerar `plan.md` para feature específica
+- `/speckit.plan` — gerar `plan.md` para feature específica quando SDD Completo for necessário
 - `/speckit.tasks` — gerar/ajustar `tasks.md`
 - `/speckit.retro.run` — análise retrospectiva de sprint
 - `/speckit.bugfix.*` — correção estruturada de bugs
@@ -416,6 +443,8 @@
 - `/speckit.doctor` — diagnóstico de saúde do projeto
 - `/speckit.verify-tasks` — detecção de phantom completions
 - `/speckit.memorylint.run` — auditoria de governança
+
+Observação: `/speckit.*` é guia procedural do agente, não comando de shell nem skill local ativa.
 
 ---
 
