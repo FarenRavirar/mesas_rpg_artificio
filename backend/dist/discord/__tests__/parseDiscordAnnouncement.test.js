@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const parseDiscordAnnouncement_1 = require("../parseDiscordAnnouncement");
+const normalizeDiscordTableDraft_1 = require("../normalizeDiscordTableDraft");
 function makeMessage(overrides) {
     return {
         source_kind: 'discord_bot',
@@ -22,20 +23,32 @@ function makeMessage(overrides) {
     };
 }
 describe('parseDiscordAnnouncement', () => {
-    it('creates a reviewable draft from a forum starter with empty content using the thread name', () => {
+    it('returns null for forum starters without body and without text in embeds (T-F1-04)', () => {
         const draft = (0, parseDiscordAnnouncement_1.parseDiscordAnnouncement)(makeMessage({
             discord_message_id: '1499747163977027634',
             discord_channel_id: '1499747163977027634',
             discord_thread_id: '1499747163977027634',
             discord_thread_name: 'Forgotten Realms™: Uma Campanha Sandbox',
+            content_raw: '',
+            embeds: [],
+            attachments: [],
+        }));
+        expect(draft).toBeNull();
+    });
+    it('still extracts a draft when the body is empty but embeds carry text (T-F1-05)', () => {
+        const draft = (0, parseDiscordAnnouncement_1.parseDiscordAnnouncement)(makeMessage({
+            discord_thread_name: 'Dungeons & Dragons™: Deicídio',
+            content_raw: '',
+            embeds: [
+                {
+                    description: '▬ Sistema: Dungeons & Dragons\n▬ Vagas Totais: 4\nQuartas-feiras às 20h\nhttps://forms.gle/example',
+                },
+            ],
         }));
         expect(draft).not.toBeNull();
-        expect(draft?.table.title).toBe('Uma Campanha Sandbox');
-        expect(draft?.table.raw_system_hint).toBe('Forgotten Realms');
-        expect(draft?.table.system_name).toBeNull();
-        expect(draft?.missing_fields).toEqual(expect.arrayContaining(['system_name:unmatched_hint', 'description', 'contact_url']));
+        expect(draft?.table.title).toBe('Deicídio');
     });
-    it('creates drafts for real Covil forum starter titles even when only the thread name is available', () => {
+    it('returns null for the full batch of empty-content Covil starters (T-F1-04 batch)', () => {
         const titles = [
             'Forgotten Realms™: Uma Campanha Sandbox',
             'Dungeons & Dragons™: Deicídio',
@@ -56,23 +69,10 @@ describe('parseDiscordAnnouncement', () => {
             discord_thread_id: `starter-${index}`,
             discord_thread_name: threadName,
             content_raw: '',
+            embeds: [],
         })));
         expect(drafts).toHaveLength(12);
-        expect(drafts.every(Boolean)).toBe(true);
-        expect(drafts.map((draft) => draft?.table.title)).toEqual([
-            'Uma Campanha Sandbox',
-            'Deicídio',
-            'A Libertação de Valkaria',
-            'Legends of the Outer Planes',
-            'Lucro, Ossos e Reputação',
-            'O Último Manuscrito',
-            'Wrath of the River King',
-            'The Awakeking: Pó de Osso e Água de Poço',
-            'Dragons Delves',
-            'Dragon Heist + Dungeon of the Mad Mage',
-            'Rise and Fall of Vecna',
-            'Chains of Asmodeus',
-        ]);
+        expect(drafts.every((d) => d === null)).toBe(true);
     });
     it('extracts structured table fields from announcement text', () => {
         const draft = (0, parseDiscordAnnouncement_1.parseDiscordAnnouncement)(makeMessage({
@@ -130,6 +130,192 @@ describe('parseDiscordAnnouncement', () => {
         expect(draft?.table.start_time).toBe('21:00');
         expect(draft?.missing_fields).not.toContain('slots_total');
     });
+    it('extracts canonical total and open slots without ambiguity (spec 017 T-F1-A-02)', () => {
+        const draft = (0, parseDiscordAnnouncement_1.parseDiscordAnnouncement)(makeMessage({
+            content_raw: [
+                '▬ **Sistema:** Dungeons & Dragons',
+                '▬ **Data & Horários:** Quartas-feiras das 21h às 00h',
+                '▬ **Vagas Totais:** 6',
+                '▬ **Vagas Disponíveis:** 0',
+                'Contato: https://forms.gle/example',
+            ].join('\n'),
+        }));
+        expect(draft?.table.slots_total).toBe(6);
+        expect(draft?.table.slots_open).toBe(0);
+        expect(draft?.table._slots_ambiguity).toBeNull();
+    });
+    it('keeps slash slots ambiguous when Covil writes Vagas: 0/6 (spec 017 T-F1-A-02)', () => {
+        const draft = (0, parseDiscordAnnouncement_1.parseDiscordAnnouncement)(makeMessage({
+            content_raw: [
+                '▬ **Sistema:** Dungeons & Dragons',
+                '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+                '▬ **Vagas:** 0/6',
+                'Contato: https://forms.gle/example',
+            ].join('\n'),
+        }));
+        expect(draft?.table.slots_total).toBe(6);
+        expect(draft?.table.slots_open).toBeNull();
+        expect(draft?.table._slots_ambiguity).toEqual({ first: 0, second: 6, source: 'x_slash_y' });
+    });
+    it('keeps slash slots ambiguous even when both numbers match (spec 017 T-F1-A-02)', () => {
+        const draft = (0, parseDiscordAnnouncement_1.parseDiscordAnnouncement)(makeMessage({
+            content_raw: [
+                '▬ **Sistema:** Dungeons & Dragons',
+                '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+                '▬ **Vagas:** 5/5',
+                'Contato: https://forms.gle/example',
+            ].join('\n'),
+        }));
+        expect(draft?.table.slots_total).toBe(5);
+        expect(draft?.table.slots_open).toBeNull();
+        expect(draft?.table._slots_ambiguity).toEqual({ first: 5, second: 5, source: 'x_slash_y' });
+    });
+    it('extracts simple Vagas: N as total and open slots without ambiguity (spec 017 T-F1-A-02)', () => {
+        const draft = (0, parseDiscordAnnouncement_1.parseDiscordAnnouncement)(makeMessage({
+            content_raw: [
+                '▬ **Sistema:** Dungeons & Dragons',
+                '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+                'Vagas: 4',
+                'Contato: https://forms.gle/example',
+            ].join('\n'),
+        }));
+        expect(draft?.table.slots_total).toBe(4);
+        expect(draft?.table.slots_open).toBe(4);
+        expect(draft?.table._slots_ambiguity).toBeNull();
+    });
+    it('keeps Vagas: 0 as an explicit closed table instead of missing slots (spec 017 Fase E regression)', () => {
+        const draft = (0, parseDiscordAnnouncement_1.parseDiscordAnnouncement)(makeMessage({
+            content_raw: [
+                '▬ **Sistema:** Dungeons & Dragons',
+                '▬ **Data & Horário:** Terças-feiras das 19h às 23h',
+                '▬ **Vagas:** 0 VAGA - EM ANDAMENTO',
+                'Contato: https://forms.gle/example',
+            ].join('\n'),
+        }));
+        const normalized = (0, normalizeDiscordTableDraft_1.normalizeDiscordTableDraft)(draft);
+        expect(draft?.table.slots_total).toBe(0);
+        expect(draft?.table.slots_open).toBe(0);
+        expect(draft?.missing_fields).not.toContain('slots_total');
+        expect(normalized.draft.missing_fields).not.toContain('slots_total');
+    });
+    it('does not infer weekly frequency for one-shots (spec 017 T-F1-A-04)', () => {
+        const draft = (0, parseDiscordAnnouncement_1.parseDiscordAnnouncement)(makeMessage({
+            content_raw: [
+                '▬ **Sistema:** Dungeons & Dragons',
+                '⚠️ **One-shot Gratuita** ⚠️',
+                '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+                '▬ **Vagas:** 0/6',
+                'Contato: https://forms.gle/example',
+            ].join('\n'),
+        }));
+        expect(draft?.table.type).toBe('one-shot');
+        expect(draft?.table.frequency).toBeNull();
+    });
+    it('infers weekly frequency for campaigns with day_of_week (spec 017 T-F1-A-04)', () => {
+        const draft = (0, parseDiscordAnnouncement_1.parseDiscordAnnouncement)(makeMessage({
+            content_raw: [
+                '▬ **Sistema:** Dungeons & Dragons',
+                'Tipo: Campanha',
+                '▬ **Data & Horário:** Quarta-feira das 20h às 00h',
+                'Vagas: 4',
+                'Contato: https://forms.gle/example',
+            ].join('\n'),
+        }));
+        expect(draft?.table.type).toBe('campanha');
+        expect(draft?.table.day_of_week).toBe('quarta');
+        expect(draft?.table.frequency).toBe('semanal');
+    });
+    it('does not infer frequency for campaigns without day_of_week (spec 017 T-F1-A-04)', () => {
+        const draft = (0, parseDiscordAnnouncement_1.parseDiscordAnnouncement)(makeMessage({
+            content_raw: [
+                '▬ **Sistema:** Dungeons & Dragons',
+                'Tipo: Campanha',
+                'Vagas: 4',
+                'Contato: https://forms.gle/example',
+            ].join('\n'),
+        }));
+        expect(draft?.table.type).toBe('campanha');
+        expect(draft?.table.day_of_week).toBeNull();
+        expect(draft?.table.frequency).toBeNull();
+    });
+    it('does not infer frequency for open tables (spec 017 T-F1-A-04)', () => {
+        const draft = (0, parseDiscordAnnouncement_1.parseDiscordAnnouncement)(makeMessage({
+            content_raw: [
+                '▬ **Sistema:** Dungeons & Dragons',
+                'Mesa aberta para iniciantes',
+                '▬ **Data & Horário:** Quarta-feira das 20h às 00h',
+                'Vagas: 4',
+                'Contato: https://forms.gle/example',
+            ].join('\n'),
+        }));
+        expect(draft?.table.type).toBe('aberta');
+        expect(draft?.table.frequency).toBeNull();
+    });
+    it('extracts host_discord_id from Mestre mention on the same line (spec 017 T-F1-A-05)', () => {
+        const draft = (0, parseDiscordAnnouncement_1.parseDiscordAnnouncement)(makeMessage({
+            content_raw: [
+                '▬ **Sistema:** Dungeons & Dragons',
+                '▬ **Mestre:** <@225275653333843970>',
+                '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+                'Vagas: 4',
+                'Contato: https://forms.gle/example',
+            ].join('\n'),
+        }));
+        expect(draft?.table.host_discord_id).toBe('225275653333843970');
+    });
+    it('extracts host_discord_id from GM mention (spec 017 T-F1-A-05)', () => {
+        const draft = (0, parseDiscordAnnouncement_1.parseDiscordAnnouncement)(makeMessage({
+            content_raw: [
+                '▬ **Sistema:** Dungeons & Dragons',
+                '▬ **GM:** <@99999>',
+                '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+                'Vagas: 4',
+                'Contato: https://forms.gle/example',
+            ].join('\n'),
+        }));
+        expect(draft?.table.host_discord_id).toBe('99999');
+    });
+    it('extracts host_discord_id when Mestre label and mention are split across lines (spec 017 T-F1-A-05)', () => {
+        const draft = (0, parseDiscordAnnouncement_1.parseDiscordAnnouncement)(makeMessage({
+            content_raw: [
+                '▬ **Sistema:** Dungeons & Dragons',
+                '▬** Mestre:**',
+                '- <@186160570133643265>',
+                '▬ **Data & Horários:** Quartas-feiras das 21h às 00h',
+                '▬ **Vagas Totais:** 6',
+                '▬ **Vagas Disponíveis:** 0',
+                'Contato: https://forms.gle/example',
+            ].join('\n'),
+        }));
+        expect(draft?.table.host_discord_id).toBe('186160570133643265');
+    });
+    it('keeps host_discord_id null without a host line (spec 017 T-F1-A-05)', () => {
+        const draft = (0, parseDiscordAnnouncement_1.parseDiscordAnnouncement)(makeMessage({
+            content_raw: [
+                '▬ **Sistema:** Dungeons & Dragons',
+                '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+                'Vagas: 4',
+                'Contato: https://forms.gle/example',
+            ].join('\n'),
+        }));
+        expect(draft?.table.host_discord_id).toBeNull();
+    });
+    it('marks ambiguous slash slots as missing slots_open during normalization (spec 017 T-F1-A-06)', () => {
+        const draft = (0, parseDiscordAnnouncement_1.parseDiscordAnnouncement)(makeMessage({
+            content_raw: [
+                '▬ **Sistema:** Dungeons & Dragons',
+                '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+                '▬ **Vagas:** 0/6',
+                'Contato: https://forms.gle/example',
+            ].join('\n'),
+        }), [{ id: 'dnd', name: 'Dungeons & Dragons', name_pt: null, aliases: ['D&D'] }]);
+        expect(draft).not.toBeNull();
+        const normalized = (0, normalizeDiscordTableDraft_1.normalizeDiscordTableDraft)(draft, [
+            { id: 'dnd', name: 'Dungeons & Dragons', name_pt: null, aliases: ['D&D'] },
+        ]);
+        expect(normalized.draft.missing_fields).toContain('slots_open:ambiguous_x_of_y');
+        expect(normalized.status).toBe('needs_review');
+    });
     it('matches systems by specific names before generic aliases and version suffixes', () => {
         const systems = [
             { id: 'gamma', name: 'Gamma World', name_pt: null, aliases: ['D&D'] },
@@ -176,10 +362,180 @@ describe('parseDiscordAnnouncement', () => {
                 'Caso se interesse pela aventura, basta enviar um ticket em <#1295552443337281576>',
             ].join('\n'),
         }), [{ id: 'dnd', name: 'Dungeons & Dragons', name_pt: null, aliases: ['D&D'] }]);
-        expect(draft?.table.raw_system_hint).toBe('One Two Six (Sistema Inédito)');
-        expect(draft?.table.system_name).toBe('One Two Six (Sistema Inédito)');
+        expect(draft?.table.raw_system_hint).toBe('One Two Six');
+        expect(draft?.table.system_name).toBe('One Two Six');
         expect(draft?.missing_fields).toContain('system_name:unmatched_hint');
         expect(draft?.table.raw_system_hint).not.toBe('Forgotten Realms');
+    });
+    it('strips parenthetical notes from unknown system hints (spec 017 T-F1-B-01)', () => {
+        const draft = (0, parseDiscordAnnouncement_1.parseDiscordAnnouncement)(makeMessage({
+            discord_thread_name: 'Pokémon: Jornada em Kanto',
+            content_raw: [
+                '▬ **Sistema:** Pokémon RPG (Sistema próprio usando D&D como base, em fase de desenvolvimento)',
+                '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+                'Vagas: 4',
+                'Contato: https://forms.gle/example',
+            ].join('\n'),
+        }), [{ id: 'dnd', name: 'Dungeons & Dragons', name_pt: null, aliases: ['D&D'] }]);
+        expect(draft?.table.raw_system_hint).toBe('Pokémon RPG');
+        expect(draft?.table.system_name).toBe('Pokémon RPG');
+    });
+    it('matches D&D after stripping parenthetical notes and version suffix (spec 017 T-F1-B-01)', () => {
+        const draft = (0, parseDiscordAnnouncement_1.parseDiscordAnnouncement)(makeMessage({
+            discord_thread_name: 'D&D: Aventura Retrocompatível',
+            content_raw: [
+                '▬ **Sistema:** D&D 5.5 (com retrocompatibilidade)',
+                '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+                'Vagas: 4',
+                'Contato: https://forms.gle/example',
+            ].join('\n'),
+        }), [{ id: 'dnd', name: 'Dungeons & Dragons', name_pt: null, aliases: ['D&D'] }]);
+        expect(draft?.table.system_id).toBe('dnd');
+        expect(draft?.table.system_name).toBe('Dungeons & Dragons');
+        expect(draft?.table.raw_system_hint).toBeNull();
+    });
+    it('matches Starfinder after stripping 2e version suffix and records a note (spec 017 T-F1-B-01)', () => {
+        const draft = (0, parseDiscordAnnouncement_1.parseDiscordAnnouncement)(makeMessage({
+            discord_thread_name: 'Starfinder: Operação Órbita',
+            content_raw: [
+                '▬ **Sistema:** Starfinder 2e',
+                '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+                'Vagas: 4',
+                'Contato: https://forms.gle/example',
+            ].join('\n'),
+        }), [{ id: 'starfinder', name: 'Starfinder', name_pt: null, aliases: [] }]);
+        expect(draft?.table.system_id).toBe('starfinder');
+        expect(draft?.table.system_name).toBe('Starfinder');
+        expect(draft?.table.raw_system_hint).toBeNull();
+        expect(draft?.table._notes).toContain('version_mismatch:2e');
+    });
+    it('extracts standard cover image from Discord attachments (spec 017 T-F1-C-02)', () => {
+        const draft = (0, parseDiscordAnnouncement_1.parseDiscordAnnouncement)(makeMessage({
+            content_raw: [
+                '▬ **Sistema:** Dungeons & Dragons',
+                '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+                'Vagas: 4',
+                'Contato: https://forms.gle/example',
+            ].join('\n'),
+            attachments: [
+                {
+                    content_type: 'image/jpeg',
+                    width: 1194,
+                    height: 804,
+                    size: 550698,
+                    url: 'https://cdn.discordapp.com/attachments/1/banner.jpg?ex=abc',
+                },
+            ],
+        }));
+        expect(draft?.table.cover_url_source).toBe('https://cdn.discordapp.com/attachments/1/banner.jpg?ex=abc');
+        expect(draft?.table.cover_quality).toBe('standard');
+    });
+    it('flags small cover images as low quality (spec 017 T-F1-C-02)', () => {
+        const draft = (0, parseDiscordAnnouncement_1.parseDiscordAnnouncement)(makeMessage({
+            content_raw: [
+                '▬ **Sistema:** Dungeons & Dragons',
+                '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+                'Vagas: 4',
+                'Contato: https://forms.gle/example',
+            ].join('\n'),
+            attachments: [
+                {
+                    content_type: 'image/png',
+                    width: 400,
+                    height: 300,
+                    size: 30000,
+                    url: 'https://cdn.discordapp.com/attachments/1/small.png?ex=abc',
+                },
+            ],
+        }));
+        expect(draft?.table.cover_url_source).toBe('https://cdn.discordapp.com/attachments/1/small.png?ex=abc');
+        expect(draft?.table.cover_quality).toBe('low');
+    });
+    it('ignores SVG attachments for cover extraction (spec 017 T-F1-C-02)', () => {
+        const draft = (0, parseDiscordAnnouncement_1.parseDiscordAnnouncement)(makeMessage({
+            content_raw: [
+                '▬ **Sistema:** Dungeons & Dragons',
+                '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+                'Vagas: 4',
+                'Contato: https://forms.gle/example',
+            ].join('\n'),
+            attachments: [
+                {
+                    content_type: 'image/svg+xml',
+                    width: 1194,
+                    height: 804,
+                    size: 550698,
+                    url: 'https://cdn.discordapp.com/attachments/1/vector.svg?ex=abc',
+                },
+            ],
+        }));
+        expect(draft?.table.cover_url_source).toBeNull();
+        expect(draft?.table.cover_quality).toBeNull();
+    });
+    it('ignores non-image attachments for cover extraction (spec 017 T-F1-C-02)', () => {
+        const draft = (0, parseDiscordAnnouncement_1.parseDiscordAnnouncement)(makeMessage({
+            content_raw: [
+                '▬ **Sistema:** Dungeons & Dragons',
+                '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+                'Vagas: 4',
+                'Contato: https://forms.gle/example',
+            ].join('\n'),
+            attachments: [
+                {
+                    content_type: 'application/pdf',
+                    size: 550698,
+                    url: 'https://cdn.discordapp.com/attachments/1/handout.pdf?ex=abc',
+                },
+            ],
+        }));
+        expect(draft?.table.cover_url_source).toBeNull();
+        expect(draft?.table.cover_quality).toBeNull();
+    });
+    it('keeps cover fields null when no attachments exist (spec 017 T-F1-C-02)', () => {
+        const draft = (0, parseDiscordAnnouncement_1.parseDiscordAnnouncement)(makeMessage({
+            content_raw: [
+                '▬ **Sistema:** Dungeons & Dragons',
+                '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+                'Vagas: 4',
+                'Contato: https://forms.gle/example',
+            ].join('\n'),
+            attachments: [],
+        }));
+        expect(draft?.table.cover_url_source).toBeNull();
+        expect(draft?.table.cover_quality).toBeNull();
+    });
+    it('uses the first image attachment as cover source (spec 017 T-F1-C-02)', () => {
+        const draft = (0, parseDiscordAnnouncement_1.parseDiscordAnnouncement)(makeMessage({
+            content_raw: [
+                '▬ **Sistema:** Dungeons & Dragons',
+                '▬ **Data & Horário:** Segunda-feira das 20h às 00h',
+                'Vagas: 4',
+                'Contato: https://forms.gle/example',
+            ].join('\n'),
+            attachments: [
+                {
+                    content_type: 'application/pdf',
+                    size: 550698,
+                    url: 'https://cdn.discordapp.com/attachments/1/handout.pdf?ex=abc',
+                },
+                {
+                    content_type: 'image/jpeg',
+                    width: 1200,
+                    height: 800,
+                    size: 120000,
+                    url: 'https://cdn.discordapp.com/attachments/1/first.jpg?ex=abc',
+                },
+                {
+                    content_type: 'image/jpeg',
+                    width: 1200,
+                    height: 800,
+                    size: 120000,
+                    url: 'https://cdn.discordapp.com/attachments/1/second.jpg?ex=abc',
+                },
+            ],
+        }));
+        expect(draft?.table.cover_url_source).toBe('https://cdn.discordapp.com/attachments/1/first.jpg?ex=abc');
+        expect(draft?.table.cover_quality).toBe('standard');
     });
     it('ignores empty non-starter replies so they do not create duplicate drafts', () => {
         const draft = (0, parseDiscordAnnouncement_1.parseDiscordAnnouncement)(makeMessage({

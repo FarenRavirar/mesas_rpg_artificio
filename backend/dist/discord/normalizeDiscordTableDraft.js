@@ -42,8 +42,10 @@ function getMissingFields(table) {
         missing.push('modality');
     if (!table.price_type)
         missing.push('price_type');
-    if (!table.slots_total && !table.slots_open)
+    if (table.slots_total == null && table.slots_open == null)
         missing.push('slots_total');
+    if (table._slots_ambiguity)
+        missing.push('slots_open:ambiguous_x_of_y');
     if (!table.contact_url && !table.contact_discord)
         missing.push('contact_url');
     return missing;

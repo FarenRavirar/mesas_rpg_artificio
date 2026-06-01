@@ -1,10 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DiscordDraftSyncValidationError = void 0;
+exports.refreshDiscordDraftImage = refreshDiscordDraftImage;
 exports.syncDiscordDraftToTable = syncDiscordDraftToTable;
 const db_1 = require("../db");
 const tableRepository_1 = require("../repositories/tableRepository");
 const tableService_1 = require("../services/tableService");
+const uploadDiscordImage_1 = require("./uploadDiscordImage");
 class DiscordDraftSyncValidationError extends Error {
     missingFields;
     constructor(missingFields) {
@@ -99,7 +101,7 @@ function extractSchedules(draft) {
         },
     ];
 }
-function buildTableData(draft, message, slug) {
+function buildTableData(draft, message, slug, coverUrl) {
     const t = draft.table;
     if (!t.title)
         throw new DiscordDraftSyncValidationError(['title']);
@@ -129,8 +131,121 @@ function buildTableData(draft, message, slug) {
         source_url: message.discord_message_url ?? null,
         status: 'draft',
         rules_notes: null,
-        banner_url: null,
+        cover_url: coverUrl,
+        banner_url: coverUrl,
         is_ddal: false,
+    };
+}
+function readCoverSource(payload) {
+    return typeof payload.table.cover_url_source === 'string' && payload.table.cover_url_source.trim()
+        ? payload.table.cover_url_source.trim()
+        : null;
+}
+function withCoverUrl(payload, coverUrl) {
+    return {
+        ...payload,
+        table: {
+            ...payload.table,
+            cover_url: coverUrl,
+        },
+    };
+}
+async function notifyAdminsAboutImageFailure(tableId, title, status, error) {
+    const admins = await db_1.db
+        .selectFrom('users')
+        .select('id')
+        .where('role', '=', 'admin')
+        .execute();
+    if (admins.length === 0)
+        return;
+    await db_1.db
+        .insertInto('notifications')
+        .values(admins.map((admin) => ({
+        user_id: admin.id,
+        type: 'system',
+        title: 'Mesa publicada sem imagem',
+        message: `A mesa "${title}" foi sincronizada sem imagem porque o upload do Discord falhou.`,
+        action_url: '/gestao',
+        metadata: JSON.stringify({
+            table_id: tableId,
+            image_upload_status: status,
+            error,
+        }),
+    })))
+        .execute();
+}
+async function uploadCoverForDraft(draftId, payload, currentAttempts) {
+    const existingCover = typeof payload.table.cover_url === 'string' && payload.table.cover_url.trim()
+        ? payload.table.cover_url.trim()
+        : null;
+    if (existingCover) {
+        return { payload, coverUrl: existingCover, status: null, attempts: currentAttempts, error: null };
+    }
+    const sourceUrl = readCoverSource(payload);
+    if (!sourceUrl) {
+        return { payload, coverUrl: null, status: null, attempts: currentAttempts, error: null };
+    }
+    const attempts = currentAttempts + 1;
+    const result = await (0, uploadDiscordImage_1.uploadDiscordImageToCloudinary)(sourceUrl);
+    if (result.status === 'success') {
+        return {
+            payload: withCoverUrl(payload, result.url),
+            coverUrl: result.url,
+            status: 'success',
+            attempts,
+            error: null,
+        };
+    }
+    console.warn('[discord-image-upload] upload failed', { draftId, status: result.status, error: result.error });
+    return {
+        payload: withCoverUrl(payload, null),
+        coverUrl: null,
+        status: result.status,
+        attempts,
+        error: result.error,
+    };
+}
+async function updateDraftImageUploadState(draftId, payload, status, attempts, error) {
+    await db_1.db
+        .updateTable('discord_import_table_drafts')
+        .set({
+        normalized_payload: payload,
+        image_upload_status: status,
+        image_upload_attempts: attempts,
+        image_upload_last_error: error,
+        image_upload_last_at: new Date(),
+        updated_at: new Date(),
+    })
+        .where('id', '=', draftId)
+        .execute();
+}
+async function refreshDiscordDraftImage(draftId) {
+    const draft = await db_1.db
+        .selectFrom('discord_import_table_drafts')
+        .selectAll()
+        .where('id', '=', draftId)
+        .executeTakeFirst();
+    if (!draft)
+        throw new Error(`Draft ${draftId} não encontrado.`);
+    const payload = (draft.normalized_payload ?? draft.parsed_payload);
+    if (!payload?.table)
+        throw new Error(`Draft ${draftId} sem payload válido para upload de imagem.`);
+    const upload = await uploadCoverForDraft(draftId, withCoverUrl(payload, null), draft.image_upload_attempts ?? 0);
+    const status = upload.status ?? (upload.coverUrl ? 'success' : 'pending');
+    await updateDraftImageUploadState(draftId, upload.payload, status, upload.attempts, upload.error);
+    if (upload.coverUrl && draft.table_id) {
+        await db_1.db
+            .updateTable('tables')
+            .set({ cover_url: upload.coverUrl, banner_url: upload.coverUrl, updated_at: new Date() })
+            .where('id', '=', draft.table_id)
+            .execute();
+    }
+    return {
+        draftId,
+        tableId: draft.table_id,
+        status,
+        url: upload.coverUrl,
+        error: upload.error,
     };
 }
 /**
@@ -161,7 +276,7 @@ async function syncDiscordDraftToTable(draftId) {
         .executeTakeFirst();
     if (!message)
         throw new Error(`Mensagem referenciada pelo draft ${draftId} não encontrada.`);
-    const payload = (draft.normalized_payload ?? draft.parsed_payload);
+    let payload = (draft.normalized_payload ?? draft.parsed_payload);
     if (!payload?.table)
         throw new Error(`Draft ${draftId} sem payload válido para sincronização.`);
     const missingFields = validateDraftForSync(payload);
@@ -170,6 +285,9 @@ async function syncDiscordDraftToTable(draftId) {
     }
     const contacts = extractContacts(payload);
     const schedules = extractSchedules(payload);
+    const imageUpload = await uploadCoverForDraft(draftId, payload, draft.image_upload_attempts ?? 0);
+    payload = imageUpload.payload;
+    const coverUrl = imageUpload.coverUrl;
     // Verifica idempotência pelo source_id
     const existingTable = await db_1.db
         .selectFrom('tables')
@@ -200,6 +318,8 @@ async function syncDiscordDraftToTable(draftId) {
                 slots_filled: t.slots_filled ?? 0,
                 slots_open: t.slots_open ?? t.slots_total ?? 0,
                 system_id: t.system_id ?? null,
+                cover_url: coverUrl,
+                banner_url: coverUrl,
                 actual_gm_name: payload.source.author_name ?? null,
                 is_covil: true,
                 status: 'draft',
@@ -230,7 +350,7 @@ async function syncDiscordDraftToTable(draftId) {
         if (!payload.table.title)
             throw new DiscordDraftSyncValidationError(['title']);
         const slug = tableService_1.TableService.generateSlug(payload.table.title);
-        const tableData = buildTableData(payload, message, slug);
+        const tableData = buildTableData(payload, message, slug, coverUrl);
         const inserted = await tableRepository_1.TableRepository.createTableWithRelations(tableData, contacts, schedules);
         tableId = inserted.id;
     }
@@ -238,7 +358,16 @@ async function syncDiscordDraftToTable(draftId) {
     await db_1.db.transaction().execute(async (trx) => {
         await trx
             .updateTable('discord_import_table_drafts')
-            .set({ status: 'synced', table_id: tableId, updated_at: new Date() })
+            .set({
+            status: 'synced',
+            table_id: tableId,
+            normalized_payload: payload,
+            image_upload_status: imageUpload.status,
+            image_upload_attempts: imageUpload.attempts,
+            image_upload_last_error: imageUpload.error,
+            image_upload_last_at: imageUpload.status ? new Date() : null,
+            updated_at: new Date(),
+        })
             .where('id', '=', draftId)
             .execute();
         await trx
@@ -247,5 +376,8 @@ async function syncDiscordDraftToTable(draftId) {
             .where('id', '=', message.id)
             .execute();
     });
+    if (imageUpload.status && imageUpload.status !== 'success') {
+        await notifyAdminsAboutImageFailure(tableId, payload.table.title ?? 'Mesa sem título', imageUpload.status, imageUpload.error);
+    }
     return { tableId, created };
 }

@@ -4,7 +4,7 @@
  * Todo código fora de backend/src/discord/ deve importar exclusivamente daqui.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.syncDiscordDraftToTable = exports.DiscordDraftSyncValidationError = exports.normalizeDiscordTableDraft = exports.parseDiscordAnnouncement = exports.ingestMessages = exports.ingestForumMessages = exports.DiscordIngestError = exports.DiscordDiscoveryError = exports.discoverDiscordGuilds = exports.discoverDiscordChannels = exports.discordConfig = void 0;
+exports.uploadDiscordImageToCloudinary = exports.assertDraftReadyTransition = exports.syncDiscordDraftToTable = exports.refreshDiscordDraftImage = exports.DiscordDraftSyncValidationError = exports.normalizeDiscordTableDraft = exports.parseDiscordAnnouncement = exports.ingestMessages = exports.ingestForumMessages = exports.DiscordIngestError = exports.DiscordDiscoveryError = exports.discoverDiscordGuilds = exports.discoverDiscordChannels = exports.discordConfig = void 0;
 // Configuração
 var config_1 = require("./config");
 Object.defineProperty(exports, "discordConfig", { enumerable: true, get: function () { return config_1.discordConfig; } });
@@ -23,4 +23,9 @@ var normalizeDiscordTableDraft_1 = require("./normalizeDiscordTableDraft");
 Object.defineProperty(exports, "normalizeDiscordTableDraft", { enumerable: true, get: function () { return normalizeDiscordTableDraft_1.normalizeDiscordTableDraft; } });
 var syncDiscordDraftToTable_1 = require("./syncDiscordDraftToTable");
 Object.defineProperty(exports, "DiscordDraftSyncValidationError", { enumerable: true, get: function () { return syncDiscordDraftToTable_1.DiscordDraftSyncValidationError; } });
+Object.defineProperty(exports, "refreshDiscordDraftImage", { enumerable: true, get: function () { return syncDiscordDraftToTable_1.refreshDiscordDraftImage; } });
 Object.defineProperty(exports, "syncDiscordDraftToTable", { enumerable: true, get: function () { return syncDiscordDraftToTable_1.syncDiscordDraftToTable; } });
+var draftValidation_1 = require("./draftValidation");
+Object.defineProperty(exports, "assertDraftReadyTransition", { enumerable: true, get: function () { return draftValidation_1.assertDraftReadyTransition; } });
+var uploadDiscordImage_1 = require("./uploadDiscordImage");
+Object.defineProperty(exports, "uploadDiscordImageToCloudinary", { enumerable: true, get: function () { return uploadDiscordImage_1.uploadDiscordImageToCloudinary; } });
