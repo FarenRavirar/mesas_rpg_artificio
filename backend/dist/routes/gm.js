@@ -7,6 +7,7 @@ const auth_1 = require("../middleware/auth");
 const rateLimit_1 = require("../middleware/rateLimit");
 const validation_1 = require("../utils/validation");
 const linkService_1 = require("../services/linkService");
+const publicImageUrl_1 = require("../utils/publicImageUrl");
 const urlValidation_1 = require("../utils/urlValidation");
 const router = (0, express_1.Router)();
 function buildRecommendations(metrics) {
@@ -172,6 +173,10 @@ router.get('/:slug', rateLimit_1.publicRateLimiter, auth_1.optionalAuth, async (
             .orderBy('t.featured', 'desc')
             .orderBy('t.created_at', 'desc')
             .execute();
+        const publicTables = tables.map((table) => ({
+            ...table,
+            cover_url: (0, publicImageUrl_1.sanitizePublicImageUrl)(table.cover_url),
+        }));
         let tablesWithContacts = [];
         if (tables.length > 0) {
             const tableIds = tables.map((table) => table.id);
@@ -194,7 +199,7 @@ router.get('/:slug', rateLimit_1.publicRateLimiter, auth_1.optionalAuth, async (
                     sort_order: contact.sort_order,
                 });
             }
-            tablesWithContacts = tables.map((table) => ({
+            tablesWithContacts = publicTables.map((table) => ({
                 ...table,
                 contacts: contactsByTable.get(table.id) ?? [],
             }));

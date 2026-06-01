@@ -5,6 +5,7 @@ import { authMiddleware, optionalAuth } from '../middleware/auth';
 import { publicRateLimiter, authRateLimiter } from '../middleware/rateLimit';
 import { isValidEmail } from '../utils/validation';
 import { generateEmbedUrl, detectLinkType, LinkType } from '../services/linkService';
+import { sanitizePublicImageUrl } from '../utils/publicImageUrl';
 import { upgradeGoogleImageQuality } from '../utils/urlValidation';
 
 const router = Router();
@@ -208,6 +209,11 @@ router.get('/:slug', publicRateLimiter, optionalAuth, async (req: Request, res: 
       .orderBy('t.created_at', 'desc')
       .execute();
 
+    const publicTables = tables.map((table) => ({
+      ...table,
+      cover_url: sanitizePublicImageUrl(table.cover_url),
+    }));
+
     let tablesWithContacts: any[] = [];
 
     if (tables.length > 0) {
@@ -235,7 +241,7 @@ router.get('/:slug', publicRateLimiter, optionalAuth, async (req: Request, res: 
         });
       }
 
-      tablesWithContacts = tables.map((table) => ({
+      tablesWithContacts = publicTables.map((table) => ({
         ...table,
         contacts: contactsByTable.get(table.id) ?? [],
       }));

@@ -4,6 +4,7 @@ const express_1 = require("express");
 const kysely_1 = require("kysely");
 const db_1 = require("../db");
 const requestLogger_1 = require("../middleware/requestLogger");
+const publicImageUrl_1 = require("../utils/publicImageUrl");
 const router = (0, express_1.Router)();
 // GET /api/v1/tables — Catálogo público, sem JWT
 router.get('/', async (req, res) => {
@@ -188,7 +189,11 @@ router.get('/', async (req, res) => {
         // Aplicar limit/offset DEPOIS da contagem
         query = query.limit(limitNum).offset(offset);
         const tables = await query.execute();
-        let tablesWithContacts = tables;
+        const publicTables = tables.map((table) => ({
+            ...table,
+            cover_url: (0, publicImageUrl_1.sanitizePublicImageUrl)(table.cover_url),
+        }));
+        let tablesWithContacts = publicTables;
         if (tables.length > 0) {
             const tableIds = tables.map((table) => table.id);
             const contacts = await db_1.db
@@ -210,7 +215,7 @@ router.get('/', async (req, res) => {
                     sort_order: contact.sort_order,
                 });
             }
-            tablesWithContacts = tables.map((table) => ({
+            tablesWithContacts = publicTables.map((table) => ({
                 ...table,
                 contacts: contactsByTable.get(table.id) ?? [],
             }));
@@ -383,7 +388,15 @@ router.get('/:slug', async (req, res) => {
         ])
             .where('gm.user_id', '=', table.gm_user_id)
             .execute() : [];
-        res.json({ data: { ...table, contacts, schedules, gm_vtt_platforms: gmVttPlatforms } });
+        res.json({
+            data: {
+                ...table,
+                cover_url: (0, publicImageUrl_1.sanitizePublicImageUrl)(table.cover_url),
+                contacts,
+                schedules,
+                gm_vtt_platforms: gmVttPlatforms,
+            },
+        });
     }
     catch (error) {
         // Log detalhado de erro de banco de dados
