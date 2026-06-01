@@ -57,6 +57,7 @@ SDD Completo usa `spec.md`, `plan.md`, `tasks.md`, validacao e sessao; quando ho
 ## Regras petreas resumidas
 
 - Nao fazer commit, push para `dev/main`, deploy, restart/stop/start Docker, `scp`/`rsync`/`docker cp`, build no servidor, write em banco ou comandos destrutivos sem aprovacao quando exigida por `AGENTS.md`.
+- **Aprovacao vale por acao, nao por sessao.** "Pode prosseguir"/"faca o deploy" autoriza so o bloco apresentado. Nao se estende a commits/pushes/correcoes seguintes (ex.: re-push apos migration falhar, ou commit de docs/sessao pos-deploy). Pedir aprovacao de novo a cada `git commit`/`git push`. Editar arquivo local e livre; commitar/pushar nunca.
 - Nunca aplicar migration com `TRUNCATE`, `DROP`, `DELETE` ou `ALTER` em producao sem dump previo e checklist.
 - Nunca executar `ALTER TABLE` avulso em producao.
 - Nunca reaplicar migration antiga com mais de uma semana.

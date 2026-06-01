@@ -28,6 +28,8 @@
 
 **Regra operacional reforçada (01/06/2026):** validação funcional de UI/fluxos reais não usa Browser plugin como evidência conclusiva; só conta após deploy em `dev`/Beta e análise do mantenedor em janela anônima. Ferramentas locais de browser/screenshot podem apoiar diagnóstico, mas não substituem o gate humano em Beta.
 
+**Regra de aprovação reforçada (01/06/2026):** aprovação vale por ação, não por sessão. "Pode prosseguir"/"faça o deploy" autoriza só o bloco apresentado; não se estende a commits/pushes/correções seguintes (ex.: re-push após migration falhar, ou commit de docs/sessão pós-deploy). Pedir aprovação de novo a cada `git commit`/`git push`. Detalhe em `AGENTS.md` §"Aprovacao Obrigatoria" e `docs/agents/context-capsule.md`.
+
 **Planejamento pronto para proximo chat:** `specs/018-resolucao-sugestoes-sistemas/` criado para resolver sugestoes de sistemas sem redundancia (alias, edicao, variante, subsistema, mescla ou sistema novo). Classificacao: SDD Completo por envolver possivel migration, API admin, permissao e catalogo canonico. Handoff: `specs/018-resolucao-sugestoes-sistemas/handoff.md`.
 
 **Branch ativa:** `feat/015-discord-draft-pipeline` — spec 017 entregue no Beta sobre o pipeline Discord: parser refinado, extração de imagem, upload Cloudinary no sync/retry e UI de revisão de capas/vagas/frequência.

@@ -89,6 +89,8 @@ Nunca executar sem aprovacao explicita do mantenedor:
 
 Comandos read-only permitidos sem aprovacao: `docker ps`, `docker logs`, `docker stats`, `docker inspect`, `ls`, `cat`, `grep`, `find`, `head`, `tail`, `curl -s` GET e `psql` com `SELECT`.
 
+**Escopo da aprovacao (regra petrea):** aprovacao vale por acao, nao por sessao. Um "pode prosseguir", "faca o deploy" ou similar autoriza APENAS o conjunto de comandos apresentado naquele bloco de aprovacao. Nao se estende a commits, pushes, deploys, writes ou correcoes posteriores. Se a acao autorizada falhar e exigir um novo commit/push (ex.: corrigir migration e reenviar), pedir aprovacao de novo antes de commitar. Atualizacoes de documentacao/sessao/`project-state` pos-deploy tambem exigem aprovacao para commit/push. Editar arquivo local nao precisa de aprovacao; `git commit`/`git push` sempre precisa, a cada vez.
+
 Formato obrigatorio para pedir aprovacao:
 
 ```text
