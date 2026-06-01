@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,7 +9,7 @@ const API_BASE = import.meta.env.VITE_API_URL || '';
 interface SystemSuggestionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: () => void;
+  onSuccess?: (createdSystem?: { id: string; name?: string }) => void;
 }
 
 type SuggestionType = 'system' | 'edition' | 'variant' | 'subsystem';
@@ -48,7 +49,7 @@ const flattenSystems = (nodes: SystemNode[], depth = 0): FlattenedSystemNode[] =
 };
 
 export const SystemSuggestionModal = ({ isOpen, onClose, onSuccess }: SystemSuggestionModalProps) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   const [name, setName] = useState('');
   const [namePt, setNamePt] = useState('');
@@ -95,23 +96,35 @@ export const SystemSuggestionModal = ({ isOpen, onClose, onSuccess }: SystemSugg
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (!isAuthenticated) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/system-suggestions`, {
+      const isAdmin = user?.role === 'admin';
+      const response = await fetch(`${API_BASE}${isAdmin ? '/api/v1/systems/admin' : '/api/v1/system-suggestions'}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          name: name.trim(),
-          name_pt: namePt.trim() || null,
-          description: description.trim() || null,
-          parent_id: suggestionType === 'system' ? null : parentId || null,
-          suggestion_type: suggestionType,
-        }),
+        body: JSON.stringify(
+          isAdmin
+            ? {
+                name: name.trim(),
+                name_pt: namePt.trim() || null,
+                description: description.trim() || null,
+                parent_id: suggestionType === 'system' ? null : parentId || null,
+                node_type: suggestionType,
+              }
+            : {
+                name: name.trim(),
+                name_pt: namePt.trim() || null,
+                description: description.trim() || null,
+                parent_id: suggestionType === 'system' ? null : parentId || null,
+                suggestion_type: suggestionType,
+              },
+        ),
       });
 
       if (!response.ok) {
@@ -119,13 +132,15 @@ export const SystemSuggestionModal = ({ isOpen, onClose, onSuccess }: SystemSugg
         throw new Error(data.error || 'Erro ao enviar sugestão');
       }
 
+      const created = await response.json();
+
       setName('');
       setNamePt('');
       setDescription('');
       setParentId('');
       setSuggestionType('system');
-      toast.success('Sugestão enviada para análise da administração.');
-      onSuccess?.();
+      toast.success(isAdmin ? 'Sistema adicionado ao catálogo.' : 'Sugestão enviada para análise da administração.');
+      onSuccess?.(isAdmin ? created.data : undefined);
       onClose();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao enviar sugestão';
@@ -137,7 +152,7 @@ export const SystemSuggestionModal = ({ isOpen, onClose, onSuccess }: SystemSugg
 
   if (!isOpen) return null;
 
-  return (
+  const modal = (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div
         className="bg-[#1B2A4A] border border-white/10 rounded-lg shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto"
@@ -156,7 +171,9 @@ export const SystemSuggestionModal = ({ isOpen, onClose, onSuccess }: SystemSugg
 
         <div className="px-6 py-4">
           <p className="text-white/70 text-sm mb-6">
-            Sugira um novo sistema, edição ou variante. Sua sugestão será revisada por um administrador.
+            {user?.role === 'admin'
+              ? 'Adicione um novo sistema, edição ou variante diretamente ao catálogo.'
+              : 'Sugira um novo sistema, edição ou variante. Sua sugestão será revisada por um administrador.'}
           </p>
 
           {error && (
@@ -273,4 +290,7 @@ export const SystemSuggestionModal = ({ isOpen, onClose, onSuccess }: SystemSugg
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') return modal;
+  return createPortal(modal, document.body);
 };

@@ -31,7 +31,7 @@ Mesas RPG Artificio e um portal colaborativo para anuncios de mesas de RPG. Comp
 
 Fluxo normal: `feat/*` -> `dev`/Beta -> `main`/Producao.
 
-Validacao funcional de UI/fluxos reais so conta depois de deploy em Beta e teste do mantenedor em janela anonima.
+Validacao funcional de UI/fluxos reais so conta depois de deploy em `dev`/Beta e teste do mantenedor em janela anonima. Browser plugin, Playwright local, screenshot local ou simulacao do agente nao substituem essa validacao; servem apenas como apoio tecnico antes do deploy.
 
 ## Stack ativo de agentes
 

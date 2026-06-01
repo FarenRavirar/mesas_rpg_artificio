@@ -1,7 +1,7 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-05-11T12:55:00-03:00
-**Atualizado por:** sessão 26-05-12_1_parser-refinements-imagens (spec 017 Fases A-F publicadas no Beta)
+**Última atualização:** 2026-06-01T16:20:00-03:00
+**Atualizado por:** sessão 26-06-01_1_diagnostico-criacao-mesa-sistemas (diagnóstico + fatias A-C locais)
 ---
 
 ## Ambientes
@@ -14,6 +14,10 @@
 ---
 
 ## Estado Técnico Atual
+
+**Sessão ativa atual (01/06/2026):** `sessoes/26-06-01_1_diagnostico-criacao-mesa-sistemas.md` — diagnóstico de cinco itens no fluxo Nova Mesa/sugestões/horários; fatias A-C implementadas localmente (contraste do editor, modais de sugestão fora do form pai, admin cria sistema direto, gestão lista sistemas + cenários). Fatia D (`dia/horário a definir`) classificada como SDD Completo por impacto em contrato/API/DB de `table_schedules`.
+
+**Regra operacional reforçada (01/06/2026):** validação funcional de UI/fluxos reais não usa Browser plugin como evidência conclusiva; só conta após deploy em `dev`/Beta e análise do mantenedor em janela anônima. Ferramentas locais de browser/screenshot podem apoiar diagnóstico, mas não substituem o gate humano em Beta.
 
 **Branch ativa:** `feat/015-discord-draft-pipeline` — spec 017 entregue no Beta sobre o pipeline Discord: parser refinado, extração de imagem, upload Cloudinary no sync/retry e UI de revisão de capas/vagas/frequência.
 **Último commit em `origin/dev`:** `7a9647e` — `fix(discord): bloqueia sync com frequencia outra`

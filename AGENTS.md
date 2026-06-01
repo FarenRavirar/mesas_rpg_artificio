@@ -144,7 +144,7 @@ Fluxo de ambientes: `feat/*` -> `dev`/Beta -> `main`/Producao.
 - Cloudinary: `VITE_CLOUDINARY_CLOUD_NAME` e `VITE_CLOUDINARY_UPLOAD_PRESET` sao variaveis de build-time. Nunca hardcodar. Upload exclusivamente via backend com signed preset.
 - `cover_deletehash`, `avatar_deletehash` e `banner_deletehash` nunca retornam por rotas publicas.
 - Mudancas de interface devem respeitar as 10 Heuristicas de Nielsen antes do merge.
-- Teste funcional/manual de UI ou fluxo real so conta apos deploy em Beta e teste do mantenedor em janela anonima. Nao sugerir limpeza de cache.
+- Teste funcional/manual de UI ou fluxo real so conta apos deploy em `dev`/Beta e teste do mantenedor em janela anonima. Browser plugin, Playwright local, screenshot local ou simulacao do agente podem ser usados apenas como apoio tecnico, nunca como evidencia funcional conclusiva. Nao sugerir limpeza de cache.
 - Mudanca visivel para mestres ou usuarios finais exige entrada em `database/changelogs.json` antes do deploy. Melhorias da mesma data devem ser unificadas em uma unica entrada, com linguagem leiga.
 
 ---

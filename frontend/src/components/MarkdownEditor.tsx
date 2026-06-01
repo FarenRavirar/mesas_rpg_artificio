@@ -96,6 +96,13 @@ export const MarkdownEditor = ({
         .rc-md-editor .editor-container {
           background: rgba(0, 0, 0, 0.2);
         }
+
+        .rc-md-editor .section-container,
+        .rc-md-editor .sec-md,
+        .rc-md-editor .sec-md .input {
+          background: #0f1a2e !important;
+          color: rgba(255, 255, 255, 0.92) !important;
+        }
         
         .rc-md-editor .editor-container > section {
           background: transparent;
@@ -158,9 +165,17 @@ export const MarkdownEditor = ({
         
         .rc-md-editor textarea {
           color: white !important;
+          background: #0f1a2e !important;
+          caret-color: var(--color-artificio-orange);
           font-family: 'Courier New', monospace;
           font-size: 14px;
           line-height: 1.6;
+        }
+
+        .rc-md-editor textarea::selection,
+        .rc-md-editor .sec-md .input::selection {
+          background: rgba(245, 130, 32, 0.35);
+          color: white;
         }
         
         .rc-md-editor textarea::placeholder {
@@ -169,7 +184,7 @@ export const MarkdownEditor = ({
         }
         
         .rc-md-editor .sec-md .input {
-          color: white;
+          -webkit-text-fill-color: rgba(255, 255, 255, 0.92);
         }
         
         .rc-md-editor .section-container input::placeholder,

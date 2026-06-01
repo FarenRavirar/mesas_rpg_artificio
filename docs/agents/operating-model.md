@@ -74,7 +74,8 @@ Evidencia minima:
   - antes de analise/auditoria, consultar `docs/sdd/analyze-governance-gate.md`.
 - Sessao atualizada antes e depois das etapas.
 - Validacao tecnica adequada.
-- Validacao funcional em Beta quando UI/fluxos reais forem afetados.
+- Validacao funcional em `dev`/Beta quando UI/fluxos reais forem afetados.
+- Browser plugin, Playwright local, screenshot local ou simulacao do agente podem apoiar diagnostico tecnico, mas nao contam como validacao funcional conclusiva de UI/fluxos reais.
 - Entrada em `database/changelogs.json` quando houver mudanca visivel para mestres ou usuarios finais.
 
 ## Como usar `/speckit.*`
@@ -126,7 +127,7 @@ Em arquivos documentais recem-migrados ou com acentuacao/encoding variavel:
 - Nao tratar skills antigas como fonte ativa.
 - Nao usar workflows/regras antigas em `.agent/workflows`, `.agents/rules`, `.agents/workflows`, `.gemini/default-rules.md` ou `.gemini/workflows` como fonte ativa.
 - Nao apagar regra petrea ao enxugar documento; mover, resumir ou marcar como historica/obsoleta.
-- Nao substituir validacao funcional em Beta por build local quando UI/fluxos reais forem afetados.
+- Nao substituir validacao funcional em `dev`/Beta pelo mantenedor por build local, Browser plugin, Playwright local, screenshot local ou simulacao do agente quando UI/fluxos reais forem afetados.
 - Nao consultar `.specify/arquiteture.md` inteira por padrao; buscar a secao relevante.
 
 ## Evidencia antes de concluir

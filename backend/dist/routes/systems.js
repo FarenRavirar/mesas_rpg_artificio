@@ -229,7 +229,7 @@ const VALID_PARENT = {
 };
 // POST /api/v1/admin/systems — Criar novo sistema
 router.post('/admin', auth_1.authMiddleware, (0, auth_1.requireRole)('admin'), async (req, res) => {
-    const { name, name_pt, node_type, parent_id, aliases, logo_filename, website_url } = req.body;
+    const { name, name_pt, description, node_type, parent_id, aliases, logo_filename, website_url } = req.body;
     if (!name || !node_type) {
         return res.status(400).json({ error: 'Nome e tipo são obrigatórios.' });
     }
@@ -280,6 +280,7 @@ router.post('/admin', auth_1.authMiddleware, (0, auth_1.requireRole)('admin'), a
             .values({
             name,
             name_pt: name_pt || null,
+            description: typeof description === 'string' && description.trim().length > 0 ? description.trim() : null,
             slug,
             node_type: node_type,
             parent_id: parent_id || null,
@@ -319,7 +320,7 @@ router.post('/admin', auth_1.authMiddleware, (0, auth_1.requireRole)('admin'), a
 // PUT /api/v1/admin/systems/:id — Editar sistema
 router.put('/admin/:id', auth_1.authMiddleware, (0, auth_1.requireRole)('admin'), async (req, res) => {
     const { id } = req.params;
-    const { name, name_pt, node_type, parent_id, logo_filename, website_url } = req.body;
+    const { name, name_pt, description, node_type, parent_id, logo_filename, website_url } = req.body;
     if (!name || !node_type) {
         return res.status(400).json({ error: 'Nome e tipo são obrigatórios.' });
     }
@@ -380,6 +381,7 @@ router.put('/admin/:id', auth_1.authMiddleware, (0, auth_1.requireRole)('admin')
             .set({
             name,
             name_pt: name_pt || null,
+            description: typeof description === 'string' && description.trim().length > 0 ? description.trim() : null,
             slug,
             node_type: node_type,
             parent_id: parent_id || null,
