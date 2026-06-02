@@ -113,6 +113,8 @@ router.get('/google/callback', async (req, res) => {
         let isNewUser = false;
         if (!user) {
             isNewUser = true;
+            const displayName = userInfo.name || userInfo.given_name || 'Jogador Aventureiro';
+            let newUserId = null;
             await db_1.db.transaction().execute(async (trx) => {
                 const newUser = await trx
                     .insertInto('users')
@@ -125,7 +127,7 @@ router.get('/google/callback', async (req, res) => {
                     .returningAll()
                     .executeTakeFirstOrThrow();
                 user = newUser;
-                const displayName = userInfo.name || userInfo.given_name || 'Jogador Aventureiro';
+                newUserId = newUser.id;
                 await trx
                     .insertInto('profiles')
                     .values({
@@ -148,14 +150,16 @@ router.get('/google/callback', async (req, res) => {
                         email: newUser.email,
                     },
                 }, trx);
+            });
+            if (newUserId) {
                 await (0, adminNotifications_1.notifyAdmins)({
                     type: 'member_joined',
                     title: 'Novo membro',
                     message: `${displayName} entrou na comunidade.`,
                     action_url: '/gestao',
-                    metadata: { user_id: user.id },
-                }, trx);
-            });
+                    metadata: { user_id: newUserId },
+                });
+            }
         }
         else if (tokens.refresh_token) {
             user = await db_1.db

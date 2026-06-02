@@ -1,7 +1,7 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-06-01T21:20:00-03:00
-**Atualizado por:** sessão 26-06-01_2_resolucao-sugestoes-sistemas (spec 018 reformulação local do drawer aguardando deploy)
+**Última atualização:** 2026-06-02T12:06:00-03:00
+**Atualizado por:** sessão 26-06-01_1_diagnostico-criacao-mesa-sistemas (Production v1.2.5)
 ---
 
 ## Ambientes
@@ -15,12 +15,33 @@
 
 ## Estado Técnico Atual
 
+**Production v1.2.5 — Spec 019 + Spec 018 promovidas (02/06/2026):**
+- PR #152 `Production v1.2.5` (`dev -> main`) mergeado via GitHub.
+- Workflow canônico `Promote Beta to Production (CANONICAL)` run `26828267450` GREEN para `937544a`.
+- Release GitHub `v1.2.5` publicada como `Production v1.2.5`.
+- Jobs GREEN: `typecheck`, `lint`, `enforce-dir`, `governance_gate`, `deploy`, `release`.
+- Health Produção: root HTTP 200; `/api/v1/health` `status=ok`, `environment=production`, `db=connected`.
+- Health Beta preservado: root HTTP 200; `/api/v1/health` `status=ok`, `environment=beta`, `db=connected`.
+- Rotas críticas Produção e Beta: `/api/v1/tables?limit=1` HTTP 200, `/api/v1/systems?view=tree` HTTP 200, `/auth/google` HTTP 302 para Google OAuth.
+- Containers: `mesas-api`, `mesas-app`, `mesas-beta-api`, `mesas-beta-frontend` `healthy`.
+- DB Produção: migrations `migration_123_system_suggestion_resolution.sql` e `migration_124_table_schedule_tbd.sql` registradas; colunas/constraints de agenda a definir presentes.
+- Hotfix local em andamento na branch `feat/021-notificacoes-fora-transacao`: remove `notifyAdmins(..., trx)` para notificações admin não abortarem transações principais. Build backend GREEN; commit/push/deploy Beta pendem de aprovação explícita.
+
+**Spec 019 — Agenda a definir + correção do Resolver (02/06/2026, em Produção):**
+- Commit `b3abe3e` entrou em `main` via PR #152.
+- Deploy Beta run `26827258562` GREEN para `b3abe3e`; Production run `26828267450` GREEN.
+- DB Beta: migration 124 aplicada; colunas `tables.schedule_day_status`, `schedule_time_status`, `schedule_day_hint`, `schedule_time_hint` presentes; constraints `tables_schedule_day_status_check`, `tables_schedule_time_status_check`, `tables_schedule_day_hint_check`, `tables_schedule_tbd_hint_check` presentes.
+- Produto: Nova Mesa aceita `dia da semana a definir` e `horário a definir`; `table_schedules` continua apenas para sessões completas; página pública exibe agenda a definir sem criar linha parcial.
+- Resolver de sistemas: `Starfinder 2e` não deve mais 500 por `systems_slug_key`; candidatos agora detectam filho existente (`existing_child_match`) e evitam falsos positivos por acrônimo frouxo (`Meio Sangues`→Marvel, `Curse of Strahd`→Changeling).
+- Evidência pós-deploy: root Beta HTTP 200; `/api/v1/health` `status=ok`, `environment=beta`, `db=connected`.
+- Pendente: validação funcional do mantenedor em janela anônima no Beta.
+
 **Spec 018 — Resolução de Sugestões de Sistemas (01/06/2026, em Beta):**
-- Implementada e deployada em Beta. Commits `2ddb399` (feature) + `722f596` (fix migration online-safe) + `def29f2` (clareza de contexto no drawer) + `156cd4f` (base existente + edição recomenda `create_child`) em `origin/dev`.
-- Backend: helper puro `systemSuggestionCandidates.ts` (normalizador + score, TDD 20/20), `GET /admin/system-suggestions/:id/candidates`, `POST /admin/system-suggestions/:id/resolve` (create_system com guard NFR-001/`force`, create_child com hierarquia e `parent_aliases` opcional/idempotente, create_alias idempotente, merge_existing, reject), relink de drafts Discord. Normalizador local reconhece base + edição/complemento sem dicionario hardcoded de sistemas; remove apenas sufixos estruturais conservadores (`RPG`/`TTRPG` e frase `Roleplaying Game`), preservando `Game` isolado como parte de titulo; traducao/sinonimo exige `name_pt` ou alias catalogado (ex.: `O Um Anel 2e` so casa automaticamente se `O Um Anel` estiver no catalogo como alias/nome PT). Drawer permite resolver manualmente e gravar alias de pai junto do filho; aguardando commit/deploy. `slugify`/`VALID_PARENT` exportados de `systems.ts`.
+- Implementada e deployada em Beta. Commits `2ddb399` (feature) + `722f596` (fix migration online-safe) + `def29f2` (clareza de contexto no drawer) + `156cd4f` (base existente + edição recomenda `create_child`) + `61d136d` (contratos/ações do Resolver alinhados) em `origin/dev`.
+- Backend: helper puro `systemSuggestionCandidates.ts` (normalizador + score, TDD 20/20), `GET /admin/system-suggestions/:id/candidates`, `POST /admin/system-suggestions/:id/resolve` (create_system com guard NFR-001/`force`, create_child com hierarquia e `parent_aliases` opcional/idempotente, create_alias idempotente, merge_existing, reject), relink de drafts Discord. Normalizador local reconhece base + edição/complemento sem dicionario hardcoded de sistemas; remove apenas sufixos estruturais conservadores (`RPG`/`TTRPG` e frase `Roleplaying Game`), preservando `Game` isolado como parte de titulo; traducao/sinonimo exige `name_pt` ou alias catalogado (ex.: `O Um Anel 2e` so casa automaticamente se `O Um Anel` estiver no catalogo como alias/nome PT). Drawer permite resolver manualmente e gravar alias de pai junto do filho. `slugify`/`VALID_PARENT` exportados de `systems.ts`.
 - DB: migration 123 adiciona colunas de auditoria em `system_suggestions` (`resolution_type` + CHECK, `resolved_system_id`, `created_system_id`, `created_alias_id`, `resolution_notes`, `resolution_payload`, `resolved_at`). **Online-safe sem DROP** (constraint via `IF NOT EXISTS`). Decisões: colunas em `system_suggestions`; status `approved`+`resolution_type`; alias idempotente; lote só rejeita.
 - Frontend: ação primária **Resolver** (sistemas) com `SystemSuggestionResolutionDrawer` (candidatos com score/razões, forms por tipo, prévia, tratamento 409 SIMILAR_EXISTS). Drawer agora exibe nome canônico, path, tipo, nome PT, aliases e filhos/edições/variantes/subsistemas existentes em candidatos, seleção de alvo/pai, merge, alias e risco de sistema novo. Cenários mantêm Aprovar/Rejeitar.
-- **Deploy Beta run `26788551455` GREEN** para `156cd4f` (validate, lint, enforce-dir, migrate, smoke-discord, deploy-app com etapa `Deploy App Containers`, smoke). CodeQL run `26788550756` GREEN. Deploy anterior de contexto visual: run `26787673936` GREEN. Deploy anterior da base 018: run `26778999597` GREEN. Run `26778729349` falhou no migrate (123 marcada online-safe com `DROP CONSTRAINT`); corrigido.
+- **Deploy Beta run `26790976104` GREEN** para `61d136d` (validate, lint, enforce-dir, migrate, smoke-discord, deploy-app com etapa `Deploy App Containers`, smoke). CodeQL run `26790975693` GREEN. Deploy anterior de inteligência: run `26788551455` GREEN. Deploy anterior de contexto visual: run `26787673936` GREEN. Deploy anterior da base 018: run `26778999597` GREEN. Run `26778729349` falhou no migrate (123 marcada online-safe com `DROP CONSTRAINT`); corrigido.
 - Evidência E166 (SELECT no Beta pós-deploy): 7 colunas de auditoria presentes, constraint presente, `system_suggestions` = 37 (pending=33, approved=2, rejected=2). Health Beta root 200 / `/api/v1/health` ok+connected.
 - **Pendente:** mantenedor validar em janela anônima resolvendo amostra real (alias/edição/mescla/sistema novo). T026 (teste unitário do drawer) opcional não adicionado.
 

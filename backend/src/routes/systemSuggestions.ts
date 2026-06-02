@@ -87,21 +87,21 @@ router.post('/', async (req: Request, res: Response) => {
         .returningAll()
         .executeTakeFirstOrThrow();
 
-      await notifyAdmins({
-        type: 'system_suggestion',
-        title: 'Nova sugestão de sistema',
-        message: `${userName} sugeriu "${created.name}" para o catálogo.`,
-        action_url: '/gestao',
-        metadata: {
-          suggestion_id: created.id,
-          suggestion_kind: 'system',
-          node_type: created.node_type,
-          parent_id: created.parent_id,
-        },
-        excludeUserId: userId,
-      }, trx);
-
       return created;
+    });
+
+    await notifyAdmins({
+      type: 'system_suggestion',
+      title: 'Nova sugestão de sistema',
+      message: `${userName} sugeriu "${newSuggestion.name}" para o catálogo.`,
+      action_url: '/gestao',
+      metadata: {
+        suggestion_id: newSuggestion.id,
+        suggestion_kind: 'system',
+        node_type: newSuggestion.node_type,
+        parent_id: newSuggestion.parent_id,
+      },
+      excludeUserId: userId,
     });
 
     void logActivity({
