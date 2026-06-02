@@ -23,8 +23,8 @@
 
 ## Fase 5 - Docs e Beta
 - [x] T014 specs 024 + sessao + index.
-- [ ] T015 Commit/push/PR/merge dev (aprovacao) -> Deploy Beta + migrate 126.
-- [ ] T016 Mantenedor valida em janela anonima (arquivar/excluir/mesclar).
+- [x] T015 Commit/push/PR/merge dev (aprovacao) -> Deploy Beta + migrate 126. PRs #158/#159 mergeados; Deploy Beta final `26844315274` GREEN em `18330bc`.
+- [x] T016 Mantenedor valida em janela anonima (arquivar/excluir/mesclar). Confirmado pelo mantenedor em 02/06/2026.
 
 ## Criterio de Conclusao
 - Arquivar/excluir/mesclar funcionam; mescla integra tudo e arquiva secundarios; excluir remove screenshot.
