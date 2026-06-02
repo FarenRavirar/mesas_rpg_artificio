@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { authMiddleware } from '../middleware/auth';
 import { db } from '../db';
 import { logActivity } from '../services/activityLogger';
+import { notifyAdmins } from '../services/adminNotifications';
 
 const router = Router();
 
@@ -66,11 +67,6 @@ router.post('/', async (req: Request, res: Response) => {
     }
 
     const userName = await resolveActorName(userId);
-    const admins = await db
-      .selectFrom('users')
-      .select('id')
-      .where('role', '=', 'admin')
-      .execute();
 
     const newSuggestion = await db.transaction().execute(async (trx) => {
       const created = await trx
@@ -85,22 +81,17 @@ router.post('/', async (req: Request, res: Response) => {
         .returningAll()
         .executeTakeFirstOrThrow();
 
-      if (admins.length > 0) {
-        await trx
-          .insertInto('notifications')
-          .values(admins.map((admin) => ({
-            user_id: admin.id,
-            type: 'system',
-            title: 'Nova sugestão de cenário',
-            message: `${userName} sugeriu "${created.name}" para o catálogo.`,
-            action_url: '/gestao',
-            metadata: JSON.stringify({
-              suggestion_id: created.id,
-              suggestion_kind: 'scenario',
-            }),
-          })))
-          .execute();
-      }
+      await notifyAdmins({
+        type: 'scenario_suggestion',
+        title: 'Nova sugestão de cenário',
+        message: `${userName} sugeriu "${created.name}" para o catálogo.`,
+        action_url: '/gestao',
+        metadata: {
+          suggestion_id: created.id,
+          suggestion_kind: 'scenario',
+        },
+        excludeUserId: userId,
+      }, trx);
 
       return created;
     });

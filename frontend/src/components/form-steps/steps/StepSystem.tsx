@@ -99,8 +99,11 @@ export function StepSystem({
       <SystemSuggestionModal
         isOpen={showSuggestionModal}
         onClose={() => setShowSuggestionModal(false)}
-        onSuccess={() => {
+        onSuccess={(createdSystem) => {
           setShowSuggestionModal(false);
+          if (createdSystem?.id) {
+            setSelectedSystemId(createdSystem.id);
+          }
           onRefreshSystems();
         }}
       />

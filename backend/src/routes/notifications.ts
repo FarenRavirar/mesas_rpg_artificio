@@ -29,6 +29,28 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
+// PATCH /api/v1/notifications/read-all - Marcar todas as notificações do usuário como lidas
+router.patch('/read-all', async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Não autenticado.' });
+    }
+
+    await db
+      .updateTable('notifications')
+      .set({ read: true })
+      .where('user_id', '=', userId)
+      .where('read', '=', false)
+      .execute();
+
+    return res.json({ success: true });
+  } catch (error: any) {
+    console.error('[PATCH /notifications/read-all]', error);
+    return res.status(500).json({ error: 'Erro ao marcar notificações como lidas.' });
+  }
+});
+
 // PATCH /api/v1/notifications/:id/read - Marcar notificação como lida
 router.patch('/:id/read', async (req: Request, res: Response) => {
   try {

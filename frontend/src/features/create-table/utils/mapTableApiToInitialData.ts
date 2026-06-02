@@ -34,9 +34,13 @@ export function mapTableApiToInitialData(apiData: any): Partial<FormState> {
         ? apiData.sessions
         : [
             {
-              day_of_week: 'segunda',
-              start_time: '19:00',
-              end_time: '22:00',
+              day_of_week: apiData.schedule_day_status === 'to_define'
+                ? 'to_define'
+                : (apiData.schedule_day_hint ?? 'segunda'),
+              start_time: apiData.schedule_time_status === 'to_define'
+                ? ''
+                : (apiData.schedule_time_hint ?? '19:00'),
+              end_time: '',
               frequency: 'semanal',
               is_ongoing: false,
               notes: '',

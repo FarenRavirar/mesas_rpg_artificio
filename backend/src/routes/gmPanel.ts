@@ -14,6 +14,7 @@ import { TableService } from '../services/tableService';
 import { TableRepository } from '../repositories/tableRepository';
 import { BenchmarkService } from '../services/benchmarkService';
 import { logActivity } from '../services/activityLogger';
+import { notifyAdmins } from '../services/adminNotifications';
 import { isValidEmail } from '../utils/validation';
 
 const router = Router();
@@ -589,6 +590,18 @@ router.post('/tables', authMiddleware, async (req: Request, res: Response) => {
       },
     });
 
+    // Notifica admins quando a mesa ja nasce publicada (status active), exceto se quem criou e admin.
+    if (newTable.status === 'active' && userRole !== 'admin') {
+      void notifyAdmins({
+        type: 'table_published',
+        title: 'Nova mesa publicada',
+        message: `${gmName} publicou a mesa "${newTable.title}".`,
+        action_url: `/mesas/${newTable.slug}`,
+        metadata: { table_id: newTable.id, table_slug: newTable.slug },
+        excludeUserId: userId,
+      });
+    }
+
     return res.status(201).json({ data: newTable });
   } catch (error: any) {
     console.error('[POST /gm/tables]', error);
@@ -693,6 +706,10 @@ router.put('/tables/:id', authMiddleware, async (req: Request, res: Response) =>
       language: data.language,
       experience_level: data.experience_level,
       starts_at: data.starts_at ? new Date(data.starts_at) : undefined,
+      schedule_day_status: data.schedule_day_status,
+      schedule_time_status: data.schedule_time_status,
+      schedule_day_hint: data.schedule_day_status === 'defined' ? data.schedule_day_hint : null,
+      schedule_time_hint: data.schedule_time_status === 'defined' ? data.schedule_time_hint : null,
       city: data.city,
       state: data.state,
       content_warnings: data.content_warnings,
@@ -1019,6 +1036,18 @@ router.patch('/tables/:id/status', authMiddleware, async (req: Request, res: Res
           to: result.status,
         },
       });
+
+      // Notifica admins quando a mesa passa a publicada (draft/outro -> active). Ator e GM, nao admin.
+      if (result.status === 'active' && table.status !== 'active') {
+        void notifyAdmins({
+          type: 'table_published',
+          title: 'Nova mesa publicada',
+          message: `${actorName} publicou a mesa "${result.title}".`,
+          action_url: `/mesas/${result.slug}`,
+          metadata: { table_id: result.id, table_slug: result.slug },
+          excludeUserId: userId,
+        });
+      }
     }
 
     return res.json({ data: result });

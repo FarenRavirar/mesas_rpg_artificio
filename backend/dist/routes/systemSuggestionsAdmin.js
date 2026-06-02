@@ -4,7 +4,67 @@ const express_1 = require("express");
 const auth_1 = require("../middleware/auth");
 const db_1 = require("../db");
 const activityLogger_1 = require("../services/activityLogger");
+const systemSuggestionCandidates_1 = require("../services/systemSuggestionCandidates");
+const systems_1 = require("./systems");
 const router = (0, express_1.Router)();
+const VALID_RESOLUTION_TYPES = new Set([
+    'create_system',
+    'create_child',
+    'create_alias',
+    'merge_existing',
+    'reject',
+]);
+function readTrimmed(value) {
+    return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+// Religa drafts Discord cujo raw_system_hint corresponde ao sistema resolvido.
+// Espelha o comportamento do approve (status -> ready), com try/catch por draft
+// para que um draft problematico nao bloqueie os demais. A constraint
+// discord_drafts_ready_requires_no_missing (migration 118) pode rejeitar drafts
+// que ainda tenham outros campos faltando; nesse caso o draft fica intacto.
+async function relinkDiscordDrafts(systemId, canonicalName, hints) {
+    const linked = [];
+    const wanted = new Set(hints.filter((h) => typeof h === 'string' && h.length > 0));
+    if (wanted.size === 0)
+        return linked;
+    try {
+        const drafts = await db_1.db
+            .selectFrom('discord_import_table_drafts')
+            .select(['id', 'parsed_payload'])
+            .where('status', 'not in', ['synced', 'rejected'])
+            .execute();
+        for (const draft of drafts) {
+            const payload = draft.parsed_payload;
+            const hint = payload?.table?.raw_system_hint;
+            if (!hint || !wanted.has(hint))
+                continue;
+            const updated = {
+                ...payload,
+                table: {
+                    ...payload.table,
+                    system_id: systemId,
+                    system_name: canonicalName,
+                    raw_system_hint: null,
+                },
+            };
+            try {
+                await db_1.db
+                    .updateTable('discord_import_table_drafts')
+                    .set({ parsed_payload: updated, status: 'ready' })
+                    .where('id', '=', draft.id)
+                    .execute();
+                linked.push({ id: draft.id, title: payload?.table?.title ?? null });
+            }
+            catch (perDraftErr) {
+                console.error('[resolve] relink draft falhou', draft.id, perDraftErr);
+            }
+        }
+    }
+    catch (linkErr) {
+        console.error('[resolve] Erro ao linkar drafts:', linkErr);
+    }
+    return linked;
+}
 async function resolveActorName(userId, trx) {
     const executor = trx ?? db_1.db;
     try {
@@ -48,6 +108,41 @@ router.get('/system-suggestions', async (req, res) => {
     catch (error) {
         console.error('[GET /admin/system-suggestions]', error);
         return res.status(500).json({ error: 'Erro ao listar sugestões.' });
+    }
+});
+// GET /api/v1/admin/system-suggestions/:id/candidates - Candidatos provaveis do catalogo
+router.get('/system-suggestions/:id/candidates', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const suggestion = await db_1.db
+            .selectFrom('system_suggestions')
+            .selectAll()
+            .where('id', '=', id)
+            .executeTakeFirst();
+        if (!suggestion) {
+            return res.status(404).json({ error: 'Sugestão não encontrada.' });
+        }
+        const systems = await db_1.db
+            .selectFrom('systems')
+            .select(['id', 'name', 'name_pt', 'slug', 'path_slug', 'node_type', 'parent_id'])
+            .execute();
+        const aliases = await db_1.db
+            .selectFrom('system_aliases')
+            .select(['system_id', 'alias'])
+            .execute();
+        const result = (0, systemSuggestionCandidates_1.scoreSystemCandidates)(suggestion.name, systems, aliases);
+        return res.json({
+            data: {
+                suggestion,
+                candidates: result.candidates,
+                recommended_action: result.recommended_action,
+                analysis: result.analysis,
+            },
+        });
+    }
+    catch (error) {
+        console.error('[GET /admin/system-suggestions/:id/candidates]', error);
+        return res.status(500).json({ error: 'Erro ao calcular candidatos.' });
     }
 });
 // PATCH /api/v1/admin/system-suggestions/:id/approve - Aprovar sugestão
@@ -304,6 +399,608 @@ router.patch('/system-suggestions/:id/reject', async (req, res) => {
             return res.status(404).json({ error: 'Sugestão não encontrada ou já foi revisada.' });
         }
         return res.status(500).json({ error: 'Erro ao rejeitar sugestão.' });
+    }
+});
+// Insere aliases em system_aliases, deduplicando por slug e ignorando conflitos.
+async function insertSystemAliases(trx, systemId, aliases) {
+    const seen = new Set();
+    for (const raw of aliases) {
+        const alias = typeof raw === 'string' ? raw.trim() : '';
+        if (!alias)
+            continue;
+        const aliasSlug = (0, systems_1.slugify)(alias);
+        if (!aliasSlug || seen.has(aliasSlug))
+            continue;
+        seen.add(aliasSlug);
+        await trx
+            .insertInto('system_aliases')
+            .values({ system_id: systemId, alias, alias_slug: aliasSlug, is_official: false })
+            .onConflict((oc) => oc.columns(['system_id', 'alias_slug']).doNothing())
+            .execute();
+    }
+}
+async function makeUniqueSystemSlug(trx, segmentSlug, parentPathSlug) {
+    const directCollision = await trx
+        .selectFrom('systems')
+        .select('id')
+        .where('slug', '=', segmentSlug)
+        .executeTakeFirst();
+    if (!directCollision)
+        return segmentSlug;
+    const parentPrefix = (0, systems_1.slugify)(parentPathSlug ?? '');
+    const base = parentPrefix ? `${parentPrefix}-${segmentSlug}` : segmentSlug;
+    let candidate = base;
+    let suffix = 2;
+    while (true) {
+        const collision = await trx
+            .selectFrom('systems')
+            .select('id')
+            .where('slug', '=', candidate)
+            .executeTakeFirst();
+        if (!collision)
+            return candidate;
+        candidate = `${base}-${suffix}`;
+        suffix += 1;
+    }
+}
+// POST /api/v1/admin/system-suggestions/:id/resolve - Resolver sugestão (alias/edição/variante/mescla/sistema novo/rejeição)
+router.post('/system-suggestions/:id/resolve', async (req, res) => {
+    const { id } = req.params;
+    const adminId = req.user?.userId;
+    if (!adminId) {
+        return res.status(401).json({ error: 'Não autenticado.' });
+    }
+    const body = (req.body ?? {});
+    const resolutionType = typeof body.resolution_type === 'string' ? body.resolution_type : '';
+    const extraAliases = Array.isArray(body.aliases)
+        ? body.aliases.filter((a) => typeof a === 'string')
+        : [];
+    const parentAliases = Array.isArray(body.parent_aliases)
+        ? body.parent_aliases.filter((a) => typeof a === 'string')
+        : [];
+    if (!VALID_RESOLUTION_TYPES.has(resolutionType)) {
+        return res.status(400).json({
+            error: 'resolution_type inválido. Use create_system, create_child, create_alias, merge_existing ou reject.',
+        });
+    }
+    try {
+        const outcome = await db_1.db.transaction().execute(async (trx) => {
+            const suggestion = await trx
+                .selectFrom('system_suggestions')
+                .selectAll()
+                .where('id', '=', id)
+                .where('status', '=', 'pending')
+                .executeTakeFirst();
+            if (!suggestion) {
+                throw new Error('NOT_FOUND_OR_REVIEWED');
+            }
+            const adminName = await resolveActorName(adminId, trx);
+            // ----- REJEITAR -----
+            if (resolutionType === 'reject') {
+                const reason = readTrimmed(body.reason);
+                await trx
+                    .updateTable('system_suggestions')
+                    .set({
+                    status: 'rejected',
+                    rejection_reason: reason,
+                    resolution_type: 'reject',
+                    resolution_notes: reason,
+                    resolved_at: new Date(),
+                    reviewed_at: new Date(),
+                    reviewed_by: adminId,
+                })
+                    .where('id', '=', id)
+                    .execute();
+                await trx
+                    .insertInto('notifications')
+                    .values({
+                    user_id: suggestion.user_id,
+                    type: 'suggestion_rejected',
+                    title: 'Sugestão revisada',
+                    message: `Sua sugestão "${suggestion.name}" não foi aceita desta vez.`,
+                    action_url: `/perfil/minhas-sugestoes/${id}`,
+                    metadata: JSON.stringify({
+                        suggestion_id: id,
+                        suggestion_kind: 'system',
+                        ...(reason ? { reason } : {}),
+                    }),
+                })
+                    .execute();
+                await (0, activityLogger_1.logActivity)({
+                    actorId: adminId,
+                    actorRole: 'admin',
+                    action: 'system_suggestion.rejected',
+                    entityType: 'system_suggestion',
+                    entityId: id,
+                    entityLabel: suggestion.name,
+                    targetUserId: suggestion.user_id,
+                    summary: `${adminName} rejeitou a sugestão "${suggestion.name}".`,
+                    metadata: { suggestion_id: id, ...(reason ? { reason } : {}) },
+                }, trx);
+                return { kind: 'reject', suggestion };
+            }
+            // ----- MESCLAR (sem criar nada) -----
+            if (resolutionType === 'merge_existing') {
+                const targetSystemId = readTrimmed(body.target_system_id);
+                const notes = readTrimmed(body.notes);
+                if (!targetSystemId) {
+                    throw new Error('TARGET_REQUIRED');
+                }
+                const target = await trx
+                    .selectFrom('systems')
+                    .select(['id', 'name', 'path_slug'])
+                    .where('id', '=', targetSystemId)
+                    .executeTakeFirst();
+                if (!target) {
+                    throw new Error('TARGET_NOT_FOUND');
+                }
+                await trx
+                    .updateTable('system_suggestions')
+                    .set({
+                    status: 'approved',
+                    resolution_type: 'merge_existing',
+                    resolved_system_id: target.id,
+                    resolution_notes: notes,
+                    resolution_payload: JSON.stringify({ target_system_id: target.id }),
+                    resolved_at: new Date(),
+                    reviewed_at: new Date(),
+                    reviewed_by: adminId,
+                })
+                    .where('id', '=', id)
+                    .execute();
+                await trx
+                    .insertInto('notifications')
+                    .values({
+                    user_id: suggestion.user_id,
+                    type: 'suggestion_approved',
+                    title: 'Sugestão revisada',
+                    message: `Sua sugestão "${suggestion.name}" já está coberta por "${target.name}" no catálogo.`,
+                    action_url: `/catalogo?system=${target.path_slug ?? ''}`,
+                    metadata: JSON.stringify({
+                        suggestion_id: id,
+                        suggestion_kind: 'system',
+                        resolution_type: 'merge_existing',
+                        system_id: target.id,
+                    }),
+                })
+                    .execute();
+                await (0, activityLogger_1.logActivity)({
+                    actorId: adminId,
+                    actorRole: 'admin',
+                    action: 'system_suggestion.resolved',
+                    entityType: 'system_suggestion',
+                    entityId: id,
+                    entityLabel: suggestion.name,
+                    targetUserId: suggestion.user_id,
+                    summary: `${adminName} mesclou "${suggestion.name}" em "${target.name}".`,
+                    metadata: { suggestion_id: id, resolution_type: 'merge_existing', system_id: target.id },
+                }, trx);
+                return {
+                    kind: 'merge_existing',
+                    suggestion,
+                    systemId: target.id,
+                    systemName: target.name,
+                };
+            }
+            // ----- ALIAS (idempotente) -----
+            if (resolutionType === 'create_alias') {
+                const targetSystemId = readTrimmed(body.target_system_id);
+                const aliasText = readTrimmed(body.alias) ?? suggestion.name;
+                const notes = readTrimmed(body.notes);
+                if (!targetSystemId) {
+                    throw new Error('TARGET_REQUIRED');
+                }
+                const target = await trx
+                    .selectFrom('systems')
+                    .select(['id', 'name', 'path_slug'])
+                    .where('id', '=', targetSystemId)
+                    .executeTakeFirst();
+                if (!target) {
+                    throw new Error('TARGET_NOT_FOUND');
+                }
+                const aliasSlug = (0, systems_1.slugify)(aliasText);
+                const existingAlias = await trx
+                    .selectFrom('system_aliases')
+                    .select(['id'])
+                    .where('system_id', '=', target.id)
+                    .where('alias_slug', '=', aliasSlug)
+                    .executeTakeFirst();
+                let aliasId;
+                let idempotent = false;
+                if (existingAlias) {
+                    aliasId = existingAlias.id;
+                    idempotent = true;
+                }
+                else {
+                    const inserted = await trx
+                        .insertInto('system_aliases')
+                        .values({
+                        system_id: target.id,
+                        alias: aliasText,
+                        alias_slug: aliasSlug,
+                        is_official: false,
+                    })
+                        .returning(['id'])
+                        .executeTakeFirstOrThrow();
+                    aliasId = inserted.id;
+                }
+                await trx
+                    .updateTable('system_suggestions')
+                    .set({
+                    status: 'approved',
+                    resolution_type: 'create_alias',
+                    resolved_system_id: target.id,
+                    created_alias_id: aliasId,
+                    resolution_notes: notes,
+                    resolution_payload: JSON.stringify({
+                        target_system_id: target.id,
+                        alias: aliasText,
+                        idempotent,
+                    }),
+                    resolved_at: new Date(),
+                    reviewed_at: new Date(),
+                    reviewed_by: adminId,
+                })
+                    .where('id', '=', id)
+                    .execute();
+                await trx
+                    .insertInto('notifications')
+                    .values({
+                    user_id: suggestion.user_id,
+                    type: 'suggestion_approved',
+                    title: 'Sugestão aprovada',
+                    message: `Sua sugestão "${suggestion.name}" foi adicionada como nome alternativo de "${target.name}".`,
+                    action_url: `/catalogo?system=${target.path_slug ?? ''}`,
+                    metadata: JSON.stringify({
+                        suggestion_id: id,
+                        suggestion_kind: 'system',
+                        resolution_type: 'create_alias',
+                        system_id: target.id,
+                        alias_id: aliasId,
+                    }),
+                })
+                    .execute();
+                await (0, activityLogger_1.logActivity)({
+                    actorId: adminId,
+                    actorRole: 'admin',
+                    action: 'system_suggestion.resolved',
+                    entityType: 'system_suggestion',
+                    entityId: id,
+                    entityLabel: suggestion.name,
+                    targetUserId: suggestion.user_id,
+                    summary: `${adminName} resolveu "${suggestion.name}" como alias de "${target.name}".`,
+                    metadata: {
+                        suggestion_id: id,
+                        resolution_type: 'create_alias',
+                        system_id: target.id,
+                        alias_id: aliasId,
+                        idempotent,
+                    },
+                }, trx);
+                return {
+                    kind: 'create_alias',
+                    suggestion,
+                    systemId: target.id,
+                    systemName: target.name,
+                };
+            }
+            // ----- CRIAR FILHO (edition/variant/subsystem) -----
+            if (resolutionType === 'create_child') {
+                const nodeType = typeof body.node_type === 'string' ? body.node_type : undefined;
+                const parentId = readTrimmed(body.parent_id);
+                const name = readTrimmed(body.name) ?? suggestion.name;
+                const namePt = readTrimmed(body.name_pt) ?? suggestion.name_pt;
+                const description = readTrimmed(body.description) ?? suggestion.description;
+                if (!nodeType || !['edition', 'variant', 'subsystem'].includes(nodeType)) {
+                    throw new Error('NODE_TYPE_INVALID');
+                }
+                if (!parentId) {
+                    throw new Error('PARENT_REQUIRED');
+                }
+                const parent = await trx
+                    .selectFrom('systems')
+                    .select(['id', 'name', 'depth', 'path_slug', 'node_type'])
+                    .where('id', '=', parentId)
+                    .executeTakeFirst();
+                if (!parent) {
+                    throw new Error('PARENT_NOT_FOUND');
+                }
+                const allowedParents = systems_1.VALID_PARENT[nodeType];
+                if (allowedParents && !allowedParents.includes(parent.node_type)) {
+                    throw new Error('HIERARCHY_INVALID');
+                }
+                const segmentSlug = (0, systems_1.slugify)(name);
+                if (!segmentSlug) {
+                    throw new Error('NAME_REQUIRED');
+                }
+                const parentPathSlug = parent.path_slug ?? (0, systems_1.slugify)(parent.name);
+                const slug = await makeUniqueSystemSlug(trx, segmentSlug, parentPathSlug);
+                const pathSlug = `${parentPathSlug}/${segmentSlug}`;
+                const depth = (parent.depth ?? 0) + 1;
+                const collision = await trx
+                    .selectFrom('systems')
+                    .select('id')
+                    .where('path_slug', '=', pathSlug)
+                    .executeTakeFirst();
+                if (collision) {
+                    throw new Error('PATH_SLUG_CONFLICT');
+                }
+                const newSystem = await trx
+                    .insertInto('systems')
+                    .values({
+                    name,
+                    name_pt: namePt,
+                    slug,
+                    path_slug: pathSlug,
+                    node_type: nodeType,
+                    depth,
+                    parent_id: parent.id,
+                    description,
+                })
+                    .returning(['id', 'name', 'path_slug'])
+                    .executeTakeFirstOrThrow();
+                await insertSystemAliases(trx, newSystem.id, [...(suggestion.aliases ?? []), ...extraAliases]);
+                await insertSystemAliases(trx, parent.id, parentAliases);
+                await trx
+                    .updateTable('system_suggestions')
+                    .set({
+                    status: 'approved',
+                    resolution_type: 'create_child',
+                    resolved_system_id: parent.id,
+                    created_system_id: newSystem.id,
+                    resolution_notes: readTrimmed(body.notes),
+                    resolution_payload: JSON.stringify({
+                        node_type: nodeType,
+                        parent_id: parent.id,
+                        path_slug: newSystem.path_slug,
+                        aliases: extraAliases,
+                        parent_aliases: parentAliases,
+                    }),
+                    resolved_at: new Date(),
+                    reviewed_at: new Date(),
+                    reviewed_by: adminId,
+                })
+                    .where('id', '=', id)
+                    .execute();
+                await trx
+                    .insertInto('notifications')
+                    .values({
+                    user_id: suggestion.user_id,
+                    type: 'suggestion_approved',
+                    title: 'Sugestão aprovada',
+                    message: `Sua sugestão "${suggestion.name}" foi adicionada ao catálogo.`,
+                    action_url: `/catalogo?system=${newSystem.path_slug}`,
+                    metadata: JSON.stringify({
+                        suggestion_id: id,
+                        suggestion_kind: 'system',
+                        resolution_type: 'create_child',
+                        system_id: newSystem.id,
+                        path_slug: newSystem.path_slug,
+                    }),
+                })
+                    .execute();
+                await (0, activityLogger_1.logActivity)({
+                    actorId: adminId,
+                    actorRole: 'admin',
+                    action: 'system_suggestion.resolved',
+                    entityType: 'system_suggestion',
+                    entityId: id,
+                    entityLabel: suggestion.name,
+                    targetUserId: suggestion.user_id,
+                    summary: `${adminName} resolveu "${suggestion.name}" como ${nodeType} de "${parent.name}".`,
+                    metadata: {
+                        suggestion_id: id,
+                        resolution_type: 'create_child',
+                        system_id: newSystem.id,
+                        path_slug: newSystem.path_slug,
+                        parent_aliases: parentAliases,
+                    },
+                }, trx);
+                return {
+                    kind: 'create_child',
+                    suggestion,
+                    systemId: newSystem.id,
+                    systemName: newSystem.name,
+                };
+            }
+            // ----- CRIAR SISTEMA RAIZ (opcionalmente com edição específica) -----
+            // resolutionType === 'create_system'
+            const name = readTrimmed(body.name) ?? suggestion.name;
+            const namePt = readTrimmed(body.name_pt) ?? suggestion.name_pt;
+            const description = readTrimmed(body.description) ?? suggestion.description;
+            const editionName = readTrimmed(body.edition_name);
+            const force = body.force === true;
+            // NFR-001: nao criar raiz por clique unico se houver candidato similar (sem force).
+            if (!force) {
+                const systemsForGuard = await trx
+                    .selectFrom('systems')
+                    .select(['id', 'name', 'name_pt', 'slug', 'path_slug', 'node_type', 'parent_id'])
+                    .execute();
+                const aliasesForGuard = await trx
+                    .selectFrom('system_aliases')
+                    .select(['system_id', 'alias'])
+                    .execute();
+                const guard = (0, systemSuggestionCandidates_1.scoreSystemCandidates)(name, systemsForGuard, aliasesForGuard);
+                if (guard.recommended_action !== 'create_system' && guard.candidates.length > 0) {
+                    const err = new Error('SIMILAR_EXISTS');
+                    err.candidates = guard.candidates;
+                    err.recommended_action = guard.recommended_action;
+                    err.analysis = guard.analysis;
+                    throw err;
+                }
+            }
+            const slug = (0, systems_1.slugify)(name);
+            if (!slug) {
+                throw new Error('NAME_REQUIRED');
+            }
+            const pathSlug = slug;
+            const collision = await trx
+                .selectFrom('systems')
+                .select('id')
+                .where('path_slug', '=', pathSlug)
+                .executeTakeFirst();
+            if (collision) {
+                throw new Error('PATH_SLUG_CONFLICT');
+            }
+            const newSystem = await trx
+                .insertInto('systems')
+                .values({
+                name,
+                name_pt: namePt,
+                slug,
+                path_slug: pathSlug,
+                node_type: 'system',
+                depth: 0,
+                parent_id: null,
+                description,
+            })
+                .returning(['id', 'name', 'path_slug'])
+                .executeTakeFirstOrThrow();
+            await insertSystemAliases(trx, newSystem.id, [...(suggestion.aliases ?? []), ...extraAliases]);
+            // Edição específica opcional: cria um nó edition sob a nova raiz no mesmo ato.
+            let createdNode = newSystem;
+            let createdEditionId = null;
+            if (editionName) {
+                const editionSlug = (0, systems_1.slugify)(editionName);
+                if (!editionSlug) {
+                    throw new Error('NAME_REQUIRED');
+                }
+                const uniqueEditionSlug = await makeUniqueSystemSlug(trx, editionSlug, newSystem.path_slug);
+                const editionPath = `${newSystem.path_slug}/${editionSlug}`;
+                const editionCollision = await trx
+                    .selectFrom('systems')
+                    .select('id')
+                    .where('path_slug', '=', editionPath)
+                    .executeTakeFirst();
+                if (editionCollision) {
+                    throw new Error('PATH_SLUG_CONFLICT');
+                }
+                const editionSystem = await trx
+                    .insertInto('systems')
+                    .values({
+                    name: editionName,
+                    name_pt: null,
+                    slug: uniqueEditionSlug,
+                    path_slug: editionPath,
+                    node_type: 'edition',
+                    depth: 1,
+                    parent_id: newSystem.id,
+                    description,
+                })
+                    .returning(['id', 'name', 'path_slug'])
+                    .executeTakeFirstOrThrow();
+                createdEditionId = editionSystem.id;
+                createdNode = editionSystem;
+            }
+            const resolvedSystemName = editionName ? `${newSystem.name} ${editionName}` : newSystem.name;
+            await trx
+                .updateTable('system_suggestions')
+                .set({
+                status: 'approved',
+                resolution_type: 'create_system',
+                resolved_system_id: createdEditionId ? newSystem.id : null,
+                created_system_id: createdNode.id,
+                resolution_notes: readTrimmed(body.notes),
+                resolution_payload: JSON.stringify({
+                    path_slug: createdNode.path_slug,
+                    root_id: newSystem.id,
+                    edition_id: createdEditionId,
+                }),
+                resolved_at: new Date(),
+                reviewed_at: new Date(),
+                reviewed_by: adminId,
+            })
+                .where('id', '=', id)
+                .execute();
+            await trx
+                .insertInto('notifications')
+                .values({
+                user_id: suggestion.user_id,
+                type: 'suggestion_approved',
+                title: 'Sugestão aprovada',
+                message: `Seu sistema "${suggestion.name}" foi adicionado ao catálogo.`,
+                action_url: `/catalogo?system=${createdNode.path_slug}`,
+                metadata: JSON.stringify({
+                    suggestion_id: id,
+                    suggestion_kind: 'system',
+                    resolution_type: 'create_system',
+                    system_id: createdNode.id,
+                    path_slug: createdNode.path_slug,
+                }),
+            })
+                .execute();
+            await (0, activityLogger_1.logActivity)({
+                actorId: adminId,
+                actorRole: 'admin',
+                action: 'system_suggestion.resolved',
+                entityType: 'system_suggestion',
+                entityId: id,
+                entityLabel: suggestion.name,
+                targetUserId: suggestion.user_id,
+                summary: `${adminName} criou o sistema "${resolvedSystemName}" a partir da sugestão.`,
+                metadata: {
+                    suggestion_id: id,
+                    resolution_type: 'create_system',
+                    system_id: createdNode.id,
+                    path_slug: createdNode.path_slug,
+                },
+            }, trx);
+            return {
+                kind: 'create_system',
+                suggestion,
+                systemId: createdNode.id,
+                systemName: resolvedSystemName,
+            };
+        });
+        // Pós-transação: religar drafts Discord quando a resolução aponta para um sistema.
+        let pendingDrafts = [];
+        if (outcome.kind !== 'reject' && 'systemId' in outcome && outcome.systemId) {
+            pendingDrafts = await relinkDiscordDrafts(outcome.systemId, outcome.systemName, [
+                outcome.suggestion.name,
+                outcome.systemName,
+            ]);
+        }
+        return res.json({
+            success: true,
+            data: {
+                suggestion_id: id,
+                resolution_type: resolutionType,
+                ...('systemId' in outcome ? { system_id: outcome.systemId, system_name: outcome.systemName } : {}),
+                pending_drafts: pendingDrafts,
+            },
+        });
+    }
+    catch (error) {
+        console.error('[POST /admin/system-suggestions/:id/resolve]', error);
+        switch (error.message) {
+            case 'NOT_FOUND_OR_REVIEWED':
+                return res.status(404).json({ error: 'Sugestão não encontrada ou já foi revisada.' });
+            case 'TARGET_REQUIRED':
+                return res.status(400).json({ error: 'É necessário escolher o sistema alvo.' });
+            case 'TARGET_NOT_FOUND':
+                return res.status(404).json({ error: 'Sistema alvo não encontrado.' });
+            case 'NODE_TYPE_INVALID':
+                return res.status(400).json({ error: 'Tipo de nó inválido. Use edition, variant ou subsystem.' });
+            case 'PARENT_REQUIRED':
+                return res.status(400).json({ error: 'É necessário escolher o sistema pai.' });
+            case 'PARENT_NOT_FOUND':
+                return res.status(404).json({ error: 'Sistema pai não encontrado.' });
+            case 'NAME_REQUIRED':
+                return res.status(400).json({ error: 'Informe um nome válido.' });
+            case 'HIERARCHY_INVALID':
+                return res.status(400).json({ error: 'Hierarquia inválida para o tipo de nó escolhido.' });
+            case 'PATH_SLUG_CONFLICT':
+                return res.status(409).json({ error: 'Já existe um sistema com este caminho.' });
+            case 'SIMILAR_EXISTS':
+                return res.status(409).json({
+                    error: 'Há candidatos similares no catálogo. Confirme com force=true para criar mesmo assim.',
+                    candidates: error.candidates ?? [],
+                    recommended_action: error.recommended_action ?? null,
+                    analysis: error.analysis ?? null,
+                });
+            default:
+                return res.status(500).json({ error: 'Erro ao resolver sugestão.' });
+        }
     }
 });
 exports.default = router;

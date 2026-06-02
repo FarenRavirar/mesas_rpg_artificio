@@ -36,6 +36,12 @@ export function StepReview({
   bannerUrl,
 }: StepReviewProps) {
   const validContacts = contacts.filter((c) => c.value.trim().length > 0);
+  const formatSession = (session: SessionSchedule): string => {
+    const day = session.day_of_week === 'to_define' ? 'Dia a definir' : session.day_of_week;
+    const start = session.start_time || 'Horário a definir';
+    const end = session.start_time && session.end_time ? ` - ${session.end_time}` : '';
+    return `${day} · ${start}${end}`;
+  };
 
   return (
     <div className="space-y-6">
@@ -132,7 +138,7 @@ export function StepReview({
             sessions.map((session, idx) => (
               <div key={idx} className="p-2 bg-white/5 rounded-lg">
                 <span className="text-white">
-                  {session.day_of_week} · {session.start_time}{session.end_time ? ` - ${session.end_time}` : ''}
+                  {formatSession(session)}
                 </span>
               </div>
             ))

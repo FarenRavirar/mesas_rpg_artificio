@@ -7,6 +7,7 @@ const auth_1 = require("../middleware/auth");
 const discord_1 = require("../discord");
 const config_1 = require("../discord/config");
 const settingsCrypto_1 = require("../discord/settingsCrypto");
+const adminNotifications_1 = require("../services/adminNotifications");
 const router = (0, express_1.Router)();
 const DISCORD_API_BASE = 'https://discord.com/api/v10';
 function isAdmin(req, res) {
@@ -150,7 +151,7 @@ async function ensureSystemSuggestionForDraft(draft, adminId, sourceLabel) {
         .executeTakeFirst();
     if (existing)
         return;
-    await db_1.db
+    const createdSuggestion = await db_1.db
         .insertInto('system_suggestions')
         .values({
         user_id: adminId,
@@ -165,7 +166,22 @@ async function ensureSystemSuggestionForDraft(draft, adminId, sourceLabel) {
         reviewed_at: null,
         rejection_reason: null,
     })
-        .execute();
+        .returning(['id', 'name'])
+        .executeTakeFirst();
+    // Sugestao vinda do Discord: avisa todos os admins para revisarem (origem nao e autoria do admin).
+    if (createdSuggestion) {
+        await (0, adminNotifications_1.notifyAdmins)({
+            type: 'system_suggestion',
+            title: 'Nova sugestão de sistema (Discord)',
+            message: `Sugestão automática "${createdSuggestion.name}" detectada no Discord.`,
+            action_url: '/gestao',
+            metadata: {
+                suggestion_id: createdSuggestion.id,
+                suggestion_kind: 'system',
+                source: 'discord',
+            },
+        });
+    }
 }
 async function createOrUpdateDraftFromMessage(message, systems, adminId) {
     const parsed = (0, discord_1.parseDiscordAnnouncement)({

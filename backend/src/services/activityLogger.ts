@@ -8,6 +8,7 @@ export type ActivityAction =
   | 'system.created' | 'system.updated' | 'system.deleted'
   | 'scenario.created' | 'scenario.updated' | 'scenario.deleted'
   | 'system_suggestion.created' | 'system_suggestion.approved' | 'system_suggestion.rejected'
+  | 'system_suggestion.resolved'
   | 'scenario_suggestion.created' | 'scenario_suggestion.approved' | 'scenario_suggestion.rejected';
 
 export type ActivityEntityType =

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -21,6 +22,7 @@ export const ScenarioSuggestionModal = ({ isOpen, onClose, onSuccess }: Scenario
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (!isAuthenticated) return;
 
     setLoading(true);
@@ -58,7 +60,7 @@ export const ScenarioSuggestionModal = ({ isOpen, onClose, onSuccess }: Scenario
 
   if (!isOpen) return null;
 
-  return (
+  const modal = (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div
         className="bg-[#1B2A4A] border border-white/10 rounded-lg shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto"
@@ -149,4 +151,7 @@ export const ScenarioSuggestionModal = ({ isOpen, onClose, onSuccess }: Scenario
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') return modal;
+  return createPortal(modal, document.body);
 };

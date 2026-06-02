@@ -89,6 +89,8 @@ Nunca executar sem aprovacao explicita do mantenedor:
 
 Comandos read-only permitidos sem aprovacao: `docker ps`, `docker logs`, `docker stats`, `docker inspect`, `ls`, `cat`, `grep`, `find`, `head`, `tail`, `curl -s` GET e `psql` com `SELECT`.
 
+**Escopo da aprovacao (regra petrea):** aprovacao vale por acao, nao por sessao. Um "pode prosseguir", "faca o deploy" ou similar autoriza APENAS o conjunto de comandos apresentado naquele bloco de aprovacao. Nao se estende a commits, pushes, deploys, writes ou correcoes posteriores. Se a acao autorizada falhar e exigir um novo commit/push (ex.: corrigir migration e reenviar), pedir aprovacao de novo antes de commitar. Atualizacoes de documentacao/sessao/`project-state` pos-deploy tambem exigem aprovacao para commit/push. Editar arquivo local nao precisa de aprovacao; `git commit`/`git push` sempre precisa, a cada vez.
+
 Formato obrigatorio para pedir aprovacao:
 
 ```text
@@ -144,7 +146,7 @@ Fluxo de ambientes: `feat/*` -> `dev`/Beta -> `main`/Producao.
 - Cloudinary: `VITE_CLOUDINARY_CLOUD_NAME` e `VITE_CLOUDINARY_UPLOAD_PRESET` sao variaveis de build-time. Nunca hardcodar. Upload exclusivamente via backend com signed preset.
 - `cover_deletehash`, `avatar_deletehash` e `banner_deletehash` nunca retornam por rotas publicas.
 - Mudancas de interface devem respeitar as 10 Heuristicas de Nielsen antes do merge.
-- Teste funcional/manual de UI ou fluxo real so conta apos deploy em Beta e teste do mantenedor em janela anonima. Nao sugerir limpeza de cache.
+- Teste funcional/manual de UI ou fluxo real so conta apos deploy em `dev`/Beta e teste do mantenedor em janela anonima. Browser plugin, Playwright local, screenshot local ou simulacao do agente podem ser usados apenas como apoio tecnico, nunca como evidencia funcional conclusiva. Nao sugerir limpeza de cache.
 - Mudanca visivel para mestres ou usuarios finais exige entrada em `database/changelogs.json` antes do deploy. Melhorias da mesma data devem ser unificadas em uma unica entrada, com linguagem leiga.
 
 ---

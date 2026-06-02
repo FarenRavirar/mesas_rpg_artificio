@@ -3,7 +3,7 @@ import { PlusCircle, Trash2 } from 'lucide-react';
 
 export interface SessionSchedule {
   id?: string;
-  day_of_week: 'segunda' | 'terça' | 'quarta' | 'quinta' | 'sexta' | 'sábado' | 'domingo';
+  day_of_week: 'segunda' | 'terça' | 'quarta' | 'quinta' | 'sexta' | 'sábado' | 'domingo' | 'to_define';
   start_time: string; // HH:MM
   end_time?: string; // HH:MM - CORREÇÃO REG-01: Opcional para compatibilidade com backend
   frequency: 'semanal' | 'quinzenal' | 'mensal' | 'avulsa';
@@ -20,6 +20,7 @@ interface SessionRepeaterProps {
 }
 
 const DAYS_OF_WEEK = [
+  { value: 'to_define', label: 'Dia da semana a definir' },
   { value: 'segunda', label: 'Segunda-feira' },
   { value: 'terça', label: 'Terça-feira' },
   { value: 'quarta', label: 'Quarta-feira' },
@@ -85,9 +86,9 @@ export function SessionRepeater({ sessions, onChange, disabled = false }: Sessio
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-semibold text-white">Horários das Sessões *</p>
-          <p className="text-xs text-white/60 mt-1">
-            Adicione todos os horários em que a mesa acontece. Pelo menos 1 horário é obrigatório.
+              <p className="text-sm font-semibold text-white">Horários das Sessões *</p>
+              <p className="text-xs text-white/60 mt-1">
+            Adicione os horários conhecidos ou marque dia/horário a definir.
           </p>
         </div>
         <button
@@ -178,11 +179,21 @@ export function SessionRepeater({ sessions, onChange, disabled = false }: Sessio
                 <label className="text-xs font-black uppercase tracking-widest text-white/70">
                   Horário Inicial *
                 </label>
+                <label className="mb-1 flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">
+                  <input
+                    type="checkbox"
+                    checked={!session.start_time}
+                    onChange={(e) => handleUpdateSession(index, 'start_time', e.target.checked ? '' : '19:00')}
+                    disabled={disabled}
+                    className="h-4 w-4 rounded border-white/20 bg-white/10 text-[var(--color-artificio-orange)] focus:ring-[var(--color-artificio-orange)] disabled:opacity-50"
+                  />
+                  Horário a definir
+                </label>
                 <input
                   type="time"
                   value={session.start_time}
                   onChange={(e) => handleUpdateSession(index, 'start_time', e.target.value)}
-                  disabled={disabled}
+                  disabled={disabled || !session.start_time}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-[var(--color-artificio-orange)]/60 focus:ring-1 focus:ring-[var(--color-artificio-orange)]/30 transition-all disabled:opacity-50"
                 />
               </div>
@@ -196,7 +207,7 @@ export function SessionRepeater({ sessions, onChange, disabled = false }: Sessio
                   type="time"
                   value={session.end_time}
                   onChange={(e) => handleUpdateSession(index, 'end_time', e.target.value)}
-                  disabled={disabled}
+                  disabled={disabled || !session.start_time}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-[var(--color-artificio-orange)]/60 focus:ring-1 focus:ring-[var(--color-artificio-orange)]/30 transition-all disabled:opacity-50"
                 />
               </div>
@@ -241,7 +252,7 @@ export function SessionRepeater({ sessions, onChange, disabled = false }: Sessio
       {sessions.length === 0 && (
         <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-center">
           <p className="text-sm text-red-300">
-            ⚠️ Pelo menos 1 horário de sessão é obrigatório
+            Adicione um horário ou marque a agenda como a definir
           </p>
         </div>
       )}

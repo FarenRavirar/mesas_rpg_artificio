@@ -9,6 +9,7 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const db_1 = require("../db");
 const auth_1 = require("../middleware/auth");
 const activityLogger_1 = require("../services/activityLogger");
+const adminNotifications_1 = require("../services/adminNotifications");
 const router = (0, express_1.Router)();
 const requiredEnv = [
     'GOOGLE_CLIENT_ID',
@@ -146,6 +147,13 @@ router.get('/google/callback', async (req, res) => {
                         provider: 'google',
                         email: newUser.email,
                     },
+                }, trx);
+                await (0, adminNotifications_1.notifyAdmins)({
+                    type: 'member_joined',
+                    title: 'Novo membro',
+                    message: `${displayName} entrou na comunidade.`,
+                    action_url: '/gestao',
+                    metadata: { user_id: user.id },
                 }, trx);
             });
         }

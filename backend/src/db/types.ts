@@ -253,6 +253,10 @@ export interface TablesTable {
   experience_level: Generated<ExperienceLevel>;
   table_level: 'iniciante' | 'intermediario' | 'avancado' | null;
   starts_at: Date | null;
+  schedule_day_status: Generated<ScheduleDefinitionStatus>;
+  schedule_time_status: Generated<ScheduleDefinitionStatus>;
+  schedule_day_hint: DayOfWeek | null;
+  schedule_time_hint: string | null;
   city: string | null;
   state: string | null;
   content_warnings: Generated<string[]>;
@@ -314,6 +318,7 @@ export interface TableContactsTable {
 
 export type DayOfWeek = 'segunda' | 'terça' | 'quarta' | 'quinta' | 'sexta' | 'sábado' | 'domingo';
 export type ScheduleFrequency = 'semanal' | 'quinzenal' | 'mensal' | 'avulsa';
+export type ScheduleDefinitionStatus = 'defined' | 'to_define';
 
 export interface TableSchedulesTable {
   id: Generated<string>;
@@ -365,7 +370,22 @@ export interface SystemSuggestionsTable {
   user_notified: Generated<boolean>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
+  // Migration 123 - auditoria de resolucao (Spec 018)
+  resolution_type: SuggestionResolutionType | null;
+  resolved_system_id: string | null;
+  created_system_id: string | null;
+  created_alias_id: string | null;
+  resolution_notes: string | null;
+  resolution_payload: Generated<unknown>; // JSONB
+  resolved_at: Date | null;
 }
+
+export type SuggestionResolutionType =
+  | 'create_system'
+  | 'create_child'
+  | 'create_alias'
+  | 'merge_existing'
+  | 'reject';
 
 export type SystemSuggestion = Selectable<SystemSuggestionsTable>;
 export type NewSystemSuggestion = Insertable<SystemSuggestionsTable>;
@@ -392,7 +412,9 @@ export type ScenarioSuggestion = Selectable<ScenarioSuggestionsTable>;
 export type NewScenarioSuggestion = Insertable<ScenarioSuggestionsTable>;
 export type ScenarioSuggestionUpdate = Updateable<ScenarioSuggestionsTable>;
 
-export type NotificationType = 'suggestion_approved' | 'suggestion_rejected' | 'suggestion_edited' | 'system';
+export type NotificationType =
+  | 'suggestion_approved' | 'suggestion_rejected' | 'suggestion_edited' | 'system'
+  | 'system_suggestion' | 'scenario_suggestion' | 'table_published' | 'member_joined';
 
 export interface NotificationsTable {
   id: Generated<string>;

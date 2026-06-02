@@ -4,6 +4,7 @@ const express_1 = require("express");
 const auth_1 = require("../middleware/auth");
 const db_1 = require("../db");
 const activityLogger_1 = require("../services/activityLogger");
+const adminNotifications_1 = require("../services/adminNotifications");
 const router = (0, express_1.Router)();
 async function resolveActorName(userId) {
     try {
@@ -55,11 +56,6 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ error: 'Você já possui 5 sugestões pendentes. Aguarde a revisão.' });
         }
         const userName = await resolveActorName(userId);
-        const admins = await db_1.db
-            .selectFrom('users')
-            .select('id')
-            .where('role', '=', 'admin')
-            .execute();
         const newSuggestion = await db_1.db.transaction().execute(async (trx) => {
             const created = await trx
                 .insertInto('scenario_suggestions')
@@ -72,22 +68,17 @@ router.post('/', async (req, res) => {
             })
                 .returningAll()
                 .executeTakeFirstOrThrow();
-            if (admins.length > 0) {
-                await trx
-                    .insertInto('notifications')
-                    .values(admins.map((admin) => ({
-                    user_id: admin.id,
-                    type: 'system',
-                    title: 'Nova sugestão de cenário',
-                    message: `${userName} sugeriu "${created.name}" para o catálogo.`,
-                    action_url: '/gestao',
-                    metadata: JSON.stringify({
-                        suggestion_id: created.id,
-                        suggestion_kind: 'scenario',
-                    }),
-                })))
-                    .execute();
-            }
+            await (0, adminNotifications_1.notifyAdmins)({
+                type: 'scenario_suggestion',
+                title: 'Nova sugestão de cenário',
+                message: `${userName} sugeriu "${created.name}" para o catálogo.`,
+                action_url: '/gestao',
+                metadata: {
+                    suggestion_id: created.id,
+                    suggestion_kind: 'scenario',
+                },
+                excludeUserId: userId,
+            }, trx);
             return created;
         });
         if (newSuggestion) {

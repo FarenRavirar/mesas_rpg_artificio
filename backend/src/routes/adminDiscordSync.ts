@@ -8,6 +8,7 @@ import { DiscordDiscoveryError, DiscordDraftSyncValidationError, DiscordIngestEr
 import type { SystemEntry } from '../discord';
 import { requireDiscordBotToken } from '../discord/config';
 import { encryptDiscordSetting, decryptDiscordSetting, DiscordSettingsSecretUnavailableError } from '../discord/settingsCrypto';
+import { notifyAdmins } from '../services/adminNotifications';
 
 const router = Router();
 const DISCORD_API_BASE = 'https://discord.com/api/v10';
@@ -172,7 +173,7 @@ async function ensureSystemSuggestionForDraft(
 
   if (existing) return;
 
-  await db
+  const createdSuggestion = await db
     .insertInto('system_suggestions')
     .values({
       user_id: adminId,
@@ -187,7 +188,23 @@ async function ensureSystemSuggestionForDraft(
       reviewed_at: null,
       rejection_reason: null,
     })
-    .execute();
+    .returning(['id', 'name'])
+    .executeTakeFirst();
+
+  // Sugestao vinda do Discord: avisa todos os admins para revisarem (origem nao e autoria do admin).
+  if (createdSuggestion) {
+    await notifyAdmins({
+      type: 'system_suggestion',
+      title: 'Nova sugestão de sistema (Discord)',
+      message: `Sugestão automática "${createdSuggestion.name}" detectada no Discord.`,
+      action_url: '/gestao',
+      metadata: {
+        suggestion_id: createdSuggestion.id,
+        suggestion_kind: 'system',
+        source: 'discord',
+      },
+    });
+  }
 }
 
 async function createOrUpdateDraftFromMessage(

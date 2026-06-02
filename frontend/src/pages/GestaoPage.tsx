@@ -10,10 +10,12 @@ import toast from 'react-hot-toast';
 import { HydrationAdminPanel } from '../modules/admin/hydration/HydrationAdminPanel';
 import { InlineDeleteConfirmation } from '../components/InlineDeleteConfirmation';
 import { DiscordSyncPanel } from '../features/discord-sync/components/DiscordSyncPanel';
+import { SystemSuggestionResolutionDrawer } from '../components/SystemSuggestionResolutionDrawer';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
 interface SystemSuggestion {
+  kind: 'system';
   id: string;
   user_id: string;
   name: string;
@@ -27,10 +29,95 @@ interface SystemSuggestion {
   reviewed_by: string | null;
 }
 
+interface ScenarioSuggestion {
+  kind: 'scenario';
+  id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  rejection_reason: string | null;
+  created_at: string;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+}
+
+type CatalogSuggestion = SystemSuggestion | ScenarioSuggestion;
+
+const isSuggestionStatus = (value: unknown): value is CatalogSuggestion['status'] => {
+  return value === 'pending' || value === 'approved' || value === 'rejected';
+};
+
+const readString = (value: unknown): string => (typeof value === 'string' ? value : '');
+const readNullableString = (value: unknown): string | null => (typeof value === 'string' ? value : null);
+
+const normalizeSystemSuggestions = (value: unknown): SystemSuggestion[] => {
+  if (!Array.isArray(value)) return [];
+
+  const suggestions: SystemSuggestion[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== 'object') continue;
+    const row = item as Record<string, unknown>;
+    const status = row.status;
+    const nodeType = row.node_type;
+    if (!isSuggestionStatus(status)) continue;
+    if (nodeType !== 'system' && nodeType !== 'edition' && nodeType !== 'variant' && nodeType !== 'subsystem') continue;
+
+    suggestions.push({
+      kind: 'system',
+      id: readString(row.id),
+      user_id: readString(row.user_id),
+      name: readString(row.name),
+      description: readNullableString(row.description),
+      parent_id: readNullableString(row.parent_id),
+      node_type: nodeType,
+      status,
+      rejection_reason: readNullableString(row.rejection_reason),
+      created_at: readString(row.created_at),
+      reviewed_at: readNullableString(row.reviewed_at),
+      reviewed_by: readNullableString(row.reviewed_by),
+    });
+  }
+
+  return suggestions.filter((suggestion) => suggestion.id && suggestion.name);
+};
+
+const normalizeScenarioSuggestions = (value: unknown): ScenarioSuggestion[] => {
+  if (!Array.isArray(value)) return [];
+
+  const suggestions: ScenarioSuggestion[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== 'object') continue;
+    const row = item as Record<string, unknown>;
+    const status = row.status;
+    if (!isSuggestionStatus(status)) continue;
+
+    suggestions.push({
+      kind: 'scenario',
+      id: readString(row.id),
+      user_id: readString(row.user_id),
+      name: readString(row.name),
+      description: readNullableString(row.description),
+      status,
+      rejection_reason: readNullableString(row.rejection_reason),
+      created_at: readString(row.created_at),
+      reviewed_at: readNullableString(row.reviewed_at),
+      reviewed_by: readNullableString(row.reviewed_by),
+    });
+  }
+
+  return suggestions.filter((suggestion) => suggestion.id && suggestion.name);
+};
+
+const getSuggestionEndpoint = (suggestion: CatalogSuggestion, action: 'approve' | 'reject') => {
+  const resource = suggestion.kind === 'system' ? 'system-suggestions' : 'scenario-suggestions';
+  return `${API_BASE}/api/v1/admin/${resource}/${suggestion.id}/${action}`;
+};
+
 export const GestaoPage = () => {
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
-  const [suggestions, setSuggestions] = useState<SystemSuggestion[]>([]);
+  const [suggestions, setSuggestions] = useState<CatalogSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
   const [activeTab, setActiveTab] = useState<'systems' | 'crud' | 'activity' | 'hydration' | 'discord'>('crud');
@@ -43,6 +130,7 @@ export const GestaoPage = () => {
 
   const [approvingSuggestionId, setApprovingSuggestionId] = useState<string | null>(null);
   const [rejectingSuggestionId, setRejectingSuggestionId] = useState<string | null>(null);
+  const [resolvingSuggestion, setResolvingSuggestion] = useState<SystemSuggestion | null>(null);
   const [selectedSuggestionIds, setSelectedSuggestionIds] = useState<string[]>([]);
   const [bulkRejectingSuggestions, setBulkRejectingSuggestions] = useState(false);
 
@@ -65,25 +153,37 @@ export const GestaoPage = () => {
     if (!isAuthenticated) return;
     setLoading(true);
     try {
-      const url = filter === 'all'
-        ? `${API_BASE}/api/v1/admin/system-suggestions`
-        : `${API_BASE}/api/v1/admin/system-suggestions?status=${filter}`;
+      const query = filter === 'all' ? '' : `?status=${filter}`;
 
-      const response = await fetch(url, {
+      const systemResponse = await fetch(`${API_BASE}/api/v1/admin/system-suggestions${query}`, {
+        credentials: 'include',
+      });
+      const scenarioResponse = await fetch(`${API_BASE}/api/v1/admin/scenario-suggestions${query}`, {
         credentials: 'include',
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        const nextSuggestions: SystemSuggestion[] = data.data || [];
-        setSuggestions(nextSuggestions);
-        const validPendingIds = new Set(
-          nextSuggestions
-            .filter((suggestion) => suggestion.status === 'pending')
-            .map((suggestion) => suggestion.id),
-        );
-        setSelectedSuggestionIds((current) => current.filter((id) => validPendingIds.has(id)));
+      const nextSuggestions: CatalogSuggestion[] = [];
+
+      if (systemResponse.ok) {
+        const data: unknown = await systemResponse.json();
+        const rows = data && typeof data === 'object' ? (data as Record<string, unknown>).data : [];
+        nextSuggestions.push(...normalizeSystemSuggestions(rows));
       }
+
+      if (scenarioResponse.ok) {
+        const data: unknown = await scenarioResponse.json();
+        const rows = data && typeof data === 'object' ? (data as Record<string, unknown>).data : [];
+        nextSuggestions.push(...normalizeScenarioSuggestions(rows));
+      }
+
+      nextSuggestions.sort((a, b) => b.created_at.localeCompare(a.created_at));
+      setSuggestions(nextSuggestions);
+      const validPendingIds = new Set(
+        nextSuggestions
+          .filter((suggestion) => suggestion.status === 'pending')
+          .map((suggestion) => suggestion.id),
+      );
+      setSelectedSuggestionIds((current) => current.filter((id) => validPendingIds.has(id)));
     } catch (error) {
       console.error('[GestaoPage] Erro ao buscar sugestões:', error);
     } finally {
@@ -110,12 +210,41 @@ export const GestaoPage = () => {
     }
   };
 
-  const handleApprove = async (id: string, editedData?: { name: string; description: string | null }) => {
+  const maybePublishPendingDrafts = async (pending: Array<{ id: string; title: string | null }>) => {
+    if (!pending || pending.length === 0) return;
+    const list = pending.map((d) => `• ${d.title ?? 'Mesa sem título'}`).join('\n');
+    const publish = window.confirm(
+      `${pending.length} mesa(s) pronta(s) para publicar:\n${list}\n\nPublicar agora?`,
+    );
+    if (!publish) return;
+    const results = await Promise.allSettled(
+      pending.map((d) =>
+        fetch(`${API_BASE}/api/v1/admin/discord-sync/drafts/${d.id}/sync`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ),
+    );
+    const succeeded = results.filter((r) => r.status === 'fulfilled' && (r.value as Response).ok).length;
+    toast.success(`${succeeded}/${pending.length} mesa(s) publicada(s)!`);
+  };
+
+  const handleResolved = (data: { system_name?: string; pending_drafts?: Array<{ id: string; title: string | null }> }) => {
+    setResolvingSuggestion(null);
+    setSelectedSuggestionIds((current) =>
+      resolvingSuggestion ? current.filter((selectedId) => selectedId !== resolvingSuggestion.id) : current,
+    );
+    fetchSuggestions();
+    void maybePublishPendingDrafts(data.pending_drafts ?? []);
+  };
+
+  const handleApprove = async (suggestion: CatalogSuggestion, editedData?: { name: string; description: string | null }) => {
     if (!isAuthenticated) return;
-    setApprovingSuggestionId(id);
+    setApprovingSuggestionId(suggestion.id);
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/admin/system-suggestions/${id}/approve`, {
+      const response = await fetch(getSuggestionEndpoint(suggestion, 'approve'), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -126,29 +255,12 @@ export const GestaoPage = () => {
         const result = await response.json();
         const data = result.data ?? {};
 
-        const systemLabel = data.system_name ? `"${data.system_name}"` : 'Sistema';
-        toast.success(`${systemLabel} aprovado e adicionado ao catálogo.`);
+        const label = data.system_name ? `"${data.system_name}"` : suggestion.kind === 'system' ? 'Sistema' : 'Cenário';
+        toast.success(`${label} aprovado e adicionado ao catálogo.`);
         fetchSuggestions();
 
-        const pending: Array<{ id: string; title: string | null }> = data.pending_drafts ?? [];
-        if (pending.length > 0) {
-          const list = pending.map((d: { id: string; title: string | null }) => `• ${d.title ?? 'Mesa sem título'}`).join('\n');
-          const publish = window.confirm(
-            `${pending.length} mesa(s) pronta(s) para publicar:\n${list}\n\nPublicar agora?`,
-          );
-          if (publish) {
-            const results = await Promise.allSettled(
-              pending.map((d: { id: string; title: string | null }) =>
-                fetch(`${API_BASE}/api/v1/admin/discord-sync/drafts/${d.id}/sync`, {
-                  method: 'POST',
-                  credentials: 'include',
-                  headers: { 'Content-Type': 'application/json' },
-                }),
-              ),
-            );
-            const succeeded = results.filter((r) => r.status === 'fulfilled').length;
-            toast.success(`${succeeded}/${pending.length} mesa(s) publicada(s)!`);
-          }
+        if (suggestion.kind === 'system') {
+          await maybePublishPendingDrafts(data.pending_drafts ?? []);
         }
       } else {
         const errData = await response.json();
@@ -162,13 +274,13 @@ export const GestaoPage = () => {
     }
   };
 
-  const handleReject = async (id: string) => {
+  const handleReject = async (suggestion: CatalogSuggestion) => {
     if (!isAuthenticated) return;
 
-    setRejectingSuggestionId(id);
+    setRejectingSuggestionId(suggestion.id);
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/admin/system-suggestions/${id}/reject`, {
+      const response = await fetch(getSuggestionEndpoint(suggestion, 'reject'), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -176,8 +288,8 @@ export const GestaoPage = () => {
       });
 
       if (response.ok) {
-        toast.success('Sistema rejeitado!');
-        setSelectedSuggestionIds((current) => current.filter((selectedId) => selectedId !== id));
+        toast.success(`${suggestion.kind === 'system' ? 'Sistema' : 'Cenário'} rejeitado!`);
+        setSelectedSuggestionIds((current) => current.filter((selectedId) => selectedId !== suggestion.id));
         fetchSuggestions();
       } else {
         const data = await response.json();
@@ -213,8 +325,10 @@ export const GestaoPage = () => {
 
     try {
       const results = await Promise.allSettled(
-        selectedSuggestionIds.map((id) =>
-          fetch(`${API_BASE}/api/v1/admin/system-suggestions/${id}/reject`, {
+        suggestions
+          .filter((suggestion) => selectedSuggestionIds.includes(suggestion.id))
+          .map((suggestion) =>
+          fetch(getSuggestionEndpoint(suggestion, 'reject'), {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
@@ -631,21 +745,30 @@ export const GestaoPage = () => {
                             <p className="text-white/60 text-sm mt-1">{suggestion.description}</p>
                           )}
                           <p className="text-white/40 text-xs mt-2">
-                            Tipo: {suggestion.node_type} | Status: {suggestion.status}
+                            Tipo: {suggestion.kind === 'system' ? suggestion.node_type : 'cenário'} | Status: {suggestion.status}
                           </p>
                         </div>
                       </div>
                       {suggestion.status === 'pending' && (
                         <div className="flex gap-2">
+                          {suggestion.kind === 'system' ? (
+                            <button
+                              onClick={() => setResolvingSuggestion(suggestion)}
+                              className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors text-white text-sm"
+                            >
+                              Resolver
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleApprove(suggestion)}
+                              disabled={approvingSuggestionId === suggestion.id}
+                              className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded-lg transition-colors text-white text-sm disabled:opacity-50"
+                            >
+                              {approvingSuggestionId === suggestion.id ? 'Aprovando...' : 'Aprovar'}
+                            </button>
+                          )}
                           <button
-                            onClick={() => handleApprove(suggestion.id)}
-                            disabled={approvingSuggestionId === suggestion.id}
-                            className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded-lg transition-colors text-white text-sm disabled:opacity-50"
-                          >
-                            {approvingSuggestionId === suggestion.id ? 'Aprovando...' : 'Aprovar'}
-                          </button>
-                          <button
-                            onClick={() => handleReject(suggestion.id)}
+                            onClick={() => handleReject(suggestion)}
                             disabled={rejectingSuggestionId === suggestion.id}
                             className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded-lg transition-colors text-white text-sm disabled:opacity-50"
                           >
@@ -669,6 +792,20 @@ export const GestaoPage = () => {
           onSuccess={() => {
             setScenarioEditModal(null);
           }}
+        />
+      )}
+
+      {resolvingSuggestion && (
+        <SystemSuggestionResolutionDrawer
+          suggestion={{
+            id: resolvingSuggestion.id,
+            name: resolvingSuggestion.name,
+            description: resolvingSuggestion.description,
+            node_type: resolvingSuggestion.node_type,
+            parent_id: resolvingSuggestion.parent_id,
+          }}
+          onClose={() => setResolvingSuggestion(null)}
+          onResolved={handleResolved}
         />
       )}
     </div>

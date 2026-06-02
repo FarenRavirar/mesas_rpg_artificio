@@ -33,17 +33,40 @@ export function formStateToPayload(state: FormState): CreateTablePayload {
     return 'gratuita';
   };
 
+  let hasUndefinedDay = false;
+  let hasUndefinedTime = false;
+  let firstKnownDay: string | null = null;
+  let firstKnownTime: string | null = null;
+
+  for (const session of state.sessions) {
+    if (session.day_of_week === 'to_define') {
+      hasUndefinedDay = true;
+    } else if (!firstKnownDay) {
+      firstKnownDay = session.day_of_week;
+    }
+
+    if (!session.start_time) {
+      hasUndefinedTime = true;
+    } else if (!firstKnownTime) {
+      firstKnownTime = session.start_time;
+    }
+  }
+
+  const hasFlexibleSchedule = hasUndefinedDay || hasUndefinedTime;
+
   // CORREÇÃO REG-01: Renomear sessions para schedules e mapear estrutura correta
-  const schedules = state.sessions.map((s, index) => ({
-    day_of_week: s.day_of_week,
-    start_time: s.start_time,
-    end_time: s.end_time || undefined,
-    frequency: normalizeScheduleFrequency(s.frequency),
-    slots_per_session: typeof s.slots_per_session === 'number' ? s.slots_per_session : null,
-    is_ongoing: s.is_ongoing ?? false,
-    notes: s.notes || undefined,
-    sort_order: index,
-  }));
+  const schedules = hasFlexibleSchedule
+    ? []
+    : state.sessions.map((s, index) => ({
+      day_of_week: s.day_of_week,
+      start_time: s.start_time,
+      end_time: s.end_time || undefined,
+      frequency: normalizeScheduleFrequency(s.frequency),
+      slots_per_session: typeof s.slots_per_session === 'number' ? s.slots_per_session : null,
+      is_ongoing: s.is_ongoing ?? false,
+      notes: s.notes || undefined,
+      sort_order: index,
+    }));
 
   // Construir payload base
   const payload: CreateTablePayload = {
@@ -57,6 +80,10 @@ export function formStateToPayload(state: FormState): CreateTablePayload {
     language: state.form.language,
     system_id: state.selectedSystemId,
     scenario_id: state.selectedScenarioId,
+    schedule_day_status: hasUndefinedDay ? 'to_define' : 'defined',
+    schedule_time_status: hasUndefinedTime ? 'to_define' : 'defined',
+    schedule_day_hint: hasFlexibleSchedule && !hasUndefinedDay ? firstKnownDay : null,
+    schedule_time_hint: hasFlexibleSchedule && !hasUndefinedTime ? firstKnownTime : null,
     schedules: schedules, // CORREÇÃO REG-01: Renomeado de sessions para schedules
     contacts: validContacts,
     publisher_role: state.publisherRole,
