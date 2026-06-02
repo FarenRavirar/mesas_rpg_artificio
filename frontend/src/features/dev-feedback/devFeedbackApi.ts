@@ -65,6 +65,22 @@ export interface DevFeedbackItem {
   status: DevFeedbackStatus;
   admin_notes: string | null;
   created_at: string;
+  archived_at: string | null;
+  merged_into: string | null;
+  merged_sources: DevFeedbackMergedSource[];
+}
+
+export interface DevFeedbackMergedSource {
+  id: string;
+  kind: string;
+  title: string;
+  description: string;
+  contact_email: string | null;
+  screenshot_url: string | null;
+  route_path: string | null;
+  environment: string | null;
+  created_at: string | null;
+  merged_at: string | null;
 }
 
 const readString = (v: unknown): string => (typeof v === 'string' ? v : '');
@@ -106,6 +122,30 @@ function normalizeNetwork(value: unknown): DevFeedbackNetworkEntry[] {
   return out;
 }
 
+function normalizeMergedSources(value: unknown): DevFeedbackMergedSource[] {
+  if (!Array.isArray(value)) return [];
+  const out: DevFeedbackMergedSource[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== 'object') continue;
+    const row = item as Record<string, unknown>;
+    const id = readString(row.id);
+    if (id.length === 0) continue;
+    out.push({
+      id,
+      kind: readString(row.kind) || 'bug',
+      title: readString(row.title),
+      description: readString(row.description),
+      contact_email: readNullableString(row.contact_email),
+      screenshot_url: readNullableString(row.screenshot_url),
+      route_path: readNullableString(row.route_path),
+      environment: readNullableString(row.environment),
+      created_at: readNullableString(row.created_at),
+      merged_at: readNullableString(row.merged_at),
+    });
+  }
+  return out;
+}
+
 export function normalizeDevFeedbackList(value: unknown): DevFeedbackItem[] {
   if (!Array.isArray(value)) return [];
   const out: DevFeedbackItem[] = [];
@@ -135,15 +175,21 @@ export function normalizeDevFeedbackList(value: unknown): DevFeedbackItem[] {
       status: row.status,
       admin_notes: readNullableString(row.admin_notes),
       created_at: readString(row.created_at),
+      archived_at: readNullableString(row.archived_at),
+      merged_into: readNullableString(row.merged_into),
+      merged_sources: normalizeMergedSources(row.merged_sources),
     });
   }
   return out;
 }
 
-export async function fetchDevFeedback(params: { status?: string; kind?: string }): Promise<DevFeedbackItem[]> {
+export async function fetchDevFeedback(
+  params: { status?: string; kind?: string; archived?: string },
+): Promise<DevFeedbackItem[]> {
   const qs = new URLSearchParams();
   if (params.status && params.status !== 'all') qs.set('status', params.status);
   if (params.kind && params.kind !== 'all') qs.set('kind', params.kind);
+  if (params.archived) qs.set('archived', params.archived);
   const suffix = qs.toString() ? `?${qs.toString()}` : '';
   const res = await api.get<{ data: unknown }>(`/api/v1/admin/dev-feedback${suffix}`);
   return normalizeDevFeedbackList(res.data);
@@ -154,4 +200,16 @@ export async function updateDevFeedback(
   patch: { status?: DevFeedbackStatus; admin_notes?: string | null },
 ): Promise<void> {
   await api.patch(`/api/v1/admin/dev-feedback/${id}`, patch);
+}
+
+export async function archiveDevFeedback(id: string, archived: boolean): Promise<void> {
+  await api.patch(`/api/v1/admin/dev-feedback/${id}`, { archived });
+}
+
+export async function deleteDevFeedback(id: string): Promise<void> {
+  await api.delete(`/api/v1/admin/dev-feedback/${id}`);
+}
+
+export async function mergeDevFeedback(primaryId: string, sourceIds: string[]): Promise<void> {
+  await api.post('/api/v1/admin/dev-feedback/merge', { primary_id: primaryId, source_ids: sourceIds });
 }

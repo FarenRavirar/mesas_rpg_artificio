@@ -10,7 +10,8 @@ export type ActivityAction =
   | 'system_suggestion.created' | 'system_suggestion.approved' | 'system_suggestion.rejected'
   | 'system_suggestion.resolved'
   | 'scenario_suggestion.created' | 'scenario_suggestion.approved' | 'scenario_suggestion.rejected'
-  | 'dev_feedback.created' | 'dev_feedback.updated';
+  | 'dev_feedback.created' | 'dev_feedback.updated'
+  | 'dev_feedback.archived' | 'dev_feedback.deleted' | 'dev_feedback.merged';
 
 export type ActivityEntityType =
   | 'user' | 'table' | 'system' | 'scenario'

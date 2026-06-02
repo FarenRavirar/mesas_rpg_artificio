@@ -62,6 +62,7 @@ router.post('/', strictRateLimiter, optionalAuth, async (req: Request, res: Resp
           console_errors: JSON.stringify(input.console_errors),
           network_errors: JSON.stringify(input.network_errors),
           screenshot_url: screenshotUrl,
+          screenshot_public_id: screenshotPublicId,
         })
         .returning(['id', 'kind', 'status', 'created_at'])
         .executeTakeFirstOrThrow();

@@ -4,11 +4,12 @@
 
 ---
 
-## 02/06/2026 (1 sessão)
+## 02/06/2026 (2 sessões)
 
 | # | Arquivo |
 |---|---|
 | 1 | `26-06-02_1_feedback-desenvolvimento.md` |
+| 2 | `26-06-02_2_feedback-triage.md` |
 
 ---
 
@@ -300,7 +301,7 @@
 
 ## Sessão Mais Recente
 
-`26-06-02_1_feedback-desenvolvimento.md`
+`26-06-02_2_feedback-triage.md`
 
 ---
 
@@ -316,4 +317,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-06-02_2_*` ou nova data
+**Próxima sessão:** `26-06-02_3_*` ou nova data
