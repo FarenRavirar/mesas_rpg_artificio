@@ -81,19 +81,19 @@ router.post('/', async (req: Request, res: Response) => {
         .returningAll()
         .executeTakeFirstOrThrow();
 
-      await notifyAdmins({
-        type: 'scenario_suggestion',
-        title: 'Nova sugestão de cenário',
-        message: `${userName} sugeriu "${created.name}" para o catálogo.`,
-        action_url: '/gestao',
-        metadata: {
-          suggestion_id: created.id,
-          suggestion_kind: 'scenario',
-        },
-        excludeUserId: userId,
-      }, trx);
-
       return created;
+    });
+
+    await notifyAdmins({
+      type: 'scenario_suggestion',
+      title: 'Nova sugestão de cenário',
+      message: `${userName} sugeriu "${newSuggestion.name}" para o catálogo.`,
+      action_url: '/gestao',
+      metadata: {
+        suggestion_id: newSuggestion.id,
+        suggestion_kind: 'scenario',
+      },
+      excludeUserId: userId,
     });
 
     if (newSuggestion) {
