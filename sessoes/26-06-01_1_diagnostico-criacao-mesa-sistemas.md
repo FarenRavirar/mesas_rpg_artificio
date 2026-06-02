@@ -99,3 +99,63 @@
 - Fatia D nao implementada nesta rodada: exige SDD Completo por contrato/API/DB de `table_schedules`.
 - Deploy Beta autorizado pelo mantenedor em 2026-06-01: comando "faca o deploy" deve ser tratado como aprovacao explicita para commit e `git push origin dev` neste contexto operacional.
 - Planejamento solicitado para proximo chat em 2026-06-01: criar SDD Completo `specs/018-resolucao-sugestoes-sistemas/` para fluxo saudavel de resolucao de sugestoes, evitando redundancia por alias/edicao/mescla.
+
+## Retomada 2026-06-02 - Fatia D + 500 Resolver
+
+- Retomada minima lida em ordem: `.specify/memory/project-state.md`, `AGENTS.md`, `docs/agents/context-capsule.md`.
+- Preflight SDD Completo lido: `.specify/memory/constitution.md`, `docs/sdd/SESSION_FAILURES_REGISTRY.md`, `docs/sdd/MAINTAINER_REVIEW_CHECKLIST.md`.
+- Erros conhecidos consultados por sintomas `system-suggestions`, `resolve`, `500`; nenhum erro especifico para `POST /admin/system-suggestions/:id/resolve` encontrado. Padroes relevantes: E043/E127/E128 para 500 por constraint/DB e E166 para evidencias com SELECT no banco-alvo quando houver pipeline/write.
+- Skill `diagnose` usada para o 500: reproduzir via log/rota, formular hipoteses, testar uma por vez, corrigir com regressao.
+- Skill `caveman` em modo ultra solicitada pelo mantenedor; respostas ao mantenedor devem ficar comprimidas.
+- `git status --short --branch`: `dev...origin/dev`; alteracoes preexistentes preservadas em `.specify/memory/project-state.md` e `sessoes/26-06-01_2_resolucao-sugestoes-sistemas.md`.
+
+Plano desta retomada:
+- [x] Diagnosticar 500 em `POST /api/v1/admin/system-suggestions/4c1efb7e-3c1f-4e09-8c04-029e12131342/resolve` com logs Beta read-only e codigo local.
+- [x] Corrigir somente se houver fix seguro local e regressao tecnica.
+- [x] Abrir/retomar artefatos SDD Completo da Fatia D para `dia da semana a definir` e `horario a definir`.
+- [x] Propor contrato/modelo de dados sem quebrar `table_schedules`: ausencia de horario definido nao deve gerar linha incompleta em `table_schedules`; dados indefinidos devem ser representados no contrato de mesa como flag/estado de agenda, mantendo `table_schedules` apenas para sessoes com `day_of_week` e `start_time` validos.
+- [x] Implementar fatia segura end-to-end local: frontend Nova Mesa, validacao, mapper, backend validators/API, exibicao publica, testes/builds.
+- [ ] Registrar evidencias tecnicas e atualizar changelog se houver mudanca visivel.
+
+Evidencias desta retomada:
+- Log Beta read-only (`docker logs mesas-beta-api`) mostrou 500 no `resolve` com constraint `systems_slug_key` durante `create_child` para sugestao `4c1efb7e-3c1f-4e09-8c04-029e12131342`.
+- SELECT Beta read-only confirmou `slug='2e'` existente em `The One Ring Roleplaying Game/2e` e sugestao pendente `Starfinder 2e`.
+- Diagnostico: helper recomendava `create_child` quando havia base+edicao, mas nao elevava para `merge_existing` quando a edicao ja existia sob o mesmo pai; backend tambem nao prevenia colisao global legada de `systems.slug` ao criar filho com slug comum (`2e`).
+- Correcao local 500: `scoreSystemCandidates` agora recomenda `merge_existing` quando encontra filho equivalente sob o pai; frontend rotula `existing_child_match`; backend `create_child` usa `path_slug` canonico por pai e gera `slug` interno unico quando ha colisao global, evitando 23505.
+- RED observado: `npm --prefix backend test -- systemSuggestionCandidates` falhou no novo caso `D&D 2024` porque retornava `dd5e` em vez de `dd2024`.
+- GREEN observado: `npm --prefix backend test -- systemSuggestionCandidates` passou com 21/21.
+- Fatia D SDD: `specs/019-agenda-a-definir/{spec,plan,tasks}.md` criados.
+- Modelo Fatia D: `table_schedules` continua apenas para sessoes completas; `tables` recebe `schedule_day_status`, `schedule_time_status`, `schedule_day_hint`, `schedule_time_hint`.
+- Implementacao Fatia D: migration 124 aditiva, tipos/validators/backend create/update/public route, `SessionRepeater`, mapper/hidratacao, review e `TableSchedules` publico.
+- Changelog atualizado com entrada `2026-06-02-agenda-a-definir`.
+- `npm --prefix backend run build`: GREEN.
+- `npm --prefix frontend run build`: GREEN (aviso nao bloqueante de chunk >500 kB).
+- `database/changelogs.json | ConvertFrom-Json`: GREEN (15 entradas).
+- Rodada final apos ajuste de hints: `npm --prefix backend run build` GREEN; `npm --prefix frontend run build` GREEN; `git diff --check` sem erros (apenas avisos EOL CRLF/LF).
+
+## Validacao pre-deploy da fila Beta de sugestoes de sistemas (02/06)
+
+Pedido do mantenedor: antes de deploy, buscar fila pendente no banco Beta e testar a saida do resolvedor com o codigo local atual.
+
+Plano:
+- [x] SELECT read-only no `mesas-beta-db` para `system_suggestions` pendentes, `systems` e `system_aliases`.
+- [x] Rodar `scoreSystemCandidates` local sobre cada sugestao.
+- [x] Listar recomendacao, melhor candidato, score, razoes e analise.
+- [x] Identificar casos onde a saida ainda sugere criacao nova indevida ou nao detecta edicao existente.
+
+Evidencia:
+- SELECT Beta read-only retornou 20 sugestoes pendentes, 1280 sistemas e 423 aliases.
+- Primeira rodada do helper local apontou acoes: `create_child=1`, `create_system=13`, `create_alias=4`, `merge_existing=2`.
+- Achados ruins: `Meio Sangues` recomendava alias/Marvel e `Curse of Strahd` recomendava alias/Changeling por colisao de acronimo (`ms`/`cos`) gerada por aliases `Marvel SAGA` e `Changeling: o sonhar`.
+- Correcao aplicada: `buildMatchKeys` agora so gera acronimo quando ha sinal explicito (`and`/`&`) ou token de uma letra. Teste novo cobre `Curse of Strahd` nao casando com `Changeling: o sonhar`.
+- `npm --prefix backend test -- systemSuggestionCandidates`: GREEN (22/22).
+- `npm --prefix backend run build`: GREEN.
+- Segunda rodada do helper local com dados Beta: `create_child=1`, `create_system=15`, `create_alias=2`, `merge_existing=2`; falsos positivos Marvel/Changeling removidos.
+- Casos especiais da fila:
+  - `Starfinder 2e` -> `create_child`, pai `Starfinder Roleplaying Game`, filho `2e`, score 0.85 (`base_plus_edition`).
+  - `Starfinder` -> `create_alias`, alvo `Starfinder Roleplaying Game`, score 0.9 (`base_match`).
+  - `Pokémon` -> `create_alias`, alvo `Pokémon RPG`, score 0.9 (`base_match`).
+  - `Cosmere` -> `merge_existing`, alvo `Cosmere RPG`, score 1 (`name_pt_exact`).
+  - `CAIN` -> `merge_existing`, alvo `CAIN`, score 1 (`name_exact`).
+  - 15 itens continuam `create_system` sem candidato automatico: `Waterdeep`, `Vecna`, `Tormenta20`, `Ravenloft`, `Planescape`, `Phandelver and Below`, `Meio Sangues`, `Icewind Dale`, `Fundação 0`, `Doomed Forgotten Realms`, `Curse of Strahd`, `Cultos Inomináveis`, `Scum & Villainy`, `Baldur's Gate`, `Forgotten Realms`.
+- `git diff --check`: sem erros; apenas avisos EOL CRLF/LF.

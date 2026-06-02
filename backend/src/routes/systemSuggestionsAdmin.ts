@@ -480,6 +480,36 @@ async function insertSystemAliases(
   }
 }
 
+async function makeUniqueSystemSlug(
+  trx: Transaction<Database>,
+  segmentSlug: string,
+  parentPathSlug: string | null,
+): Promise<string> {
+  const directCollision = await trx
+    .selectFrom('systems')
+    .select('id')
+    .where('slug', '=', segmentSlug)
+    .executeTakeFirst();
+
+  if (!directCollision) return segmentSlug;
+
+  const parentPrefix = slugify(parentPathSlug ?? '');
+  const base = parentPrefix ? `${parentPrefix}-${segmentSlug}` : segmentSlug;
+  let candidate = base;
+  let suffix = 2;
+
+  while (true) {
+    const collision = await trx
+      .selectFrom('systems')
+      .select('id')
+      .where('slug', '=', candidate)
+      .executeTakeFirst();
+    if (!collision) return candidate;
+    candidate = `${base}-${suffix}`;
+    suffix += 1;
+  }
+}
+
 // POST /api/v1/admin/system-suggestions/:id/resolve - Resolver sugestão (alias/edição/variante/mescla/sistema novo/rejeição)
 router.post('/system-suggestions/:id/resolve', async (req: Request, res: Response) => {
   const { id } = req.params;
@@ -776,8 +806,13 @@ router.post('/system-suggestions/:id/resolve', async (req: Request, res: Respons
           throw new Error('HIERARCHY_INVALID');
         }
 
-        const slug = slugify(name);
-        const pathSlug = `${parent.path_slug}/${slug}`;
+        const segmentSlug = slugify(name);
+        if (!segmentSlug) {
+          throw new Error('NAME_REQUIRED');
+        }
+        const parentPathSlug = parent.path_slug ?? slugify(parent.name);
+        const slug = await makeUniqueSystemSlug(trx, segmentSlug, parentPathSlug);
+        const pathSlug = `${parentPathSlug}/${segmentSlug}`;
         const depth = (parent.depth ?? 0) + 1;
 
         const collision = await trx
@@ -902,6 +937,9 @@ router.post('/system-suggestions/:id/resolve', async (req: Request, res: Respons
       }
 
       const slug = slugify(name);
+      if (!slug) {
+        throw new Error('NAME_REQUIRED');
+      }
       const pathSlug = slug;
 
       const collision = await trx
@@ -935,6 +973,10 @@ router.post('/system-suggestions/:id/resolve', async (req: Request, res: Respons
       let createdEditionId: string | null = null;
       if (editionName) {
         const editionSlug = slugify(editionName);
+        if (!editionSlug) {
+          throw new Error('NAME_REQUIRED');
+        }
+        const uniqueEditionSlug = await makeUniqueSystemSlug(trx, editionSlug, newSystem.path_slug);
         const editionPath = `${newSystem.path_slug}/${editionSlug}`;
         const editionCollision = await trx
           .selectFrom('systems')
@@ -949,7 +991,7 @@ router.post('/system-suggestions/:id/resolve', async (req: Request, res: Respons
           .values({
             name: editionName,
             name_pt: null,
-            slug: editionSlug,
+            slug: uniqueEditionSlug,
             path_slug: editionPath,
             node_type: 'edition',
             depth: 1,
@@ -1061,6 +1103,8 @@ router.post('/system-suggestions/:id/resolve', async (req: Request, res: Respons
         return res.status(400).json({ error: 'É necessário escolher o sistema pai.' });
       case 'PARENT_NOT_FOUND':
         return res.status(404).json({ error: 'Sistema pai não encontrado.' });
+      case 'NAME_REQUIRED':
+        return res.status(400).json({ error: 'Informe um nome válido.' });
       case 'HIERARCHY_INVALID':
         return res.status(400).json({ error: 'Hierarquia inválida para o tipo de nó escolhido.' });
       case 'PATH_SLUG_CONFLICT':

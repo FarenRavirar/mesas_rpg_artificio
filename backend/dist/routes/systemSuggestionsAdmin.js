@@ -419,6 +419,30 @@ async function insertSystemAliases(trx, systemId, aliases) {
             .execute();
     }
 }
+async function makeUniqueSystemSlug(trx, segmentSlug, parentPathSlug) {
+    const directCollision = await trx
+        .selectFrom('systems')
+        .select('id')
+        .where('slug', '=', segmentSlug)
+        .executeTakeFirst();
+    if (!directCollision)
+        return segmentSlug;
+    const parentPrefix = (0, systems_1.slugify)(parentPathSlug ?? '');
+    const base = parentPrefix ? `${parentPrefix}-${segmentSlug}` : segmentSlug;
+    let candidate = base;
+    let suffix = 2;
+    while (true) {
+        const collision = await trx
+            .selectFrom('systems')
+            .select('id')
+            .where('slug', '=', candidate)
+            .executeTakeFirst();
+        if (!collision)
+            return candidate;
+        candidate = `${base}-${suffix}`;
+        suffix += 1;
+    }
+}
 // POST /api/v1/admin/system-suggestions/:id/resolve - Resolver sugestão (alias/edição/variante/mescla/sistema novo/rejeição)
 router.post('/system-suggestions/:id/resolve', async (req, res) => {
     const { id } = req.params;
@@ -685,8 +709,13 @@ router.post('/system-suggestions/:id/resolve', async (req, res) => {
                 if (allowedParents && !allowedParents.includes(parent.node_type)) {
                     throw new Error('HIERARCHY_INVALID');
                 }
-                const slug = (0, systems_1.slugify)(name);
-                const pathSlug = `${parent.path_slug}/${slug}`;
+                const segmentSlug = (0, systems_1.slugify)(name);
+                if (!segmentSlug) {
+                    throw new Error('NAME_REQUIRED');
+                }
+                const parentPathSlug = parent.path_slug ?? (0, systems_1.slugify)(parent.name);
+                const slug = await makeUniqueSystemSlug(trx, segmentSlug, parentPathSlug);
+                const pathSlug = `${parentPathSlug}/${segmentSlug}`;
                 const depth = (parent.depth ?? 0) + 1;
                 const collision = await trx
                     .selectFrom('systems')
@@ -801,6 +830,9 @@ router.post('/system-suggestions/:id/resolve', async (req, res) => {
                 }
             }
             const slug = (0, systems_1.slugify)(name);
+            if (!slug) {
+                throw new Error('NAME_REQUIRED');
+            }
             const pathSlug = slug;
             const collision = await trx
                 .selectFrom('systems')
@@ -830,6 +862,10 @@ router.post('/system-suggestions/:id/resolve', async (req, res) => {
             let createdEditionId = null;
             if (editionName) {
                 const editionSlug = (0, systems_1.slugify)(editionName);
+                if (!editionSlug) {
+                    throw new Error('NAME_REQUIRED');
+                }
+                const uniqueEditionSlug = await makeUniqueSystemSlug(trx, editionSlug, newSystem.path_slug);
                 const editionPath = `${newSystem.path_slug}/${editionSlug}`;
                 const editionCollision = await trx
                     .selectFrom('systems')
@@ -844,7 +880,7 @@ router.post('/system-suggestions/:id/resolve', async (req, res) => {
                     .values({
                     name: editionName,
                     name_pt: null,
-                    slug: editionSlug,
+                    slug: uniqueEditionSlug,
                     path_slug: editionPath,
                     node_type: 'edition',
                     depth: 1,
@@ -949,6 +985,8 @@ router.post('/system-suggestions/:id/resolve', async (req, res) => {
                 return res.status(400).json({ error: 'É necessário escolher o sistema pai.' });
             case 'PARENT_NOT_FOUND':
                 return res.status(404).json({ error: 'Sistema pai não encontrado.' });
+            case 'NAME_REQUIRED':
+                return res.status(400).json({ error: 'Informe um nome válido.' });
             case 'HIERARCHY_INVALID':
                 return res.status(400).json({ error: 'Hierarquia inválida para o tipo de nó escolhido.' });
             case 'PATH_SLUG_CONFLICT':

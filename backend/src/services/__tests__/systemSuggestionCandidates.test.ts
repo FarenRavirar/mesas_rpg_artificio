@@ -60,6 +60,7 @@ describe('normalizeSystemName', () => {
 const SYSTEMS: CandidateSystemInput[] = [
   { id: 'dd', name: 'Dungeons & Dragons', name_pt: null, slug: 'dungeons-dragons', path_slug: 'dungeons-dragons', node_type: 'system', parent_id: null },
   { id: 'dd5e', name: '5th Edition', name_pt: '5ª Edição', slug: '5e', path_slug: 'dungeons-dragons/5e', node_type: 'edition', parent_id: 'dd' },
+  { id: 'dd2024', name: '2024', name_pt: null, slug: '2024', path_slug: 'dungeons-dragons/2024', node_type: 'edition', parent_id: 'dd' },
   { id: 'cain', name: 'CAIN', name_pt: null, slug: 'cain', path_slug: 'cain', node_type: 'system', parent_id: null },
   { id: 'pokemon', name: 'Pokémon', name_pt: null, slug: 'pokemon', path_slug: 'pokemon', node_type: 'system', parent_id: null },
   { id: 'tor', name: 'The One Ring Roleplaying Game', name_pt: null, slug: 'the-one-ring-roleplaying-game', path_slug: 'the-one-ring-roleplaying-game', node_type: 'system', parent_id: null },
@@ -125,6 +126,14 @@ describe('scoreSystemCandidates', () => {
     expect(r.analysis.has_edition_context).toBe(false);
   });
 
+  it('recommends merge when the suggested edition already exists under the matched parent', () => {
+    const r = scoreSystemCandidates('D&D 2024', SYSTEMS, ALIASES);
+    expect(r.candidates[0].system_id).toBe('dd2024');
+    expect(r.candidates[0].reasons).toContain('existing_child_match');
+    expect(r.recommended_action).toBe('merge_existing');
+    expect(r.analysis.suggested_child_name).toBe('2024');
+  });
+
   it('recognizes The One Ring Strider Mode as child context, not a new root', () => {
     const r = scoreSystemCandidates('The One Ring Strider Mode', SYSTEMS, []);
     expect(r.candidates[0].system_id).toBe('tor');
@@ -142,6 +151,16 @@ describe('scoreSystemCandidates', () => {
 
   it('recommends create_system when nothing is similar (On-Two-Six)', () => {
     const r = scoreSystemCandidates('On-Two-Six', SYSTEMS, ALIASES);
+    expect(r.recommended_action).toBe('create_system');
+  });
+
+  it('does not match unrelated phrase acronyms without explicit acronym signal', () => {
+    const r = scoreSystemCandidates(
+      'Curse of Strahd',
+      [{ id: 'changeling', name: 'Changeling', name_pt: null, slug: 'changeling', path_slug: 'changeling', node_type: 'system', parent_id: null }],
+      [{ system_id: 'changeling', alias: 'Changeling: o sonhar' }],
+    );
+    expect(r.candidates).toEqual([]);
     expect(r.recommended_action).toBe('create_system');
   });
 

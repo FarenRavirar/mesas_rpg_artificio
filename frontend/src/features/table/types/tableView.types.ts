@@ -121,6 +121,10 @@ export interface TableViewModel {
 
   // Horários
   schedules: TableSchedule[];
+  scheduleDayStatus?: 'defined' | 'to_define';
+  scheduleTimeStatus?: 'defined' | 'to_define';
+  scheduleDayHint?: string | null;
+  scheduleTimeHint?: string | null;
 
   // Plataformas (online/híbrida)
   vttPlatform?: {

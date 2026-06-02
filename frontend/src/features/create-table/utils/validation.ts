@@ -27,11 +27,25 @@ export const validators = {
 
   sessions: (list: SessionSchedule[]): string | null => {
     if (list.length === 0) return 'Adicione pelo menos uma sessão';
+
+    let hasFlexibleSchedule = false;
+    for (let i = 0; i < list.length; i++) {
+      const session = list[i];
+      if (session.day_of_week === 'to_define' || !session.start_time) {
+        hasFlexibleSchedule = true;
+        break;
+      }
+    }
+
+    if (hasFlexibleSchedule && list.length > 1) {
+      return 'Use apenas uma sessão quando dia ou horário estiver a definir';
+    }
     
     // Validar cada sessão
     for (let i = 0; i < list.length; i++) {
       const session = list[i];
       if (!session.day_of_week) return `Sessão ${i + 1}: dia da semana obrigatório`;
+      if (session.day_of_week === 'to_define' || !session.start_time) continue;
       if (!session.start_time) return `Sessão ${i + 1}: horário de início obrigatório`;
       if (!session.end_time) return `Sessão ${i + 1}: horário de término obrigatório`;
     }

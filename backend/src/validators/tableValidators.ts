@@ -14,6 +14,7 @@ export const PUBLISHER_ROLES = ['gm', 'announcer'] as const;
 export const CONTACT_CHANNELS = ['whatsapp', 'discord', 'phone', 'email', 'facebook', 'instagram', 'form'] as const;
 export const DAYS_OF_WEEK = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'] as const;
 export const SCHEDULE_FREQUENCIES = ['semanal', 'quinzenal', 'mensal', 'avulsa'] as const;
+export const SCHEDULE_DEFINITION_STATUSES = ['defined', 'to_define'] as const;
 
 // ============================================================================
 // SCHEMAS DE VALIDAÇÃO
@@ -58,6 +59,10 @@ const baseTableSchema = z.object({
   language: z.string().max(50).default('Português'),
   experience_level: z.enum(EXPERIENCE_LEVELS).default('todos'),
   starts_at: z.string().datetime().nullable().optional(),
+  schedule_day_status: z.enum(SCHEDULE_DEFINITION_STATUSES).default('defined'),
+  schedule_time_status: z.enum(SCHEDULE_DEFINITION_STATUSES).default('defined'),
+  schedule_day_hint: z.enum(DAYS_OF_WEEK).nullable().optional(),
+  schedule_time_hint: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, 'Formato de horário inválido').nullable().optional(),
   city: z.string().max(100).nullable().optional(),
   state: z.string().max(2).nullable().optional(),
   content_warnings: z.array(z.string()).default([]),
@@ -146,6 +151,20 @@ export const createTableSchema = baseTableSchema
     path: ['game_platform_custom'] 
   })
   .refine((data) => {
+    if (data.schedule_day_status === 'to_define' && data.schedule_day_hint) return false;
+    return true;
+  }, {
+    message: 'Dia a definir não deve enviar dia preenchido',
+    path: ['schedule_day_hint']
+  })
+  .refine((data) => {
+    if (data.schedule_time_status === 'to_define' && data.schedule_time_hint) return false;
+    return true;
+  }, {
+    message: 'Horário a definir não deve enviar horário preenchido',
+    path: ['schedule_time_hint']
+  })
+  .refine((data) => {
     if ((data.vtt_platform_id || data.game_platform_custom) && 
         data.modality !== 'online' && data.modality !== 'hibrida') {
       return false;
@@ -192,6 +211,20 @@ export const updateTableSchema = baseTableSchema
   }, { 
     message: 'Campos DDAL incompletos', 
     path: ['is_ddal'] 
+  })
+  .refine((data) => {
+    if (data.schedule_day_status === 'to_define' && data.schedule_day_hint) return false;
+    return true;
+  }, {
+    message: 'Dia a definir não deve enviar dia preenchido',
+    path: ['schedule_day_hint']
+  })
+  .refine((data) => {
+    if (data.schedule_time_status === 'to_define' && data.schedule_time_hint) return false;
+    return true;
+  }, {
+    message: 'Horário a definir não deve enviar horário preenchido',
+    path: ['schedule_time_hint']
   });
 
 export type CreateTableInput = z.infer<typeof createTableSchema>;

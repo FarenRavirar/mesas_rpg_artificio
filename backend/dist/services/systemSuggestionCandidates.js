@@ -44,9 +44,12 @@ function buildMatchKeys(tokens) {
     const compactWithN = tokens.map((token) => (token === 'and' ? 'n' : token)).join('');
     if (compactWithN)
         keys.add(compactWithN);
-    const acronym = tokens.map((token) => (token === 'and' ? 'n' : token[0] ?? '')).join('');
-    if (acronym.length > 1)
-        keys.add(acronym);
+    const canUseAcronym = tokens.includes('and') || tokens.some((token) => token.length === 1);
+    if (canUseAcronym) {
+        const acronym = tokens.map((token) => (token === 'and' ? 'n' : token[0] ?? '')).join('');
+        if (acronym.length > 1)
+            keys.add(acronym);
+    }
     return [...keys];
 }
 function trimContextTokens(tokens) {
@@ -223,6 +226,36 @@ function inferChildName(suggestion, best, systems) {
     }
     return null;
 }
+function sameSuggestedChild(system, suggestedChildName) {
+    const wanted = normalizeSystemName(suggestedChildName);
+    const systemName = normalizeSystemName(system.name);
+    if (wanted.normalized && wanted.normalized === systemName.normalized)
+        return true;
+    if (wanted.slug && system.slug === wanted.slug)
+        return true;
+    if (wanted.slug && system.path_slug?.endsWith(`/${wanted.slug}`))
+        return true;
+    return false;
+}
+function findExistingChildMatch(parentCandidate, suggestedChildName, systems) {
+    if (!parentCandidate || !suggestedChildName)
+        return null;
+    const candidateSystem = systems.find((system) => system.id === parentCandidate.system_id);
+    const parentSystemId = candidateSystem?.parent_id ?? parentCandidate.system_id;
+    const child = systems.find((system) => (system.parent_id === parentSystemId
+        && sameSuggestedChild(system, suggestedChildName)));
+    if (!child)
+        return null;
+    return {
+        system_id: child.id,
+        name: child.name,
+        path_slug: child.path_slug,
+        node_type: child.node_type,
+        parent_id: child.parent_id,
+        score: 0.99,
+        reasons: ['existing_child_match'],
+    };
+}
 function emptyAnalysis(suggestion) {
     return {
         base: suggestion.base,
@@ -254,6 +287,7 @@ function scoreSystemCandidates(suggestionName, systems, aliases, limit = 5) {
                 name: system.name,
                 path_slug: system.path_slug,
                 node_type: system.node_type,
+                parent_id: system.parent_id,
                 score: round2(match.score),
                 reasons: match.reasons,
             });
@@ -266,8 +300,18 @@ function scoreSystemCandidates(suggestionName, systems, aliases, limit = 5) {
     analysis.has_qualifier_context = Boolean(best?.reasons.includes('base_plus_qualifier'));
     analysis.suggested_child_name = inferChildName(suggestion, best, systems) ?? analysis.suggested_child_name;
     analysis.suggested_child_type = analysis.has_edition_context ? 'edition' : 'subsystem';
+    const existingChild = findExistingChildMatch(best, analysis.suggested_child_name, systems);
+    const finalCandidates = existingChild
+        ? [
+            existingChild,
+            ...candidates.filter((candidate) => candidate.system_id !== existingChild.system_id),
+        ].slice(0, Math.max(0, limit))
+        : candidates;
     let recommended_action;
-    if (!best) {
+    if (existingChild) {
+        recommended_action = 'merge_existing';
+    }
+    else if (!best) {
         recommended_action = 'create_system';
     }
     else if (best.reasons.includes('base_plus_edition') || best.reasons.includes('base_plus_qualifier')) {
@@ -282,5 +326,5 @@ function scoreSystemCandidates(suggestionName, systems, aliases, limit = 5) {
     else {
         recommended_action = 'create_system';
     }
-    return { candidates, recommended_action, analysis };
+    return { candidates: finalCandidates, recommended_action, analysis };
 }

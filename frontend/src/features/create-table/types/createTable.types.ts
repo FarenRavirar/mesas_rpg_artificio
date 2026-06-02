@@ -32,6 +32,10 @@ export interface BasicFormData {
   language: string;
   // CORREÇÃO REG-04: Campos ausentes
   starts_at?: string;
+  schedule_day_status?: 'defined' | 'to_define';
+  schedule_time_status?: 'defined' | 'to_define';
+  schedule_day_hint?: SessionSchedule['day_of_week'] | null;
+  schedule_time_hint?: string | null;
   city?: string;
   state?: string;
   content_warnings?: string[];
@@ -127,6 +131,10 @@ export interface CreateTablePayload {
   audience?: string;
   experience_level?: string;
   starts_at?: string;
+  schedule_day_status?: 'defined' | 'to_define';
+  schedule_time_status?: 'defined' | 'to_define';
+  schedule_day_hint?: string | null;
+  schedule_time_hint?: string | null;
   city?: string;
   state?: string;
   content_warnings?: string[];

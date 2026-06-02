@@ -253,6 +253,10 @@ export interface TablesTable {
   experience_level: Generated<ExperienceLevel>;
   table_level: 'iniciante' | 'intermediario' | 'avancado' | null;
   starts_at: Date | null;
+  schedule_day_status: Generated<ScheduleDefinitionStatus>;
+  schedule_time_status: Generated<ScheduleDefinitionStatus>;
+  schedule_day_hint: DayOfWeek | null;
+  schedule_time_hint: string | null;
   city: string | null;
   state: string | null;
   content_warnings: Generated<string[]>;
@@ -314,6 +318,7 @@ export interface TableContactsTable {
 
 export type DayOfWeek = 'segunda' | 'terça' | 'quarta' | 'quinta' | 'sexta' | 'sábado' | 'domingo';
 export type ScheduleFrequency = 'semanal' | 'quinzenal' | 'mensal' | 'avulsa';
+export type ScheduleDefinitionStatus = 'defined' | 'to_define';
 
 export interface TableSchedulesTable {
   id: Generated<string>;

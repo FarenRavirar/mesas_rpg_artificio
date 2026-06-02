@@ -166,6 +166,7 @@ const REASON_LABELS: Record<string, string> = {
   base_match: 'mesmo nome base',
   base_plus_edition: 'nome base + edição',
   base_plus_qualifier: 'nome base + complemento',
+  existing_child_match: 'edição já cadastrada',
   fuzzy_similar: 'parecido',
 };
 

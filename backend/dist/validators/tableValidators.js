@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateTableSchema = exports.createTableSchema = exports.SCHEDULE_FREQUENCIES = exports.DAYS_OF_WEEK = exports.CONTACT_CHANNELS = exports.PUBLISHER_ROLES = exports.EXPERIENCE_LEVELS = exports.PRICE_FREQUENCIES = exports.PRICE_TYPES = exports.TABLE_AUDIENCES = exports.TABLE_MODALITIES = exports.TABLE_TYPES = void 0;
+exports.updateTableSchema = exports.createTableSchema = exports.SCHEDULE_DEFINITION_STATUSES = exports.SCHEDULE_FREQUENCIES = exports.DAYS_OF_WEEK = exports.CONTACT_CHANNELS = exports.PUBLISHER_ROLES = exports.EXPERIENCE_LEVELS = exports.PRICE_FREQUENCIES = exports.PRICE_TYPES = exports.TABLE_AUDIENCES = exports.TABLE_MODALITIES = exports.TABLE_TYPES = void 0;
 const zod_1 = require("zod");
 // ============================================================================
 // ENUMS E CONSTANTES
@@ -15,6 +15,7 @@ exports.PUBLISHER_ROLES = ['gm', 'announcer'];
 exports.CONTACT_CHANNELS = ['whatsapp', 'discord', 'phone', 'email', 'facebook', 'instagram', 'form'];
 exports.DAYS_OF_WEEK = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'];
 exports.SCHEDULE_FREQUENCIES = ['semanal', 'quinzenal', 'mensal', 'avulsa'];
+exports.SCHEDULE_DEFINITION_STATUSES = ['defined', 'to_define'];
 // ============================================================================
 // SCHEMAS DE VALIDAÇÃO
 // ============================================================================
@@ -55,6 +56,10 @@ const baseTableSchema = zod_1.z.object({
     language: zod_1.z.string().max(50).default('Português'),
     experience_level: zod_1.z.enum(exports.EXPERIENCE_LEVELS).default('todos'),
     starts_at: zod_1.z.string().datetime().nullable().optional(),
+    schedule_day_status: zod_1.z.enum(exports.SCHEDULE_DEFINITION_STATUSES).default('defined'),
+    schedule_time_status: zod_1.z.enum(exports.SCHEDULE_DEFINITION_STATUSES).default('defined'),
+    schedule_day_hint: zod_1.z.enum(exports.DAYS_OF_WEEK).nullable().optional(),
+    schedule_time_hint: zod_1.z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, 'Formato de horário inválido').nullable().optional(),
     city: zod_1.z.string().max(100).nullable().optional(),
     state: zod_1.z.string().max(2).nullable().optional(),
     content_warnings: zod_1.z.array(zod_1.z.string()).default([]),
@@ -144,6 +149,22 @@ exports.createTableSchema = baseTableSchema
     path: ['game_platform_custom']
 })
     .refine((data) => {
+    if (data.schedule_day_status === 'to_define' && data.schedule_day_hint)
+        return false;
+    return true;
+}, {
+    message: 'Dia a definir não deve enviar dia preenchido',
+    path: ['schedule_day_hint']
+})
+    .refine((data) => {
+    if (data.schedule_time_status === 'to_define' && data.schedule_time_hint)
+        return false;
+    return true;
+}, {
+    message: 'Horário a definir não deve enviar horário preenchido',
+    path: ['schedule_time_hint']
+})
+    .refine((data) => {
     if ((data.vtt_platform_id || data.game_platform_custom) &&
         data.modality !== 'online' && data.modality !== 'hibrida') {
         return false;
@@ -190,4 +211,20 @@ exports.updateTableSchema = baseTableSchema
 }, {
     message: 'Campos DDAL incompletos',
     path: ['is_ddal']
+})
+    .refine((data) => {
+    if (data.schedule_day_status === 'to_define' && data.schedule_day_hint)
+        return false;
+    return true;
+}, {
+    message: 'Dia a definir não deve enviar dia preenchido',
+    path: ['schedule_day_hint']
+})
+    .refine((data) => {
+    if (data.schedule_time_status === 'to_define' && data.schedule_time_hint)
+        return false;
+    return true;
+}, {
+    message: 'Horário a definir não deve enviar horário preenchido',
+    path: ['schedule_time_hint']
 });

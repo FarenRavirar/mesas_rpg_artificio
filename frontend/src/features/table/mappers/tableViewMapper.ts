@@ -147,7 +147,9 @@ function generateUrgencyConfig(table: TableDetail, slotsLeft: number): UrgencyCo
 function generateVisibilityConfig(table: TableDetail): VisibilityConfig {
   return {
     showPrice: !!table.price_value,
-    showSchedules: (table.schedules?.length ?? 0) > 0,
+    showSchedules: (table.schedules?.length ?? 0) > 0
+      || table.schedule_day_status === 'to_define'
+      || table.schedule_time_status === 'to_define',
     showMaster: !!table.table_gm_bio || !!table.master_display_name,
     showFullDetails: true, // Pode ser controlado por variant no futuro
     compact: false, // Pode ser controlado por variant no futuro
@@ -238,6 +240,10 @@ export function mapTableToView(table: TableDetail): TableViewModel {
 
     // Horários
     schedules: table.schedules ?? [],
+    scheduleDayStatus: table.schedule_day_status,
+    scheduleTimeStatus: table.schedule_time_status,
+    scheduleDayHint: table.schedule_day_hint,
+    scheduleTimeHint: table.schedule_time_hint,
 
     // Plataformas
     vttPlatform: table.vtt_platform ? {

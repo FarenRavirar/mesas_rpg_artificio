@@ -46,6 +46,7 @@ export type CandidateReason =
   | 'base_match'
   | 'base_plus_edition'
   | 'base_plus_qualifier'
+  | 'existing_child_match'
   | 'fuzzy_similar';
 
 export interface SystemCandidate {
@@ -53,6 +54,7 @@ export interface SystemCandidate {
   name: string;
   path_slug: string | null;
   node_type: string;
+  parent_id?: string | null;
   score: number;
   reasons: CandidateReason[];
 }
@@ -116,8 +118,11 @@ function buildMatchKeys(tokens: string[]): string[] {
   const compactWithN = tokens.map((token) => (token === 'and' ? 'n' : token)).join('');
   if (compactWithN) keys.add(compactWithN);
 
-  const acronym = tokens.map((token) => (token === 'and' ? 'n' : token[0] ?? '')).join('');
-  if (acronym.length > 1) keys.add(acronym);
+  const canUseAcronym = tokens.includes('and') || tokens.some((token) => token.length === 1);
+  if (canUseAcronym) {
+    const acronym = tokens.map((token) => (token === 'and' ? 'n' : token[0] ?? '')).join('');
+    if (acronym.length > 1) keys.add(acronym);
+  }
 
   return [...keys];
 }
@@ -310,6 +315,39 @@ function inferChildName(suggestion: NormalizedSystemName, best: SystemCandidate 
   return null;
 }
 
+function sameSuggestedChild(system: CandidateSystemInput, suggestedChildName: string): boolean {
+  const wanted = normalizeSystemName(suggestedChildName);
+  const systemName = normalizeSystemName(system.name);
+  if (wanted.normalized && wanted.normalized === systemName.normalized) return true;
+  if (wanted.slug && system.slug === wanted.slug) return true;
+  if (wanted.slug && system.path_slug?.endsWith(`/${wanted.slug}`)) return true;
+  return false;
+}
+
+function findExistingChildMatch(
+  parentCandidate: SystemCandidate | undefined,
+  suggestedChildName: string | null,
+  systems: CandidateSystemInput[],
+): SystemCandidate | null {
+  if (!parentCandidate || !suggestedChildName) return null;
+  const candidateSystem = systems.find((system) => system.id === parentCandidate.system_id);
+  const parentSystemId = candidateSystem?.parent_id ?? parentCandidate.system_id;
+  const child = systems.find((system) => (
+    system.parent_id === parentSystemId
+    && sameSuggestedChild(system, suggestedChildName)
+  ));
+  if (!child) return null;
+  return {
+    system_id: child.id,
+    name: child.name,
+    path_slug: child.path_slug,
+    node_type: child.node_type,
+    parent_id: child.parent_id,
+    score: 0.99,
+    reasons: ['existing_child_match'],
+  };
+}
+
 function emptyAnalysis(suggestion: NormalizedSystemName): CandidateResult['analysis'] {
   return {
     base: suggestion.base,
@@ -349,6 +387,7 @@ export function scoreSystemCandidates(
         name: system.name,
         path_slug: system.path_slug,
         node_type: system.node_type,
+        parent_id: system.parent_id,
         score: round2(match.score),
         reasons: match.reasons,
       });
@@ -363,8 +402,18 @@ export function scoreSystemCandidates(
   analysis.has_qualifier_context = Boolean(best?.reasons.includes('base_plus_qualifier'));
   analysis.suggested_child_name = inferChildName(suggestion, best, systems) ?? analysis.suggested_child_name;
   analysis.suggested_child_type = analysis.has_edition_context ? 'edition' : 'subsystem';
+  const existingChild = findExistingChildMatch(best, analysis.suggested_child_name, systems);
+  const finalCandidates = existingChild
+    ? [
+      existingChild,
+      ...candidates.filter((candidate) => candidate.system_id !== existingChild.system_id),
+    ].slice(0, Math.max(0, limit))
+    : candidates;
+
   let recommended_action: RecommendedAction;
-  if (!best) {
+  if (existingChild) {
+    recommended_action = 'merge_existing';
+  } else if (!best) {
     recommended_action = 'create_system';
   } else if (best.reasons.includes('base_plus_edition') || best.reasons.includes('base_plus_qualifier')) {
     recommended_action = 'create_child';
@@ -376,5 +425,5 @@ export function scoreSystemCandidates(
     recommended_action = 'create_system';
   }
 
-  return { candidates, recommended_action, analysis };
+  return { candidates: finalCandidates, recommended_action, analysis };
 }

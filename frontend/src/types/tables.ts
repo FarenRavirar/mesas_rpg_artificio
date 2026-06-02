@@ -16,6 +16,7 @@ export interface TableContact {
 
 export type DayOfWeek = 'segunda' | 'terça' | 'quarta' | 'quinta' | 'sexta' | 'sábado' | 'domingo';
 export type ScheduleFrequency = 'semanal' | 'quinzenal' | 'mensal' | 'avulsa';
+export type ScheduleDefinitionStatus = 'defined' | 'to_define';
 
 export interface TableSchedule {
   id: string;
@@ -90,6 +91,10 @@ export interface TableCard {
 export interface TableDetail extends TableCard {
   price_frequency: string | null;
   starts_at: string | null;
+  schedule_day_status?: ScheduleDefinitionStatus;
+  schedule_time_status?: ScheduleDefinitionStatus;
+  schedule_day_hint?: DayOfWeek | null;
+  schedule_time_hint?: string | null;
   city: string | null;
   state: string | null;
   content_warnings: string[];
