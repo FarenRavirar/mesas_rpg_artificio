@@ -4,6 +4,8 @@ const express_1 = require("express");
 const auth_1 = require("../middleware/auth");
 const db_1 = require("../db");
 const activityLogger_1 = require("../services/activityLogger");
+const cloudinary_1 = require("../services/cloudinary");
+const devFeedbackMerge_1 = require("../services/devFeedbackMerge");
 const router = (0, express_1.Router)();
 const VALID_STATUS = new Set([
     'new', 'triaged', 'in_progress', 'resolved', 'wont_fix', 'duplicate',
@@ -65,6 +67,14 @@ router.get('/dev-feedback', async (req, res) => {
         if (VALID_KIND.has(kind)) {
             query = query.where('kind', '=', kind);
         }
+        // Arquivados: por padrao escondidos. ?archived=true mostra so arquivados; =all mostra tudo.
+        const archived = typeof req.query.archived === 'string' ? req.query.archived : 'false';
+        if (archived === 'true') {
+            query = query.where('archived_at', 'is not', null);
+        }
+        else if (archived !== 'all') {
+            query = query.where('archived_at', 'is', null);
+        }
         const rows = await query.execute();
         const names = await resolveActorNames(rows.map((row) => row.user_id).filter((id) => Boolean(id)));
         const data = rows.map((row) => ({
@@ -108,11 +118,16 @@ router.patch('/dev-feedback/:id', async (req, res) => {
             const notes = body.admin_notes.trim();
             update.admin_notes = notes.length > 0 ? notes.slice(0, 4000) : null;
         }
+        let archivedChange = null;
+        if (typeof body.archived === 'boolean') {
+            archivedChange = body.archived;
+            update.archived_at = body.archived ? new Date() : null;
+        }
         const updated = await db_1.db
             .updateTable('dev_feedback')
             .set(update)
             .where('id', '=', id)
-            .returning(['id', 'kind', 'title', 'status', 'admin_notes', 'updated_at'])
+            .returning(['id', 'kind', 'title', 'status', 'admin_notes', 'updated_at', 'archived_at'])
             .executeTakeFirst();
         if (!updated) {
             return res.status(404).json({ error: 'Feedback nao encontrado.' });
@@ -120,18 +135,153 @@ router.patch('/dev-feedback/:id', async (req, res) => {
         void (0, activityLogger_1.logActivity)({
             actorId: adminId,
             actorRole: 'admin',
-            action: 'dev_feedback.updated',
+            action: archivedChange !== null ? 'dev_feedback.archived' : 'dev_feedback.updated',
             entityType: 'dev_feedback',
             entityId: updated.id,
             entityLabel: updated.title,
-            summary: `Feedback "${updated.title}" atualizado${nextStatus ? ` para ${nextStatus}` : ''}.`,
-            metadata: { status: updated.status },
+            summary: archivedChange !== null
+                ? `Feedback "${updated.title}" ${archivedChange ? 'arquivado' : 'desarquivado'}.`
+                : `Feedback "${updated.title}" atualizado${nextStatus ? ` para ${nextStatus}` : ''}.`,
+            metadata: { status: updated.status, archived: updated.archived_at !== null },
         });
         return res.json({ data: updated });
     }
     catch (error) {
         console.error('[PATCH /admin/dev-feedback/:id]', error);
         return res.status(500).json({ error: 'Erro ao atualizar feedback.' });
+    }
+});
+// DELETE /api/v1/admin/dev-feedback/:id - remove registro + screenshot Cloudinary
+router.delete('/dev-feedback/:id', async (req, res) => {
+    try {
+        const adminId = req.user?.userId;
+        if (!adminId) {
+            return res.status(401).json({ error: 'Nao autenticado.' });
+        }
+        const { id } = req.params;
+        if (!UUID_RE.test(id)) {
+            return res.status(400).json({ error: 'ID invalido.' });
+        }
+        const row = await db_1.db
+            .selectFrom('dev_feedback')
+            .select(['id', 'title', 'screenshot_public_id'])
+            .where('id', '=', id)
+            .executeTakeFirst();
+        if (!row) {
+            return res.status(404).json({ error: 'Feedback nao encontrado.' });
+        }
+        await db_1.db.deleteFrom('dev_feedback').where('id', '=', id).execute();
+        // Remove imagem orfa do Cloudinary (nao-fatal).
+        if (row.screenshot_public_id) {
+            await (0, cloudinary_1.deleteFromCloudinary)(row.screenshot_public_id);
+        }
+        void (0, activityLogger_1.logActivity)({
+            actorId: adminId,
+            actorRole: 'admin',
+            action: 'dev_feedback.deleted',
+            entityType: 'dev_feedback',
+            entityId: id,
+            entityLabel: row.title,
+            summary: `Feedback "${row.title}" excluido.`,
+            metadata: { had_screenshot: Boolean(row.screenshot_public_id) },
+        });
+        return res.json({ data: { id } });
+    }
+    catch (error) {
+        console.error('[DELETE /admin/dev-feedback/:id]', error);
+        return res.status(500).json({ error: 'Erro ao excluir feedback.' });
+    }
+});
+// POST /api/v1/admin/dev-feedback/merge - integra secundarios no destino e arquiva os secundarios
+router.post('/dev-feedback/merge', async (req, res) => {
+    try {
+        const adminId = req.user?.userId;
+        if (!adminId) {
+            return res.status(401).json({ error: 'Nao autenticado.' });
+        }
+        const body = (req.body && typeof req.body === 'object') ? req.body : {};
+        const primaryId = typeof body.primary_id === 'string' ? body.primary_id : '';
+        const sourceIdsRaw = Array.isArray(body.source_ids) ? body.source_ids : [];
+        const sourceIds = Array.from(new Set(sourceIdsRaw.filter((v) => typeof v === 'string' && v !== primaryId)));
+        if (!UUID_RE.test(primaryId) || sourceIds.some((sid) => !UUID_RE.test(sid))) {
+            return res.status(400).json({ error: 'IDs invalidos.' });
+        }
+        if (sourceIds.length === 0) {
+            return res.status(400).json({ error: 'Selecione ao menos um feedback para integrar.' });
+        }
+        if (sourceIds.length > devFeedbackMerge_1.MAX_MERGE_SOURCES) {
+            return res.status(400).json({ error: `Maximo de ${devFeedbackMerge_1.MAX_MERGE_SOURCES} feedbacks por mescla.` });
+        }
+        const result = await db_1.db.transaction().execute(async (trx) => {
+            const primary = await trx
+                .selectFrom('dev_feedback')
+                .selectAll()
+                .where('id', '=', primaryId)
+                .where('archived_at', 'is', null)
+                .executeTakeFirst();
+            if (!primary) {
+                return { error: 'Feedback destino nao encontrado ou arquivado.' };
+            }
+            const sources = await trx
+                .selectFrom('dev_feedback')
+                .selectAll()
+                .where('id', 'in', sourceIds)
+                .where('archived_at', 'is', null)
+                .execute();
+            if (sources.length !== sourceIds.length) {
+                return { error: 'Algum feedback de origem nao foi encontrado ou ja esta arquivado.' };
+            }
+            const toMergeable = (r) => ({
+                id: r.id,
+                kind: r.kind,
+                title: r.title,
+                description: r.description,
+                contact_email: r.contact_email,
+                screenshot_url: r.screenshot_url,
+                page_url: r.page_url,
+                route_path: r.route_path,
+                environment: r.environment,
+                created_at: r.created_at,
+                console_errors: Array.isArray(r.console_errors) ? r.console_errors : [],
+                network_errors: Array.isArray(r.network_errors) ? r.network_errors : [],
+                merged_sources: Array.isArray(r.merged_sources) ? r.merged_sources : [],
+            });
+            const merged = (0, devFeedbackMerge_1.buildMerge)(toMergeable(primary), sources.map(toMergeable));
+            await trx
+                .updateTable('dev_feedback')
+                .set({
+                console_errors: JSON.stringify(merged.console_errors),
+                network_errors: JSON.stringify(merged.network_errors),
+                merged_sources: JSON.stringify(merged.merged_sources),
+                updated_at: new Date(),
+            })
+                .where('id', '=', primaryId)
+                .execute();
+            await trx
+                .updateTable('dev_feedback')
+                .set({ archived_at: new Date(), merged_into: primaryId, updated_at: new Date() })
+                .where('id', 'in', sourceIds)
+                .execute();
+            return { ok: true, merged_count: sources.length };
+        });
+        if ('error' in result) {
+            return res.status(404).json({ error: result.error });
+        }
+        void (0, activityLogger_1.logActivity)({
+            actorId: adminId,
+            actorRole: 'admin',
+            action: 'dev_feedback.merged',
+            entityType: 'dev_feedback',
+            entityId: primaryId,
+            entityLabel: null,
+            summary: `${result.merged_count} feedback(s) mesclado(s) e arquivado(s) no destino.`,
+            metadata: { primary_id: primaryId, source_ids: sourceIds },
+        });
+        return res.json({ data: { primary_id: primaryId, merged_count: result.merged_count } });
+    }
+    catch (error) {
+        console.error('[POST /admin/dev-feedback/merge]', error);
+        return res.status(500).json({ error: 'Erro ao mesclar feedbacks.' });
     }
 });
 exports.default = router;

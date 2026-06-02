@@ -440,6 +440,11 @@ export interface DevFeedbackTable {
   reviewed_at: Date | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
+  // Migration 126 (Spec 024): triagem
+  archived_at: Date | null;
+  screenshot_public_id: string | null;
+  merged_into: string | null;
+  merged_sources: ColumnType<unknown[], string | undefined, string>;
 }
 
 export type DevFeedback = Selectable<DevFeedbackTable>;
