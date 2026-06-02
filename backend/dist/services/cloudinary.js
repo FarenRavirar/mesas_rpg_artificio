@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.uploadImageToCloudinary = uploadImageToCloudinary;
 exports.uploadScreenshotToCloudinary = uploadScreenshotToCloudinary;
+exports.deleteFromCloudinary = deleteFromCloudinary;
 exports.uploadRemoteImageToCloudinary = uploadRemoteImageToCloudinary;
 const cloudinary_1 = require("cloudinary");
 const promises_1 = require("node:dns/promises");
@@ -63,6 +64,18 @@ async function uploadScreenshotToCloudinary(dataUri) {
     catch (error) {
         console.error('[cloudinary] Screenshot upload failed:', error?.message || error);
         throw error;
+    }
+}
+/**
+ * Remove imagem do Cloudinary por public_id. Nao-fatal: usado para limpar
+ * uploads orfaos quando a persistencia subsequente falha.
+ */
+async function deleteFromCloudinary(publicId) {
+    try {
+        await cloudinary_1.v2.uploader.destroy(publicId, { resource_type: 'image' });
+    }
+    catch (error) {
+        console.error('[cloudinary] Delete failed:', publicId, error?.message || error);
     }
 }
 const MAX_REMOTE_IMAGE_BYTES = 5 * 1024 * 1024;

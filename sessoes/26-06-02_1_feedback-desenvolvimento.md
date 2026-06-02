@@ -92,3 +92,14 @@ Ver `specs/022-feedback-desenvolvimento/plan.md` secao "Arquivos". Resumo:
 - `database/changelogs.json`: primeira entrada `2026-06-02-feedback-desenvolvimento`, `published:false`, JSON valido.
 - `git diff --check`: sem conflitos/whitespace reais (apenas avisos EOL CRLF no stderr).
 - Pendente real: T028 (apply migration 125 em DB local) BLOQUEADO por write/Postgres local -> migrate gate Beta; Fase 8 deploy exige aprovacao.
+
+## Deploy Beta + Revisao (02/06)
+
+- Deploy: PR #155 mergeado em `dev`; run `26839961404` GREEN (migrate aplicou migration 125). Health Beta ok+connected. Rotas verificadas: POST invalido 400, admin sem auth 401.
+- Revisao Amazon Q no PR #155: 4 apontamentos. Avaliacao tecnica:
+  - #1 "SQL Injection" no PATCH admin: FALSO como SQLi (Kysely parametriza). Real: id nao-UUID -> 500 do Postgres. Fix aplicado: guard `UUID_RE` -> 400 `ID invalido`.
+  - #2 N+1 no GET admin: VERDADEIRO. Fix: `resolveActorNames` em lote (1 query profiles + 1 query users restantes) substitui `Promise.all` por linha.
+  - #3 screenshot orfao: real (nao "race condition"). Fix: rastrear `public_id`; em falha do INSERT, `deleteFromCloudinary` antes de propagar.
+  - #4 "crash/unhandled rejection": FALSO (catch externo ja trata DB -> 500). Coberto pelo cleanup do #3.
+- Branch de follow-up: `feat/022-review-fixes`. Backend build GREEN + jest 12 suites/99 testes GREEN apos fixes.
+- Arquivos tocados nos fixes: `backend/src/services/cloudinary.ts` (+`deleteFromCloudinary`), `backend/src/routes/devFeedback.ts` (cleanup orfao), `backend/src/routes/devFeedbackAdmin.ts` (UUID guard + batch resolver).

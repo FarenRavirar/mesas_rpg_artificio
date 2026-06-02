@@ -12,34 +12,51 @@ const VALID_STATUS: ReadonlySet<DevFeedbackStatus> = new Set([
 
 const VALID_KIND = new Set(['bug', 'suggestion']);
 
-async function resolveActorName(userId: string): Promise<string> {
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Resolve nomes de varios reporters em lote (evita N+1):
+ * 1 query em profiles + 1 query em users (so para os sem display_name).
+ */
+async function resolveActorNames(userIds: string[]): Promise<Map<string, string>> {
+  const names = new Map<string, string>();
+  const ids = Array.from(new Set(userIds.filter((id): id is string => Boolean(id))));
+  if (ids.length === 0) return names;
+
   try {
-    const profile = await db
+    const profiles = await db
       .selectFrom('profiles')
-      .select('display_name')
-      .where('user_id', '=', userId)
-      .executeTakeFirst();
+      .select(['user_id', 'display_name'])
+      .where('user_id', 'in', ids)
+      .execute();
 
-    if (profile?.display_name && profile.display_name.trim().length > 0) {
-      return profile.display_name.trim();
+    for (const p of profiles) {
+      if (p.display_name && p.display_name.trim().length > 0) {
+        names.set(p.user_id, p.display_name.trim());
+      }
     }
 
-    const user = await db
-      .selectFrom('users')
-      .select(['username', 'email'])
-      .where('id', '=', userId)
-      .executeTakeFirst();
+    const remaining = ids.filter((id) => !names.has(id));
+    if (remaining.length > 0) {
+      const users = await db
+        .selectFrom('users')
+        .select(['id', 'username', 'email'])
+        .where('id', 'in', remaining)
+        .execute();
 
-    if (user?.username && user.username.trim().length > 0) {
-      return user.username.trim();
-    }
-    if (user?.email) {
-      return user.email.split('@')[0];
+      for (const u of users) {
+        if (u.username && u.username.trim().length > 0) {
+          names.set(u.id, u.username.trim());
+        } else if (u.email) {
+          names.set(u.id, u.email.split('@')[0]);
+        }
+      }
     }
   } catch (error) {
-    console.error('[devFeedbackAdmin][resolveActorName]', error);
+    console.error('[devFeedbackAdmin][resolveActorNames]', error);
   }
-  return 'Anonimo';
+
+  return names;
 }
 
 router.use(authMiddleware, requireRole('admin'));
@@ -61,12 +78,13 @@ router.get('/dev-feedback', async (req: Request, res: Response) => {
 
     const rows = await query.execute();
 
-    const data = await Promise.all(
-      rows.map(async (row) => ({
-        ...row,
-        reporter_name: row.user_id ? await resolveActorName(row.user_id) : 'Anonimo',
-      })),
+    const names = await resolveActorNames(
+      rows.map((row) => row.user_id).filter((id): id is string => Boolean(id)),
     );
+    const data = rows.map((row) => ({
+      ...row,
+      reporter_name: row.user_id ? (names.get(row.user_id) ?? 'Anonimo') : 'Anonimo',
+    }));
 
     return res.json({ data });
   } catch (error: any) {
@@ -84,6 +102,11 @@ router.patch('/dev-feedback/:id', async (req: Request, res: Response) => {
     }
 
     const { id } = req.params;
+    // Garante UUID valido: coluna `id` e UUID; entrada malformada retorna 400 em vez de 500.
+    if (!UUID_RE.test(id)) {
+      return res.status(400).json({ error: 'ID invalido.' });
+    }
+
     const body = (req.body && typeof req.body === 'object') ? req.body as Record<string, unknown> : {};
 
     const update: Record<string, unknown> = {

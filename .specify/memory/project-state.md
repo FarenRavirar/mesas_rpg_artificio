@@ -1,7 +1,7 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-06-02T12:06:00-03:00
-**Atualizado por:** sessão 26-06-01_1_diagnostico-criacao-mesa-sistemas (Production v1.2.5)
+**Última atualização:** 2026-06-02T18:32:00-03:00
+**Atualizado por:** sessão 26-06-02_1_feedback-desenvolvimento (Spec 022 em Beta)
 ---
 
 ## Ambientes
@@ -14,6 +14,24 @@
 ---
 
 ## Estado Técnico Atual
+
+**Spec 022 — Feedback de Desenvolvimento (02/06/2026, em Beta):**
+- PR #155 (`feat/022-feedback-desenvolvimento -> dev`) mergeado. Commit `ad983d2`.
+- Deploy Beta run `26839961404` GREEN: jobs `validate`, `lint`, `enforce-dir`, `migrate` (11s, migration 125 aplicada), `smoke-discord`, `deploy-app` (1m48s), `smoke` todos verdes.
+- Health Beta pós-deploy: `/api/v1/health` `status=ok`, `environment=beta`, `db=connected`.
+- Rotas verificadas em Beta sem escrita: `POST /api/v1/dev-feedback` body inválido → HTTP 400 (validador); `GET /api/v1/admin/dev-feedback` sem auth → HTTP 401 (requireRole admin).
+- Entregue: widget global FAB + modal (reportar problema/sugerir melhoria) em todas as páginas exceto `/login` e `/auth/callback`; coleta de contexto (rota, console, erros globais, falhas de rede >=400, screenshot via html2canvas viewport); aba "Desenvolvimento" em `/gestao` (filtros status/kind, contexto completo, status/notas via PATCH). Acesso anônimo + logado; `contact_email` opt-in; upload screenshot via backend (`uploadScreenshotToCloudinary`, crop limit).
+- DB: tabela `dev_feedback` (migration 125, online-safe, CHECK kind/status, índices status/kind/created_at).
+- Validação local pré-deploy: backend build GREEN + suite 12/99 GREEN (validador TDD 19/19); frontend build GREEN + vitest 13/13 (diagnostics 7/7); arquivos novos 0 erros de lint.
+- `changelogs.json`: entrada `2026-06-02-feedback-desenvolvimento` com `published:false` (não anunciar até validação do mantenedor).
+- Inclui também `specs/023-saneamento-lint-frontend/` (PRÉVIA; execução planejada via Codex em branch `feat/023`, fora deste chat).
+- **Pendente:** mantenedor validar em janela anônima no Beta (envio anônimo e logado de bug+sugestão com screenshot; conferir aba Desenvolvimento). Ao aprovar para produção: flip `published:true` no changelog.
+
+**Production v1.2.5 — Spec 019 + Spec 018 promovidas (02/06/2026):**
+- PR #152 `Production v1.2.5` (`dev -> main`) mergeado via GitHub.
+- Workflow canônico `Promote Beta to Production (CANONICAL)` run `26828267450` GREEN para `937544a`.
+- Release GitHub `v1.2.5` publicada como `Production v1.2.5`.
+- Jobs GREEN: `typecheck`, `lint`, `enforce-dir`, `governance_gate`, `deploy`, `release`.
 
 **Production v1.2.5 — Spec 019 + Spec 018 promovidas (02/06/2026):**
 - PR #152 `Production v1.2.5` (`dev -> main`) mergeado via GitHub.

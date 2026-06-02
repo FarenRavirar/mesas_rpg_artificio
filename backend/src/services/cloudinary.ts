@@ -64,6 +64,18 @@ export async function uploadScreenshotToCloudinary(dataUri: string) {
   }
 }
 
+/**
+ * Remove imagem do Cloudinary por public_id. Nao-fatal: usado para limpar
+ * uploads orfaos quando a persistencia subsequente falha.
+ */
+export async function deleteFromCloudinary(publicId: string): Promise<void> {
+  try {
+    await cloudinary.uploader.destroy(publicId, { resource_type: 'image' });
+  } catch (error: any) {
+    console.error('[cloudinary] Delete failed:', publicId, error?.message || error);
+  }
+}
+
 const MAX_REMOTE_IMAGE_BYTES = 5 * 1024 * 1024;
 const REMOTE_IMAGE_TIMEOUT_MS = 10000;
 const MAX_REMOTE_IMAGE_REDIRECTS = 3;
