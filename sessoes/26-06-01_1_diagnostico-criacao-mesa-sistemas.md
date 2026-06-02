@@ -159,3 +159,137 @@ Evidencia:
   - `CAIN` -> `merge_existing`, alvo `CAIN`, score 1 (`name_exact`).
   - 15 itens continuam `create_system` sem candidato automatico: `Waterdeep`, `Vecna`, `Tormenta20`, `Ravenloft`, `Planescape`, `Phandelver and Below`, `Meio Sangues`, `Icewind Dale`, `Fundação 0`, `Doomed Forgotten Realms`, `Curse of Strahd`, `Cultos Inomináveis`, `Scum & Villainy`, `Baldur's Gate`, `Forgotten Realms`.
 - `git diff --check`: sem erros; apenas avisos EOL CRLF/LF.
+
+## Deploy Beta autorizado e executado (02/06)
+
+- Aprovacao do mantenedor recebida para o bloco: `git status`, stage especifico, commit, `git switch dev`, `git merge --ff-only feat/019-agenda-a-definir`, `git push origin dev`, listar/acompanhar Deploy Beta.
+- Stage conferido por `git status --short --branch` e `git diff --cached --stat`; `.specify/memory/project-state.md` e `sessoes/26-06-01_2_resolucao-sugestoes-sistemas.md` ficaram fora do commit por serem docs preexistentes/fora do escopo imediato.
+- Commit criado em `feat/019-agenda-a-definir`: `b3abe3e fix(019): suporta agenda a definir`.
+- `git switch dev`: OK; `git merge --ff-only feat/019-agenda-a-definir`: OK; `git push origin dev`: OK (`61d136d..b3abe3e`).
+- Deploy Beta run `26827258562`: GREEN.
+  - `validate`: GREEN.
+  - `lint`: GREEN.
+  - `enforce-dir`: GREEN.
+  - `migrate`: GREEN.
+  - `smoke-discord`: GREEN.
+  - `deploy-app`: GREEN, incluindo `Deploy App Containers`.
+  - `smoke`: GREEN.
+- Pós-deploy read-only:
+  - `https://mesasbeta.artificiorpg.com/`: HTTP 200.
+  - `https://mesasbeta.artificiorpg.com/api/v1/health`: `{"status":"ok","environment":"beta","db":"connected","usersSampled":true}`.
+  - SELECT Beta confirmou colunas `schedule_day_status`, `schedule_time_status`, `schedule_day_hint`, `schedule_time_hint` em `tables`.
+  - SELECT Beta confirmou constraints `tables_schedule_day_status_check`, `tables_schedule_time_status_check`, `tables_schedule_day_hint_check`, `tables_schedule_tbd_hint_check`.
+- `.specify/memory/project-state.md` atualizado localmente com estado Beta. Commit/push desta documentacao pos-deploy exigem nova aprovacao explicita.
+
+## Promocao para Producao v1.2.5 (02/06)
+
+Pedido do mantenedor: evoluir Beta para Producao como `Production v1.2.5`.
+
+Preflight inicial read-only:
+- Branch local: `dev...origin/dev`.
+- Arquivos locais sujos apenas documentais: `.specify/memory/project-state.md`, esta sessao e `sessoes/26-06-01_2_resolucao-sugestoes-sistemas.md`.
+- `origin/dev` esta a frente de `origin/main`, incluindo `b3abe3e fix(019): suporta agenda a definir`.
+- `origin/main` tambem tem commits proprios; promocao deve ser por PR GitHub `dev -> main`, sem checkout/merge local entre branches.
+- Nao ha PR aberto `dev -> main`.
+- Ultimo Deploy Beta para `b3abe3e`: run `26827258562`, GREEN.
+- Migration 124: `@class: online-safe`, `@requires-backup: false`, aditiva em `tables`; `table_schedules` intacta.
+
+Proximo passo controlado:
+- Criar PR `dev -> main` com titulo `Production v1.2.5`.
+- Aguardar `Preflight Prod Gate` no PR e confirmar comentario/status `GO` antes de qualquer merge.
+- Merge do PR e disparo do workflow canonico `Promote Beta to Production (CANONICAL)` exigem aprovacoes separadas.
+
+Execucao autorizada:
+- PR #152 criado: `Production v1.2.5` (`dev -> main`) com release notes cobrindo agenda a definir, resolver de sugestoes de sistemas, anti-duplicacao de edicoes/aliases, notificacoes admin, melhorias no fluxo Nova Mesa, sugestoes de cenarios e migrations 123/124.
+- Preflight Prod Gate run `26828139171`: job GREEN. Comentario do PR marcou `ATTENTION` porque Prod tinha `migration_123_system_suggestion_resolution.sql` e `migration_124_table_schedule_tbd.sql` pendentes; sem drift fatal/BLOCKED. As duas migrations sao `online-safe`.
+- Aprovacao separada recebida para merge PR #152, workflow canonico `v1.2.5`, acompanhamento e validacoes.
+- PR #152 mergeado via GitHub, sem checkout/merge local.
+- Workflow `Promote Beta to Production (CANONICAL)` disparado com `version=v1.2.5`: run `26828267450`, GREEN.
+  - `typecheck`: GREEN.
+  - `lint`: GREEN.
+  - `enforce-dir`: GREEN.
+  - `governance_gate`: GREEN.
+  - `deploy`: GREEN.
+  - `release`: GREEN.
+- Release publicada: `Production v1.2.5`, tag `v1.2.5`.
+
+Validacao pos-producao:
+- Producao root `https://mesas.artificiorpg.com/`: HTTP 200.
+- Producao health: `{"status":"ok","environment":"production","db":"connected","usersSampled":true}`.
+- Beta root `https://mesasbeta.artificiorpg.com/`: HTTP 200.
+- Beta health: `{"status":"ok","environment":"beta","db":"connected","usersSampled":true}`.
+- Rotas criticas:
+  - Producao `/api/v1/tables?limit=1`: HTTP 200.
+  - Producao `/api/v1/systems?view=tree`: HTTP 200.
+  - Producao `/auth/google`: HTTP 302 para Google OAuth.
+  - Beta `/api/v1/tables?limit=1`: HTTP 200.
+  - Beta `/api/v1/systems?view=tree`: HTTP 200.
+  - Beta `/auth/google`: HTTP 302 para Google OAuth.
+- SELECT Producao confirmou `schema_migrations` com `migration_123_system_suggestion_resolution.sql` e `migration_124_table_schedule_tbd.sql`.
+- SELECT Producao confirmou colunas `schedule_day_status`, `schedule_time_status`, `schedule_day_hint`, `schedule_time_hint` em `tables`.
+- SELECT Producao confirmou constraints `tables_schedule_day_status_check`, `tables_schedule_time_status_check`, `tables_schedule_day_hint_check`, `tables_schedule_tbd_hint_check`.
+- `docker inspect` read-only: `mesas-api`, `mesas-app`, `mesas-beta-api`, `mesas-beta-frontend` com health `healthy`.
+
+Pendente:
+- Commit/push das atualizacoes documentais locais exigem aprovacao separada por acao.
+- Validacao funcional humana em janela anonima continua sendo gate de UX/fluxo real, conforme AGENTS.md.
+
+## Review externo pos-prod sobre schedule hints (02/06)
+
+Anexo do mantenedor: review `Production v1.2.5 Review` alegando "inverted logic" em migration 124, validators e `TableService`.
+
+Diagnostico:
+- O review descreve corretamente o contrato desejado: quando `*_status='to_define'`, o respectivo `*_hint` deve ser `NULL`; quando `*_status='defined'`, hint e opcional/permitido.
+- A implementacao atual ja segue esse contrato:
+  - Migration 124: `(schedule_day_status = 'defined' OR schedule_day_hint IS NULL)` permite hint quando status e `defined` e exige `NULL` quando `to_define`.
+  - Validators: rejeitam `to_define + hint`; aceitam `defined + hint`.
+  - `TableService`/`gmPanel`: preservam hint quando status e `defined`; gravam `NULL` quando status e `to_define`.
+- A sugestao automatica do review (`status='to_define' OR hint IS NOT NULL`) e incorreta: permitiria `to_define + hint` e exigiria hint quando `defined`, quebrando o contrato.
+
+Evidencia:
+- Truth table SQL read-only em Producao:
+  - `defined + NULL`: constraint atual OK, sugestao FAIL.
+  - `defined + quarta`: constraint atual OK, sugestao OK.
+  - `to_define + NULL`: constraint atual OK, sugestao OK.
+  - `to_define + quarta`: constraint atual FAIL, sugestao OK.
+- `updateTableSchema.safeParse` via `ts-node`:
+  - `defined null=true`
+  - `defined hint=true`
+  - `to_define null=true`
+  - `to_define hint=false`
+
+Conclusao:
+- Nao aplicar o patch sugerido pelo review. Ele e regressivo.
+- Possivel melhoria futura: adicionar teste unitario dedicado para travar esse contrato e evitar reabrir a duvida.
+
+## Review Codex PR #152 - notificacoes dentro de transacao (02/06)
+
+Comentario recebido:
+- `backend/src/services/adminNotifications.ts`: `notifyAdmins` captura erro mesmo quando chamado com `trx`.
+- Risco real: erro SQL dentro de transacao Postgres deixa a transacao em estado abortado; engolir `catch` nao torna a operacao nao-fatal.
+
+Diagnostico:
+- `notifyAdmins` aceita `trx?: Transaction<Database>` e usa `executor = trx ?? db`.
+- Callers transacionais confirmados:
+  - `systemSuggestions.ts`: cria sugestao e chama `notifyAdmins(..., trx)`.
+  - `scenarioSuggestions.ts`: cria sugestao e chama `notifyAdmins(..., trx)`.
+  - `auth.ts`: cria usuario/profile/log e chama `notifyAdmins(..., trx)`.
+- Como a intencao documentada e "nao-fatal", a notificacao nao deve participar da transacao principal.
+
+Plano de hotfix local:
+- Remover parametro `trx` de `notifyAdmins` e sempre usar `db`.
+- Mover chamadas de sistema/cenario/novo membro para depois do commit da transacao.
+- Validar com build backend e busca final por `notifyAdmins(..., trx)`.
+
+Implementacao local:
+- Branch `feat/021-notificacoes-fora-transacao` criada a partir de `dev`.
+- `notifyAdmins` nao aceita mais `trx` e usa `db` direto.
+- `systemSuggestions.ts`: cria sugestao dentro da transacao, notifica admins depois do commit.
+- `scenarioSuggestions.ts`: cria sugestao dentro da transacao, notifica admins depois do commit.
+- `auth.ts`: cria usuario/profile/log dentro da transacao, captura `newUserId` e notifica admins depois do commit.
+- `backend/dist/*` atualizado pelo build para os arquivos correspondentes.
+
+Evidencia:
+- `npm --prefix backend run build`: GREEN.
+- Busca final `rg "notifyAdmins\([^\)]*,\s*trx\)" backend/src backend/dist -n`: zero resultados.
+- `git diff --check`: sem erros; apenas avisos EOL esperados.

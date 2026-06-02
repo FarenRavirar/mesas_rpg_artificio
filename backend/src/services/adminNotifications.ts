@@ -1,6 +1,4 @@
-import { Transaction } from 'kysely';
 import { db } from '../db';
-import { Database } from '../db/types';
 
 // Tipos canonicos de notificacao para o feed do admin.
 export type AdminNotificationType =
@@ -22,22 +20,20 @@ export interface AdminNotificationInput {
 /**
  * Cria uma notificacao para cada admin, exceto `excludeUserId`.
  * Nao-fatal: erros sao logados e engolidos para nao quebrar a acao principal.
- * Aceita `trx` para participar de uma transacao existente.
+ * Nao use dentro de transacao: erro SQL em transacao aborta o contexto do chamador.
  */
 export async function notifyAdmins(
   input: AdminNotificationInput,
-  trx?: Transaction<Database>,
 ): Promise<void> {
-  const executor = trx ?? db;
   try {
-    let query = executor.selectFrom('users').select('id').where('role', '=', 'admin');
+    let query = db.selectFrom('users').select('id').where('role', '=', 'admin');
     if (input.excludeUserId) {
       query = query.where('id', '!=', input.excludeUserId);
     }
     const admins = await query.execute();
     if (admins.length === 0) return;
 
-    await executor
+    await db
       .insertInto('notifications')
       .values(
         admins.map((admin) => ({
