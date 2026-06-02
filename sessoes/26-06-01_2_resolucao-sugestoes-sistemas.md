@@ -382,3 +382,40 @@ Estado final local:
 - Implementacao + spec/docs prontas.
 - `git diff --check` executado apos a atualizacao documental.
 - Commit/push/deploy pendem de aprovacao explicita por acao.
+
+## Deploy Beta - contratos/acoes do Resolver (autorizado pelo mantenedor, 01/06)
+
+- Commit `61d136d` criado em `dev`: `fix(018): alinha contratos do resolver de sugestoes`.
+- Push `origin dev` concluido.
+- **Deploy Beta run `26790976104` GREEN**:
+  - `validate`: GREEN.
+  - `lint`: GREEN.
+  - `enforce-dir`: GREEN.
+  - `migrate`: GREEN.
+  - `smoke-discord`: GREEN.
+  - `deploy-app`: GREEN, incluindo etapa obrigatoria `Deploy App Containers`.
+  - `smoke`: GREEN.
+- **CodeQL run `26790975693` GREEN**.
+- Health publico pos-deploy:
+  - `https://mesasbeta.artificiorpg.com/`: HTTP 200.
+  - `https://mesasbeta.artificiorpg.com/api/v1/health`: `{"status":"ok","environment":"beta","db":"connected","usersSampled":true}`.
+- `git status` pos-deploy antes da atualizacao documental: branch `dev...origin/dev`, limpa.
+- `.specify/memory/project-state.md` atualizado localmente com commit/run pos-deploy.
+
+Pendente pos-deploy:
+- Validacao funcional do mantenedor em janela anonima no Beta, resolvendo amostra real (alias/edicao/mescla/sistema novo).
+- Commit/push desta atualizacao documental pos-deploy exigem nova aprovacao explicita por acao.
+
+## Hotfix P2 Codex — notifyAdmins fora de transacao (02/06)
+
+- Branch `feat/021-notificacoes-fora-transacao` criada com commit `e9b4d65`.
+  - `notifyAdmins` nao aceita mais `trx`; usa `db` fora da transacao.
+  - Sugestoes de sistema/cenario e novo membro notificam admins apos commit.
+  - `backend/dist` atualizado via `npm --prefix backend run build` GREEN.
+- PR #153 (`feat/021` -> `dev`): todos checks GREEN (CI, CodeQL, Amazon Q). Merged.
+- **Deploy Beta run `26832585802` GREEN**: migrate + deploy-app + smoke.
+- PR #154 (`dev` -> `main`): todos checks GREEN. Merged.
+- **Deploy Producao run `26832838049` GREEN** via `promote-to-prod.yml`:
+  - Jobs: typecheck, lint, enforce-dir, governance_gate, deploy, release — todos SUCCESS.
+- **Release `v1.2.6`** criada automaticamente com notas executivas.
+- Estado final: Beta e Prod com codigo novo. Sessao encerrada.
