@@ -6,7 +6,14 @@ import { parseDevFeedbackInput } from '../validators/devFeedbackValidator';
 import { uploadScreenshotToCloudinary, deleteFromCloudinary } from '../services/cloudinary';
 import { notifyAdmins } from '../services/adminNotifications';
 import { logActivity } from '../services/activityLogger';
-import type { UserRole } from '../db/types';
+import type { UserRole, DevFeedbackKind, DevFeedbackStatus } from '../db/types';
+
+type CreatedDevFeedback = {
+  id: string;
+  kind: DevFeedbackKind;
+  status: DevFeedbackStatus;
+  created_at: Date;
+};
 
 const router = Router();
 
@@ -35,7 +42,7 @@ router.post('/', strictRateLimiter, optionalAuth, async (req: Request, res: Resp
       }
     }
 
-    let created;
+    let created: CreatedDevFeedback;
     try {
       created = await db
         .insertInto('dev_feedback')
