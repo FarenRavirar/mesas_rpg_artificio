@@ -103,8 +103,8 @@ Confirmadas pelo mantenedor em 2026-06-02:
 - [x] Baseline novo regenerado.
 - [x] Fase 1 concluida com evidencia.
 - [x] Fase 2 concluida com evidencia.
-- [ ] Fase 3 concluida com evidencia.
-- [ ] Fase 4 concluida com evidencia.
+- [x] Fase 3 concluida com evidencia.
+- [x] Fase 4 concluida com evidencia.
 - [ ] `.specify/memory/project-state.md` atualizado quando houver mudanca operacional.
 - [ ] `.specify/memory/session-log.md` atualizado via procedimento `/speckit.retro.run` quando houver fechamento real.
 - [ ] Sessao movida para `encerradas/` somente quando autorizado.
@@ -625,3 +625,105 @@ Status apos commit antes desta anotacao:
 Observacao: arquivos acima eram dirty state preexistente fora do escopo deste commit. Esta anotacao local da sessao ainda nao foi commitada.
 
 Proxima acao necessaria para PR/deploy Beta: criar `specs/023-saneamento-lint-frontend/pr-description.md`, commitar essa documentacao com aprovacao explicita, abrir PR para `dev`; merge/deploy Beta somente com autorizacao do mantenedor.
+
+### 2026-06-02 - Retomada Fase 3 autorizada
+
+Pedido do mantenedor:
+
+```text
+pode seguir para a fase 3
+```
+
+Plano imediato:
+
+- Corrigir `react-hooks/exhaustive-deps` e remover disable inutil sem mudar fluxo.
+- Corrigir `set-state-in-effect`/`set-state-in-render` preferindo estado derivado, `useMemo` e inicializacao lazy.
+- Parar se alguma correcao exigir mudanca observavel de runtime.
+- Validar com `npm --prefix frontend run lint` e `npm --prefix frontend run build`.
+
+### 2026-06-02 - Fase 3 / hooks
+
+Impacto revisado:
+
+- `SettingStylesField`: `Set` de estilos selecionados virou valor derivado com `useMemo`; filtro de sugestoes preservado.
+- `SiteHeader`: indicador de changelog novo passou para inicializacao lazy do state; mesmo marcador `2026-04-08-ux-improvements`.
+- `SystemTreeSelector` e `CatalogTree`: root/mid/ancestrais selecionados passaram a ser derivados, sem setState durante effect/render.
+- `NotificationBell`, `DiscordDraftReviewTable`, `DiscordSyncPanel`, `DevFeedbackPanel`, `GestaoPage`, `SystemsAdminView` e `useSystems`: callbacks de fetch estabilizados com `useCallback`.
+- `useAutosave`: feedback `saving` agendado fora do corpo imediato do effect; debounce/save preservados.
+- `CreateTableForm`, `CatalogoPage`, `EntityInspector`, `useFetchTables`: dependencias declaradas sem alterar contrato de chamadas.
+
+Comandos:
+
+```powershell
+npm --prefix frontend run lint
+rg -n "eslint-disable|no-explicit-any|any" frontend/src
+npm --prefix frontend run build
+npm --prefix frontend test
+git diff --check
+git diff -- frontend/src/components/NotificationBell.tsx frontend/src/components/SiteHeader.tsx frontend/src/components/SystemTreeSelector.tsx frontend/src/features/admin/components/CatalogTree.tsx frontend/src/features/create-table/hooks/useAutosave.ts
+git diff -- frontend/src/components/SettingStylesField.tsx frontend/src/features/admin/components/EntityInspector.tsx frontend/src/features/create-table/components/CreateTableForm.tsx frontend/src/hooks/useFetchTables.ts
+git diff -- frontend/src/features/discord-sync/components/DiscordDraftReviewTable.tsx frontend/src/features/discord-sync/components/DiscordSyncPanel.tsx frontend/src/modules/admin/dev-feedback/DevFeedbackPanel.tsx
+git diff -- frontend/src/modules/admin/systems/useSystems.ts frontend/src/pages/CatalogoPage.tsx frontend/src/pages/GestaoPage.tsx frontend/src/pages/SystemsAdminView.tsx
+```
+
+Resultados literais:
+
+```text
+> frontend_temp@0.0.0 lint
+> eslint .
+
+sem problemas reportados
+
+rg -n "eslint-disable|no-explicit-any|any" frontend/src
+sem resultados
+
+> frontend_temp@0.0.0 build
+> tsc -b && vite build
+
+✓ 2168 modules transformed.
+✓ built in 889ms
+
+> frontend_temp@0.0.0 test
+> vitest run
+
+Test Files  3 passed (3)
+Tests  13 passed (13)
+
+git diff --check
+sem erro de whitespace; apenas avisos CRLF do Git no Windows.
+```
+
+Arquivos modificados da Fase 3:
+
+```text
+frontend/src/components/NotificationBell.tsx
+frontend/src/components/SettingStylesField.tsx
+frontend/src/components/SiteHeader.tsx
+frontend/src/components/SystemTreeSelector.tsx
+frontend/src/features/admin/components/CatalogTree.tsx
+frontend/src/features/admin/components/EntityInspector.tsx
+frontend/src/features/create-table/components/CreateTableForm.tsx
+frontend/src/features/create-table/hooks/useAutosave.ts
+frontend/src/features/discord-sync/components/DiscordDraftReviewTable.tsx
+frontend/src/features/discord-sync/components/DiscordSyncPanel.tsx
+frontend/src/hooks/useFetchTables.ts
+frontend/src/modules/admin/dev-feedback/DevFeedbackPanel.tsx
+frontend/src/modules/admin/systems/useSystems.ts
+frontend/src/pages/CatalogoPage.tsx
+frontend/src/pages/GestaoPage.tsx
+frontend/src/pages/SystemsAdminView.tsx
+specs/023-saneamento-lint-frontend/tasks.md
+sessoes/26-06-02_3_saneamento-lint-frontend.md
+```
+
+Observacao de escopo:
+
+```text
+Dirty state preexistente fora da Spec 023 continua preservado:
+.specify/memory/project-state.md
+sessoes/26-06-02_1_feedback-desenvolvimento.md
+sessoes/26-06-02_2_feedback-triage.md
+specs/024-feedback-triage/tasks.md
+```
+
+Proxima acao: pedir aprovacao explicita para commit da Fase 3 e, depois do push `feat/*`, preparar deploy Beta conforme governanca.

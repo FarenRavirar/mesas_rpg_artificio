@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import type { DiscordFetchWindow, DiscordSource, DiscordMessage, DiscordImportMessageStatus, DiscordMessageContentDiagnostic } from '../types';
 import { discordSyncApi } from '../api/discordSyncApi';
@@ -94,7 +94,7 @@ export function DiscordSyncPanel() {
     ignored: messages.filter(message => message.status === 'ignored').length,
   }), [messages]);
 
-  const loadSources = async () => {
+  const loadSources = useCallback(async () => {
     setLoadingSources(true);
     try {
       const data = await discordSyncApi.getSources();
@@ -104,9 +104,9 @@ export function DiscordSyncPanel() {
     } finally {
       setLoadingSources(false);
     }
-  };
+  }, []);
 
-  const loadMessages = async (override?: { sourceId?: string; window?: DiscordFetchWindow }) => {
+  const loadMessages = useCallback(async (override?: { sourceId?: string; window?: DiscordFetchWindow }) => {
     setLoadingMessages(true);
     try {
       const data = await discordSyncApi.getMessages({
@@ -121,17 +121,17 @@ export function DiscordSyncPanel() {
     } finally {
       setLoadingMessages(false);
     }
-  };
+  }, [messageSourceFilter, messageStatusFilter, messageWindowFilter]);
 
   useEffect(() => {
     loadSources();
-  }, []);
+  }, [loadSources]);
 
   useEffect(() => {
     if (tab === 'mensagens') {
       loadMessages();
     }
-  }, [tab, messageStatusFilter, messageSourceFilter, messageWindowFilter]);
+  }, [tab, messageStatusFilter, messageSourceFilter, messageWindowFilter, loadMessages]);
 
   useEffect(() => {
     if (tab !== 'mensagens') return;

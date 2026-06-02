@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import toast from 'react-hot-toast';
 import type { SystemTreeNode } from '../../../types/systems';
 import type { FormState } from '../types/createTable.types';
@@ -102,7 +102,7 @@ export function CreateTableForm({
   const [savedDraft, setSavedDraft] = useState<CreateTableDraft | null>(null);
 
   // Fetch systems tree
-  const fetchSystemsTree = async () => {
+  const fetchSystemsTree = useCallback(async () => {
     setSystemsLoading(true);
     setSystemsError(null);
 
@@ -116,11 +116,11 @@ export function CreateTableForm({
     } finally {
       setSystemsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchSystemsTree();
-  }, []);
+  }, [fetchSystemsTree]);
 
   // Restore de draft
   useEffect(() => {
@@ -182,6 +182,7 @@ export function CreateTableForm({
   // Nome do sistema e cenário para review
   const selectedSystemName = selectedSystem?.name || null;
   const [selectedScenarioName, setSelectedScenarioName] = useState<string | null>(null);
+  const { setDdal } = formHook;
 
   useEffect(() => {
     if (!formHook.selectedScenarioId) {
@@ -207,9 +208,9 @@ export function CreateTableForm({
   // Desabilitar DDAL se sistema não for elegível
   useEffect(() => {
     if (!isDdalEligibleSelection && formHook.ddal.is_ddal) {
-      formHook.setDdal((prev) => ({ ...prev, is_ddal: false }));
+      setDdal((prev) => ({ ...prev, is_ddal: false }));
     }
-  }, [isDdalEligibleSelection, formHook.ddal.is_ddal]);
+  }, [isDdalEligibleSelection, formHook.ddal.is_ddal, setDdal]);
 
 
   const handleSubmit = async (e: FormEvent) => {

@@ -43,7 +43,7 @@ export function SystemsAdminView({ onInspectorDirtyChange }: SystemsAdminViewPro
 
   useEffect(() => {
     fetchTree();
-  }, []);
+  }, [fetchTree]);
 
   const selectedSystem = useMemo(
     () => (selectedId ? findInTree(systemsTree, selectedId) : null),

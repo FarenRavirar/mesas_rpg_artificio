@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { TablesResponse, TableCard, CatalogSeal } from '../types/tables';
 
 interface UseFetchTablesOptions {
@@ -10,6 +10,7 @@ interface UseFetchTablesOptions {
 }
 
 export const useFetchTables = (options: UseFetchTablesOptions = {}) => {
+  const { limit, featured, search, system, seal } = options;
   const [tables, setTables] = useState<TableCard[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -17,9 +18,6 @@ export const useFetchTables = (options: UseFetchTablesOptions = {}) => {
 
   useEffect(() => {
     const controller = new AbortController();
-    // CORREÇÃO HP-09: Destructure options para evitar dependências de objeto
-    const { limit, featured, search, system, seal } = options;
-
     const fetchTables = async () => {
       setIsLoading(true);
       setError(null);
@@ -53,7 +51,10 @@ export const useFetchTables = (options: UseFetchTablesOptions = {}) => {
 
     fetchTables();
     return () => controller.abort();
-  }, [options.limit, options.featured, options.search, options.system, options.seal]);
+  }, [limit, featured, search, system, seal]);
 
-  return { tables, isLoading, error, totalCount }; // CORREÇÃO DT-05
+  return useMemo(
+    () => ({ tables, isLoading, error, totalCount }),
+    [tables, isLoading, error, totalCount]
+  ); // CORREÇÃO DT-05
 };

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import type { System } from './types';
 
@@ -26,7 +26,7 @@ export function useSystems() {
     return systemsTree.reduce((acc, node) => acc + countNode(node), 0);
   }, [systemsTree]);
 
-  const fetchSystems = async () => {
+  const fetchSystems = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE}/api/v1/systems?view=flat`, {
@@ -45,9 +45,9 @@ export function useSystems() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchTree = async () => {
+  const fetchTree = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE}/api/v1/systems?view=tree`, {
@@ -66,9 +66,9 @@ export function useSystems() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const createSystem = async (formData: {
+  const createSystem = useCallback(async (formData: {
     name: string;
     name_pt: string | null;
     node_type: string;
@@ -97,9 +97,9 @@ export function useSystems() {
       toast.error('Erro ao criar sistema');
       return false;
     }
-  };
+  }, [fetchTree]);
 
-  const updateSystem = async (id: string, formData: {
+  const updateSystem = useCallback(async (id: string, formData: {
     name: string;
     name_pt: string | null;
     node_type: string;
@@ -129,9 +129,9 @@ export function useSystems() {
       toast.error('Erro ao atualizar sistema');
       return false;
     }
-  };
+  }, [fetchTree]);
 
-  const deleteSystem = async (
+  const deleteSystem = useCallback(async (
     id: string,
     name: string,
     options?: { skipConfirm?: boolean }
@@ -178,7 +178,7 @@ export function useSystems() {
       toast.error('Erro ao deletar sistema');
       return false;
     }
-  };
+  }, [fetchTree]);
 
   const filteredSystems = systems.filter((sys) => {
     if (!searchQuery) return true;

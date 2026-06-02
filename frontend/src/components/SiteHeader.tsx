@@ -3,27 +3,24 @@ import { Compass, LogIn, LogOut, Zap } from 'lucide-react';
 import { useAuth } from '../contexts/useAuth';
 import { NotificationBell } from './NotificationBell';
 import { ChangelogModal } from './ChangelogModal';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { getGoogleLoginUrl } from '../utils/auth';
+
+const UPDATE_MARKER = '2026-04-08-ux-improvements';
 
 export const SiteHeader = () => {
   const { user, logout } = useAuth();
   const [isChangelogOpen, setIsChangelogOpen] = useState(false);
-  const [hasNewUpdate, setHasNewUpdate] = useState(false);
-
-  // Verificar se há atualizações não lidas
-  useEffect(() => {
-    const lastSeenUpdate = localStorage.getItem('mesas_last_seen_update');
-    // Marcador versionado para sinalizar novas notas
-    if (!lastSeenUpdate || lastSeenUpdate !== '2026-04-08-ux-improvements') {
-      setHasNewUpdate(true);
-    }
-  }, []);
+  const [hasNewUpdate, setHasNewUpdate] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const lastSeenUpdate = window.localStorage.getItem('mesas_last_seen_update');
+    return !lastSeenUpdate || lastSeenUpdate !== UPDATE_MARKER;
+  });
 
   const handleOpenChangelog = () => {
     setIsChangelogOpen(true);
     setHasNewUpdate(false);
-    localStorage.setItem('mesas_last_seen_update', '2026-04-08-ux-improvements');
+    localStorage.setItem('mesas_last_seen_update', UPDATE_MARKER);
   };
 
   const handleLoginClick = () => {

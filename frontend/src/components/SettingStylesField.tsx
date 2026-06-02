@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import '../styles/SettingStylesField.css';
 
 interface SettingStylesFieldProps {
@@ -31,8 +31,8 @@ export const SettingStylesField: React.FC<SettingStylesFieldProps> = ({
   // CORREÇÃO DT-06: Estado para erro de API
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
 
-  // CORREÇÃO DT-21: Usar useCallback para memoizar a lista de estilos selecionados
-  const selectedStylesSet = useCallback(() => new Set(settingStyles), [settingStyles.join(',')]);
+  // CORREÇÃO DT-21: Usar Set para verificação de duplicatas sem causar re-render
+  const selectedStylesSet = useMemo(() => new Set(settingStyles), [settingStyles]);
 
   useEffect(() => {
     // CORREÇÃO DT-06: Resetar erro ao mudar o cenário
@@ -56,10 +56,8 @@ export const SettingStylesField: React.FC<SettingStylesFieldProps> = ({
         if (response.ok) {
           const data = await response.json();
           const allStyles = data.suggestions.flatMap((s: StyleSuggestion) => s.suggested_styles);
-          // CORREÇÃO DT-21: Usar Set para verificação de duplicatas sem causar re-render
-          const currentStyles = selectedStylesSet();
           const uniqueStyles = Array.from(new Set(allStyles)).filter(
-            (style): style is string => typeof style === 'string' && !currentStyles.has(style)
+            (style): style is string => typeof style === 'string' && !selectedStylesSet.has(style)
           );
           setSuggestions(uniqueStyles);
           setSuggestionError(null);
@@ -80,8 +78,7 @@ export const SettingStylesField: React.FC<SettingStylesFieldProps> = ({
     }, 500);
 
     return () => clearTimeout(timer);
-    // CORREÇÃO DT-21: Dependência otimizada para evitar re-render infinito
-  }, [settingName, settingStyles.join(',')]);
+  }, [settingName, selectedStylesSet]);
 
   const handleAddStyle = (style: string) => {
     // CORREÇÃO DT-13: Validar duplicata antes de adicionar

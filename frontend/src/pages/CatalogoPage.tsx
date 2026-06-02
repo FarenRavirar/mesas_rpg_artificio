@@ -220,7 +220,7 @@ export const CatalogoPage = () => {
     if (filters.page === 1) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  }, [filters.search, filters.system, filters.modality, filters.priceType, filters.experience, filters.seal, filters.sort]);
+  }, [filters.search, filters.system, filters.modality, filters.priceType, filters.experience, filters.seal, filters.sort, filters.page]);
 
   // ============================================================================
   // RENDER

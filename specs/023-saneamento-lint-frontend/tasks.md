@@ -2,7 +2,7 @@
 
 Pre-condicao: Spec 022 concluida e validada (cumprida em 02/06/2026). Spec 024 tambem concluida e validada antes da retomada da 023. Branch dedicada `feat/023-saneamento-lint-frontend` a partir de `dev`. Commit/push/deploy exigem aprovacao explicita (AGENTS.md).
 
-Status atual desta spec: **PRONTA PARA PREPARACAO** (abrir sessao dedicada, confirmar D1-D3, atualizar `dev`, criar branch e regenerar baseline antes de executar fixes).
+Status atual desta spec: **FASES 0-4 VALIDADAS LOCALMENTE** em `feat/023-saneamento-lint-frontend`; aguardando aprovacao explicita para commit/push da Fase 3 e proximo deploy Beta.
 
 ## Fase 0 - Preparacao
 
@@ -27,16 +27,16 @@ Status atual desta spec: **PRONTA PARA PREPARACAO** (abrir sessao dedicada, conf
 
 ## Fase 3 - Hooks
 
-- [ ] T013 Corrigir/justificar `exhaustive-deps` (14 warnings) caso a caso (dep correta, `useCallback`, ou disable justificado).
-- [ ] T014 Corrigir `set-state-in-effect` (4) e `set-state-in-render` (1) sem mudar comportamento; validar fluxo afetado manualmente.
+- [x] T013 Corrigir/justificar `exhaustive-deps` (14 warnings) caso a caso (dep correta, `useCallback`, ou disable justificado).
+- [x] T014 Corrigir `set-state-in-effect` (4) e `set-state-in-render` (1) sem mudar comportamento; validar fluxo afetado manualmente.
 
 ## Fase 4 - Qualidade
 
-- [ ] T015 `npm --prefix frontend run lint` = 0 errors.
-- [ ] T016 `npm --prefix frontend run build` GREEN.
-- [ ] T017 `npm --prefix frontend test` GREEN.
-- [ ] T018 `git diff --check` limpo.
-- [ ] T019 Revisar diff completo confirmando zero mudanca de comportamento.
+- [x] T015 `npm --prefix frontend run lint` = 0 errors.
+- [x] T016 `npm --prefix frontend run build` GREEN.
+- [x] T017 `npm --prefix frontend test` GREEN.
+- [x] T018 `git diff --check` limpo.
+- [x] T019 Revisar diff completo confirmando zero mudanca de comportamento.
 
 ## Fase 5 - Beta
 

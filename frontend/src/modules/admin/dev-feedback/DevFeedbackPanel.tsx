@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { InlineDeleteConfirmation } from '../../../components/InlineDeleteConfirmation';
 import {
@@ -35,7 +35,7 @@ export const DevFeedbackPanel = () => {
   const [primaryId, setPrimaryId] = useState<string | null>(null);
   const [merging, setMerging] = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const data = await fetchDevFeedback({ status: statusFilter, kind: kindFilter, archived: archivedFilter });
@@ -47,12 +47,11 @@ export const DevFeedbackPanel = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [archivedFilter, kindFilter, statusFilter]);
 
   useEffect(() => {
     void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, kindFilter, archivedFilter]);
+  }, [load]);
 
   const handleStatusChange = async (item: DevFeedbackItem, status: DevFeedbackStatus) => {
     setSavingId(item.id);

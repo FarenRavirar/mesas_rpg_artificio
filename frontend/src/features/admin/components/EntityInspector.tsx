@@ -77,7 +77,17 @@ export function EntityInspector(props: Props) {
     setLogoFilename(system?.logo_filename ?? '');
     setWebsiteUrl(system?.website_url ?? '');
     setDirty(false);
-  }, [system?.id, parentContext?.id, validTypes]);
+  }, [
+    system?.id,
+    system?.name,
+    system?.name_pt,
+    system?.node_type,
+    system?.aliases,
+    system?.logo_filename,
+    system?.website_url,
+    parentContext?.id,
+    validTypes,
+  ]);
 
   // Marca dirty quando qualquer campo muda
   useEffect(() => {

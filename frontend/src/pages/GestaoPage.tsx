@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../contexts/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { SystemsAdminView } from './SystemsAdminView';
@@ -151,22 +151,7 @@ export const GestaoPage = () => {
   const [selectedSuggestionIds, setSelectedSuggestionIds] = useState<string[]>([]);
   const [bulkRejectingSuggestions, setBulkRejectingSuggestions] = useState(false);
 
-  useEffect(() => {
-    if (!user || user.role !== 'admin') {
-      navigate('/');
-      return;
-    }
-
-    if (activeTab === 'systems') {
-      fetchSuggestions();
-    } else if (activeTab === 'crud') {
-      if (crudSubTab === 'tables') {
-        fetchAllTables();
-      }
-    }
-  }, [user, navigate, filter, activeTab, crudSubTab]);
-
-  const fetchSuggestions = async () => {
+  const fetchSuggestions = useCallback(async () => {
     if (!isAuthenticated) return;
     setLoading(true);
     try {
@@ -206,10 +191,10 @@ export const GestaoPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter, isAuthenticated]);
 
 
-  const fetchAllTables = async () => {
+  const fetchAllTables = useCallback(async () => {
     if (!isAuthenticated) return;
     setLoading(true);
     try {
@@ -225,7 +210,22 @@ export const GestaoPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!user || user.role !== 'admin') {
+      navigate('/');
+      return;
+    }
+
+    if (activeTab === 'systems') {
+      fetchSuggestions();
+    } else if (activeTab === 'crud') {
+      if (crudSubTab === 'tables') {
+        fetchAllTables();
+      }
+    }
+  }, [user, navigate, activeTab, crudSubTab, fetchSuggestions, fetchAllTables]);
 
   const maybePublishPendingDrafts = async (pending: Array<{ id: string; title: string | null }>) => {
     if (!pending || pending.length === 0) return;
