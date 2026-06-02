@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import html2canvas from 'html2canvas';
+import html2canvas from 'html2canvas-pro';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { collectPageContext, getDiagnosticsSnapshot } from '../../lib/diagnostics';
