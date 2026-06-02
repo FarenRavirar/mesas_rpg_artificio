@@ -214,3 +214,171 @@ Evidencias:
 
 Pendente:
 - Commit/push/deploy da correcao de inteligencia somente apos aprovacao explicita por acao.
+
+## Deploy Beta - inteligencia de candidato base + edicao (autorizado pelo mantenedor, 01/06)
+
+- Commit `156cd4f` criado em `dev`: `fix(018): recomenda edicao para sugestao com base existente`.
+- Push `origin dev` concluido.
+- **Deploy Beta run `26788551455` GREEN**:
+  - `validate`: GREEN.
+  - `enforce-dir`: GREEN.
+  - `lint`: GREEN.
+  - `migrate`: GREEN.
+  - `smoke-discord`: GREEN.
+  - `deploy-app`: GREEN, incluindo etapa `Deploy App Containers`.
+  - `smoke`: GREEN.
+- **CodeQL run `26788550756` GREEN**.
+- Health publico pos-deploy:
+  - `https://mesasbeta.artificiorpg.com/`: HTTP 200.
+  - `https://mesasbeta.artificiorpg.com/api/v1/health`: HTTP 200.
+- `git status` pos-push antes da atualizacao documental: branch `dev...origin/dev`, limpa.
+- `project-state.md` atualizado localmente com o novo commit/run.
+
+Pendente pos-deploy:
+- Validacao funcional do mantenedor em janela anonima no Beta, especialmente caso `D&D 5e 2014.`.
+- Commit/push das atualizacoes documentais pos-deploy exigem nova aprovacao explicita por acao.
+
+## Retomada SDD Lite - reformulacao completa das opcoes do drawer (01/06)
+
+Problema reportado pelo mantenedor no Beta: a opcao `Edicao / variante / subsistema` passou a funcionar parcialmente, mas `Alias`, `Mesclar` e `Sistema novo (raiz)` ainda nao orientam o admin com todos os dados/acoes relevantes. Caso real `O Um Anel 2e` exige uma forma funcional de vincular base/alias/edicao sem induzir raiz nova; reconhecimento automatico de traducao so deve ocorrer se houver dado catalogado (`name_pt`/alias).
+
+Classificacao: SDD Lite. Ha mudanca backend/frontend, mas sem migration, auth, permissao ou contrato publico; resposta admin de candidatos pode receber campos aditivos para orientar UI.
+
+Diagnostico do codigo:
+- `scoreSystemCandidates` retorna apenas candidatos + `recommended_action`; nao retorna interpretacao (`base`, tokens de edicao, nome de filho sugerido).
+- `O Um Anel` nao deve casar automaticamente com `The One Ring` se nao houver alias/nome PT cadastrado; o drawer deve permitir a resolucao manual e gravar alias no pai quando o admin escolher o pai correto.
+- Drawer tem estado compartilhado (`name`) entre raiz e filho; trocar aba pode deixar campos incoerentes.
+- Aba `create_system` oferece campo de edicao mesmo quando ha candidato/base forte; isso induz criar raiz nova.
+- Aba `create_alias` nao diferencia alias puro de sugestao com token de edicao (`2e`, `5e`, `2014`).
+
+Plano:
+- [x] Criar testes para `O Um Anel 2e` sem alias cadastrado -> **nao inferir traducao por palpite**; com alias cadastrado -> candidato `The One Ring Roleplaying Game`, `recommended_action=create_child`, filho sugerido `2e`.
+- [x] Criar testes para alias puro (`O Um Anel`) somente quando existir como alias catalogado.
+- [x] Enriquecer `CandidateResult` com `analysis`: `base`, `edition_tokens`, `suggested_child_name`, `has_edition_context`.
+- [x] Melhorar normalizador com chaves tolerantes sem hardcode de sistema/traducao: artigos PT/EN iniciais removidos e sufixos estruturais conservadores (`RPG`/`TTRPG` e frase `Roleplaying Game`, preservando `Game` isolado); traducao/sinonimo so via `name_pt` ou alias do catalogo.
+- [x] Reordenar recomendacao: exato -> merge; base+edicao -> create_child; base sem edicao -> create_alias; sem base -> create_system.
+- [x] Drawer: separar `rootName`, `childName`, `aliasText`; ao trocar acao, preencher campos relevantes sem perder selecao.
+- [x] Drawer: criar painel compacto de interpretacao (base, edicao detectada, candidato/pai, acao sugerida).
+- [x] Drawer: reformular cada acao:
+  - Alias: contexto do alvo + alerta se ha edicao detectada.
+  - Edicao/variante/subsistema: pai preselecionado + nome de filho sugerido + filhos existentes.
+  - Mesclar: contexto do alvo + nada sera criado.
+  - Sistema novo: painel de risco e confirmacao se ha qualquer candidato/base forte.
+  - Rejeitar: simples, mantendo contexto.
+- [x] Validar teste backend, builds backend/frontend e `git diff --check`.
+
+Arquivos provaveis:
+- `backend/src/services/systemSuggestionCandidates.ts`
+- `backend/src/services/__tests__/systemSuggestionCandidates.test.ts`
+- `backend/dist/services/systemSuggestionCandidates.js`
+- `backend/dist/services/__tests__/systemSuggestionCandidates.test.js`
+- `backend/src/routes/systemSuggestionsAdmin.ts`
+- `backend/dist/routes/systemSuggestionsAdmin.js`
+- `frontend/src/components/SystemSuggestionResolutionDrawer.tsx`
+- `sessoes/26-06-01_2_resolucao-sugestoes-sistemas.md`
+
+Implementacao:
+- Backend `scoreSystemCandidates` agora retorna `analysis` com `base`, `edition_tokens`, `suggested_child_name`, `suggested_child_type`, `has_edition_context`, `has_qualifier_context`.
+- Normalizador ganhou chaves tolerantes sem dicionario de traducao: remove artigos iniciais PT/EN (`O`, `The`) e sufixos estruturais conservadores (`RPG`/`TTRPG` e frase `Roleplaying Game`). `Game` isolado permanece parte do titulo para evitar falso positivo em catalogo grande. Traducao/sinonimo exige dado catalogado (`name_pt`/alias).
+- Recomenda `create_child` para base + edicao quando a base casa por nome/alias/`name_pt` (ex.: `D&D 5e 2014.`; `O Um Anel 2e` somente se `O Um Anel` estiver como alias) e base + complemento em mesmo idioma (`The One Ring Strider Mode`), evitando raiz nova sem palpite semantico.
+- Endpoint `GET /admin/system-suggestions/:id/candidates` inclui `analysis` na resposta.
+- Drawer separa `rootName` e `childName`; painel `Interpretacao` mostra base, novo item, tipo sugerido e candidato.
+- Botões de acao usam `switchResolutionType`, reaproveitando candidato/parent/filho sugerido em alias, mescla, filho e raiz.
+- Aba `Alias` mostra alerta quando a sugestao parece edicao/variante.
+- Aba `Sistema novo (raiz)` mostra risco e atalhos para resolver como filho, alias ou mescla antes de forcar raiz.
+
+Evidencias:
+- `npm --prefix backend test -- systemSuggestionCandidates`: GREEN (20/20).
+- `npm --prefix backend run build`: GREEN.
+- `npm --prefix frontend run build`: GREEN (aviso nao bloqueante de chunk >500 kB).
+- `git diff --check`: sem erros; apenas avisos EOL LF/CRLF.
+- `git diff --check`: sem erros; apenas avisos EOL LF/CRLF.
+
+Pendente:
+- Commit/push/deploy somente apos aprovacao explicita por acao.
+- Validacao funcional conclusiva continua sendo teste do mantenedor em janela anonima no Beta apos deploy.
+
+## Refinamento da matriz de acoes (01/06)
+
+Esclarecimento do mantenedor: o problema nao e copiar todos os campos para todas as abas, nem apenas reaproveitar selecao. Cada aba deve continuar com sua acao propria, mas precisa expor as opcoes relevantes quando a sugestao carrega mais de uma intencao. Exemplo: `Mesclar (ja existe)` nao cria alias nem edicao; se a sugestao parece alias/edicao, a UI deve deixar isso claro e oferecer acao funcional alternativa, nao induzir que mesclar resolve tudo.
+
+Regras de matriz:
+- `Alias / nome alternativo`: cria alias para um alvo. Se a sugestao contem edicao/complemento, mostrar risco e atalho para criar filho.
+- `Edicao / variante / subsistema`: cria filho de um pai. Se o admin escolher um pai e a sugestao tiver base separavel (ex.: `O Um Anel 2e` -> alias base `O Um Anel` + filho `2e`), permitir adicionar alias do pai junto da resolucao.
+- `Mesclar (ja existe)`: nada e criado. Deve mostrar explicitamente que nao adiciona alias nem edicao e oferecer atalhos para `Alias`/`Edicao` quando esses sinais existem.
+- `Sistema novo (raiz)`: cria raiz. Se houver candidato/base forte, mostrar risco e atalhos funcionais para alias/filho/mescla antes de permitir forcar raiz.
+- `Rejeitar`: sem criacao; manter simples, mas sem esconder contexto.
+
+Plano adicional:
+- [x] Inspecionar handlers backend de `resolve`.
+- [x] Adicionar suporte opcional em `create_child` para aliases do pai (`parent_aliases`) de forma idempotente, sem migration.
+- [x] Frontend: calcular alias base sugerido e mostrar campo/chips na aba `Edicao / variante / subsistema`.
+- [x] Frontend: painéis de “Acoes relacionadas” por aba, com botoes que trocam aba e preenchem campos relevantes.
+- [x] Frontend: mesclar explicita “nao cria alias/edicao” e lista o que ficaria sem fazer.
+- [x] Validar backend/frontend.
+
+Implementacao adicional:
+- `POST /admin/system-suggestions/:id/resolve` em `create_child` aceita `parent_aliases` opcional e usa `insertSystemAliases` idempotente no pai. Também passa a deduplicar aliases do filho via helper.
+- `resolution_payload` de `create_child` registra `aliases` e `parent_aliases`.
+- Drawer calcula alias de base sugerido removendo tokens de filho/edicao do nome da sugestao (`O Um Anel 2e` -> `O Um Anel`).
+- Aba `Edicao / variante / subsistema` ganhou campo `Alias do sistema pai (opcional)` quando houver alias de base sugerido, permitindo criar filho e alias do pai na mesma resolucao.
+- Abas `Alias`, `Mesclar`, `Edicao` e `Sistema novo` ganharam `Acoes relacionadas` com troca funcional de acao e preenchimento do contexto relevante.
+- `Mesclar` agora explicita que nada e criado e lista riscos quando a sugestao tambem parece alias/edicao.
+
+Evidencias adicionais:
+- `npm --prefix backend test -- systemSuggestionCandidates`: GREEN (20/20).
+- `npm --prefix backend run build`: GREEN.
+- `npm --prefix frontend run build`: GREEN (aviso nao bloqueante de chunk >500 kB).
+- `git diff --check`: sem erros; apenas avisos EOL LF/CRLF.
+
+## Auditoria de contratos do Resolver (01/06)
+
+Escopo revisado:
+- `specs/018-resolucao-sugestoes-sistemas/{spec,plan,tasks}.md`
+- `backend/src/routes/systemSuggestionsAdmin.ts`
+- `backend/src/services/systemSuggestionCandidates.ts`
+- `frontend/src/components/SystemSuggestionResolutionDrawer.tsx`
+- `frontend/src/pages/GestaoPage.tsx`
+
+Achados corrigidos:
+- Contrato `GET /admin/system-suggestions/:id/candidates` foi enriquecido com `analysis`; `plan.md` agora documenta `analysis`.
+- Contrato `POST /admin/system-suggestions/:id/resolve` agora documenta `aliases`, `parent_aliases`, `edition_name` e `force`.
+- Erro `409 SIMILAR_EXISTS` agora devolve `analysis`, alem de `candidates` e `recommended_action`, evitando que a UI volte para achismo apos bloqueio de raiz nova.
+- Drawer passa a consumir `analysis` no fluxo normal e no 409.
+- Selecionar `Sistema pai` na aba filho agora sincroniza o alvo para acoes relacionadas (`Alias`/`Mesclar`), evitando contexto solto.
+
+Evidencias de auditoria:
+- `rg resolve|candidates|create_alias|create_child|merge_existing|create_system|parent_aliases|resolution_payload|force|SIMILAR_EXISTS` executado sobre spec, backend e frontend.
+- `npm --prefix backend test -- systemSuggestionCandidates`: GREEN (20/20).
+- `npm --prefix backend run build`: GREEN.
+- `npm --prefix frontend run build`: GREEN.
+- `git diff --check`: sem erros; apenas avisos EOL LF/CRLF.
+
+Estado:
+- Implementacao local pronta.
+- Commit/push/deploy pendem de aprovacao explicita por acao.
+
+## Revisao final da spec e robustez do normalizador (01/06)
+
+Problema revisado antes de commit:
+- Havia risco de normalizacao ampla demais ao tratar `game` como sufixo generico isolado. Em catalogo com muitos sistemas isso poderia apagar parte legitima do nome.
+
+Correcoes finais:
+- `normalizeSystemName` agora remove `RPG`/`TTRPG` e a frase generica `Roleplaying Game`, mas preserva `Game` quando aparece sozinho como parte do titulo.
+- Comentario de `canonicalTokens` ajustado para nao sugerir traducao PT/EN inventada.
+- Teste adicionado: `The One Ring Roleplaying Game` normaliza para base `one ring`; `Ender's Game` preserva `game`.
+- Specs revisadas e alinhadas ao projeto atual:
+  - `spec.md`: contratos funcionais, regra sem traducao hardcoded, `parent_aliases`, `force` e risco de raiz.
+  - `plan.md`: contratos GET/POST, `analysis`, matriz UX, normalizacao conservadora.
+  - `tasks.md`: 20/20 no teste de candidatos e tarefas atuais marcadas corretamente.
+  - `handoff.md`: estado atual local pendente de commit/deploy, sem proximo passo obsoleto.
+
+Evidencias finais:
+- `npm --prefix backend test -- systemSuggestionCandidates`: GREEN (20/20).
+- `npm --prefix backend run build`: GREEN.
+- `npm --prefix frontend run build`: GREEN (aviso nao bloqueante de chunk >500 kB).
+
+Estado final local:
+- Implementacao + spec/docs prontas.
+- `git diff --check` executado apos a atualizacao documental.
+- Commit/push/deploy pendem de aprovacao explicita por acao.

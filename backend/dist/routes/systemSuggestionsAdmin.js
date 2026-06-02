@@ -136,6 +136,7 @@ router.get('/system-suggestions/:id/candidates', async (req, res) => {
                 suggestion,
                 candidates: result.candidates,
                 recommended_action: result.recommended_action,
+                analysis: result.analysis,
             },
         });
     }
@@ -430,6 +431,9 @@ router.post('/system-suggestions/:id/resolve', async (req, res) => {
     const extraAliases = Array.isArray(body.aliases)
         ? body.aliases.filter((a) => typeof a === 'string')
         : [];
+    const parentAliases = Array.isArray(body.parent_aliases)
+        ? body.parent_aliases.filter((a) => typeof a === 'string')
+        : [];
     if (!VALID_RESOLUTION_TYPES.has(resolutionType)) {
         return res.status(400).json({
             error: 'resolution_type inválido. Use create_system, create_child, create_alias, merge_existing ou reject.',
@@ -706,19 +710,8 @@ router.post('/system-suggestions/:id/resolve', async (req, res) => {
                 })
                     .returning(['id', 'name', 'path_slug'])
                     .executeTakeFirstOrThrow();
-                if (suggestion.aliases && suggestion.aliases.length > 0) {
-                    for (const alias of suggestion.aliases) {
-                        await trx
-                            .insertInto('system_aliases')
-                            .values({
-                            system_id: newSystem.id,
-                            alias,
-                            alias_slug: (0, systems_1.slugify)(alias),
-                            is_official: false,
-                        })
-                            .execute();
-                    }
-                }
+                await insertSystemAliases(trx, newSystem.id, [...(suggestion.aliases ?? []), ...extraAliases]);
+                await insertSystemAliases(trx, parent.id, parentAliases);
                 await trx
                     .updateTable('system_suggestions')
                     .set({
@@ -731,6 +724,8 @@ router.post('/system-suggestions/:id/resolve', async (req, res) => {
                         node_type: nodeType,
                         parent_id: parent.id,
                         path_slug: newSystem.path_slug,
+                        aliases: extraAliases,
+                        parent_aliases: parentAliases,
                     }),
                     resolved_at: new Date(),
                     reviewed_at: new Date(),
@@ -769,6 +764,7 @@ router.post('/system-suggestions/:id/resolve', async (req, res) => {
                         resolution_type: 'create_child',
                         system_id: newSystem.id,
                         path_slug: newSystem.path_slug,
+                        parent_aliases: parentAliases,
                     },
                 }, trx);
                 return {
@@ -800,6 +796,7 @@ router.post('/system-suggestions/:id/resolve', async (req, res) => {
                     const err = new Error('SIMILAR_EXISTS');
                     err.candidates = guard.candidates;
                     err.recommended_action = guard.recommended_action;
+                    err.analysis = guard.analysis;
                     throw err;
                 }
             }
@@ -961,6 +958,7 @@ router.post('/system-suggestions/:id/resolve', async (req, res) => {
                     error: 'Há candidatos similares no catálogo. Confirme com force=true para criar mesmo assim.',
                     candidates: error.candidates ?? [],
                     recommended_action: error.recommended_action ?? null,
+                    analysis: error.analysis ?? null,
                 });
             default:
                 return res.status(500).json({ error: 'Erro ao resolver sugestão.' });

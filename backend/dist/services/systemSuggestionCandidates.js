@@ -20,7 +20,9 @@ const EDITION_WORDS = new Set([
     'versao',
     'version',
 ]);
-const GENERIC_SUFFIX = new Set(['rpg', 'ttrpg']);
+const COMPACT_GENERIC_SUFFIX = new Set(['rpg', 'ttrpg']);
+const ROLEPLAYING_SUFFIX = new Set(['roleplaying', 'roleplay']);
+const LEADING_ARTICLES = new Set(['the', 'o', 'a', 'os', 'as']);
 function stripAccents(value) {
     return value.normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
@@ -32,10 +34,9 @@ function isEditionToken(token) {
         /^v\d+(?:\.\d+)?$/.test(token) // v2, v2.1
     );
 }
-function buildMatchKeys(base) {
-    if (!base)
+function buildMatchKeys(tokens) {
+    if (tokens.length === 0)
         return [];
-    const tokens = base.split(/\s+/).filter(Boolean);
     const keys = new Set();
     const compact = tokens.join('');
     if (compact)
@@ -47,6 +48,22 @@ function buildMatchKeys(base) {
     if (acronym.length > 1)
         keys.add(acronym);
     return [...keys];
+}
+function trimContextTokens(tokens) {
+    const out = [...tokens];
+    while (out.length > 1 && LEADING_ARTICLES.has(out[0])) {
+        out.shift();
+    }
+    while (out.length > 1 && COMPACT_GENERIC_SUFFIX.has(out[out.length - 1])) {
+        out.pop();
+    }
+    if (out.length > 2 && ['game', 'games'].includes(out[out.length - 1]) && ROLEPLAYING_SUFFIX.has(out[out.length - 2])) {
+        out.pop();
+    }
+    while (out.length > 1 && ROLEPLAYING_SUFFIX.has(out[out.length - 1])) {
+        out.pop();
+    }
+    return out;
 }
 function normalizeSystemName(raw) {
     const original = typeof raw === 'string' ? raw : '';
@@ -79,13 +96,12 @@ function normalizeSystemName(raw) {
             baseTokens.push(token);
         }
     }
-    while (baseTokens.length > 1 && GENERIC_SUFFIX.has(baseTokens[baseTokens.length - 1])) {
-        baseTokens.pop();
-    }
-    const base = baseTokens.join(' ').trim();
+    const trimmedBaseTokens = trimContextTokens(baseTokens);
+    const base = trimmedBaseTokens.join(' ').trim();
     const slug = base.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    const matchKeys = buildMatchKeys(base);
-    return { raw: original, normalized, base, matchKeys, editionTokens, slug };
+    const canonicalTokens = trimmedBaseTokens;
+    const matchKeys = buildMatchKeys(trimmedBaseTokens);
+    return { raw: original, normalized, base, baseTokens: trimmedBaseTokens, canonicalTokens, matchKeys, editionTokens, slug };
 }
 function levenshtein(a, b) {
     if (a === b)
@@ -125,6 +141,15 @@ function sharesMatchKey(a, b) {
     }
     return false;
 }
+function prefixLength(prefix, value) {
+    if (prefix.length === 0 || prefix.length >= value.length)
+        return 0;
+    for (let index = 0; index < prefix.length; index += 1) {
+        if (prefix[index] !== value[index])
+            return 0;
+    }
+    return prefix.length;
+}
 function scoreOne(suggestion, system, aliasesNormalized) {
     const fields = [];
     fields.push({ value: normalizeSystemName(system.name), reason: 'name_exact', weight: 1.0 });
@@ -155,7 +180,13 @@ function scoreOne(suggestion, system, aliasesNormalized) {
             }
             continue;
         }
-        // 3. Similaridade aproximada da base.
+        // 3. Base existente + qualificador textual (ex.: The One Ring Strider Mode).
+        const extraPrefixLength = prefixLength(field.value.canonicalTokens, suggestion.canonicalTokens);
+        if (extraPrefixLength > 0) {
+            consider({ score: 0.78, reasons: ['base_plus_qualifier'] });
+            continue;
+        }
+        // 4. Similaridade aproximada da base.
         if (suggestion.base && field.value.base) {
             const ratio = similarity(suggestion.base, field.value.base);
             if (ratio >= 0.82) {
@@ -164,6 +195,43 @@ function scoreOne(suggestion, system, aliasesNormalized) {
         }
     }
     return best;
+}
+function titleCaseToken(token) {
+    if (/^\d/.test(token))
+        return token;
+    return token.charAt(0).toUpperCase() + token.slice(1);
+}
+function inferChildName(suggestion, best, systems) {
+    if (suggestion.editionTokens.length > 0) {
+        return suggestion.editionTokens.join(' ');
+    }
+    if (!best || !best.reasons.includes('base_plus_qualifier'))
+        return null;
+    const system = systems.find((item) => item.id === best.system_id);
+    if (!system)
+        return null;
+    const systemNames = [normalizeSystemName(system.name)];
+    if (system.name_pt)
+        systemNames.push(normalizeSystemName(system.name_pt));
+    for (const field of systemNames) {
+        const count = prefixLength(field.canonicalTokens, suggestion.canonicalTokens);
+        if (count <= 0)
+            continue;
+        const extra = suggestion.baseTokens.slice(count);
+        if (extra.length > 0)
+            return extra.map(titleCaseToken).join(' ');
+    }
+    return null;
+}
+function emptyAnalysis(suggestion) {
+    return {
+        base: suggestion.base,
+        edition_tokens: suggestion.editionTokens,
+        suggested_child_name: suggestion.editionTokens.length > 0 ? suggestion.editionTokens.join(' ') : null,
+        suggested_child_type: 'edition',
+        has_edition_context: suggestion.editionTokens.length > 0,
+        has_qualifier_context: false,
+    };
 }
 /**
  * Pontua os candidatos do catalogo contra o nome sugerido. Funcao pura:
@@ -194,11 +262,15 @@ function scoreSystemCandidates(suggestionName, systems, aliases, limit = 5) {
     scored.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
     const candidates = scored.slice(0, Math.max(0, limit));
     const best = candidates[0];
+    const analysis = emptyAnalysis(suggestion);
+    analysis.has_qualifier_context = Boolean(best?.reasons.includes('base_plus_qualifier'));
+    analysis.suggested_child_name = inferChildName(suggestion, best, systems) ?? analysis.suggested_child_name;
+    analysis.suggested_child_type = analysis.has_edition_context ? 'edition' : 'subsystem';
     let recommended_action;
     if (!best) {
         recommended_action = 'create_system';
     }
-    else if (best.reasons.includes('base_plus_edition')) {
+    else if (best.reasons.includes('base_plus_edition') || best.reasons.includes('base_plus_qualifier')) {
         recommended_action = 'create_child';
     }
     else if (best.score >= 0.97) {
@@ -210,5 +282,5 @@ function scoreSystemCandidates(suggestionName, systems, aliases, limit = 5) {
     else {
         recommended_action = 'create_system';
     }
-    return { candidates, recommended_action };
+    return { candidates, recommended_action, analysis };
 }

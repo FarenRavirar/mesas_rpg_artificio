@@ -34,6 +34,10 @@ describe('normalizeSystemName', () => {
         expect(n.base).toBe('pokemon');
         expect(n.editionTokens).toEqual([]);
     });
+    it('strips roleplaying game as generic suffix but keeps game when it is part of the title', () => {
+        expect((0, systemSuggestionCandidates_1.normalizeSystemName)('The One Ring Roleplaying Game').base).toBe('one ring');
+        expect((0, systemSuggestionCandidates_1.normalizeSystemName)("Ender's Game").base).toBe('ender s game');
+    });
     it('returns safe empty result for blank input', () => {
         const n = (0, systemSuggestionCandidates_1.normalizeSystemName)('   ');
         expect(n.normalized).toBe('');
@@ -46,6 +50,7 @@ const SYSTEMS = [
     { id: 'dd5e', name: '5th Edition', name_pt: '5ª Edição', slug: '5e', path_slug: 'dungeons-dragons/5e', node_type: 'edition', parent_id: 'dd' },
     { id: 'cain', name: 'CAIN', name_pt: null, slug: 'cain', path_slug: 'cain', node_type: 'system', parent_id: null },
     { id: 'pokemon', name: 'Pokémon', name_pt: null, slug: 'pokemon', path_slug: 'pokemon', node_type: 'system', parent_id: null },
+    { id: 'tor', name: 'The One Ring Roleplaying Game', name_pt: null, slug: 'the-one-ring-roleplaying-game', path_slug: 'the-one-ring-roleplaying-game', node_type: 'system', parent_id: null },
 ];
 const ALIASES = [
     { system_id: 'dd', alias: 'D&D' },
@@ -76,6 +81,36 @@ describe('scoreSystemCandidates', () => {
         expect(r.candidates[0].system_id).toBe('dd');
         expect(r.candidates[0].reasons).toContain('base_plus_edition');
         expect(r.recommended_action).toBe('create_child');
+        expect(r.analysis.suggested_child_name).toBe('5e 2014');
+        expect(r.analysis.suggested_child_type).toBe('edition');
+    });
+    it('does not infer translated aliases that are not in catalog data', () => {
+        const r = (0, systemSuggestionCandidates_1.scoreSystemCandidates)('O Um Anel 2e', SYSTEMS, []);
+        expect(r.candidates).toEqual([]);
+        expect(r.recommended_action).toBe('create_system');
+    });
+    it('recognizes O Um Anel 2e as edition context when O Um Anel exists as catalog alias', () => {
+        const r = (0, systemSuggestionCandidates_1.scoreSystemCandidates)('O Um Anel 2e', SYSTEMS, [{ system_id: 'tor', alias: 'O Um Anel' }]);
+        expect(r.candidates[0].system_id).toBe('tor');
+        expect(r.candidates[0].reasons).toContain('base_plus_edition');
+        expect(r.recommended_action).toBe('create_child');
+        expect(r.analysis.suggested_child_name).toBe('2e');
+        expect(r.analysis.suggested_child_type).toBe('edition');
+    });
+    it('recognizes O Um Anel as existing when O Um Anel is already a catalog alias', () => {
+        const r = (0, systemSuggestionCandidates_1.scoreSystemCandidates)('O Um Anel', SYSTEMS, [{ system_id: 'tor', alias: 'O Um Anel' }]);
+        expect(r.candidates[0].system_id).toBe('tor');
+        expect(r.candidates[0].reasons).toContain('alias_exact');
+        expect(r.recommended_action).toBe('merge_existing');
+        expect(r.analysis.has_edition_context).toBe(false);
+    });
+    it('recognizes The One Ring Strider Mode as child context, not a new root', () => {
+        const r = (0, systemSuggestionCandidates_1.scoreSystemCandidates)('The One Ring Strider Mode', SYSTEMS, []);
+        expect(r.candidates[0].system_id).toBe('tor');
+        expect(r.candidates[0].reasons).toContain('base_plus_qualifier');
+        expect(r.recommended_action).toBe('create_child');
+        expect(r.analysis.suggested_child_name).toBe('Strider Mode');
+        expect(r.analysis.suggested_child_type).toBe('subsystem');
     });
     it('matches Pokemon RPG to existing Pokemon by base', () => {
         const r = (0, systemSuggestionCandidates_1.scoreSystemCandidates)('Pokémon RPG', SYSTEMS, ALIASES);

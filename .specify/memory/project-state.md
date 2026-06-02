@@ -1,7 +1,7 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-06-01T20:15:00-03:00
-**Atualizado por:** sessão 26-06-01_2_resolucao-sugestoes-sistemas (spec 018 contexto do drawer + Deploy Beta GREEN)
+**Última atualização:** 2026-06-01T21:20:00-03:00
+**Atualizado por:** sessão 26-06-01_2_resolucao-sugestoes-sistemas (spec 018 reformulação local do drawer aguardando deploy)
 ---
 
 ## Ambientes
@@ -16,11 +16,11 @@
 ## Estado Técnico Atual
 
 **Spec 018 — Resolução de Sugestões de Sistemas (01/06/2026, em Beta):**
-- Implementada e deployada em Beta. Commits `2ddb399` (feature) + `722f596` (fix migration online-safe) + `def29f2` (clareza de contexto no drawer) em `origin/dev`.
-- Backend: helper puro `systemSuggestionCandidates.ts` (normalizador + score, TDD 14/14), `GET /admin/system-suggestions/:id/candidates`, `POST /admin/system-suggestions/:id/resolve` (create_system com guard NFR-001/`force`, create_child com hierarquia, create_alias idempotente, merge_existing, reject), relink de drafts Discord. `slugify`/`VALID_PARENT` exportados de `systems.ts`.
+- Implementada e deployada em Beta. Commits `2ddb399` (feature) + `722f596` (fix migration online-safe) + `def29f2` (clareza de contexto no drawer) + `156cd4f` (base existente + edição recomenda `create_child`) em `origin/dev`.
+- Backend: helper puro `systemSuggestionCandidates.ts` (normalizador + score, TDD 20/20), `GET /admin/system-suggestions/:id/candidates`, `POST /admin/system-suggestions/:id/resolve` (create_system com guard NFR-001/`force`, create_child com hierarquia e `parent_aliases` opcional/idempotente, create_alias idempotente, merge_existing, reject), relink de drafts Discord. Normalizador local reconhece base + edição/complemento sem dicionario hardcoded de sistemas; remove apenas sufixos estruturais conservadores (`RPG`/`TTRPG` e frase `Roleplaying Game`), preservando `Game` isolado como parte de titulo; traducao/sinonimo exige `name_pt` ou alias catalogado (ex.: `O Um Anel 2e` so casa automaticamente se `O Um Anel` estiver no catalogo como alias/nome PT). Drawer permite resolver manualmente e gravar alias de pai junto do filho; aguardando commit/deploy. `slugify`/`VALID_PARENT` exportados de `systems.ts`.
 - DB: migration 123 adiciona colunas de auditoria em `system_suggestions` (`resolution_type` + CHECK, `resolved_system_id`, `created_system_id`, `created_alias_id`, `resolution_notes`, `resolution_payload`, `resolved_at`). **Online-safe sem DROP** (constraint via `IF NOT EXISTS`). Decisões: colunas em `system_suggestions`; status `approved`+`resolution_type`; alias idempotente; lote só rejeita.
 - Frontend: ação primária **Resolver** (sistemas) com `SystemSuggestionResolutionDrawer` (candidatos com score/razões, forms por tipo, prévia, tratamento 409 SIMILAR_EXISTS). Drawer agora exibe nome canônico, path, tipo, nome PT, aliases e filhos/edições/variantes/subsistemas existentes em candidatos, seleção de alvo/pai, merge, alias e risco de sistema novo. Cenários mantêm Aprovar/Rejeitar.
-- **Deploy Beta run `26787673936` GREEN** para `def29f2` (validate, lint, enforce-dir, migrate, smoke-discord, deploy-app, smoke). Deploy anterior da base 018: run `26778999597` GREEN. Run `26778729349` falhou no migrate (123 marcada online-safe com `DROP CONSTRAINT`); corrigido.
+- **Deploy Beta run `26788551455` GREEN** para `156cd4f` (validate, lint, enforce-dir, migrate, smoke-discord, deploy-app com etapa `Deploy App Containers`, smoke). CodeQL run `26788550756` GREEN. Deploy anterior de contexto visual: run `26787673936` GREEN. Deploy anterior da base 018: run `26778999597` GREEN. Run `26778729349` falhou no migrate (123 marcada online-safe com `DROP CONSTRAINT`); corrigido.
 - Evidência E166 (SELECT no Beta pós-deploy): 7 colunas de auditoria presentes, constraint presente, `system_suggestions` = 37 (pending=33, approved=2, rejected=2). Health Beta root 200 / `/api/v1/health` ok+connected.
 - **Pendente:** mantenedor validar em janela anônima resolvendo amostra real (alias/edição/mescla/sistema novo). T026 (teste unitário do drawer) opcional não adicionado.
 

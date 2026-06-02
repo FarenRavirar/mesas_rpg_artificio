@@ -12,6 +12,10 @@ export interface NormalizedSystemName {
   normalized: string;
   /** Nome base normalizado sem tokens/palavras de edicao nem sufixo generico. */
   base: string;
+  /** Tokens base visiveis, sem artigos iniciais e sufixos genericos. */
+  baseTokens: string[];
+  /** Tokens canonicos para comparacao tolerante por base/siglas, sem traducao inventada. */
+  canonicalTokens: string[];
   /** Chaves de comparacao tolerantes: compacta, sigla e variacao &/and/n. */
   matchKeys: string[];
   /** Tokens de edicao detectados, ex.: ['5a', '2024'], ['1.3'], ['2e']. */
@@ -41,6 +45,7 @@ export type CandidateReason =
   | 'alias_exact'
   | 'base_match'
   | 'base_plus_edition'
+  | 'base_plus_qualifier'
   | 'fuzzy_similar';
 
 export interface SystemCandidate {
@@ -61,6 +66,14 @@ export type RecommendedAction =
 export interface CandidateResult {
   candidates: SystemCandidate[];
   recommended_action: RecommendedAction;
+  analysis: {
+    base: string;
+    edition_tokens: string[];
+    suggested_child_name: string | null;
+    suggested_child_type: 'edition' | 'variant' | 'subsystem';
+    has_edition_context: boolean;
+    has_qualifier_context: boolean;
+  };
 }
 
 const EDITION_WORDS = new Set([
@@ -76,7 +89,9 @@ const EDITION_WORDS = new Set([
   'version',
 ]);
 
-const GENERIC_SUFFIX = new Set(['rpg', 'ttrpg']);
+const COMPACT_GENERIC_SUFFIX = new Set(['rpg', 'ttrpg']);
+const ROLEPLAYING_SUFFIX = new Set(['roleplaying', 'roleplay']);
+const LEADING_ARTICLES = new Set(['the', 'o', 'a', 'os', 'as']);
 
 function stripAccents(value: string): string {
   return value.normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -92,9 +107,8 @@ function isEditionToken(token: string): boolean {
   );
 }
 
-function buildMatchKeys(base: string): string[] {
-  if (!base) return [];
-  const tokens = base.split(/\s+/).filter(Boolean);
+function buildMatchKeys(tokens: string[]): string[] {
+  if (tokens.length === 0) return [];
   const keys = new Set<string>();
   const compact = tokens.join('');
   if (compact) keys.add(compact);
@@ -106,6 +120,23 @@ function buildMatchKeys(base: string): string[] {
   if (acronym.length > 1) keys.add(acronym);
 
   return [...keys];
+}
+
+function trimContextTokens(tokens: string[]): string[] {
+  const out = [...tokens];
+  while (out.length > 1 && LEADING_ARTICLES.has(out[0])) {
+    out.shift();
+  }
+  while (out.length > 1 && COMPACT_GENERIC_SUFFIX.has(out[out.length - 1])) {
+    out.pop();
+  }
+  if (out.length > 2 && ['game', 'games'].includes(out[out.length - 1]) && ROLEPLAYING_SUFFIX.has(out[out.length - 2])) {
+    out.pop();
+  }
+  while (out.length > 1 && ROLEPLAYING_SUFFIX.has(out[out.length - 1])) {
+    out.pop();
+  }
+  return out;
 }
 
 export function normalizeSystemName(raw: unknown): NormalizedSystemName {
@@ -142,15 +173,14 @@ export function normalizeSystemName(raw: unknown): NormalizedSystemName {
     }
   }
 
-  while (baseTokens.length > 1 && GENERIC_SUFFIX.has(baseTokens[baseTokens.length - 1])) {
-    baseTokens.pop();
-  }
+  const trimmedBaseTokens = trimContextTokens(baseTokens);
 
-  const base = baseTokens.join(' ').trim();
+  const base = trimmedBaseTokens.join(' ').trim();
   const slug = base.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-  const matchKeys = buildMatchKeys(base);
+  const canonicalTokens = trimmedBaseTokens;
+  const matchKeys = buildMatchKeys(trimmedBaseTokens);
 
-  return { raw: original, normalized, base, matchKeys, editionTokens, slug };
+  return { raw: original, normalized, base, baseTokens: trimmedBaseTokens, canonicalTokens, matchKeys, editionTokens, slug };
 }
 
 function levenshtein(a: string, b: string): number {
@@ -189,6 +219,14 @@ function sharesMatchKey(a: NormalizedSystemName, b: NormalizedSystemName): boole
     if (bKeys.has(key)) return true;
   }
   return false;
+}
+
+function prefixLength(prefix: string[], value: string[]): number {
+  if (prefix.length === 0 || prefix.length >= value.length) return 0;
+  for (let index = 0; index < prefix.length; index += 1) {
+    if (prefix[index] !== value[index]) return 0;
+  }
+  return prefix.length;
 }
 
 interface ScoredMatch {
@@ -231,7 +269,13 @@ function scoreOne(
       }
       continue;
     }
-    // 3. Similaridade aproximada da base.
+    // 3. Base existente + qualificador textual (ex.: The One Ring Strider Mode).
+    const extraPrefixLength = prefixLength(field.value.canonicalTokens, suggestion.canonicalTokens);
+    if (extraPrefixLength > 0) {
+      consider({ score: 0.78, reasons: ['base_plus_qualifier'] });
+      continue;
+    }
+    // 4. Similaridade aproximada da base.
     if (suggestion.base && field.value.base) {
       const ratio = similarity(suggestion.base, field.value.base);
       if (ratio >= 0.82) {
@@ -241,6 +285,40 @@ function scoreOne(
   }
 
   return best;
+}
+
+function titleCaseToken(token: string): string {
+  if (/^\d/.test(token)) return token;
+  return token.charAt(0).toUpperCase() + token.slice(1);
+}
+
+function inferChildName(suggestion: NormalizedSystemName, best: SystemCandidate | undefined, systems: CandidateSystemInput[]): string | null {
+  if (suggestion.editionTokens.length > 0) {
+    return suggestion.editionTokens.join(' ');
+  }
+  if (!best || !best.reasons.includes('base_plus_qualifier')) return null;
+  const system = systems.find((item) => item.id === best.system_id);
+  if (!system) return null;
+  const systemNames = [normalizeSystemName(system.name)];
+  if (system.name_pt) systemNames.push(normalizeSystemName(system.name_pt));
+  for (const field of systemNames) {
+    const count = prefixLength(field.canonicalTokens, suggestion.canonicalTokens);
+    if (count <= 0) continue;
+    const extra = suggestion.baseTokens.slice(count);
+    if (extra.length > 0) return extra.map(titleCaseToken).join(' ');
+  }
+  return null;
+}
+
+function emptyAnalysis(suggestion: NormalizedSystemName): CandidateResult['analysis'] {
+  return {
+    base: suggestion.base,
+    edition_tokens: suggestion.editionTokens,
+    suggested_child_name: suggestion.editionTokens.length > 0 ? suggestion.editionTokens.join(' ') : null,
+    suggested_child_type: 'edition',
+    has_edition_context: suggestion.editionTokens.length > 0,
+    has_qualifier_context: false,
+  };
 }
 
 /**
@@ -281,10 +359,14 @@ export function scoreSystemCandidates(
   const candidates = scored.slice(0, Math.max(0, limit));
 
   const best = candidates[0];
+  const analysis = emptyAnalysis(suggestion);
+  analysis.has_qualifier_context = Boolean(best?.reasons.includes('base_plus_qualifier'));
+  analysis.suggested_child_name = inferChildName(suggestion, best, systems) ?? analysis.suggested_child_name;
+  analysis.suggested_child_type = analysis.has_edition_context ? 'edition' : 'subsystem';
   let recommended_action: RecommendedAction;
   if (!best) {
     recommended_action = 'create_system';
-  } else if (best.reasons.includes('base_plus_edition')) {
+  } else if (best.reasons.includes('base_plus_edition') || best.reasons.includes('base_plus_qualifier')) {
     recommended_action = 'create_child';
   } else if (best.score >= 0.97) {
     recommended_action = 'merge_existing';
@@ -294,5 +376,5 @@ export function scoreSystemCandidates(
     recommended_action = 'create_system';
   }
 
-  return { candidates, recommended_action };
+  return { candidates, recommended_action, analysis };
 }

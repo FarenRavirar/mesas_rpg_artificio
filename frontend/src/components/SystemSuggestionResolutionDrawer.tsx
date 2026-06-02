@@ -57,6 +57,15 @@ interface Candidate {
   reasons: CandidateReason[];
 }
 
+interface CandidateAnalysis {
+  base: string;
+  edition_tokens: string[];
+  suggested_child_name: string | null;
+  suggested_child_type: 'edition' | 'variant' | 'subsystem';
+  has_edition_context: boolean;
+  has_qualifier_context: boolean;
+}
+
 type ResolutionType = 'create_alias' | 'create_child' | 'create_system' | 'merge_existing' | 'reject';
 
 interface ResolveResultData {
@@ -123,12 +132,40 @@ const normalizeCandidates = (value: unknown): Candidate[] => {
   return out;
 };
 
+const normalizeCandidateAnalysis = (value: unknown): CandidateAnalysis => {
+  const fallback: CandidateAnalysis = {
+    base: '',
+    edition_tokens: [],
+    suggested_child_name: null,
+    suggested_child_type: 'edition',
+    has_edition_context: false,
+    has_qualifier_context: false,
+  };
+  if (!value || typeof value !== 'object') return fallback;
+  const row = value as Record<string, unknown>;
+  const suggestedChildType = readString(row.suggested_child_type);
+  return {
+    base: readString(row.base),
+    edition_tokens: Array.isArray(row.edition_tokens)
+      ? row.edition_tokens.filter((token): token is string => typeof token === 'string')
+      : [],
+    suggested_child_name: readNullableString(row.suggested_child_name),
+    suggested_child_type:
+      suggestedChildType === 'variant' || suggestedChildType === 'subsystem' || suggestedChildType === 'edition'
+        ? suggestedChildType
+        : 'edition',
+    has_edition_context: row.has_edition_context === true,
+    has_qualifier_context: row.has_qualifier_context === true,
+  };
+};
+
 const REASON_LABELS: Record<string, string> = {
   name_exact: 'nome igual',
   name_pt_exact: 'nome PT igual',
   alias_exact: 'alias igual',
   base_match: 'mesmo nome base',
   base_plus_edition: 'nome base + edição',
+  base_plus_qualifier: 'nome base + complemento',
   fuzzy_similar: 'parecido',
 };
 
@@ -172,6 +209,15 @@ const matchesNameOrAlias = (system: SystemOption, value: string): boolean => {
     if (normalizeLoose(alias) === wanted) return true;
   }
   return false;
+};
+
+const stripTrailingTokenText = (value: string, tokens: string[]): string => {
+  let out = value.trim();
+  for (const token of [...tokens].sort((a, b) => b.length - a.length)) {
+    const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    out = out.replace(new RegExp(`(?:\\s|-)+${escaped}\\.?$`, 'i'), '').trim();
+  }
+  return out.replace(/[.:;,-]+$/g, '').trim();
 };
 
 interface ContextChipsProps {
@@ -239,6 +285,34 @@ const SystemContextPanel = ({ title, system, children, note, risks = [] }: Syste
   );
 };
 
+interface RelatedActionsProps {
+  items: Array<{ label: string; onClick: () => void; tone?: 'blue' | 'amber' | 'white' }>;
+}
+
+const RelatedActions = ({ items }: RelatedActionsProps) => {
+  if (items.length === 0) return null;
+  return (
+    <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+      <p className="text-white/40 text-xs uppercase tracking-wide">Ações relacionadas</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {items.map((item) => {
+          const className =
+            item.tone === 'amber'
+              ? 'bg-amber-500/20 text-amber-50 hover:bg-amber-500/30'
+              : item.tone === 'white'
+                ? 'bg-white/10 text-white/80 hover:bg-white/20'
+                : 'bg-blue-600/30 text-blue-100 hover:bg-blue-600/40';
+          return (
+            <button key={item.label} type="button" onClick={item.onClick} className={`rounded px-2 py-1 text-xs ${className}`}>
+              {item.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 interface Props {
   suggestion: ResolvableSuggestion;
   onClose: () => void;
@@ -248,6 +322,7 @@ interface Props {
 export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolved }: Props) => {
   const [systems, setSystems] = useState<SystemOption[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [analysis, setAnalysis] = useState<CandidateAnalysis>(() => normalizeCandidateAnalysis(null));
   const [recommended, setRecommended] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -256,9 +331,11 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
   const [targetSystemId, setTargetSystemId] = useState('');
   const [parentId, setParentId] = useState('');
   const [childNodeType, setChildNodeType] = useState<'edition' | 'variant' | 'subsystem'>('edition');
-  const [name, setName] = useState(suggestion.name);
+  const [rootName, setRootName] = useState(suggestion.name);
+  const [childName, setChildName] = useState(suggestion.name);
   const [editionName, setEditionName] = useState('');
   const [aliases, setAliases] = useState<string[]>([]);
+  const [parentAliases, setParentAliases] = useState<string[]>([]);
   const [namePt, setNamePt] = useState('');
   const [description, setDescription] = useState(suggestion.description ?? '');
   const [aliasText, setAliasText] = useState(suggestion.name);
@@ -284,9 +361,15 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
           const data = json && typeof json === 'object' ? (json as Record<string, unknown>).data : null;
           const dataObj = data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
           const cands = normalizeCandidates(dataObj.candidates);
+          const nextAnalysis = normalizeCandidateAnalysis(dataObj.analysis);
           setCandidates(cands);
+          setAnalysis(nextAnalysis);
           const rec = readString(dataObj.recommended_action);
           setRecommended(rec);
+          if (nextAnalysis.suggested_child_name) {
+            setChildName(nextAnalysis.suggested_child_name);
+            setChildNodeType(nextAnalysis.suggested_child_type);
+          }
 
           // Pré-seleciona a acao recomendada e o melhor candidato.
           if (rec === 'merge_existing') setResolutionType('merge_existing');
@@ -343,6 +426,36 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
     return map;
   }, [systems]);
 
+  const bestCandidate = candidates[0] ?? null;
+  const applySystemSelection = (systemId: string) => {
+    setTargetSystemId(systemId);
+    const system = systemById.get(systemId);
+    if (!system) return;
+    if (system.node_type === 'system') {
+      setParentId(system.id);
+      return;
+    }
+    if (system.parent_id) {
+      setParentId(system.parent_id);
+    }
+  };
+
+  const switchResolutionType = (next: ResolutionType) => {
+    setResolutionType(next);
+    if ((next === 'create_alias' || next === 'merge_existing') && bestCandidate && !targetSystemId) {
+      setTargetSystemId(bestCandidate.system_id);
+    }
+    if (next === 'create_child') {
+      if (analysis.suggested_child_name && childName === suggestion.name) {
+        setChildName(analysis.suggested_child_name);
+      }
+      setChildNodeType(analysis.suggested_child_type);
+      if (bestCandidate && !parentId) {
+        applySystemSelection(bestCandidate.system_id);
+      }
+    }
+  };
+
   useEffect(() => {
     if (recommended !== 'create_child' || parentId || candidates.length === 0 || systems.length === 0) return;
     const candidate = systemById.get(candidates[0].system_id);
@@ -365,6 +478,21 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
 
   const targetSystem = systemById.get(targetSystemId) ?? null;
   const parentSystem = systemById.get(parentId) ?? null;
+  const suggestedParentAlias = useMemo(() => {
+    const tokens = analysis.suggested_child_name
+      ? [analysis.suggested_child_name, ...analysis.edition_tokens]
+      : analysis.edition_tokens;
+    const alias = stripTrailingTokenText(suggestion.name, tokens);
+    if (!alias || normalizeLoose(alias) === normalizeLoose(suggestion.name)) return '';
+    if (parentSystem && matchesNameOrAlias(parentSystem, alias)) return '';
+    return alias;
+  }, [analysis, suggestion.name, parentSystem]);
+
+  useEffect(() => {
+    if (!suggestedParentAlias || parentAliases.length > 0) return;
+    setParentAliases([suggestedParentAlias]);
+  }, [suggestedParentAlias, parentAliases.length]);
+
   const targetChildren = targetSystem ? childrenByParentId.get(targetSystem.id) ?? EMPTY_SYSTEMS : EMPTY_SYSTEMS;
   const parentChildren = parentSystem ? childrenByParentId.get(parentSystem.id) ?? EMPTY_SYSTEMS : EMPTY_SYSTEMS;
   const aliasMatchRisks = useMemo(() => {
@@ -377,7 +505,7 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
     return matches;
   }, [aliasText, systems]);
   const childNameRisks = useMemo(() => {
-    const text = name.trim();
+    const text = childName.trim();
     if (!text || !parentSystem) return EMPTY_SYSTEMS;
     const wanted = normalizeLoose(text);
     const matches: SystemOption[] = [];
@@ -394,7 +522,7 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
       }
     }
     return matches;
-  }, [name, parentSystem, parentChildren]);
+  }, [childName, parentSystem, parentChildren]);
   const createSystemRiskLabels = useMemo(() => {
     const labels: string[] = [];
     for (const candidate of candidates) {
@@ -416,23 +544,23 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
           : 'Escolha o sistema alvo.';
       case 'create_child':
         return parentSystem
-          ? `Novo ${NODE_TYPE_LABELS[childNodeType] ?? childNodeType} abaixo de ${systemLabel(parentSystem)}: ${parentSystem.path_slug || parentSystem.name}/${slugifyPreview(name)}`
+          ? `Novo ${NODE_TYPE_LABELS[childNodeType] ?? childNodeType} abaixo de ${systemLabel(parentSystem)}: ${parentSystem.path_slug || parentSystem.name}/${slugifyPreview(childName)}`
           : 'Escolha o sistema pai.';
       case 'create_system':
         return `${editionName.trim()
-          ? `Novo sistema: ${slugifyPreview(name)} + edição ${slugifyPreview(name)}/${slugifyPreview(editionName)}`
-          : `Novo sistema raiz: ${slugifyPreview(name)}`}${createSystemRiskLabels.length > 0 ? ` Risco: candidato similar existente (${createSystemRiskLabels[0]}).` : ''}`;
+          ? `Novo sistema: ${slugifyPreview(rootName)} + edição ${slugifyPreview(rootName)}/${slugifyPreview(editionName)}`
+          : `Novo sistema raiz: ${slugifyPreview(rootName)}`}${createSystemRiskLabels.length > 0 ? ` Risco: candidato similar existente (${createSystemRiskLabels[0]}).` : ''}`;
       case 'reject':
         return 'Rejeitar a sugestão.';
       default:
         return '';
     }
-  }, [resolutionType, targetSystem, parentSystem, aliasText, childNodeType, name, editionName, createSystemRiskLabels]);
+  }, [resolutionType, targetSystem, parentSystem, aliasText, childNodeType, childName, rootName, editionName, createSystemRiskLabels]);
 
   const splitEdition = () => {
-    const m = name.trim().match(/^(.*?)[\s-]+(\d+(?:\.\d+)?|\d+e|\d+[ªaA]|(?:19|20)\d{2})$/);
+    const m = rootName.trim().match(/^(.*?)[\s-]+(\d+(?:\.\d+)?|\d+e|\d+[ªaA]|(?:19|20)\d{2})$/);
     if (m && m[1].trim()) {
-      setName(m[1].trim());
+      setRootName(m[1].trim());
       setEditionName(m[2]);
       toast.success(`Separado: ${m[1].trim()} + ${m[2]}`);
     } else {
@@ -451,16 +579,17 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
           resolution_type: 'create_child',
           node_type: childNodeType,
           parent_id: parentId,
-          name: name.trim(),
+          name: childName.trim(),
           name_pt: namePt.trim() || undefined,
           description: description.trim() || undefined,
           aliases: aliases.length > 0 ? aliases : undefined,
+          parent_aliases: parentAliases.length > 0 ? parentAliases : undefined,
           notes: notes.trim() || undefined,
         };
       case 'create_system':
         return {
           resolution_type: 'create_system',
-          name: name.trim(),
+          name: rootName.trim(),
           name_pt: namePt.trim() || undefined,
           description: description.trim() || undefined,
           edition_name: editionName.trim() || undefined,
@@ -483,9 +612,9 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
     if (resolutionType === 'merge_existing' && !targetSystemId) return 'Escolha o sistema alvo.';
     if (resolutionType === 'create_child') {
       if (!parentId) return 'Escolha o sistema pai.';
-      if (!name.trim()) return 'Informe o nome.';
+      if (!childName.trim()) return 'Informe o nome.';
     }
-    if (resolutionType === 'create_system' && !name.trim()) return 'Informe o nome.';
+    if (resolutionType === 'create_system' && !rootName.trim()) return 'Informe o nome.';
     return null;
   };
 
@@ -518,6 +647,19 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
       // NFR-001: backend bloqueia criar raiz quando ha candidato similar.
       if (response.status === 409 && readString(payload.recommended_action)) {
         setCandidates(normalizeCandidates(payload.candidates));
+        const nextAnalysis = normalizeCandidateAnalysis(payload.analysis);
+        setAnalysis(nextAnalysis);
+        const rec = readString(payload.recommended_action);
+        setRecommended(rec);
+        if (rec === 'create_child') {
+          if (nextAnalysis.suggested_child_name) {
+            setChildName(nextAnalysis.suggested_child_name);
+            setChildNodeType(nextAnalysis.suggested_child_type);
+          }
+          switchResolutionType('create_child');
+        }
+        else if (rec === 'create_alias') switchResolutionType('create_alias');
+        else if (rec === 'merge_existing') switchResolutionType('merge_existing');
         setForceNew(false);
         toast.error('Há candidatos similares. Reveja antes de criar um sistema novo.');
         return;
@@ -624,7 +766,7 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
                       </div>
                       <button
                         onClick={() => {
-                          setTargetSystemId(c.system_id);
+                          applySystemSelection(c.system_id);
                           if (c.node_type === 'system') setParentId(c.system_id);
                           toast.success(`Alvo: ${c.name}`);
                         }}
@@ -644,6 +786,36 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
           )}
         </div>
 
+        {(analysis.base || analysis.suggested_child_name || recommended) && (
+          <div className="mb-4 rounded-lg border border-white/10 bg-white/5 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-white/40 text-xs uppercase tracking-wide">Interpretação</p>
+              {recommended && RECOMMENDED_LABELS[recommended] && (
+                <span className="rounded bg-blue-600/20 px-2 py-1 text-xs text-blue-100">
+                  {RECOMMENDED_LABELS[recommended]}
+                </span>
+              )}
+            </div>
+            <div className="mt-2 grid gap-2 text-sm text-white/70 sm:grid-cols-2">
+              <p>
+                <span className="text-white/40">Base:</span> {analysis.base || suggestion.name}
+              </p>
+              <p>
+                <span className="text-white/40">Novo item:</span> {analysis.suggested_child_name || 'não detectado'}
+              </p>
+              <p>
+                <span className="text-white/40">Tipo sugerido:</span> {NODE_TYPE_LABELS[analysis.suggested_child_type]}
+              </p>
+              <p>
+                <span className="text-white/40">Candidato:</span> {bestCandidate ? bestCandidate.name : 'nenhum'}
+              </p>
+            </div>
+            {analysis.edition_tokens.length > 0 && (
+              <ContextChips label="Tokens de edição detectados" values={analysis.edition_tokens} tone="amber" />
+            )}
+          </div>
+        )}
+
         {/* 3. Acao escolhida */}
         <div className="mb-4">
           <p className="text-white/80 font-semibold mb-2">Ação</p>
@@ -651,7 +823,7 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
             {RESOLUTION_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
-                onClick={() => setResolutionType(opt.value)}
+                onClick={() => switchResolutionType(opt.value)}
                 className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
                   resolutionType === opt.value
                     ? 'bg-blue-600 text-white'
@@ -684,9 +856,25 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
               system={targetSystem}
               children={targetChildren}
               note="Confira nomes, aliases e filhos já cadastrados antes de confirmar."
-              risks={aliasMatchRisks
-                .filter((system) => system.id !== targetSystemId)
-                .map((system) => `Nome/alias igual já existe em ${systemLabel(system)}`)}
+              risks={[
+                ...(analysis.has_edition_context || analysis.has_qualifier_context
+                  ? ['A sugestão parece edição/variante; confira a aba Edição / variante / subsistema antes de criar alias.']
+                  : []),
+                ...aliasMatchRisks
+                  .filter((system) => system.id !== targetSystemId)
+                  .map((system) => `Nome/alias igual já existe em ${systemLabel(system)}`),
+              ]}
+            />
+          )}
+
+          {resolutionType === 'create_alias' && (
+            <RelatedActions
+              items={[
+                ...(analysis.has_edition_context || analysis.has_qualifier_context
+                  ? [{ label: 'Criar edição/variante em vez de alias', onClick: () => switchResolutionType('create_child'), tone: 'amber' as const }]
+                  : []),
+                ...(targetSystem ? [{ label: 'Mesclar com este alvo', onClick: () => switchResolutionType('merge_existing'), tone: 'white' as const }] : []),
+              ]}
             />
           )}
 
@@ -695,7 +883,24 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
               title="Nada será criado"
               system={targetSystem}
               children={targetChildren}
-              note="A sugestão será resolvida como item já coberto pelo catálogo."
+              note="A sugestão será resolvida como item já coberto pelo catálogo. Esta ação não cria alias, edição, variante ou subsistema."
+              risks={[
+                ...(analysis.has_edition_context || analysis.has_qualifier_context
+                  ? ['Há sinal de edição/variante na sugestão; mesclar não cria esse item.']
+                  : []),
+                ...(suggestedParentAlias ? [`Alias de base possível não será criado: ${suggestedParentAlias}`] : []),
+              ]}
+            />
+          )}
+
+          {resolutionType === 'merge_existing' && (
+            <RelatedActions
+              items={[
+                ...(analysis.has_edition_context || analysis.has_qualifier_context
+                  ? [{ label: 'Criar edição/variante', onClick: () => switchResolutionType('create_child'), tone: 'amber' as const }]
+                  : []),
+                { label: 'Adicionar como alias', onClick: () => switchResolutionType('create_alias'), tone: 'blue' as const },
+              ]}
             />
           )}
 
@@ -732,7 +937,10 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
                 <SearchableSelect
                   options={parentOptions}
                   value={parentId}
-                  onChange={setParentId}
+                  onChange={(id) => {
+                    setParentId(id);
+                    setTargetSystemId(id);
+                  }}
                   placeholder="Buscar sistema pai"
                 />
               </label>
@@ -743,6 +951,25 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
                 note="Confira edições, variantes e subsistemas existentes para evitar duplicar valores como 5e, 2024 ou 1.3."
                 risks={childNameRisks.map((child) => `Nome parecido já existe: ${systemLabel(child)}`)}
               />
+              {suggestedParentAlias && (
+                <label className="block">
+                  <span className="text-white/70 text-sm">Alias do sistema pai (opcional)</span>
+                  <TagInput
+                    value={parentAliases}
+                    onChange={setParentAliases}
+                    placeholder="Digite e Enter (ex.: O Um Anel)"
+                  />
+                  <span className="text-white/40 text-xs mt-1 block">
+                    Adiciona nomes da base ao sistema pai enquanto cria a edição/variante.
+                  </span>
+                </label>
+              )}
+              <RelatedActions
+                items={[
+                  ...(parentSystem ? [{ label: 'Usar só como alias', onClick: () => switchResolutionType('create_alias'), tone: 'white' as const }] : []),
+                  ...(parentSystem ? [{ label: 'Mesclar sem criar nada', onClick: () => switchResolutionType('merge_existing'), tone: 'white' as const }] : []),
+                ]}
+              />
             </>
           )}
 
@@ -752,8 +979,14 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
                 <span className="text-white/70 text-sm">Nome</span>
                 <input
                   className="w-full mt-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  value={resolutionType === 'create_child' ? childName : rootName}
+                  onChange={(e) => {
+                    if (resolutionType === 'create_child') {
+                      setChildName(e.target.value);
+                    } else {
+                      setRootName(e.target.value);
+                    }
+                  }}
                 />
               </label>
               <label className="block">
@@ -819,6 +1052,16 @@ export const SystemSuggestionResolutionDrawer = ({ suggestion, onClose, onResolv
               </p>
               <ContextChips label="Candidatos similares" values={createSystemRiskLabels} tone="amber" limit={6} />
             </div>
+          )}
+
+          {resolutionType === 'create_system' && createSystemRiskLabels.length > 0 && (
+            <RelatedActions
+              items={[
+                { label: 'Criar como edição/variante', onClick: () => switchResolutionType('create_child'), tone: 'amber' as const },
+                { label: 'Usar como alias', onClick: () => switchResolutionType('create_alias'), tone: 'amber' as const },
+                { label: 'Mesclar com existente', onClick: () => switchResolutionType('merge_existing'), tone: 'amber' as const },
+              ]}
+            />
           )}
 
           {resolutionType === 'create_system' && candidates.length > 0 && (

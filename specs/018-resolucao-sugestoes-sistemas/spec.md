@@ -19,7 +19,7 @@ Exemplos observados na fila Beta:
 
 - `D&D 5a edicao 2024` deve apontar para `Dungeons & Dragons > 5e > 2024` ou alias equivalente, nao criar sistema raiz.
 - `CAIN 1.3` parece versao/edicao de `CAIN`.
-- `Demonio: A Queda` pode ser nome PT/alias de linha existente.
+- `Demonio: A Queda` pode ser nome PT/alias de linha existente quando houver dado catalogado (`name_pt` ou alias); o sistema nao deve inventar traducao por dicionario hardcoded.
 - `Pokemon RPG` pode ser sistema novo ou alias de sistema Pokemon ja cadastrado.
 - `On-Two-Six` pode ser sistema novo, mas precisa comparar antes.
 
@@ -49,7 +49,7 @@ Aceite:
 - Admin escolhe sistema alvo.
 - Sugestao vira `approved` ou `resolved` com tipo `alias`.
 - Alias e criado em `system_aliases`.
-- Se alias ja existir, fluxo informa e permite marcar sugestao como mesclada sem erro.
+- Se alias ja existir no alvo, a resolucao e idempotente e nao duplica registro.
 
 ### US2 - Resolver sugestao como edicao/variante/subsistema
 
@@ -60,6 +60,7 @@ Aceite:
 - UI permite escolher tipo: `edition`, `variant`, `subsystem`.
 - UI exige pai valido conforme regra de hierarquia atual.
 - Novo no e criado em `systems` com `parent_id`, `depth` e `path_slug` corretos.
+- Quando a sugestao contem uma base separavel e o admin escolhe o pai, a UI pode gravar alias do pai na mesma resolucao via `parent_aliases`, sem inferir traducao automaticamente.
 
 ### US3 - Resolver sugestao como sistema novo
 
@@ -87,7 +88,8 @@ Como admin, quero ver candidatos provaveis antes de decidir.
 Aceite:
 
 - Backend compara sugestao contra `systems` e `system_aliases`.
-- Resultado mostra score e motivo: nome igual, alias parecido, versao detectada, traducao provavel, parent match.
+- Resultado mostra score, motivo e analise: nome igual, alias igual, mesma base, base + edicao, base + complemento, similaridade aproximada, tokens de edicao e filho sugerido.
+- Traducao/sinonimo so deve contar como candidato automatico quando existir em `name_pt` ou alias do catalogo. Nao usar dicionario hardcoded de sistemas ou termos.
 - UI destaca acao recomendada, mas exige confirmacao humana.
 
 ## Requisitos Funcionais
@@ -102,6 +104,8 @@ Aceite:
 - FR-008: Apos resolucao, drafts Discord com `raw_system_hint` correspondente devem poder ser reavaliados.
 - FR-009: Fluxo deve aceitar nomes PT/EN e alias sem sobrescrever nomes oficiais sem revisao.
 - FR-010: Busca de candidatos deve normalizar acento, caixa, pontuacao, simbolos comerciais e palavras de edicao.
+- FR-011: Criar filho pode receber `parent_aliases` opcionais para cadastrar alias da base no pai durante a mesma resolucao.
+- FR-012: Sistema novo raiz deve ser caminho de risco quando houver candidato similar; confirmacao `force` so e aceita apos mostrar candidatos/analise.
 
 ## Requisitos Nao Funcionais
 

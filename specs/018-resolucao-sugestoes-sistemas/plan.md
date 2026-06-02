@@ -34,19 +34,19 @@ Acoes secundarias:
 - `Rejeitar`
 - `Selecionar em lote`
 
-## Modelo de Resolucao Proposto
+## Modelo de Resolucao Implementado
 
 ### Tipos
 
 - `create_system`: cria raiz em `systems`.
-- `create_child`: cria `edition`, `variant` ou `subsystem` com `parent_id`.
+- `create_child`: cria `edition`, `variant` ou `subsystem` com `parent_id`; pode cadastrar aliases do filho (`aliases`) e aliases da base no pai (`parent_aliases`) de forma idempotente.
 - `create_alias`: cria entrada em `system_aliases`.
 - `merge_existing`: marca como coberta por sistema existente, sem inserir nada.
 - `reject`: rejeita.
 
 ### Auditoria
 
-Preferencia: adicionar colunas em `system_suggestions` para evitar tabela paralela inicialmente.
+Decisao: adicionar colunas em `system_suggestions` para evitar tabela paralela inicialmente.
 
 Campos candidatos:
 
@@ -57,11 +57,7 @@ Campos candidatos:
 - `resolution_notes text null`
 - `resolution_payload jsonb not null default '{}'::jsonb`
 
-Se a equipe preferir historico multi-evento, alternativa:
-
-- tabela `system_suggestion_resolutions`
-
-Decisao pendente antes da implementacao.
+Historico multi-evento em tabela separada fica fora do escopo atual.
 
 ## API Proposta
 
@@ -84,7 +80,15 @@ Resposta:
         "reasons": ["alias_match", "edition_token_2024"]
       }
     ],
-    "recommended_action": "create_alias"
+    "recommended_action": "create_alias",
+    "analysis": {
+      "base": "d and d",
+      "edition_tokens": ["5e", "2024"],
+      "suggested_child_name": "5e 2024",
+      "suggested_child_type": "edition",
+      "has_edition_context": true,
+      "has_qualifier_context": false
+    }
   }
 }
 ```
@@ -106,8 +110,8 @@ Body:
 
 Variantes de body:
 
-- `create_system`: `name`, `name_pt`, `description`
-- `create_child`: `name`, `name_pt`, `node_type`, `parent_id`, `description`
+- `create_system`: `name`, `name_pt`, `description`, `aliases`, `edition_name`, `force`
+- `create_child`: `name`, `name_pt`, `node_type`, `parent_id`, `description`, `aliases`, `parent_aliases`
 - `create_alias`: `target_system_id`, `alias`
 - `merge_existing`: `target_system_id`, `notes`
 - `reject`: `reason`
@@ -122,7 +126,9 @@ Normalizacao:
 - normalizar `&` para `and`;
 - remover pontuacao fraca;
 - detectar tokens de edicao: `1e`, `1.3`, `5e`, `5a`, `5ª`, `2024`, `revised`, `remaster`;
-- comparar contra `name`, `name_pt`, `slug`, `path_slug`, `system_aliases.alias`.
+- comparar contra `name`, `name_pt`, `slug`, `path_slug`, `system_aliases.alias`;
+- remover artigos iniciais e sufixos estruturais conservadores (`RPG`/`TTRPG` e frase `Roleplaying Game`; nao remover `Game` isolado);
+- nao inferir traducao/sinonimo por dicionario hardcoded; traducao so conta se vier de `name_pt` ou alias catalogado.
 
 Score inicial:
 
@@ -130,7 +136,9 @@ Score inicial:
 - alias exato normalizado: 0.98
 - contem nome + token de edicao: 0.85
 - similaridade alta por trigram/Levenshtein local: 0.75
-- parent provavel + versao: 0.70
+- base existente + edicao/complemento: `create_child`
+- base sem edicao: `create_alias`
+- sem candidato: `create_system`
 
 Evitar dependencia pesada inicialmente. Implementar helper puro testavel.
 
@@ -153,9 +161,11 @@ Secoes:
 
 1. Sugestao original.
 2. Candidatos encontrados.
-3. Acao escolhida.
-4. Previa do efeito.
-5. Confirmar resolucao.
+3. Interpretacao (base detectada, tokens, filho sugerido, tipo sugerido e candidato).
+4. Acao escolhida.
+5. Contexto/acoes relacionadas da acao.
+6. Previa do efeito.
+7. Confirmar resolucao.
 
 Controles:
 
@@ -163,6 +173,8 @@ Controles:
 - combobox de sistema alvo.
 - select de tipo de no quando criar filho.
 - input de alias editavel.
+- TagInput para aliases do filho e, quando aplicavel, `parent_aliases`.
+- paineis de risco em `merge_existing` e `create_system` quando a sugestao tambem parece alias/filho.
 - preview de caminho final.
 
 ## Sequencia de Implementacao
@@ -193,9 +205,10 @@ Validacao funcional:
 - apenas apos deploy em `dev`/Beta;
 - mantenedor resolve amostra real da fila.
 
-## Pendencias de Decisao
+## Decisoes Fechadas
 
-- Usar colunas em `system_suggestions` ou tabela nova `system_suggestion_resolutions`.
-- Status final deve ser `approved` com `resolution_type`, ou novo status `resolved`.
-- Alias duplicado deve marcar sugestao como `merge_existing` ou `create_alias` idempotente.
-- Acoes em lote devem permanecer so para rejeitar, ou tambem resolver alias quando candidato e exato.
+- Auditoria em colunas de `system_suggestions`.
+- Status final reusa `approved` com `resolution_type`.
+- Alias duplicado em `create_alias` e idempotente.
+- Acoes em lote permanecem so para rejeitar.
+- Reconhecimento automatico de traducao/sinonimo depende de `name_pt` ou alias catalogado; sem dicionario hardcoded.

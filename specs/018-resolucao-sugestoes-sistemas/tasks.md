@@ -9,10 +9,11 @@
 ## Fase 1 - Backend de candidatos
 
 - [x] T004 Testes para normalizacao de nomes em `backend/src/services/__tests__/systemSuggestionCandidates.test.ts` (RED antes da impl).
-- [x] T005 Normalizador `normalizeSystemName`: acento, simbolos, `TM`, `&`->and, caixa, tokens de edicao (5e/5a/1.3/2024), sufixo RPG generico.
-- [x] T006 Helper `scoreSystemCandidates` contra `systems` e `system_aliases` (igualdade, base+edicao, Levenshtein).
+- [x] T005 Normalizador `normalizeSystemName`: acento, simbolos, `TM`, `&`->and, caixa, tokens de edicao (5e/5a/1.3/2024), sufixos estruturais conservadores (`RPG`/`TTRPG` e frase `Roleplaying Game`, sem remover `Game` isolado).
+- [x] T006 Helper `scoreSystemCandidates` contra `systems` e `system_aliases` (igualdade, base+edicao, base+complemento, Levenshtein, sem dicionario hardcoded de traducao).
 - [x] T007 Endpoint `GET /api/v1/admin/system-suggestions/:id/candidates`.
-- [x] T008 Candidatos testados para `D&D 5a edicao 2024` (alias D&D), `CAIN 1.3` (base+edicao), `Pokemon RPG` (base), `On-Two-Six` (sistema novo). 14/14 GREEN.
+- [x] T008 Candidatos testados para `D&D 5a edicao 2024` (alias D&D), `D&D 5e 2014.`, `CAIN 1.3`, `Pokemon RPG`, `On-Two-Six`, `The One Ring Strider Mode`, `The One Ring Roleplaying Game`, `Ender's Game`, e caso negativo `O Um Anel 2e` sem alias catalogado. 20/20 GREEN.
+- [x] T008a Endpoint candidates retorna `analysis` (`base`, `edition_tokens`, `suggested_child_name`, `suggested_child_type`, flags de contexto).
 
 ## Fase 2 - Auditoria e resolucao
 
@@ -20,7 +21,7 @@
 - [x] T010 Tipos DB: `SystemSuggestionsTable` + `SuggestionResolutionType` em `backend/src/db/types.ts`.
 - [x] T011 Endpoint `POST /api/v1/admin/system-suggestions/:id/resolve`.
 - [x] T012 Resolucao `create_system` (com guard NFR-001: bloqueia raiz se houver candidato similar sem `force`).
-- [x] T013 Resolucao `create_child` (edition/variant/subsystem, valida `VALID_PARENT`, gera path_slug/depth).
+- [x] T013 Resolucao `create_child` (edition/variant/subsystem, valida `VALID_PARENT`, gera path_slug/depth, aceita `aliases` e `parent_aliases` idempotentes).
 - [x] T014 Resolucao `create_alias` idempotente (no-op se alias_slug ja existe no alvo).
 - [x] T015 Resolucao `merge_existing` (nao cria nada no catalogo).
 - [x] T016 `reject` mantido compativel (motivo opcional).
@@ -35,10 +36,13 @@
 - [x] T022 Formularios de alias, filho, novo sistema, mescla e rejeicao.
 - [x] T023 Previa do efeito (path/alias) antes de confirmar.
 - [x] T024 Lista recarrega apos resolucao mantendo filtro atual.
+- [x] T024a Drawer mostra interpretacao da sugestao e contexto por acao.
+- [x] T024b Acoes relacionadas entre alias/filho/mescla/raiz sincronizam alvo, pai e campos relevantes sem misturar efeitos de cada resolucao.
+- [x] T024c `create_system` mostra risco e exige `force` quando backend retorna candidato similar; 409 tambem devolve `analysis`.
 
 ## Fase 4 - Qualidade
 
-- [x] T025 Backend candidatos testados (14 GREEN). Resolucao validada por build (integracao com DB sera validada em Beta — infra de teste do projeto e unit-style).
+- [x] T025 Backend candidatos testados (20 GREEN). Resolucao validada por build (integracao com DB sera validada em Beta — infra de teste do projeto e unit-style).
 - [ ] T026 Teste unitario dedicado do drawer/normalizadores frontend nao adicionado; normalizadores cobertos por build TS. (Pendente opcional.)
 - [x] T027 `npm --prefix backend run build` GREEN.
 - [x] T028 `npm --prefix frontend run build` GREEN.
