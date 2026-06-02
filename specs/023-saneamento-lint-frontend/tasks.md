@@ -2,7 +2,7 @@
 
 Pre-condicao: Spec 022 concluida e validada (cumprida em 02/06/2026). Spec 024 tambem concluida e validada antes da retomada da 023. Branch dedicada `feat/023-saneamento-lint-frontend` a partir de `dev`. Commit/push/deploy exigem aprovacao explicita (AGENTS.md).
 
-Status atual desta spec: **FASES 0-4 VALIDADAS LOCALMENTE** em `feat/023-saneamento-lint-frontend`; aguardando aprovacao explicita para commit/push da Fase 3 e proximo deploy Beta.
+Status atual desta spec: **DEPLOY BETA GREEN** via PR #160 em `dev`; aguardando validacao funcional do mantenedor em janela anonima.
 
 ## Fase 0 - Preparacao
 
@@ -40,11 +40,11 @@ Status atual desta spec: **FASES 0-4 VALIDADAS LOCALMENTE** em `feat/023-saneame
 
 ## Fase 5 - Beta
 
-- [ ] T020 Commit/push para `dev` quando autorizado.
-- [ ] T021 Acompanhar Deploy Beta GREEN.
+- [x] T020 Commit/push para `dev` quando autorizado.
+- [x] T021 Acompanhar Deploy Beta GREEN.
 - [ ] T022 Mantenedor valida telas de maior mudanca em janela anonima.
 - [ ] T023 (Opcional/D2) Avaliar adicionar ESLint frontend como gate de CI.
-- [ ] T024 Atualizar `.specify/memory/project-state.md`.
+- [x] T024 Atualizar `.specify/memory/project-state.md`.
 
 ## Criterio de Conclusao
 

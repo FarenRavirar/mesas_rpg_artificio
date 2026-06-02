@@ -1,7 +1,7 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-06-02T16:58:48-03:00
-**Atualizado por:** sessão 26-06-02_2_feedback-triage (Specs 022/024 em Beta validadas; Spec 023 pronta para preparação)
+**Última atualização:** 2026-06-02T18:30:00-03:00
+**Atualizado por:** sessão 26-06-02_3_saneamento-lint-frontend (Spec 023 deployada no Beta; aguardando validação funcional do mantenedor)
 ---
 
 ## Ambientes
@@ -36,10 +36,15 @@
 - `changelogs.json`: entrada `2026-06-02-feedback-desenvolvimento` permanece `published:false` até decisão de publicação/promocao.
 - Validação funcional: mantenedor confirmou envio/uso do fluxo no Beta em 02/06/2026.
 
-**Spec 023 — Saneamento de Lint do Frontend (pré-execução):**
-- Artefatos existem em `specs/023-saneamento-lint-frontend/{spec,plan,tasks}.md`.
-- Pré-condição de validação da Spec 022 cumprida; Spec 024 também foi concluída antes da retomada.
-- Próxima execução deve abrir sessão dedicada, confirmar D1-D3 do `plan.md`, atualizar `dev`, criar branch `feat/023-saneamento-lint-frontend` e regenerar o baseline de `npm --prefix frontend run lint`.
+**Spec 023 — Saneamento de Lint do Frontend (02/06/2026, em Beta):**
+- PR #160 (`feat/023-saneamento-lint-frontend -> dev`) mergeado em 02/06/2026. Merge commit `aa7c8cb`; head final da branch `1a1f49f`.
+- Deploy Beta run `26849043595` GREEN para `aa7c8cb`: jobs `validate`, `lint`, `enforce-dir`, `migrate`, `smoke-discord`, `deploy-app` e `smoke`.
+- Baseline regenerado no início da execução: `124 problems (110 errors, 14 warnings)`.
+- Resultado técnico final: `npm --prefix frontend run lint` sem problemas; `rg -n "eslint-disable|no-explicit-any|any" frontend/src` sem resultados; `npm --prefix frontend run build` GREEN; `npm --prefix frontend test` GREEN (3 arquivos / 13 testes); `git diff --check` sem erro de whitespace.
+- Entregue: `no-unused-vars`, `only-export-components`, `no-explicit-any`, `react-hooks/exhaustive-deps`, `react-hooks/set-state-in-effect` e `react-hooks/set-state-in-render` zerados no frontend, sem `eslint-disable` restante.
+- Decisões D1-D3 confirmadas: warnings de hooks tratados nesta spec; gate ESLint de CI fica follow-up; `eslint-disable` só último recurso com justificativa (não restou uso).
+- Health Beta pós-deploy: root HTTP 200; `/api/v1/health` `{"status":"ok","environment":"beta","db":"connected","usersSampled":true}`.
+- Pendente: validação funcional do mantenedor em janela anônima no Beta; somente depois disso declarar validação funcional concluída.
 
 **Production v1.2.6 — Notificações admin fora de transações (02/06/2026):**
 - PR #153 (`feat/021-notificacoes-fora-transacao -> dev`) mergeado.

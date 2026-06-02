@@ -727,3 +727,69 @@ specs/024-feedback-triage/tasks.md
 ```
 
 Proxima acao: pedir aprovacao explicita para commit da Fase 3 e, depois do push `feat/*`, preparar deploy Beta conforme governanca.
+
+### 2026-06-02 - Fase 5 / PR, merge dev e Deploy Beta
+
+Pedido/aprovacao do mantenedor:
+
+```text
+sim, e coloque os arquivos que estão ainda no diff. tem que subir logo todos
+```
+
+Comandos executados:
+
+```powershell
+git add -- .specify/memory/project-state.md sessoes/26-06-02_1_feedback-desenvolvimento.md sessoes/26-06-02_2_feedback-triage.md specs/024-feedback-triage/tasks.md
+git diff --cached --stat
+git commit -m "docs: registra estado operacional recente"
+git push origin feat/023-saneamento-lint-frontend
+gh pr checks 160 --watch --interval 10
+gh pr ready 160
+gh pr merge 160 --merge --delete-branch=false
+gh run list --workflow "Deploy Beta" --branch dev --limit 3 --json databaseId,displayTitle,status,conclusion,headSha,url,createdAt
+gh run watch 26849043595 --exit-status
+curl.exe -s -o NUL -w "%{http_code}" https://mesasbeta.artificiorpg.com
+curl.exe -s https://mesasbeta.artificiorpg.com/api/v1/health
+```
+
+Resultados literais:
+
+```text
+[feat/023-saneamento-lint-frontend 1a1f49f] docs: registra estado operacional recente
+4 files changed, 57 insertions(+), 24 deletions(-)
+To https://github.com/FarenRavirar/mesas_rpg_artificio.git
+bcc2e6f..1a1f49f  feat/023-saneamento-lint-frontend -> feat/023-saneamento-lint-frontend
+
+PR #160 checks no head 1a1f49f:
+build-frontend pass
+build-backend pass
+Analyze (actions) pass
+Analyze (javascript-typescript) pass
+Analyze (python) pass
+CodeQL pass
+
+Pull request #160 marked as ready for review.
+Deploy Beta run 26849043595:
+validate GREEN
+lint GREEN
+enforce-dir GREEN
+migrate GREEN
+smoke-discord GREEN
+deploy-app GREEN
+smoke GREEN
+conclusion success
+
+curl root Beta: 200
+curl health Beta: {"status":"ok","environment":"beta","db":"connected","usersSampled":true}
+```
+
+Arquivos/documentacao incluidos antes do merge:
+
+```text
+.specify/memory/project-state.md
+sessoes/26-06-02_1_feedback-desenvolvimento.md
+sessoes/26-06-02_2_feedback-triage.md
+specs/024-feedback-triage/tasks.md
+```
+
+Proxima acao: mantenedor validar funcionalmente em janela anonima no Beta; nao declarar validacao funcional concluida antes disso.
