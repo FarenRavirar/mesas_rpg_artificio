@@ -570,3 +570,58 @@ Decisao operacional:
 - Preparar entrega da Fase 0-2 em commit/PR/deploy Beta antes de continuar.
 - A partir daqui, executar uma entrega/deploy por fase concluida, sem acumular fases.
 - `git commit` exige aprovacao explicita por acao; `git push origin feat/*` e abertura de PR sao automaticos apos commit, conforme governanca, mas merge/deploy Beta dependem do fluxo para `dev` e autorizacao quando aplicavel.
+
+### 2026-06-02 - Commit/push Fases 0-2
+
+Aprovacao do mantenedor recebida para:
+
+```text
+git status --short --branch
+git add <arquivos específicos da Fase 0-2 e sessão 023>
+git diff --cached --stat
+git commit -m "fix(frontend): saneia lint fases 0-2"
+git push origin feat/023-saneamento-lint-frontend
+```
+
+Comandos executados:
+
+```powershell
+git status --short --branch
+git add -- <lista explicita de arquivos frontend + sessao 023 + sessoes/index.md + specs/023/tasks.md>
+git diff --cached --stat
+git diff --cached --name-only
+git commit -m "fix(frontend): saneia lint fases 0-2"
+git push -u origin feat/023-saneamento-lint-frontend
+```
+
+Resultado:
+
+```text
+[feat/023-saneamento-lint-frontend 034aea8] fix(frontend): saneia lint fases 0-2
+ 69 files changed, 1250 insertions(+), 427 deletions(-)
+ create mode 100644 frontend/src/components/ui/confirmDialogContext.ts
+ create mode 100644 frontend/src/components/ui/useConfirm.ts
+ create mode 100644 frontend/src/contexts/authContextCore.ts
+ create mode 100644 frontend/src/contexts/profileContextCore.ts
+ create mode 100644 frontend/src/contexts/useAuth.ts
+ create mode 100644 frontend/src/contexts/useProfileContext.ts
+ create mode 100644 sessoes/26-06-02_3_saneamento-lint-frontend.md
+
+branch 'feat/023-saneamento-lint-frontend' set up to track 'origin/feat/023-saneamento-lint-frontend'.
+To https://github.com/FarenRavirar/mesas_rpg_artificio.git
+ * [new branch]      feat/023-saneamento-lint-frontend -> feat/023-saneamento-lint-frontend
+```
+
+Status apos commit antes desta anotacao:
+
+```text
+## feat/023-saneamento-lint-frontend
+ M .specify/memory/project-state.md
+ M sessoes/26-06-02_1_feedback-desenvolvimento.md
+ M sessoes/26-06-02_2_feedback-triage.md
+ M specs/024-feedback-triage/tasks.md
+```
+
+Observacao: arquivos acima eram dirty state preexistente fora do escopo deste commit. Esta anotacao local da sessao ainda nao foi commitada.
+
+Proxima acao necessaria para PR/deploy Beta: criar `specs/023-saneamento-lint-frontend/pr-description.md`, commitar essa documentacao com aprovacao explicita, abrir PR para `dev`; merge/deploy Beta somente com autorizacao do mantenedor.
