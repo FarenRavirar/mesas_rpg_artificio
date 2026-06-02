@@ -5,7 +5,8 @@ export type AdminNotificationType =
   | 'system_suggestion'
   | 'scenario_suggestion'
   | 'table_published'
-  | 'member_joined';
+  | 'member_joined'
+  | 'dev_feedback';
 
 export interface AdminNotificationInput {
   type: AdminNotificationType;

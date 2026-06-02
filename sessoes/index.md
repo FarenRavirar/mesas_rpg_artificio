@@ -1,6 +1,14 @@
 # Índice de Sessões
 
-Última atualização: 11/05/2026 BRT
+Última atualização: 02/06/2026 BRT
+
+---
+
+## 02/06/2026 (1 sessão)
+
+| # | Arquivo |
+|---|---|
+| 1 | `26-06-02_1_feedback-desenvolvimento.md` |
 
 ---
 
@@ -292,7 +300,7 @@
 
 ## Sessão Mais Recente
 
-`26-06-01_2_resolucao-sugestoes-sistemas.md`
+`26-06-02_1_feedback-desenvolvimento.md`
 
 ---
 
@@ -308,4 +316,4 @@ AA-MM-DD_N_<escopo>.md
 └─────────── ano (2 dígitos)
 ```
 
-**Próxima sessão:** `26-06-01_3_*` ou nova data
+**Próxima sessão:** `26-06-02_2_*` ou nova data

@@ -9,11 +9,13 @@ export type ActivityAction =
   | 'scenario.created' | 'scenario.updated' | 'scenario.deleted'
   | 'system_suggestion.created' | 'system_suggestion.approved' | 'system_suggestion.rejected'
   | 'system_suggestion.resolved'
-  | 'scenario_suggestion.created' | 'scenario_suggestion.approved' | 'scenario_suggestion.rejected';
+  | 'scenario_suggestion.created' | 'scenario_suggestion.approved' | 'scenario_suggestion.rejected'
+  | 'dev_feedback.created' | 'dev_feedback.updated';
 
 export type ActivityEntityType =
   | 'user' | 'table' | 'system' | 'scenario'
-  | 'system_suggestion' | 'scenario_suggestion';
+  | 'system_suggestion' | 'scenario_suggestion'
+  | 'dev_feedback';
 
 export interface LogActivityInput {
   actorId: string | null;
