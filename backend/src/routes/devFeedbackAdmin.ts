@@ -199,12 +199,12 @@ router.delete('/dev-feedback/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Feedback nao encontrado.' });
     }
 
-    await db.deleteFrom('dev_feedback').where('id', '=', id).execute();
-
-    // Remove imagem orfa do Cloudinary (nao-fatal).
+    // Limpa o asset do Cloudinary antes de descartar a linha (nao-fatal: a funcao engole erros).
     if (row.screenshot_public_id) {
       await deleteFromCloudinary(row.screenshot_public_id);
     }
+
+    await db.deleteFrom('dev_feedback').where('id', '=', id).execute();
 
     void logActivity({
       actorId: adminId,

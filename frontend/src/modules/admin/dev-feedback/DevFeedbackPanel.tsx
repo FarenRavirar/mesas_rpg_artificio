@@ -111,7 +111,10 @@ export const DevFeedbackPanel = () => {
   const toggleSelect = (id: string) => {
     setSelectedIds((cur) => {
       const next = cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id];
-      if (!next.includes(primaryId ?? '')) setPrimaryId(next[0] ?? null);
+      // Mantem o destino se ainda selecionado; senao usa o primeiro (ou null se vazio).
+      if (primaryId === null || !next.includes(primaryId)) {
+        setPrimaryId(next[0] ?? null);
+      }
       return next;
     });
   };
