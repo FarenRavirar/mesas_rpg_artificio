@@ -8,7 +8,7 @@ import { applySeo } from '../utils/seo';
 const SUGGESTIONS = ['D&D 5e', 'Ordem Paranormal', 'Vampiro', 'Tormenta'];
 
 // Tracking global
-const track = (event: string, data?: any) => {
+const track = (event: string, data?: unknown) => {
   console.log('[TRACK]', event, data);
 };
 

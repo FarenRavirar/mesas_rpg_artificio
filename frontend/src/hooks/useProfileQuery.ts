@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 import { api } from '../services/apiClient';
 import { queryClient } from '../lib/queryClient';
 import {
@@ -80,6 +80,8 @@ export interface FullProfile {
   };
 }
 
+type UserSystem = FullProfile['systems']['favorite'][number];
+
 /**
  * Hook React Query para gerenciar perfil com cache e optimistic updates
  */
@@ -105,7 +107,7 @@ export function useUpdateUser() {
     mutationFn: async (data: { username?: string; location?: string }) => {
       const sanitized = sanitizeObject(data);
       const validated = validateOrThrow(userSchema, sanitized);
-      const result = await api.patch<{ data: any }>('/api/v1/profile/me', validated);
+      const result = await api.patch<{ data: FullProfile['user'] }>('/api/v1/profile/me', validated);
       return result.data;
     },
     onMutate: async (newData) => {
@@ -151,7 +153,7 @@ export function useUpdateProfile() {
     }) => {
       const sanitized = sanitizeObject(data);
       const validated = validateOrThrow(profileSchema, sanitized);
-      const result = await api.patch<{ data: any }>('/api/v1/profile/me/profile', validated);
+      const result = await api.patch<{ data: FullProfile['profile'] }>('/api/v1/profile/me/profile', validated);
       return result.data;
     },
     onMutate: async (newData) => {
@@ -188,9 +190,9 @@ export function useUpdateProfile() {
 export function useUpdatePlayer() {
   return useMutation({
     mutationFn: async (data: Partial<PlayerProfile>) => {
-      const sanitized = sanitizeObject(data as any);
+      const sanitized = sanitizeObject(data as Record<string, unknown>);
       const validated = validateOrThrow(playerProfileSchema, sanitized);
-      const result = await api.patch<{ data: any }>('/api/v1/profile/player', validated);
+      const result = await api.patch<{ data: FullProfile['player'] }>('/api/v1/profile/player', validated);
       return result.data;
     },
     onMutate: async (newData) => {
@@ -229,9 +231,9 @@ export function useUpdatePlayer() {
 export function useUpdateGm() {
   return useMutation({
     mutationFn: async (data: Partial<GmProfile>) => {
-      const sanitized = sanitizeObject(data as any);
+      const sanitized = sanitizeObject(data as Record<string, unknown>);
       const validated = validateOrThrow(gmProfileSchema, sanitized);
-      const result = await api.patch<{ data: any }>('/api/v1/profile/gm', validated);
+      const result = await api.patch<{ data: FullProfile['gm'] }>('/api/v1/profile/gm', validated);
       return result.data;
     },
     onMutate: async (newData) => {
@@ -270,7 +272,7 @@ export function useUpdateGm() {
 export function useAddSystem() {
   return useMutation({
     mutationFn: async ({ systemId, type }: { systemId: string; type: 'favorite' | 'gm' }) => {
-      const result = await api.post<{ data: any }>('/api/v1/profile/systems', {
+      const result = await api.post<{ data: UserSystem }>('/api/v1/profile/systems', {
         system_id: systemId,
         type: type,
       });

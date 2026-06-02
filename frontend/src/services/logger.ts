@@ -29,7 +29,7 @@ export interface ErrorContext {
   url?: string;
   component?: string;
   action?: string;
-  extra?: Record<string, any>;
+  extra?: Record<string, unknown>;
 }
 
 /**

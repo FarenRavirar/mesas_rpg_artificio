@@ -8,8 +8,12 @@ import { validateAll } from '../utils/validation';
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
 interface UseCreateTableFormOptions {
-  initialData?: Partial<FormState>;
+  initialData?: Partial<FormState> & { id?: string };
   onSuccess: () => void;
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback;
 }
 
 /**
@@ -217,10 +221,11 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
     try {
       const payload = formStateToPayload(formState);
 
-      const isEditing = !!(initialData as any)?.id;
+      const tableId = typeof initialData?.id === 'string' ? initialData.id : null;
+      const isEditing = tableId !== null;
       const method = isEditing ? 'PUT' : 'POST';
       const endpoint = isEditing 
-        ? `${API_BASE}/api/v1/gm/tables/${(initialData as any).id}` 
+        ? `${API_BASE}/api/v1/gm/tables/${tableId}` 
         : `${API_BASE}/api/v1/gm/tables`;
 
       const res = await fetch(endpoint, {
@@ -238,9 +243,9 @@ export function useCreateTableForm(options: UseCreateTableFormOptions) {
       setSubmitState('success');
       setIsDirty(false); // Limpar dirty após sucesso
       onSuccess();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setSubmitState('error');
-      setError(err.message || 'Erro inesperado');
+      setError(getErrorMessage(err, 'Erro inesperado'));
     }
   };
 

@@ -26,7 +26,11 @@ Object.defineProperty(window, 'matchMedia', {
 });
 
 // Mock de IntersectionObserver (necessário para lazy loading)
-globalThis.IntersectionObserver = class IntersectionObserver {
+globalThis.IntersectionObserver = class IntersectionObserver implements IntersectionObserver {
+  readonly root: Element | Document | null = null;
+  readonly rootMargin: string = '';
+  readonly thresholds: ReadonlyArray<number> = [];
+
   constructor() {}
   disconnect() {}
   observe() {}
@@ -34,4 +38,4 @@ globalThis.IntersectionObserver = class IntersectionObserver {
     return [];
   }
   unobserve() {}
-} as any;
+};

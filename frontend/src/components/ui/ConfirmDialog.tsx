@@ -1,26 +1,13 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import type { ReactNode } from 'react';
+import { ConfirmContext, type ConfirmOptions } from './confirmDialogContext';
 import './ConfirmDialog.css';
 
 /**
  * Modal de confirmação customizado seguindo identidade visual Artifício
  * Substitui window.confirm() com melhor UX e acessibilidade
  */
-
-interface ConfirmOptions {
-  title: string;
-  message: string;
-  variant?: 'danger' | 'warning' | 'info';
-  confirmText?: string;
-  cancelText?: string;
-}
-
-interface ConfirmContextValue {
-  confirm: (options: ConfirmOptions) => Promise<boolean>;
-}
-
-const ConfirmContext = createContext<ConfirmContextValue | null>(null);
 
 interface ConfirmProviderProps {
   children: ReactNode;
@@ -177,15 +164,3 @@ export function ConfirmProvider({ children }: ConfirmProviderProps) {
   );
 }
 
-/**
- * Hook para usar o modal de confirmação
- */
-export function useConfirm(): ConfirmContextValue {
-  const context = useContext(ConfirmContext);
-
-  if (!context) {
-    throw new Error('useConfirm deve ser usado dentro de um ConfirmProvider');
-  }
-
-  return context;
-}

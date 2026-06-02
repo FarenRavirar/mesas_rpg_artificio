@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { AdminWorkspaceLayout } from '../features/admin/components/AdminWorkspaceLayout';
 import { ScenariosList } from '../features/admin/components/ScenariosList';
 import { EntityInspector, type SystemFormData } from '../features/admin/components/EntityInspector';
+import type { System } from '../modules/admin/systems/types';
 import toast from 'react-hot-toast';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -13,6 +14,22 @@ interface Scenario {
   slug: string;
   aliases?: string[];
   tables_count?: number;
+}
+
+function scenarioToSystem(scenario: Scenario | null): System | null {
+  if (!scenario) return null;
+
+  return {
+    id: scenario.id,
+    name: scenario.name,
+    name_pt: scenario.name_pt,
+    slug: scenario.slug,
+    node_type: 'system',
+    parent_id: null,
+    path_slug: scenario.slug,
+    aliases: scenario.aliases,
+    tables_count: scenario.tables_count,
+  };
 }
 
 export function ScenariosAdminView() {
@@ -168,7 +185,7 @@ export function ScenariosAdminView() {
         inspectorMode ? (
           <EntityInspector
             mode={inspectorMode}
-            system={selectedScenario as any}
+            system={scenarioToSystem(selectedScenario)}
             parentContext={null}
             allSystems={[]}
             onSave={handleSave}

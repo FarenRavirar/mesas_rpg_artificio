@@ -57,6 +57,7 @@ export interface TableCard {
   system_logo_filename?: string | null;
   system_website_url?: string | null;
   gm_slug: string | null;
+  gm_user_id?: string | null;
   gm_avatar_url: string | null;
   gm_display_name: string | null;
   gm_bio_long: string | null; // CORREÇÃO HP-10: Bio global do perfil do mestre

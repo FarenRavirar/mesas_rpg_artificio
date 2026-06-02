@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -58,7 +58,7 @@ export const NotificationBell = () => {
 
   const isAdmin = user?.role === 'admin';
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       const response = await fetch(`${API_BASE}/api/v1/notifications`, { credentials: 'include' });
       if (response.ok) {
@@ -69,15 +69,17 @@ export const NotificationBell = () => {
     } catch (error) {
       console.error('[NotificationBell] Erro ao buscar notificações:', error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    fetchNotifications();
+    const initialLoad = setTimeout(fetchNotifications, 0);
     const interval = setInterval(fetchNotifications, 60000);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated]);
+    return () => {
+      clearTimeout(initialLoad);
+      clearInterval(interval);
+    };
+  }, [isAuthenticated, fetchNotifications]);
 
   // Admin so ve as categorias do feed; demais usuarios veem as proprias notificacoes.
   const visible = useMemo(

@@ -12,7 +12,7 @@ import { TableMaster } from '../features/table/components/TableMaster';
 import { TableSecurity } from '../features/table/components/TableSecurity';
 import { TableTechnical } from '../features/table/components/TableTechnical';
 import { MasterCard } from '../features/table/components/MasterCard';
-import { useAuth } from '../contexts/AuthContext'; // CORREÇÃO DT-026: Importar useAuth
+import { useAuth } from '../contexts/useAuth'; // CORREÇÃO DT-026: Importar useAuth
 import { handleCTA, getButtonStyle } from '../features/table/utils/uiHelpers';
 
 export const MesaPage = () => {
@@ -64,8 +64,8 @@ export const MesaPage = () => {
 
         const json = await res.json();
         setTable(json.data ?? null);
-      } catch (err: any) {
-        if (err.name === 'AbortError') return;
+      } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
         setError('Não foi possível carregar esta mesa no momento.');
       } finally {
         setLoading(false);
@@ -111,7 +111,7 @@ export const MesaPage = () => {
   const vm = useTableViewModel(table);
 
   // CORREÇÃO DT-026: Calcular ownership e admin
-  const isOwner = !!(user && table && (table as any).gm_user_id === user.id);
+  const isOwner = !!(user && table && table.gm_user_id === user.id);
   const isAdmin = user?.role === 'admin';
   const canManage = isOwner || isAdmin;
   const showMasterCard = table?.publisher_role === 'gm';

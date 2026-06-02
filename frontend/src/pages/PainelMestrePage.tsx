@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { FormEvent, InputHTMLAttributes } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PlusCircle, ChevronRight, MapPin, Sparkles, PencilLine } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 import toast from 'react-hot-toast';
 import type { TableContact } from '../types/tables';
 import { TableCardDashboard } from '../components/TableCardDashboard';
@@ -14,6 +14,7 @@ import { GmInsightsDashboard } from '../components/mestre/GmInsightsDashboard';
 // Componente refatorado
 import { CreateTableForm } from '../features/create-table/components/CreateTableForm';
 import { MarkdownEditor } from '../components/MarkdownEditor';
+import type { FormState } from '../features/create-table/types/createTable.types';
 
 type TableStatus = 'draft' | 'active' | 'full' | 'cancelled' | 'ended' | 'pending_review';
 
@@ -82,6 +83,60 @@ interface MyTableEnhanced extends MyTable {
   metrics?: TableMetrics;
 }
 
+interface MyTableApi extends MyTable {
+  image_url?: string | null;
+  metrics_views?: number | null;
+  metrics_clicks?: number | null;
+  metrics_contacts?: number | null;
+  metrics_favorites?: number | null;
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function getPayloadData(payload: unknown): unknown {
+  return isRecord(payload) && 'data' in payload ? payload.data : null;
+}
+
+function isGmProfile(value: unknown): value is GmProfile {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.slug === 'string' &&
+    Array.isArray(value.languages) &&
+    Array.isArray(value.specialties)
+  );
+}
+
+function isMyTableApi(value: unknown): value is MyTableApi {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.slug === 'string' &&
+    typeof value.title === 'string' &&
+    typeof value.status === 'string' &&
+    Array.isArray(value.contacts)
+  );
+}
+
+function toEnhancedTable(table: MyTableApi): MyTableEnhanced {
+  return {
+    ...table,
+    image_url: table.image_url ?? null,
+    metrics: {
+      views: table.metrics_views ?? 0,
+      clicks: table.metrics_clicks ?? 0,
+      contacts: table.metrics_contacts ?? 0,
+      favorites: table.metrics_favorites ?? 0,
+    },
+  };
+}
+
 
 const slugifyFromNickname = (value: string): string => {
   return value
@@ -136,11 +191,12 @@ function CreateGmProfileForm({ onSuccess }: { onSuccess: () => void }) {
         credentials: 'include',
         body: JSON.stringify({ slug, nickname, bio_long: bio }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Erro desconhecido');
+      const data: unknown = await res.json();
+      const apiError = isRecord(data) && typeof data.error === 'string' ? data.error : 'Erro desconhecido';
+      if (!res.ok) throw new Error(apiError);
       onSuccess();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Erro desconhecido'));
     } finally {
       setLoading(false);
     }
@@ -218,7 +274,7 @@ export const PainelMestrePage = () => {
   const [view, setView] = useState<'dashboard' | 'create-table' | 'create-profile' | 'help'>('dashboard');
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [editingTableId, setEditingTableId] = useState<string | null>(null);
-  const [editingTableData, setEditingTableData] = useState<any>(null);
+  const [editingTableData, setEditingTableData] = useState<Partial<FormState> | null>(null);
   const [togglingTableId, setTogglingTableId] = useState<string | null>(null); // CORREÇÃO B3
   const [deletingTableId, setDeletingTableId] = useState<string | null>(null); // CORREÇÃO B4
 
@@ -245,10 +301,10 @@ export const PainelMestrePage = () => {
           return;
         }
 
-        const profileJson = await profileRes.json();
-        const profile = profileJson?.data ?? null;
+        const profileJson: unknown = await profileRes.json();
+        const profile = getPayloadData(profileJson);
 
-        if (!profile) {
+        if (!isGmProfile(profile)) {
           if (user.role !== 'gm') {
             setView('create-profile');
           }
@@ -264,20 +320,12 @@ export const PainelMestrePage = () => {
         });
 
         if (tablesRes.ok) {
-          const tablesJson = await tablesRes.json();
-          const tables = tablesJson?.data ?? [];
+        const tablesJson: unknown = await tablesRes.json();
+        const tablesData = getPayloadData(tablesJson);
+        const tables = Array.isArray(tablesData) ? tablesData.filter(isMyTableApi) : [];
 
-          // Mapear para MyTableEnhanced com métricas
-          const enhancedTables: MyTableEnhanced[] = tables.map((t: any) => ({
-            ...t,
-            image_url: t.image_url ?? null,
-            metrics: {
-              views: t.metrics_views ?? 0,
-              clicks: t.metrics_clicks ?? 0,
-              contacts: t.metrics_contacts ?? 0,
-              favorites: t.metrics_favorites ?? 0,
-            }
-          }));
+        // Mapear para MyTableEnhanced com métricas
+          const enhancedTables: MyTableEnhanced[] = tables.map(toEnhancedTable);
 
           setMyTables(enhancedTables);
         } else {
@@ -314,9 +362,9 @@ export const PainelMestrePage = () => {
           });
 
           if (response.ok) {
-            const data = await response.json();
-            const { mapTableApiToInitialData } = await import('../features/create-table/utils/mapTableApiToInitialData');
-            setEditingTableData(mapTableApiToInitialData(data.data));
+          const data: unknown = await response.json();
+          const { mapTableApiToInitialData } = await import('../features/create-table/utils/mapTableApiToInitialData');
+            setEditingTableData(mapTableApiToInitialData(getPayloadData(data)));
             setView('create-table');
           } else {
             toast.error('Mesa não encontrada');
@@ -352,26 +400,19 @@ export const PainelMestrePage = () => {
     ])
       .then(async ([profileRes, tablesRes]) => {
         if (profileRes.ok) {
-          const profileJson = await profileRes.json();
-          setGmProfile(profileJson?.data ?? null);
+          const profileJson: unknown = await profileRes.json();
+          const profile = getPayloadData(profileJson);
+          setGmProfile(isGmProfile(profile) ? profile : null);
         }
 
 
         if (tablesRes.ok) {
-          const tablesJson = await tablesRes.json();
-          const tables = tablesJson?.data ?? [];
+          const tablesJson: unknown = await tablesRes.json();
+          const tablesData = getPayloadData(tablesJson);
+          const tables = Array.isArray(tablesData) ? tablesData.filter(isMyTableApi) : [];
 
           // Mapear para MyTableEnhanced com métricas
-          const enhancedTables: MyTableEnhanced[] = tables.map((t: any) => ({
-            ...t,
-            image_url: t.image_url ?? null,
-            metrics: {
-              views: t.metrics_views ?? 0,
-              clicks: t.metrics_clicks ?? 0,
-              contacts: t.metrics_contacts ?? 0,
-              favorites: t.metrics_favorites ?? 0,
-            }
-          }));
+          const enhancedTables: MyTableEnhanced[] = tables.map(toEnhancedTable);
 
           setMyTables(enhancedTables);
         }

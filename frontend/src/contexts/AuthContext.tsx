@@ -1,28 +1,11 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
+import { AuthContext, isValidRole } from './authContextCore';
+import type { User } from './authContextCore';
+
+export type { User } from './authContextCore';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
-
-export interface User {
-  id: string;
-  role: 'visitor' | 'player' | 'gm' | 'admin';
-  name?: string;
-  avatar_url?: string;
-}
-
-interface AuthContextType {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  refreshSession: () => Promise<void>;
-  logout: () => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const isValidRole = (value: unknown): value is User['role'] => {
-  return value === 'visitor' || value === 'player' || value === 'gm' || value === 'admin';
-};
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -111,14 +94,4 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       {children}
     </AuthContext.Provider>
   );
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-
-  if (!context) {
-    throw new Error('useAuth deve ser usado dentro de um AuthProvider');
-  }
-
-  return context;
 };

@@ -39,7 +39,25 @@ function getRetryDelay(attempt: number): number {
 /**
  * Verifica se deve fazer retry
  */
-function shouldRetry(error: any, attempt: number): boolean {
+function hasStatus(error: unknown): error is { status: number } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'status' in error &&
+    typeof (error as { status: unknown }).status === 'number'
+  );
+}
+
+function isAbortError(error: unknown): error is { name: 'AbortError' } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'name' in error &&
+    (error as { name: unknown }).name === 'AbortError'
+  );
+}
+
+function shouldRetry(error: unknown, attempt: number): boolean {
   if (attempt >= RETRY_CONFIG.maxRetries) return false;
   
   // Retry em erros de rede
@@ -48,12 +66,12 @@ function shouldRetry(error: any, attempt: number): boolean {
   }
   
   // Retry em 5xx (server errors)
-  if (error.status >= 500 && error.status < 600) {
+  if (hasStatus(error) && error.status >= 500 && error.status < 600) {
     return true;
   }
   
   // Retry em 429 (rate limit)
-  if (error.status === 429) {
+  if (hasStatus(error) && error.status === 429) {
     return true;
   }
   
@@ -91,7 +109,7 @@ export async function apiClient<T>(
   const controller = new AbortController();
   pendingRequests.set(requestKey, controller);
   
-  let lastError: any;
+  let lastError: unknown;
   
   // Retry loop
   for (let attempt = 0; attempt <= RETRY_CONFIG.maxRetries; attempt++) {
@@ -133,11 +151,11 @@ export async function apiClient<T>(
       
       return response.json();
       
-    } catch (err: any) {
+    } catch (err: unknown) {
       lastError = err;
       
       // Requisição cancelada (não é erro)
-      if (err.name === 'AbortError') {
+      if (isAbortError(err)) {
         console.log('[apiClient] Requisição cancelada:', requestKey);
         throw err;
       }
@@ -178,14 +196,14 @@ export const api = {
   get: <T>(url: string, options?: ApiClientOptions) =>
     apiClient<T>(url, { ...options, method: 'GET' }),
 
-  post: <T>(url: string, data?: any, options?: ApiClientOptions) =>
+  post: <T>(url: string, data?: unknown, options?: ApiClientOptions) =>
     apiClient<T>(url, {
       ...options,
       method: 'POST',
       body: data ? JSON.stringify(data) : undefined,
     }),
 
-  patch: <T>(url: string, data?: any, options?: ApiClientOptions) =>
+  patch: <T>(url: string, data?: unknown, options?: ApiClientOptions) =>
     apiClient<T>(url, {
       ...options,
       method: 'PATCH',

@@ -59,8 +59,8 @@ export function useMestreInsights({
         const json = await res.json();
         setMetrics(json?.data?.metrics ?? []);
         setRecommendations(json?.data?.recommendations ?? []);
-      } catch (err: any) {
-        if (err?.name === 'AbortError') return;
+      } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
         setMetrics([]);
         setRecommendations([]);
       } finally {

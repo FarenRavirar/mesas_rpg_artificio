@@ -6,17 +6,17 @@ export interface AnalyticsProvider {
   /**
    * Rastreia um evento
    */
-  track(event: string, properties?: Record<string, any>): void;
+  track(event: string, properties?: Record<string, unknown>): void;
 
   /**
    * Identifica um usuário
    */
-  identify?(userId: string, traits?: Record<string, any>): void;
+  identify?(userId: string, traits?: Record<string, unknown>): void;
 
   /**
    * Define propriedades globais
    */
-  setGlobalProperties?(properties: Record<string, any>): void;
+  setGlobalProperties?(properties: Record<string, unknown>): void;
 }
 
 /**
@@ -37,7 +37,7 @@ export function setAnalyticsProvider(provider: AnalyticsProvider): void {
  * Rastreia um evento
  * Não faz nada se nenhum provider estiver configurado
  */
-export function track(event: string, properties?: Record<string, any>): void {
+export function track(event: string, properties?: Record<string, unknown>): void {
   if (!activeProvider) {
     console.log('[Analytics] Event (no provider):', event, properties);
     return;
@@ -53,7 +53,7 @@ export function track(event: string, properties?: Record<string, any>): void {
 /**
  * Identifica um usuário
  */
-export function identify(userId: string, traits?: Record<string, any>): void {
+export function identify(userId: string, traits?: Record<string, unknown>): void {
   if (!activeProvider?.identify) {
     console.log('[Analytics] Identify (no provider):', userId, traits);
     return;
@@ -69,7 +69,7 @@ export function identify(userId: string, traits?: Record<string, any>): void {
 /**
  * Define propriedades globais
  */
-export function setGlobalProperties(properties: Record<string, any>): void {
+export function setGlobalProperties(properties: Record<string, unknown>): void {
   if (!activeProvider?.setGlobalProperties) {
     console.log('[Analytics] Global properties (no provider):', properties);
     return;
@@ -87,15 +87,15 @@ export function setGlobalProperties(properties: Record<string, any>): void {
  * Apenas loga no console
  */
 export class ConsoleAnalyticsProvider implements AnalyticsProvider {
-  track(event: string, properties?: Record<string, any>): void {
+  track(event: string, properties?: Record<string, unknown>): void {
     console.log('[Analytics] Track:', event, properties);
   }
 
-  identify(userId: string, traits?: Record<string, any>): void {
+  identify(userId: string, traits?: Record<string, unknown>): void {
     console.log('[Analytics] Identify:', userId, traits);
   }
 
-  setGlobalProperties(properties: Record<string, any>): void {
+  setGlobalProperties(properties: Record<string, unknown>): void {
     console.log('[Analytics] Global properties:', properties);
   }
 }
@@ -111,11 +111,11 @@ export class GA4Provider implements AnalyticsProvider {
     window.gtag('config', measurementId);
   }
 
-  track(event: string, properties?: Record<string, any>): void {
+  track(event: string, properties?: Record<string, unknown>): void {
     window.gtag('event', event, properties);
   }
 
-  identify(userId: string, traits?: Record<string, any>): void {
+  identify(userId: string, traits?: Record<string, unknown>): void {
     window.gtag('config', 'GA_MEASUREMENT_ID', {
       user_id: userId,
       ...traits

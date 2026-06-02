@@ -86,8 +86,8 @@ export const PlayerPage = () => {
 
         const json = (await res.json()) as PlayerProfilePayload;
         setProfile(json.data ?? null);
-      } catch (err: any) {
-        if (err.name === 'AbortError') return;
+      } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
         setError('Não foi possível carregar o perfil do jogador.');
       } finally {
         setLoading(false);

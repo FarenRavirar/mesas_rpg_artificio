@@ -40,7 +40,7 @@
 - [x] Fase 5: `FeedbackButton` + `FeedbackModal` (html2canvas viewport); montado no AppShell.
 - [x] Fase 6: aba "Desenvolvimento" no GestaoPage + `DevFeedbackPanel`.
 - [x] Fase 7: changelog (published:false) + frontend build GREEN + lint dos novos limpo + vitest 13/13 + git diff --check limpo. T028 (apply migration local) BLOQUEADO (write/Postgres local) -> migrate gate Beta.
-- [ ] Fase 8: commit/push/deploy so apos autorizacao; mantenedor valida janela anonima; flip `published:true` no changelog ao deployar.
+- [x] Fase 8: PRs #155, #156 e #157 mergeados em `dev`; Deploy Beta GREEN; mantenedor validou em janela anonima. `changelogs.json` permanece `published:false` ate decisao de publicacao/promocao.
 
 ## Arquivos que serao modificados/criados
 
@@ -61,7 +61,7 @@ Ver `specs/022-feedback-desenvolvimento/plan.md` secao "Arquivos". Resumo:
 
 - [ ] Busca final relevante retorna esperado.
 - [ ] Sem arquivo parcialmente modificado.
-- [ ] `.specify/memory/project-state.md` atualizado quando o estado operacional mudar.
+- [x] `.specify/memory/project-state.md` atualizado quando o estado operacional mudar.
 - [ ] `/speckit.retro.run` ou equivalente quando a sessao fechar de fato.
 - [ ] Mover sessao para `encerradas/` somente quando autorizado.
 - [ ] `sessoes/index.md` atualizado.
@@ -103,3 +103,7 @@ Ver `specs/022-feedback-desenvolvimento/plan.md` secao "Arquivos". Resumo:
   - #4 "crash/unhandled rejection": FALSO (catch externo ja trata DB -> 500). Coberto pelo cleanup do #3.
 - Branch de follow-up: `feat/022-review-fixes`. Backend build GREEN + jest 12 suites/99 testes GREEN apos fixes.
 - Arquivos tocados nos fixes: `backend/src/services/cloudinary.ts` (+`deleteFromCloudinary`), `backend/src/routes/devFeedback.ts` (cleanup orfao), `backend/src/routes/devFeedbackAdmin.ts` (UUID guard + batch resolver).
+- PR #156 (`feat/022-review-fixes`) mergeado em `dev` em 02/06/2026.
+- PR #157 (`feat/022-screenshot-oklch`) mergeado em `dev`; corrige captura de screenshot com cores `oklch`/`oklab` via `html2canvas-pro` e remove evolving `any` em `created`.
+- Deploy Beta posterior da trilha 022: run `26841937377` GREEN para `af4f19c`.
+- Validacao funcional: mantenedor confirmou a Spec 022 implementada e validada no Beta em 02/06/2026.

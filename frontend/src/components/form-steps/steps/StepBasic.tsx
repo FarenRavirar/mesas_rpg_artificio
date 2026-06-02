@@ -1,12 +1,10 @@
-import type { ChangeEvent } from 'react';
+import type { ChangeEvent, Dispatch, SetStateAction } from 'react';
 import { MarkdownEditor } from '../../MarkdownEditor';
+import type { BasicFormData } from '../../../features/create-table/types/createTable.types';
 
 interface StepBasicProps {
-  form: {
-    title: string;
-    description: string;
-  };
-  setForm: (form: any) => void;
+  form: BasicFormData;
+  setForm: Dispatch<SetStateAction<BasicFormData>>;
 }
 
 export function StepBasic({ form, setForm }: StepBasicProps) {

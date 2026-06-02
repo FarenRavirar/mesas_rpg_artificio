@@ -17,10 +17,15 @@ const modalityLabels: Record<string, string> = {
   hibrida: 'Híbrida',
 };
 
+interface FeaturedTable extends TableCard {
+  features?: unknown;
+}
+
 export function MestreFeaturedTable({ table }: Props) {
   const { isFull } = getSlotsVisualState(table);
-  const features: string[] = Array.isArray((table as any).features)
-    ? ((table as any).features as string[])
+  const rawFeatures = (table as FeaturedTable).features;
+  const features = Array.isArray(rawFeatures)
+    ? rawFeatures.filter((feature): feature is string => typeof feature === 'string')
     : [];
 
   return (

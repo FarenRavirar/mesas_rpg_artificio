@@ -42,6 +42,10 @@ const TYPE_LABEL = {
   variant: 'Variante'
 } as const;
 
+function isSystemNodeType(value: string): value is SystemFormData['node_type'] {
+  return value === 'system' || value === 'edition' || value === 'subsystem' || value === 'variant';
+}
+
 export function EntityInspector(props: Props) {
   const { mode, system, parentContext, allSystems, onSave, onDelete, onCancel, onDirtyChange } = props;
 
@@ -73,7 +77,17 @@ export function EntityInspector(props: Props) {
     setLogoFilename(system?.logo_filename ?? '');
     setWebsiteUrl(system?.website_url ?? '');
     setDirty(false);
-  }, [system?.id, parentContext?.id, validTypes]);
+  }, [
+    system?.id,
+    system?.name,
+    system?.name_pt,
+    system?.node_type,
+    system?.aliases,
+    system?.logo_filename,
+    system?.website_url,
+    parentContext?.id,
+    validTypes,
+  ]);
 
   // Marca dirty quando qualquer campo muda
   useEffect(() => {
@@ -174,7 +188,11 @@ export function EntityInspector(props: Props) {
           ) : (
             <select
               value={nodeType}
-              onChange={(e) => setNodeType(e.target.value as any)}
+              onChange={(e) => {
+                if (isSystemNodeType(e.target.value)) {
+                  setNodeType(e.target.value);
+                }
+              }}
               disabled={mode === 'edit'}
               className="app-select w-full rounded px-3"
             >

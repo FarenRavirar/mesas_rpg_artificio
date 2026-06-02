@@ -84,9 +84,10 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
         throw new Error(`Erro ao carregar atualizações (HTTP ${res.status})`);
       }
       
-      const json = await res.json();
-      setLogs(json.data ?? []);
-    } catch (err: any) {
+      const json: unknown = await res.json();
+      const data = typeof json === 'object' && json !== null && 'data' in json ? json.data : [];
+      setLogs(Array.isArray(data) ? data : []);
+    } catch (err: unknown) {
       console.error('Erro ao buscar changelogs:', err);
       setError('Não foi possível carregar as atualizações. Tente novamente mais tarde.');
     } finally {
@@ -110,10 +111,11 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
             throw new Error(`Erro ao carregar atualizações (HTTP ${res.status})`);
           }
           
-          const json = await res.json();
-          setLogs(json.data ?? []);
-        } catch (err: any) {
-          if (err.name === 'AbortError') return;
+          const json: unknown = await res.json();
+          const data = typeof json === 'object' && json !== null && 'data' in json ? json.data : [];
+          setLogs(Array.isArray(data) ? data : []);
+        } catch (err: unknown) {
+          if (err instanceof DOMException && err.name === 'AbortError') return;
           
           console.error('Erro ao buscar changelogs:', err);
           setError('Não foi possível carregar as atualizações. Tente novamente mais tarde.');

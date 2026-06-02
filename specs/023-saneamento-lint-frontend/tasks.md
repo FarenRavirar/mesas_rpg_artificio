@@ -1,42 +1,42 @@
 # Tasks 023 - Saneamento de Lint do Frontend
 
-Pre-condicao: Spec 022 concluida e validada. Branch dedicada `feat/023-saneamento-lint-frontend` a partir de `dev`. Commit/push/deploy exigem aprovacao explicita (AGENTS.md).
+Pre-condicao: Spec 022 concluida e validada (cumprida em 02/06/2026). Spec 024 tambem concluida e validada antes da retomada da 023. Branch dedicada `feat/023-saneamento-lint-frontend` a partir de `dev`. Commit/push/deploy exigem aprovacao explicita (AGENTS.md).
 
-Status atual desta spec: **PREVIA / a validar** (nao executar fixes antes da validacao do mantenedor e do fechamento da 022).
+Status atual desta spec: **FASES 0-4 VALIDADAS LOCALMENTE** em `feat/023-saneamento-lint-frontend`; aguardando aprovacao explicita para commit/push da Fase 3 e proximo deploy Beta.
 
 ## Fase 0 - Preparacao
 
-- [ ] T001 Confirmar decisoes D1-D3 do plan com o mantenedor.
-- [ ] T002 Atualizar `dev` local; criar branch `feat/023-saneamento-lint-frontend`.
-- [ ] T003 Regenerar inventario: `npm --prefix frontend run lint` -> salvar contagem por regra e por arquivo (baseline da execucao).
-- [ ] T004 Abrir sessao e atualizar `sessoes/index.md`.
+- [x] T001 Confirmar decisoes D1-D3 do plan com o mantenedor.
+- [x] T002 Atualizar `dev` local; criar branch `feat/023-saneamento-lint-frontend`.
+- [x] T003 Regenerar inventario: `npm --prefix frontend run lint` -> salvar contagem por regra e por arquivo (baseline da execucao).
+- [x] T004 Abrir sessao e atualizar `sessoes/index.md`.
 
 ## Fase 1 - Erros mecanicos
 
-- [ ] T005 Corrigir `no-unused-vars` (6): remover simbolo morto ou prefixar `_`. Lint recount.
-- [ ] T006 Corrigir `only-export-components` (3): mover helpers/constantes/contexto para modulo proprio; atualizar imports. Build GREEN.
+- [x] T005 Corrigir `no-unused-vars` (6): remover simbolo morto ou prefixar `_`. Lint recount.
+- [x] T006 Corrigir `only-export-components` (3): mover helpers/constantes/contexto para modulo proprio; atualizar imports. Build GREEN.
 
 ## Fase 2 - Tipagem (no-explicit-any, 96)
 
-- [ ] T007 Grupo services (`analytics.ts`, `apiClient.ts`, `authenticatedFetch.ts`, `logger.ts`): tipar `any`. Lint recount + build.
-- [ ] T008 Grupo utils (`sanitize.ts`, `features/table/**` mappers/utils): tipar. Lint recount + build.
-- [ ] T009 Grupo hooks (`useProfile`, `useProfileQuery`, `useLinks`, `useMestre`, `useFetchTables`, insights, `useCreateTableForm`, `useAutosave`): tipar. Lint recount + build.
-- [ ] T010 Grupo pages (`CatalogoPage`, `PainelMestrePage`, `MesaPage`, `OnboardingPage`, `PlayerPage`, `HomePage`, `SystemsAdminView`, `ScenariosAdminView`): tipar. Lint recount + build.
-- [ ] T011 Grupo components/features (`CreateTableForm`, `SettingStylesField`, `SystemTreeSelector`, `ProfileContext`, `ChangelogModal`, `mestre/**`, `master/**`, `admin/**`, `discord-sync/**`, `TableContactsBlock`): tipar. Lint recount + build.
-- [ ] T012 Confirmar `no-explicit-any` = 0. Listar qualquer `eslint-disable` usado com justificativa.
+- [x] T007 Grupo services (`analytics.ts`, `apiClient.ts`, `authenticatedFetch.ts`, `logger.ts`): tipar `any`. Lint recount + build.
+- [x] T008 Grupo utils (`sanitize.ts`, `features/table/**` mappers/utils): tipar. Lint recount + build.
+- [x] T009 Grupo hooks (`useProfile`, `useProfileQuery`, `useLinks`, `useMestre`, `useFetchTables`, insights, `useCreateTableForm`, `useAutosave`): tipar. Lint recount + build.
+- [x] T010 Grupo pages (`CatalogoPage`, `PainelMestrePage`, `MesaPage`, `OnboardingPage`, `PlayerPage`, `HomePage`, `SystemsAdminView`, `ScenariosAdminView`): tipar. Lint recount + build.
+- [x] T011 Grupo components/features (`CreateTableForm`, `SettingStylesField`, `SystemTreeSelector`, `ProfileContext`, `ChangelogModal`, `mestre/**`, `master/**`, `admin/**`, `discord-sync/**`, `TableContactsBlock`): tipar. Lint recount + build.
+- [x] T012 Confirmar `no-explicit-any` = 0. Listar qualquer `eslint-disable` usado com justificativa.
 
 ## Fase 3 - Hooks
 
-- [ ] T013 Corrigir/justificar `exhaustive-deps` (14 warnings) caso a caso (dep correta, `useCallback`, ou disable justificado).
-- [ ] T014 Corrigir `set-state-in-effect` (4) e `set-state-in-render` (1) sem mudar comportamento; validar fluxo afetado manualmente.
+- [x] T013 Corrigir/justificar `exhaustive-deps` (14 warnings) caso a caso (dep correta, `useCallback`, ou disable justificado).
+- [x] T014 Corrigir `set-state-in-effect` (4) e `set-state-in-render` (1) sem mudar comportamento; validar fluxo afetado manualmente.
 
 ## Fase 4 - Qualidade
 
-- [ ] T015 `npm --prefix frontend run lint` = 0 errors.
-- [ ] T016 `npm --prefix frontend run build` GREEN.
-- [ ] T017 `npm --prefix frontend test` GREEN.
-- [ ] T018 `git diff --check` limpo.
-- [ ] T019 Revisar diff completo confirmando zero mudanca de comportamento.
+- [x] T015 `npm --prefix frontend run lint` = 0 errors.
+- [x] T016 `npm --prefix frontend run build` GREEN.
+- [x] T017 `npm --prefix frontend test` GREEN.
+- [x] T018 `git diff --check` limpo.
+- [x] T019 Revisar diff completo confirmando zero mudanca de comportamento.
 
 ## Fase 5 - Beta
 

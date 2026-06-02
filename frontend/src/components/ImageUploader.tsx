@@ -47,7 +47,7 @@ export function ImageUploader({
   const [showEditor, setShowEditor] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [pendingImageUrl, setPendingImageUrl] = useState<string>('');
-  const [_cropData, setCropData] = useState<{
+  const [, setCropData] = useState<{
     crop: PixelCrop;
     originalWidth: number;
     originalHeight: number;

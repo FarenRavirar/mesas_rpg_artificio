@@ -1,7 +1,7 @@
 # Project State — Mesas RPG Artifício
 
-**Última atualização:** 2026-06-02T18:32:00-03:00
-**Atualizado por:** sessão 26-06-02_1_feedback-desenvolvimento (Spec 022 em Beta)
+**Última atualização:** 2026-06-02T16:58:48-03:00
+**Atualizado por:** sessão 26-06-02_2_feedback-triage (Specs 022/024 em Beta validadas; Spec 023 pronta para preparação)
 ---
 
 ## Ambientes
@@ -15,23 +15,37 @@
 
 ## Estado Técnico Atual
 
-**Spec 022 — Feedback de Desenvolvimento (02/06/2026, em Beta):**
-- PR #155 (`feat/022-feedback-desenvolvimento -> dev`) mergeado. Commit `ad983d2`.
-- Deploy Beta run `26839961404` GREEN: jobs `validate`, `lint`, `enforce-dir`, `migrate` (11s, migration 125 aplicada), `smoke-discord`, `deploy-app` (1m48s), `smoke` todos verdes.
-- Health Beta pós-deploy: `/api/v1/health` `status=ok`, `environment=beta`, `db=connected`.
-- Rotas verificadas em Beta sem escrita: `POST /api/v1/dev-feedback` body inválido → HTTP 400 (validador); `GET /api/v1/admin/dev-feedback` sem auth → HTTP 401 (requireRole admin).
-- Entregue: widget global FAB + modal (reportar problema/sugerir melhoria) em todas as páginas exceto `/login` e `/auth/callback`; coleta de contexto (rota, console, erros globais, falhas de rede >=400, screenshot via html2canvas viewport); aba "Desenvolvimento" em `/gestao` (filtros status/kind, contexto completo, status/notas via PATCH). Acesso anônimo + logado; `contact_email` opt-in; upload screenshot via backend (`uploadScreenshotToCloudinary`, crop limit).
+**Spec 024 — Triagem de Feedback (02/06/2026, em Beta validada):**
+- PR #158 (`feat/024-feedback-triage -> dev`) mergeado. Commit `39f8d60`; merge `ceff97b`.
+- PR #159 (`feat/024-review-fixes -> dev`) mergeado. Commit `ea85e91`; merge `18330bc` (`dev`/`origin/dev` atual).
+- Deploy Beta final run `26844315274` GREEN para `18330bc`: jobs `validate`, `enforce-dir`, `lint`, `migrate` (migration 126), `smoke-discord`, `deploy-app`, `smoke`.
+- Health/rotas Beta pós-deploy final: root HTTP 200; `/api/v1/health` `status=ok`, `environment=beta`, `db=connected`; `POST /api/v1/dev-feedback` body inválido → HTTP 400; `GET /api/v1/admin/dev-feedback` sem auth → HTTP 401.
+- Entregue: arquivar/desarquivar feedback, excluir com tentativa de remoção de screenshot Cloudinary via `screenshot_public_id`, mesclar feedbacks com destino escolhido, `merged_sources`, secundários arquivados e `merged_into`.
+- DB: migration 126 online-safe (`archived_at`, `screenshot_public_id`, `merged_into`, `merged_sources`, índice `idx_dev_feedback_archived_at`).
+- Validação local registrada: backend build GREEN + Jest 13 suites / 104 testes GREEN; frontend build/tsc GREEN; vitest 13/13; lint dos arquivos novos limpo.
+- Validação funcional: mantenedor confirmou arquivar/excluir/mesclar em janela anônima no Beta em 02/06/2026.
+
+**Spec 022 — Feedback de Desenvolvimento (02/06/2026, em Beta validada):**
+- PR #155 (`feat/022-feedback-desenvolvimento -> dev`) mergeado. Commit `ad983d2`; merge `887a89c`.
+- PR #156 (`feat/022-review-fixes -> dev`) mergeado. Commit `3637f64`; merge `cb5344c` (N+1 no GET admin, cleanup de screenshot órfão, guard UUID).
+- PR #157 (`feat/022-screenshot-oklch -> dev`) mergeado. Commit de fix `67dda96`; merge `af4f19c` (html2canvas-pro para `oklch`/`oklab`, tipagem de `created`).
+- Deploys Beta GREEN: run `26839961404` (base/migration 125) e run `26841937377` (follow-ups 022).
+- Entregue: widget global FAB + modal (reportar problema/sugerir melhoria) em todas as páginas exceto `/login` e `/auth/callback`; coleta de contexto (rota, console, erros globais, falhas de rede >=400, screenshot viewport); aba "Desenvolvimento" em `/gestao` (filtros status/kind, contexto completo, status/notas via PATCH). Acesso anônimo + logado; `contact_email` opt-in; upload screenshot via backend.
 - DB: tabela `dev_feedback` (migration 125, online-safe, CHECK kind/status, índices status/kind/created_at).
 - Validação local pré-deploy: backend build GREEN + suite 12/99 GREEN (validador TDD 19/19); frontend build GREEN + vitest 13/13 (diagnostics 7/7); arquivos novos 0 erros de lint.
-- `changelogs.json`: entrada `2026-06-02-feedback-desenvolvimento` com `published:false` (não anunciar até validação do mantenedor).
-- Inclui também `specs/023-saneamento-lint-frontend/` (PRÉVIA; execução planejada via Codex em branch `feat/023`, fora deste chat).
-- **Pendente:** mantenedor validar em janela anônima no Beta (envio anônimo e logado de bug+sugestão com screenshot; conferir aba Desenvolvimento). Ao aprovar para produção: flip `published:true` no changelog.
+- `changelogs.json`: entrada `2026-06-02-feedback-desenvolvimento` permanece `published:false` até decisão de publicação/promocao.
+- Validação funcional: mantenedor confirmou envio/uso do fluxo no Beta em 02/06/2026.
 
-**Production v1.2.5 — Spec 019 + Spec 018 promovidas (02/06/2026):**
-- PR #152 `Production v1.2.5` (`dev -> main`) mergeado via GitHub.
-- Workflow canônico `Promote Beta to Production (CANONICAL)` run `26828267450` GREEN para `937544a`.
-- Release GitHub `v1.2.5` publicada como `Production v1.2.5`.
-- Jobs GREEN: `typecheck`, `lint`, `enforce-dir`, `governance_gate`, `deploy`, `release`.
+**Spec 023 — Saneamento de Lint do Frontend (pré-execução):**
+- Artefatos existem em `specs/023-saneamento-lint-frontend/{spec,plan,tasks}.md`.
+- Pré-condição de validação da Spec 022 cumprida; Spec 024 também foi concluída antes da retomada.
+- Próxima execução deve abrir sessão dedicada, confirmar D1-D3 do `plan.md`, atualizar `dev`, criar branch `feat/023-saneamento-lint-frontend` e regenerar o baseline de `npm --prefix frontend run lint`.
+
+**Production v1.2.6 — Notificações admin fora de transações (02/06/2026):**
+- PR #153 (`feat/021-notificacoes-fora-transacao -> dev`) mergeado.
+- PR #154 (`dev -> main`) mergeado em 02/06/2026. Merge commit `1877be8`.
+- Release GitHub `v1.2.6` publicada como `Production v1.2.6` em 02/06/2026 13:19 BRT.
+- Entregue: `notifyAdmins` desacoplado de transações principais para notificações admin não abortarem fluxos de produto.
 
 **Production v1.2.5 — Spec 019 + Spec 018 promovidas (02/06/2026):**
 - PR #152 `Production v1.2.5` (`dev -> main`) mergeado via GitHub.
@@ -43,7 +57,6 @@
 - Rotas críticas Produção e Beta: `/api/v1/tables?limit=1` HTTP 200, `/api/v1/systems?view=tree` HTTP 200, `/auth/google` HTTP 302 para Google OAuth.
 - Containers: `mesas-api`, `mesas-app`, `mesas-beta-api`, `mesas-beta-frontend` `healthy`.
 - DB Produção: migrations `migration_123_system_suggestion_resolution.sql` e `migration_124_table_schedule_tbd.sql` registradas; colunas/constraints de agenda a definir presentes.
-- Hotfix local em andamento na branch `feat/021-notificacoes-fora-transacao`: remove `notifyAdmins(..., trx)` para notificações admin não abortarem transações principais. Build backend GREEN; commit/push/deploy Beta pendem de aprovação explícita.
 
 **Spec 019 — Agenda a definir + correção do Resolver (02/06/2026, em Produção):**
 - Commit `b3abe3e` entrou em `main` via PR #152.

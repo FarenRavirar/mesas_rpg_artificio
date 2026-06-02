@@ -33,7 +33,9 @@ export function useAutosave(
   useEffect(() => {
     if (!enabled) return;
 
-    setDraftStatus('saving');
+    const savingTimeout = setTimeout(() => {
+      setDraftStatus('saving');
+    }, 0);
 
     const timeout = setTimeout(() => {
       draftStorage.save(key, data);
@@ -44,7 +46,10 @@ export function useAutosave(
       setTimeout(() => setDraftStatus('idle'), 2000);
     }, debounceMs);
 
-    return () => clearTimeout(timeout);
+    return () => {
+      clearTimeout(savingTimeout);
+      clearTimeout(timeout);
+    };
   }, [data, key, debounceMs, enabled]);
 
   const clearDraft = () => {

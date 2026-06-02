@@ -9,7 +9,7 @@ interface MestreHeroProps {
   totalOpenSlots: number;
 }
 
-export function MestreHero({ profile, mappedTables, totalOpenSlots: _totalOpenSlots }: MestreHeroProps) {
+export function MestreHero({ profile, mappedTables }: MestreHeroProps) {
   const hasAnyStat =
     (profile.tables_count ?? 0) > 0 ||
     (profile.avg_rating ?? 0) > 0 ||

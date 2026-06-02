@@ -127,8 +127,8 @@ export function ContactMethodsEditor({ contacts, onSave }: ContactMethodsEditorP
         }));
 
       await onSave(validContacts);
-    } catch (err: any) {
-      setError(err.message || 'Erro ao salvar');
+    } catch (err: unknown) {
+      setError(err instanceof Error && err.message ? err.message : 'Erro ao salvar');
     } finally {
       setSaving(false);
     }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import { Check, ChevronRight, Search, Info } from 'lucide-react';
 import type { SystemTreeNode } from '../types/systems';
 
@@ -74,34 +74,17 @@ export const SystemTreeSelector = ({
 
   const flatNodes = useMemo(() => flattenTree(tree), [tree]);
 
-  useEffect(() => {
-    if (tree.length === 0) return;
-
-    if (!activeRootId || !tree.some((node) => node.id === activeRootId)) {
-      setActiveRootId(tree[0].id);
-      setActiveMidId(tree[0].children?.[0]?.id ?? null);
-    }
-  }, [activeRootId, tree]);
-
   const activeRoot = useMemo(
     () => tree.find((node) => node.id === activeRootId) ?? tree[0] ?? null,
     [activeRootId, tree]
   );
 
-  const midNodes = activeRoot?.children ?? [];
-  const activeMid = midNodes.find((node) => node.id === activeMidId) ?? midNodes[0] ?? null;
+  const midNodes = useMemo(() => activeRoot?.children ?? [], [activeRoot]);
+  const activeMid = useMemo(
+    () => midNodes.find((node) => node.id === activeMidId) ?? midNodes[0] ?? null,
+    [activeMidId, midNodes]
+  );
   const leafNodes = activeMid?.children ?? [];
-
-  useEffect(() => {
-    if (midNodes.length === 0) {
-      if (activeMidId) setActiveMidId(null);
-      return;
-    }
-
-    if (!activeMidId || !midNodes.some((node) => node.id === activeMidId)) {
-      setActiveMidId(midNodes[0].id);
-    }
-  }, [activeMidId, midNodes]);
 
   const normalizedSearch = normalizeText(search);
   const searchResults = useMemo(() => {

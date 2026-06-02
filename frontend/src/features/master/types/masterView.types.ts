@@ -1,4 +1,5 @@
 import type { TableViewModel } from '../../table/types/tableView.types';
+import type { TableDetail } from '../../../types/tables';
 
 /**
  * ViewModel para o perfil público do mestre
@@ -44,5 +45,5 @@ export interface MasterResponse {
     total_players?: number;
   };
   
-  tables: any[]; // TableDetail[]
+  tables: TableDetail[];
 }

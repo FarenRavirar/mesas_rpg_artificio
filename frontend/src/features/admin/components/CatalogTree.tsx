@@ -27,14 +27,15 @@ export function CatalogTree({ systems, selectedId, onSelect, onAddChild, search,
     [systems, search, typeFilter]
   );
 
-  // Auto-expand ancestrais do selectedId
-  useMemo(() => {
-    if (!selectedId) return;
-    const ancestors = findAncestors(systems, selectedId);
-    if (ancestors.length) {
-      setExpandedIds(prev => new Set([...prev, ...ancestors]));
-    }
-  }, [selectedId, systems]);
+  const selectedAncestorIds = useMemo(
+    () => (selectedId ? findAncestors(systems, selectedId) : []),
+    [selectedId, systems]
+  );
+
+  const visibleExpandedIds = useMemo(
+    () => new Set([...expandedIds, ...selectedAncestorIds]),
+    [expandedIds, selectedAncestorIds]
+  );
 
   if (visibleTree.length === 0) {
     return (
@@ -51,7 +52,7 @@ export function CatalogTree({ systems, selectedId, onSelect, onAddChild, search,
           key={node.id}
           node={node}
           depth={0}
-          expandedIds={expandedIds}
+          expandedIds={visibleExpandedIds}
           selectedId={selectedId}
           onToggleExpand={toggleExpand}
           onSelect={onSelect}

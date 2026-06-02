@@ -1,14 +1,12 @@
 import { SessionRepeater, type SessionSchedule } from '../../SessionRepeater';
+import type { Dispatch, SetStateAction } from 'react';
+import type { BasicFormData } from '../../../features/create-table/types/createTable.types';
 
 interface StepSessionsProps {
   sessions: SessionSchedule[];
   setSessions: (sessions: SessionSchedule[]) => void;
-  form: {
-    type: string;
-    slots_total: string;
-    slots_open: string;
-  };
-  setForm: (form: any) => void;
+  form: BasicFormData;
+  setForm: Dispatch<SetStateAction<BasicFormData>>;
 }
 
 export function StepSessions({ 

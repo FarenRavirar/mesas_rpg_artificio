@@ -39,7 +39,7 @@ export const authGet = (endpoint: string, options: FetchOptions = {}) => {
 /**
  * Helper para requests POST autenticadas
  */
-export const authPost = (endpoint: string, body?: any, options: FetchOptions = {}) => {
+export const authPost = (endpoint: string, body?: unknown, options: FetchOptions = {}) => {
   return authenticatedFetch(endpoint, {
     ...options,
     method: 'POST',
@@ -50,7 +50,7 @@ export const authPost = (endpoint: string, body?: any, options: FetchOptions = {
 /**
  * Helper para requests PUT autenticadas
  */
-export const authPut = (endpoint: string, body?: any, options: FetchOptions = {}) => {
+export const authPut = (endpoint: string, body?: unknown, options: FetchOptions = {}) => {
   return authenticatedFetch(endpoint, {
     ...options,
     method: 'PUT',
@@ -61,7 +61,7 @@ export const authPut = (endpoint: string, body?: any, options: FetchOptions = {}
 /**
  * Helper para requests PATCH autenticadas
  */
-export const authPatch = (endpoint: string, body?: any, options: FetchOptions = {}) => {
+export const authPatch = (endpoint: string, body?: unknown, options: FetchOptions = {}) => {
   return authenticatedFetch(endpoint, {
     ...options,
     method: 'PATCH',

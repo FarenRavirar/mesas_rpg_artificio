@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import type { DiscordDraft, DiscordImportDraftStatus } from '../types';
 import { discordSyncApi } from '../api/discordSyncApi';
@@ -41,7 +41,7 @@ export function DiscordDraftReviewTable() {
   const [selectedDraft, setSelectedDraft] = useState<DiscordDraft | null>(null);
   const [syncingAll, setSyncingAll] = useState(false);
 
-  const loadDrafts = async () => {
+  const loadDrafts = useCallback(async () => {
     setLoading(true);
     try {
       const data = await discordSyncApi.getDrafts({
@@ -54,11 +54,11 @@ export function DiscordDraftReviewTable() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter]);
 
   useEffect(() => {
     loadDrafts();
-  }, [statusFilter]);
+  }, [loadDrafts]);
 
   const handleSyncReady = async () => {
     if (!confirm('Sincronizar todos os drafts com status "pronto" como mesas reais?')) return;

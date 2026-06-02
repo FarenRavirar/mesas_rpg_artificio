@@ -98,7 +98,7 @@ export async function handleStatus(id: string, status: string): Promise<void> {
     }
 
     window.location.reload();
-  } catch (error) {
+  } catch {
     alert('Erro ao alterar status. Tente novamente.');
   }
 }

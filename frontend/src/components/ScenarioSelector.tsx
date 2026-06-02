@@ -49,9 +49,9 @@ export const ScenarioSelector = ({
 
         const data = await response.json();
         setScenarios(data.data || []);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('[ScenarioSelector] Erro ao buscar cenários:', err);
-        setError(err.message || 'Erro desconhecido');
+        setError(err instanceof Error && err.message ? err.message : 'Erro desconhecido');
       } finally {
         setLoading(false);
       }
