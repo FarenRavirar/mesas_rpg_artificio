@@ -55,7 +55,7 @@ export function MasterProfilePage() {
 
         const json = await res.json();
         setMaster(json.data ?? null);
-      } catch (err: any) {
+      } catch {
         setError('Não foi possível carregar o perfil do mestre.');
       } finally {
         setLoading(false);

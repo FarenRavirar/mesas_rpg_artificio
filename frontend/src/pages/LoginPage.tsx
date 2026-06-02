@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LogIn, ShieldCheck } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 import { applySeo } from '../utils/seo';
 import { getGoogleLoginUrl } from '../utils/auth';
 

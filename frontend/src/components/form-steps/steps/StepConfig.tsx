@@ -1,23 +1,12 @@
 import { useEffect } from 'react';
-import type { ChangeEvent, InputHTMLAttributes, SelectHTMLAttributes } from 'react';
+import type { ChangeEvent, Dispatch, InputHTMLAttributes, SelectHTMLAttributes, SetStateAction } from 'react';
 import { useVttPlatforms } from '../../../hooks/useVttPlatforms'; // CORREÇÃO B02: Import hook VTT
 import { useCommunicationPlatforms } from '../../../hooks/useCommunicationPlatforms';
+import type { BasicFormData } from '../../../features/create-table/types/createTable.types';
 
 interface StepConfigProps {
-  form: {
-    type: string;
-    modality: string;
-    audience: string;
-    age_rating: string;
-    price_type: string;
-    price_value: string;
-    slots_total: string;
-    slots_open: string; // REQ-02: Vagas abertas
-    experience_level: string;
-    table_level: string;
-    language: string;
-  };
-  setForm: (form: any) => void;
+  form: BasicFormData;
+  setForm: Dispatch<SetStateAction<BasicFormData>>;
   publisherRole: 'gm' | 'announcer';
   setPublisherRole: (role: 'gm' | 'announcer') => void;
   actualGmName: string;

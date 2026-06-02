@@ -1,12 +1,13 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import toast from 'react-hot-toast';
 import type { SystemTreeNode } from '../../../types/systems';
+import type { FormState } from '../types/createTable.types';
 
 // Hooks customizados
 import { useCreateTableForm } from '../hooks/useCreateTableForm';
 import { useStepNavigation } from '../hooks/useStepNavigation';
 import { useAutosave } from '../hooks/useAutosave';
-import { useAuth } from '../../../contexts/AuthContext';
+import { useAuth } from '../../../contexts/useAuth';
 
 // Componentes
 import { StepHeader } from '../../../components/form-steps/StepHeader';
@@ -25,11 +26,34 @@ const DDAL_ELIGIBLE_PATH = 'dungeons-dragons/5e/2024';
 
 interface CreateTableFormProps {
   onSuccess: () => void;
-  initialData?: any;
+  initialData?: Partial<FormState> & { id?: string };
 }
 
-const flattenTree = (nodes: SystemTreeNode[], breadcrumb: string[] = []): any[] => {
-  const flattened: any[] = [];
+type FlattenedSystemNode = Pick<SystemTreeNode, 'id' | 'slug' | 'name' | 'path_slug'> & {
+  pathLabel: string;
+};
+
+type CreateTableDraft = ReturnType<typeof useCreateTableForm>['formState'];
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
+function isSystemTreeNode(value: unknown): value is SystemTreeNode {
+  if (typeof value !== 'object' || value === null) return false;
+  const node = value as Partial<SystemTreeNode>;
+  const hasValidChildren = node.children === undefined || (Array.isArray(node.children) && node.children.every(isSystemTreeNode));
+  return typeof node.id === 'string' && typeof node.slug === 'string' && typeof node.name === 'string' && hasValidChildren;
+}
+
+function normalizeSystemsTree(payload: unknown): SystemTreeNode[] {
+  if (typeof payload !== 'object' || payload === null || !('data' in payload)) return [];
+  const data = (payload as { data: unknown }).data;
+  return Array.isArray(data) ? data.filter(isSystemTreeNode) : [];
+}
+
+const flattenTree = (nodes: SystemTreeNode[], breadcrumb: string[] = []): FlattenedSystemNode[] => {
+  const flattened: FlattenedSystemNode[] = [];
   for (const node of nodes) {
     const path = [...breadcrumb, node.name];
     flattened.push({
@@ -75,7 +99,7 @@ export function CreateTableForm({
 
   // Modal de restore
   const [showRestoreModal, setShowRestoreModal] = useState(false);
-  const [savedDraft, setSavedDraft] = useState<any>(null);
+  const [savedDraft, setSavedDraft] = useState<CreateTableDraft | null>(null);
 
   // Fetch systems tree
   const fetchSystemsTree = async () => {
@@ -85,10 +109,10 @@ export function CreateTableForm({
     try {
       const res = await fetch('/api/v1/systems?view=tree');
       if (!res.ok) throw new Error('Erro ao carregar árvore de sistemas.');
-      const json = await res.json();
-      setSystemsTree(json.data ?? []);
-    } catch (err: any) {
-      setSystemsError(err.message ?? 'Erro ao carregar árvore de sistemas.');
+      const json: unknown = await res.json();
+      setSystemsTree(normalizeSystemsTree(json));
+    } catch (err: unknown) {
+      setSystemsError(getErrorMessage(err, 'Erro ao carregar árvore de sistemas.'));
     } finally {
       setSystemsLoading(false);
     }
@@ -101,7 +125,7 @@ export function CreateTableForm({
   // Restore de draft
   useEffect(() => {
     // CORREÇÃO DT-AGG-04: Modo review removido, sempre restaurar draft
-    const draft = draftStorage.load('create-table-draft');
+    const draft = draftStorage.load<CreateTableDraft>('create-table-draft');
     if (!draft) return;
 
     setSavedDraft(draft);
@@ -153,7 +177,7 @@ export function CreateTableForm({
   const selectedSystem = flattenedSystems.find((s) => s.id === formHook.selectedSystemId) ?? null;
   const isDdalEligibleSelection =
     selectedSystem?.path_slug === DDAL_ELIGIBLE_PATH ||
-    selectedSystem?.path_slug?.startsWith(`${DDAL_ELIGIBLE_PATH}/`);
+    selectedSystem?.path_slug?.startsWith(`${DDAL_ELIGIBLE_PATH}/`) === true;
 
   // Nome do sistema e cenário para review
   const selectedSystemName = selectedSystem?.name || null;

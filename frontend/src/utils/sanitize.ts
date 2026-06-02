@@ -16,22 +16,20 @@ export function sanitize(input: string): string {
 /**
  * Sanitiza objeto recursivamente
  */
-export function sanitizeObject<T extends Record<string, any>>(obj: T): T {
-  const result = {} as T;
-  
-  for (const key in obj) {
-    const value = obj[key];
-    
-    if (typeof value === 'string') {
-      result[key] = sanitize(value) as any;
-    } else if (Array.isArray(value)) {
-      result[key] = value.map((item: any) => 
-        typeof item === 'string' ? sanitize(item) : item
-      ) as any;
-    } else {
-      result[key] = value;
-    }
+function sanitizeValue(value: unknown): unknown {
+  if (typeof value === 'string') {
+    return sanitize(value);
   }
-  
-  return result;
+
+  if (Array.isArray(value)) {
+    return value.map((item) => (typeof item === 'string' ? sanitize(item) : item));
+  }
+
+  return value;
+}
+
+export function sanitizeObject<T extends Record<string, unknown>>(obj: T): T {
+  return Object.fromEntries(
+    Object.entries(obj).map(([key, value]) => [key, sanitizeValue(value)])
+  ) as T;
 }

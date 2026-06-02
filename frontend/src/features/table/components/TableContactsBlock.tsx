@@ -1,4 +1,4 @@
-import { MessageCircle, MessageSquare, Mail, FileText, ExternalLink, HelpCircle } from 'lucide-react';
+import { MessageCircle, MessageSquare, Mail, FileText, ExternalLink, HelpCircle, type LucideIcon } from 'lucide-react';
 import type { TableContact } from '../../../types/tables';
 
 interface TableContactsBlockProps {
@@ -185,7 +185,7 @@ function ContactButton({ contact }: { contact: TableContact }) {
  * Configuração de estilo e ícone por canal
  */
 function getChannelConfig(channel: string) {
-  const configs: Record<string, { bg: string; icon: any; label: string }> = {
+  const configs: Record<string, { bg: string; icon: LucideIcon; label: string }> = {
     whatsapp: {
       bg: 'bg-green-600 hover:bg-green-700',
       icon: MessageCircle,

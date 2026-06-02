@@ -72,7 +72,11 @@ export function SessionRepeater({ sessions, onChange, disabled = false }: Sessio
     }
   };
 
-  const handleUpdateSession = (index: number, field: keyof SessionSchedule, value: any) => {
+  const handleUpdateSession = <K extends keyof SessionSchedule>(
+    index: number,
+    field: K,
+    value: SessionSchedule[K]
+  ) => {
     const updated = sessions.map((session, i) => {
       if (i === index) {
         return { ...session, [field]: value };

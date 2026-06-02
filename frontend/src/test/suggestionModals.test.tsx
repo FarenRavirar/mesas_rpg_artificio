@@ -6,7 +6,7 @@ import { SystemSuggestionModal } from '../components/SystemSuggestionModal';
 
 const authState = vi.hoisted(() => ({ role: 'gm' as 'gm' | 'admin' }));
 
-vi.mock('../contexts/AuthContext', () => ({
+vi.mock('../contexts/useAuth', () => ({
   useAuth: () => ({
     isAuthenticated: true,
     user: { id: 'user-1', role: authState.role },

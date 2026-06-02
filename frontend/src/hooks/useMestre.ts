@@ -100,8 +100,8 @@ export function useMestre(slug?: string) {
 
         const json = (await res.json()) as GmProfilePayload;
         setProfile(json.data ?? null);
-      } catch (err: any) {
-        if (err.name === 'AbortError') return;
+      } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
         setError('Não foi possível carregar o perfil do mestre.');
       } finally {
         setLoading(false);
@@ -117,7 +117,7 @@ export function useMestre(slug?: string) {
   const mappedTables = useMemo(() => {
     if (!profile) return [] as TableCard[];
 
-    return profile.tables.map((table: any) => ({
+    return profile.tables.map((table) => ({
       ...table,
       gm_slug: profile.slug,
       gm_avatar_url: profile.avatar_url,

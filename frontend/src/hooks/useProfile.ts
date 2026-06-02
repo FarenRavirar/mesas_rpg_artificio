@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 import { showError } from '../utils/toast';
 import { api } from '../services/apiClient';
 import {
@@ -114,6 +114,10 @@ interface UseProfileReturn {
   refetch: () => Promise<void>;
 }
 
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
 export function useProfile(): UseProfileReturn {
   const { isAuthenticated } = useAuth();
   const [profile, setProfile] = useState<FullProfile | null>(null);
@@ -132,8 +136,8 @@ export function useProfile(): UseProfileReturn {
       const result = await api.get<{ data: FullProfile }>('/api/v1/profile/me');
       setProfile(result.data);
       setError(null);
-    } catch (err: any) {
-      const message = err.message || 'Erro ao buscar perfil';
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, 'Erro ao buscar perfil');
       setError(message);
       console.error('[useProfile] Erro ao buscar perfil:', err);
     } finally {
@@ -157,8 +161,8 @@ export function useProfile(): UseProfileReturn {
         try {
           await fn();
           setError(null);
-        } catch (err: any) {
-          const message = err.message || 'Erro ao salvar alterações';
+        } catch (err: unknown) {
+          const message = getErrorMessage(err, 'Erro ao salvar alterações');
           setError(message);
           showError(message);
           console.error('[useProfile] Erro ao salvar:', err);
@@ -176,7 +180,7 @@ export function useProfile(): UseProfileReturn {
 
       debouncedSave(async () => {
         const validated = validateOrThrow(userSchema, data);
-        const result = await api.patch<{ data: any }>('/api/v1/profile/me', validated);
+        const result = await api.patch<{ data: FullProfile['user'] }>('/api/v1/profile/me', validated);
         setProfile((prev) => (prev ? { ...prev, user: result.data } : null));
       });
     },
@@ -194,7 +198,7 @@ export function useProfile(): UseProfileReturn {
 
       debouncedSave(async () => {
         const validated = validateOrThrow(profileSchema, data);
-        const result = await api.patch<{ data: any }>('/api/v1/profile/me/profile', validated);
+        const result = await api.patch<{ data: FullProfile['profile'] }>('/api/v1/profile/me/profile', validated);
         setProfile((prev) => (prev ? { ...prev, profile: result.data } : null));
       });
     },
@@ -207,7 +211,7 @@ export function useProfile(): UseProfileReturn {
 
       debouncedSave(async () => {
         const validated = validateOrThrow(playerProfileSchema, data);
-        const result = await api.patch<{ data: any }>('/api/v1/profile/me/player', validated);
+        const result = await api.patch<{ data: FullProfile['player'] }>('/api/v1/profile/me/player', validated);
         setProfile((prev) => (prev ? { ...prev, player: result.data } : null));
       });
     },
@@ -220,7 +224,7 @@ export function useProfile(): UseProfileReturn {
 
       debouncedSave(async () => {
         const validated = validateOrThrow(gmProfileSchema, data);
-        const result = await api.patch<{ data: any }>('/api/v1/profile/me/gm', validated);
+        const result = await api.patch<{ data: FullProfile['gm'] }>('/api/v1/profile/me/gm', validated);
         setProfile((prev) => (prev ? { ...prev, gm: result.data } : null));
       });
     },
@@ -247,8 +251,8 @@ export function useProfile(): UseProfileReturn {
             },
           };
         });
-      } catch (err: any) {
-        const message = err.message || 'Erro ao adicionar sistema';
+      } catch (err: unknown) {
+        const message = getErrorMessage(err, 'Erro ao adicionar sistema');
         setError(message);
         console.error('[useProfile] Erro ao adicionar sistema:', err);
       }
@@ -273,8 +277,8 @@ export function useProfile(): UseProfileReturn {
             },
           };
         });
-      } catch (err: any) {
-        const message = err.message || 'Erro ao remover sistema';
+      } catch (err: unknown) {
+        const message = getErrorMessage(err, 'Erro ao remover sistema');
         setError(message);
         console.error('[useProfile] Erro ao remover sistema:', err);
       }

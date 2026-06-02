@@ -42,6 +42,10 @@ const TYPE_LABEL = {
   variant: 'Variante'
 } as const;
 
+function isSystemNodeType(value: string): value is SystemFormData['node_type'] {
+  return value === 'system' || value === 'edition' || value === 'subsystem' || value === 'variant';
+}
+
 export function EntityInspector(props: Props) {
   const { mode, system, parentContext, allSystems, onSave, onDelete, onCancel, onDirtyChange } = props;
 
@@ -174,7 +178,11 @@ export function EntityInspector(props: Props) {
           ) : (
             <select
               value={nodeType}
-              onChange={(e) => setNodeType(e.target.value as any)}
+              onChange={(e) => {
+                if (isSystemNodeType(e.target.value)) {
+                  setNodeType(e.target.value);
+                }
+              }}
               disabled={mode === 'edit'}
               className="app-select w-full rounded px-3"
             >

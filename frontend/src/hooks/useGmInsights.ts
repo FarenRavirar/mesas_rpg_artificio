@@ -98,9 +98,9 @@ export function useGmInsights() {
 
         const insights = await response.json();
         setData(insights);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('[useGmInsights]', err);
-        setError(err.message || 'Erro ao carregar insights');
+        setError(err instanceof Error && err.message ? err.message : 'Erro ao carregar insights');
       } finally {
         setLoading(false);
       }

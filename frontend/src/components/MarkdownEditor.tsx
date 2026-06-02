@@ -23,7 +23,7 @@ export const MarkdownEditor = ({
   placeholder = 'Digite aqui...', 
   height = 400
 }: MarkdownEditorProps) => {
-  const editorRef = useRef<any>(null);
+  const editorRef = useRef<InstanceType<typeof MdEditor> | null>(null);
 
   useEffect(() => {
     // Sincronizar valor externo com editor

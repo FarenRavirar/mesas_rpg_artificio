@@ -42,8 +42,8 @@ export const useFetchTables = (options: UseFetchTablesOptions = {}) => {
         setTables(json.data);
         // CORREÇÃO DT-05: Extrair totalCount do pagination
         setTotalCount(json.pagination?.total ?? json.data.length);
-      } catch (err: any) {
-        if (err.name === 'AbortError') return;
+      } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
         setError('Não foi possível carregar as mesas.');
         console.error('[useFetchTables]', err);
       } finally {

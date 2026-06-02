@@ -4,12 +4,13 @@
 
 ---
 
-## 02/06/2026 (2 sessões)
+## 02/06/2026 (3 sessões)
 
 | # | Arquivo |
 |---|---|
 | 1 | `26-06-02_1_feedback-desenvolvimento.md` |
 | 2 | `26-06-02_2_feedback-triage.md` |
+| 3 | `26-06-02_3_saneamento-lint-frontend.md` |
 
 ---
 
@@ -301,7 +302,7 @@
 
 ## Sessão Mais Recente
 
-`26-06-02_2_feedback-triage.md`
+`26-06-02_3_saneamento-lint-frontend.md`
 
 ---
 

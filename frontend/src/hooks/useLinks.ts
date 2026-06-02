@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -50,6 +50,35 @@ async function readApiError(response: Response, fallback: string): Promise<strin
   }
 }
 
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
+function isUserLink(value: unknown): value is UserLink {
+  if (typeof value !== 'object' || value === null) return false;
+  const link = value as Partial<UserLink>;
+  return (
+    typeof link.id === 'string' &&
+    typeof link.user_id === 'string' &&
+    typeof link.url === 'string' &&
+    typeof link.type === 'string' &&
+    typeof link.created_at === 'string' &&
+    typeof link.updated_at === 'string'
+  );
+}
+
+function normalizeLinksPayload(payload: unknown): UserLink[] {
+  if (typeof payload !== 'object' || payload === null || !('data' in payload)) return [];
+  const data = (payload as { data: unknown }).data;
+  return Array.isArray(data) ? data.filter(isUserLink) : [];
+}
+
+function normalizeLinkPayload(payload: unknown): UserLink | null {
+  if (typeof payload !== 'object' || payload === null || !('data' in payload)) return null;
+  const data = (payload as { data: unknown }).data;
+  return isUserLink(data) ? data : null;
+}
+
 export function useLinks(): UseLinksReturn {
   const { isAuthenticated } = useAuth();
   const [links, setLinks] = useState<UserLink[]>([]);
@@ -81,11 +110,11 @@ export function useLinks(): UseLinksReturn {
         throw new Error('Resposta inválida do servidor ao carregar links');
       }
 
-      const data = await res.json();
-      setLinks(data.data || []);
-    } catch (err: any) {
+      const data: unknown = await res.json();
+      setLinks(normalizeLinksPayload(data));
+    } catch (err: unknown) {
       console.error('Error fetching links:', err);
-      setError(err.message);
+      setError(getErrorMessage(err, 'Erro ao carregar links'));
     } finally {
       setLoading(false);
     }
@@ -119,14 +148,17 @@ export function useLinks(): UseLinksReturn {
           throw new Error('Resposta inválida do servidor ao adicionar link');
         }
 
-        const data = await res.json();
-        const newLink = data.data;
+        const data: unknown = await res.json();
+        const newLink = normalizeLinkPayload(data);
+        if (!newLink) {
+          throw new Error('Resposta inválida do servidor ao adicionar link');
+        }
 
         setLinks((prev) => [...prev, newLink]);
         return newLink;
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error adding link:', err);
-        setError(err.message);
+        setError(getErrorMessage(err, 'Erro ao adicionar link'));
         return null;
       }
     },
@@ -152,9 +184,9 @@ export function useLinks(): UseLinksReturn {
 
         setLinks((prev) => prev.filter((link) => link.id !== linkId));
         return true;
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error removing link:', err);
-        setError(err.message);
+        setError(getErrorMessage(err, 'Erro ao remover link'));
         return false;
       }
     },
@@ -187,9 +219,9 @@ export function useLinks(): UseLinksReturn {
 
         setLinks(reordered);
         return true;
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error reordering links:', err);
-        setError(err.message);
+        setError(getErrorMessage(err, 'Erro ao reordenar links'));
         return false;
       }
     },

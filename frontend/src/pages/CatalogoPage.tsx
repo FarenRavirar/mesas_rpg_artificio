@@ -11,10 +11,38 @@ import type { SystemTreeNode } from '../types/systems';
 import { applySeo } from '../utils/seo';
 import { useCatalogTables } from '../hooks/useCatalogTables';
 import { useCatalogFilters } from '../hooks/useCatalogFilters';
-import type { StyleOption } from '../services/catalogService';
+import type {
+  CatalogFilters,
+  ExperienceLevelOption,
+  ModalityOption,
+  PriceTypeOption,
+  SortOption,
+  StyleOption,
+} from '../services/catalogService';
 
 // Constantes de validação (compartilhadas com parser)
 const VALID_STYLES: StyleOption[] = ['Narrativo', 'Combate intenso', 'Investigação', 'Roleplay pesado', 'Sandbox', 'Horror'];
+const VALID_MODALITIES: ModalityOption[] = ['online', 'presencial', 'hibrida'];
+const VALID_PRICE_TYPES: PriceTypeOption[] = ['gratuita', 'paga'];
+const VALID_EXPERIENCE_LEVELS: ExperienceLevelOption[] = ['iniciante', 'intermediario', 'veterano'];
+const VALID_SORTS: SortOption[] = ['popular', 'recent', 'slots', 'price_asc', 'price_desc', 'ending_soon'];
+const VALID_SEALS: CatalogSeal[] = ['ddal', 'covil-do-lich', ''];
+
+function pickOption<T extends string>(value: string, validOptions: readonly T[], fallback: T): T {
+  return validOptions.includes(value as T) ? (value as T) : fallback;
+}
+
+function pickOptionalOption<T extends string>(value: string, validOptions: readonly T[]): T | '' {
+  return value !== '' && validOptions.includes(value as T) ? (value as T) : '';
+}
+
+const updateFilter = <K extends keyof CatalogFilters>(
+  setFilters: (updater: (prev: CatalogFilters) => CatalogFilters) => void,
+  key: K,
+  value: CatalogFilters[K]
+) => {
+  setFilters((prev) => ({ ...prev, [key]: value }));
+};
 
 export const CatalogoPage = () => {
   const [searchParams] = useSearchParams();
@@ -45,7 +73,7 @@ export const CatalogoPage = () => {
   // Converter slug do filtro para ID (para SystemTreeSelector)
   const selectedSystemIds = useMemo(() => {
     if (!filters.system) return [];
-    const entry = Array.from(systemsMap.entries()).find(([_, slug]) => slug === filters.system);
+    const entry = Array.from(systemsMap.entries()).find(([, slug]) => slug === filters.system);
     return entry ? [entry[0]] : [];
   }, [filters.system, systemsMap]);
 
@@ -259,7 +287,7 @@ export const CatalogoPage = () => {
               <div className="flex flex-wrap items-center gap-2">
                 <select
                   value={filters.modality}
-                  onChange={(e) => setFilters(prev => ({ ...prev, modality: e.target.value as any }))}
+                  onChange={(e) => updateFilter(setFilters, 'modality', pickOptionalOption(e.target.value, VALID_MODALITIES))}
                   className="app-select py-2.5"
                 >
                   <option value="">Modalidade</option>
@@ -270,7 +298,7 @@ export const CatalogoPage = () => {
 
                 <select
                   value={filters.priceType}
-                  onChange={(e) => setFilters(prev => ({ ...prev, priceType: e.target.value as any }))}
+                  onChange={(e) => updateFilter(setFilters, 'priceType', pickOptionalOption(e.target.value, VALID_PRICE_TYPES))}
                   className="app-select py-2.5"
                 >
                   <option value="">Preço</option>
@@ -280,7 +308,7 @@ export const CatalogoPage = () => {
 
                 <select
                   value={filters.experience}
-                  onChange={(e) => setFilters(prev => ({ ...prev, experience: e.target.value as any }))}
+                  onChange={(e) => updateFilter(setFilters, 'experience', pickOptionalOption(e.target.value, VALID_EXPERIENCE_LEVELS))}
                   className="app-select py-2.5"
                 >
                   <option value="">Nível</option>
@@ -397,7 +425,7 @@ export const CatalogoPage = () => {
 
           <select
             value={filters.modality}
-            onChange={(e) => setFilters(prev => ({ ...prev, modality: e.target.value as any }))}
+            onChange={(e) => updateFilter(setFilters, 'modality', pickOptionalOption(e.target.value, VALID_MODALITIES))}
             className="app-select w-full py-2.5"
           >
             <option value="">Modalidade</option>
@@ -408,7 +436,7 @@ export const CatalogoPage = () => {
 
           <select
             value={filters.priceType}
-            onChange={(e) => setFilters(prev => ({ ...prev, priceType: e.target.value as any }))}
+            onChange={(e) => updateFilter(setFilters, 'priceType', pickOptionalOption(e.target.value, VALID_PRICE_TYPES))}
             className="app-select w-full py-2.5"
           >
             <option value="">Preço</option>
@@ -418,7 +446,7 @@ export const CatalogoPage = () => {
 
           <select
             value={filters.experience}
-            onChange={(e) => setFilters(prev => ({ ...prev, experience: e.target.value as any }))}
+            onChange={(e) => updateFilter(setFilters, 'experience', pickOptionalOption(e.target.value, VALID_EXPERIENCE_LEVELS))}
             className="app-select w-full py-2.5"
           >
             <option value="">Nível</option>
@@ -429,7 +457,7 @@ export const CatalogoPage = () => {
 
           <select
             value={filters.sort}
-            onChange={(e) => setFilters(prev => ({ ...prev, sort: e.target.value as any }))}
+            onChange={(e) => updateFilter(setFilters, 'sort', pickOption(e.target.value, VALID_SORTS, 'popular'))}
             className="app-select w-full py-2.5"
           >
             <option value="popular">Mais populares</option>
@@ -504,7 +532,7 @@ export const CatalogoPage = () => {
           <ResultsHeader
             count={totalCount}
             sort={filters.sort}
-            onSortChange={(newSort) => setFilters(prev => ({ ...prev, sort: newSort as any }))}
+            onSortChange={(newSort) => updateFilter(setFilters, 'sort', pickOption(newSort, VALID_SORTS, 'popular'))}
             isLoading={isLoading}
             hasMore={hasMore}
           />
@@ -517,7 +545,7 @@ export const CatalogoPage = () => {
               modality: filters.modality,
               priceType: filters.priceType,
               experience: filters.experience,
-              seal: filters.seal as any, // Parser garante valor válido
+              seal: pickOptionalOption(filters.seal, VALID_SEALS),
               styles: filters.styles,
               sort: filters.sort,
             }}

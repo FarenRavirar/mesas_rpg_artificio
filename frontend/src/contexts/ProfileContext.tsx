@@ -1,6 +1,6 @@
-import React, { createContext, useContext } from 'react';
+import React from 'react';
 import type { ReactNode } from 'react';
-import type { FullProfile } from '../hooks/useProfile';
+import { ProfileContext, type ProfileContextValue } from './profileContextCore';
 import {
   useProfileQuery,
   useUpdateUser,
@@ -15,27 +15,6 @@ import {
  * Context para centralizar estado do perfil usando React Query
  * Elimina requisições duplicadas e fornece cache automático + optimistic updates
  */
-
-interface ProfileContextValue {
-  profile: FullProfile | undefined;
-  loading: boolean;
-  error: string | null;
-  saving: boolean;
-  refetch: () => void;
-  updateUser: (data: { username?: string; location?: string }) => Promise<void>;
-  updateProfile: (data: {
-    display_name?: string;
-    bio?: string;
-    avatar_url?: string;
-    languages?: string[];
-  }) => Promise<void>;
-  updatePlayer: (data: any) => Promise<void>;
-  updateGm: (data: any) => Promise<void>;
-  addSystem: (systemId: string, type?: 'favorite' | 'gm') => Promise<void>;
-  removeSystem: (systemId: string) => Promise<void>;
-}
-
-const ProfileContext = createContext<ProfileContextValue | null>(null);
 
 interface ProfileProviderProps {
   children: ReactNode;
@@ -113,16 +92,3 @@ export function ProfileProvider({ children }: ProfileProviderProps) {
   return <ProfileContext.Provider value={value}>{children}</ProfileContext.Provider>;
 }
 
-/**
- * Hook para consumir o contexto do perfil
- * Deve ser usado dentro de um ProfileProvider
- */
-export function useProfileContext(): ProfileContextValue {
-  const context = useContext(ProfileContext);
-
-  if (!context) {
-    throw new Error('useProfileContext deve ser usado dentro de um ProfileProvider');
-  }
-
-  return context;
-}

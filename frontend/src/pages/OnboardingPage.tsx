@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, ChevronLeft, ChevronRight, Compass, Sparkles } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 import { SystemTreeSelector } from '../components/SystemTreeSelector';
 import type { SystemTreeNode } from '../types/systems';
 import { applySeo } from '../utils/seo';
@@ -157,8 +157,8 @@ export const OnboardingPage = () => {
           platforms: meJson.data.preferences.platforms ?? [],
           weekdays: meJson.data.preferences.weekdays ?? [],
         });
-      } catch (err: any) {
-        setError(err.message ?? 'Falha ao carregar onboarding.');
+      } catch (err: unknown) {
+        setError(err instanceof Error && err.message ? err.message : 'Falha ao carregar onboarding.');
       } finally {
         setLoading(false);
       }
@@ -216,8 +216,8 @@ export const OnboardingPage = () => {
       }
 
       navigate('/');
-    } catch (err: any) {
-      setError(err.message ?? 'Erro ao salvar onboarding.');
+    } catch (err: unknown) {
+      setError(err instanceof Error && err.message ? err.message : 'Erro ao salvar onboarding.');
     } finally {
       setSubmitting(false);
     }

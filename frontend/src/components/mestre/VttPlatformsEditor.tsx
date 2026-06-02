@@ -28,8 +28,8 @@ export function VttPlatformsEditor({ selectedPlatforms, onSave }: VttPlatformsEd
         if (!res.ok) throw new Error('Erro ao carregar plataformas');
         const json = await res.json();
         setPlatforms(json.data || []);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) {
+        setError(err instanceof Error && err.message ? err.message : 'Erro ao carregar plataformas');
       } finally {
         setLoading(false);
       }
@@ -53,8 +53,8 @@ export function VttPlatformsEditor({ selectedPlatforms, onSave }: VttPlatformsEd
     setError(null);
     try {
       await onSave(Array.from(selected));
-    } catch (err: any) {
-      setError(err.message || 'Erro ao salvar');
+    } catch (err: unknown) {
+      setError(err instanceof Error && err.message ? err.message : 'Erro ao salvar');
     } finally {
       setSaving(false);
     }

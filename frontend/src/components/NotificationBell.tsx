@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 

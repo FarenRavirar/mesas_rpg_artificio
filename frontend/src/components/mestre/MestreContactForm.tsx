@@ -38,8 +38,8 @@ export function MestreContactForm({ mestreSlug }: MestreContactFormProps) {
 
       // Resetar sucesso após 5 segundos
       setTimeout(() => setSuccess(false), 5000);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error && err.message ? err.message : 'Erro ao enviar mensagem');
     } finally {
       setLoading(false);
     }

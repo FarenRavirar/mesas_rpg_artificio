@@ -1,10 +1,10 @@
-import type { TableDetail } from '../../../types/tables';
+import type { TableContact, TableDetail } from '../../../types/tables';
 import type { TableViewModel, TableCertifications, CTAConfig, UrgencyConfig, VisibilityConfig } from '../types/tableView.types';
 
 /**
  * Gera configuração de CTA baseado no estado da mesa e contatos disponíveis
  */
-function generateCTAConfig(table: TableDetail, slotsLeft: number, contacts: any[]): CTAConfig {
+function generateCTAConfig(table: TableDetail, slotsLeft: number, contacts: TableContact[]): CTAConfig {
   // CORREÇÃO: Bloquear CTA para mesas desativadas/encerradas
   if (table.status === 'cancelled') {
     return {

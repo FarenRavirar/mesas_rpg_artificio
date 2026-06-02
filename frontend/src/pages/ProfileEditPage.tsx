@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useProfileContext } from '../contexts/ProfileContext';
+import { useProfileContext } from '../contexts/useProfileContext';
 import type { PlayerProfile, GmProfile } from '../hooks/useProfile';
 import { UserSystemsSelector } from '../components/UserSystemsSelector';
 import { LinksManager } from '../components/LinksManager';

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Compass, LogIn, LogOut, Zap } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 import { NotificationBell } from './NotificationBell';
 import { ChangelogModal } from './ChangelogModal';
 import { useState, useEffect } from 'react';

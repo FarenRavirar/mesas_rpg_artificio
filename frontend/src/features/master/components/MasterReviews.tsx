@@ -11,7 +11,8 @@ interface MasterReviewsProps {
  * - Futuro: sistema de avaliações/reviews
  * - Por enquanto: retorna null
  */
-export function MasterReviews(_props: MasterReviewsProps) {
+export function MasterReviews({ vm }: MasterReviewsProps) {
+  void vm;
   // Placeholder para futuro sistema de reviews
   return null;
 }
