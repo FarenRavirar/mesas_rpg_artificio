@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.uploadImageToCloudinary = uploadImageToCloudinary;
+exports.uploadScreenshotToCloudinary = uploadScreenshotToCloudinary;
 exports.uploadRemoteImageToCloudinary = uploadRemoteImageToCloudinary;
 const cloudinary_1 = require("cloudinary");
 const promises_1 = require("node:dns/promises");
@@ -37,6 +38,30 @@ async function uploadImageToCloudinary(imageUrl) {
     }
     catch (error) {
         console.error('[cloudinary] Upload failed:', error?.message || error);
+        throw error;
+    }
+}
+/**
+ * Upload de captura de tela do widget de feedback (Spec 022).
+ * Usa crop 'limit' (preserva proporcao, nao distorce como o banner 1200x650).
+ */
+async function uploadScreenshotToCloudinary(dataUri) {
+    try {
+        const result = await cloudinary_1.v2.uploader.upload(dataUri, {
+            folder: 'mesas_rpg/dev_feedback',
+            resource_type: 'image',
+            transformation: [
+                { width: 1600, crop: 'limit' },
+                { quality: 'auto:eco', fetch_format: 'auto' },
+            ],
+        });
+        return {
+            secure_url: result.secure_url,
+            public_id: result.public_id,
+        };
+    }
+    catch (error) {
+        console.error('[cloudinary] Screenshot upload failed:', error?.message || error);
         throw error;
     }
 }

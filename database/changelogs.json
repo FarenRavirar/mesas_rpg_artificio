@@ -1,5 +1,13 @@
 [
   {
+    "id": "2026-06-02-feedback-desenvolvimento",
+    "title": "Agora você pode relatar problemas e sugerir melhorias",
+    "body": "Adicionamos um canal direto para você falar com a equipe sem sair da página:\n\n• **Botão fixo em qualquer página** - Um botão \"Reportar / Sugerir\" no canto da tela abre um formulário rápido para relatar um problema ou sugerir uma melhoria\n• **Mais fácil para a equipe ajudar** - Ao enviar, o site anexa automaticamente a página onde você estava e detalhes técnicos do momento, para acelerar a correção\n• **Você no controle** - Antes de enviar, você decide se quer incluir a captura da tela e os detalhes técnicos\n\n_Atualização publicada em 02/06/2026_",
+    "type": "app",
+    "published": false,
+    "created_at": "2026-06-02T15:00:00-03:00"
+  },
+  {
     "id": "2026-06-02-agenda-a-definir",
     "title": "Cadastro de mesa aceita agenda a combinar",
     "body": "Publicamos um ajuste para mesas que ainda vão combinar agenda com o grupo:\n\n• **Dia e horário a definir** - No cadastro de mesa, agora é possível marcar explicitamente quando o dia da semana ou o horário ainda serão combinados\n• **Página da mesa mais clara** - Mesas sem agenda fechada mostram \"Dia a definir\" ou \"Horário a definir\" em vez de parecerem incompletas\n\n_Atualização publicada em 02/06/2026 às 00:00_",

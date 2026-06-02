@@ -412,9 +412,44 @@ export type ScenarioSuggestion = Selectable<ScenarioSuggestionsTable>;
 export type NewScenarioSuggestion = Insertable<ScenarioSuggestionsTable>;
 export type ScenarioSuggestionUpdate = Updateable<ScenarioSuggestionsTable>;
 
+// Migration 125: Feedback de desenvolvimento (Spec 022)
+export type DevFeedbackKind = 'bug' | 'suggestion';
+export type DevFeedbackStatus =
+  | 'new' | 'triaged' | 'in_progress' | 'resolved' | 'wont_fix' | 'duplicate';
+
+export interface DevFeedbackTable {
+  id: Generated<string>;
+  user_id: string | null;
+  reporter_role: string | null;
+  contact_email: string | null;
+  kind: DevFeedbackKind;
+  title: string;
+  description: string;
+  page_url: string | null;
+  route_path: string | null;
+  page_title: string | null;
+  environment: string | null;
+  user_agent: string | null;
+  viewport: string | null;
+  console_errors: ColumnType<unknown[], string, string>;
+  network_errors: ColumnType<unknown[], string, string>;
+  screenshot_url: string | null;
+  status: Generated<DevFeedbackStatus>;
+  admin_notes: string | null;
+  reviewed_by: string | null;
+  reviewed_at: Date | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export type DevFeedback = Selectable<DevFeedbackTable>;
+export type NewDevFeedback = Insertable<DevFeedbackTable>;
+export type DevFeedbackUpdate = Updateable<DevFeedbackTable>;
+
 export type NotificationType =
   | 'suggestion_approved' | 'suggestion_rejected' | 'suggestion_edited' | 'system'
-  | 'system_suggestion' | 'scenario_suggestion' | 'table_published' | 'member_joined';
+  | 'system_suggestion' | 'scenario_suggestion' | 'table_published' | 'member_joined'
+  | 'dev_feedback';
 
 export interface NotificationsTable {
   id: Generated<string>;
@@ -678,6 +713,9 @@ export interface Database {
 
   // Migration 116: Configuracoes cifradas do modulo Discord
   discord_settings: DiscordSettingsTable;
+
+  // Migration 125: Feedback de desenvolvimento (Spec 022)
+  dev_feedback: DevFeedbackTable;
 }
 
 // Migration 16: Métricas de engajamento de mesas

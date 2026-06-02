@@ -11,6 +11,7 @@ import { HydrationAdminPanel } from '../modules/admin/hydration/HydrationAdminPa
 import { InlineDeleteConfirmation } from '../components/InlineDeleteConfirmation';
 import { DiscordSyncPanel } from '../features/discord-sync/components/DiscordSyncPanel';
 import { SystemSuggestionResolutionDrawer } from '../components/SystemSuggestionResolutionDrawer';
+import { DevFeedbackPanel } from '../modules/admin/dev-feedback/DevFeedbackPanel';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -43,6 +44,22 @@ interface ScenarioSuggestion {
 }
 
 type CatalogSuggestion = SystemSuggestion | ScenarioSuggestion;
+
+interface ScenarioEditTarget {
+  id: string;
+  name: string;
+  name_pt?: string | null;
+  slug: string;
+  subgenres: string[];
+}
+
+interface AdminTableRow {
+  id: string;
+  title: string;
+  status: string;
+  created_at: string;
+  is_covil?: boolean;
+}
 
 const isSuggestionStatus = (value: unknown): value is CatalogSuggestion['status'] => {
   return value === 'pending' || value === 'approved' || value === 'rejected';
@@ -120,10 +137,10 @@ export const GestaoPage = () => {
   const [suggestions, setSuggestions] = useState<CatalogSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
-  const [activeTab, setActiveTab] = useState<'systems' | 'crud' | 'activity' | 'hydration' | 'discord'>('crud');
+  const [activeTab, setActiveTab] = useState<'systems' | 'crud' | 'activity' | 'hydration' | 'discord' | 'dev'>('crud');
   const [crudSubTab, setCrudSubTab] = useState<'systems' | 'platforms' | 'scenarios' | 'tables'>('systems');
-  const [scenarioEditModal, setScenarioEditModal] = useState<any>(null);
-  const [allTables, setAllTables] = useState<any[]>([]);
+  const [scenarioEditModal, setScenarioEditModal] = useState<ScenarioEditTarget | null>(null);
+  const [allTables, setAllTables] = useState<AdminTableRow[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteConfirmTableId, setDeleteConfirmTableId] = useState<string | null>(null);
   const [deletingTableId, setDeletingTableId] = useState<string | null>(null);
@@ -509,6 +526,16 @@ export const GestaoPage = () => {
           >
             Discord Sync
           </button>
+          <button
+            onClick={() => setActiveTab('dev')}
+            className={`px-6 py-3 font-semibold transition-all ${
+              activeTab === 'dev'
+                ? 'text-white border-b-2 border-blue-500'
+                : 'text-white/60 hover:text-white/80'
+            }`}
+          >
+            Desenvolvimento
+          </button>
         </div>
 
         {/* Conteúdo das abas */}
@@ -655,6 +682,10 @@ export const GestaoPage = () => {
 
         {activeTab === 'discord' && (
           <DiscordSyncPanel />
+        )}
+
+        {activeTab === 'dev' && (
+          <DevFeedbackPanel />
         )}
 
         {activeTab === 'systems' && (

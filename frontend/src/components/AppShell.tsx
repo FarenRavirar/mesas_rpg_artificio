@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { SiteHeader } from './SiteHeader';
 import { SiteFooter } from './SiteFooter';
+import { FeedbackButton } from '../features/dev-feedback/FeedbackButton';
 
 interface AppShellProps {
   children: ReactNode;
@@ -14,6 +15,7 @@ export const AppShell = ({ children }: AppShellProps) => {
         {children}
       </div>
       <SiteFooter />
+      <FeedbackButton />
     </div>
   );
 };

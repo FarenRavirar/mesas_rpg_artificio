@@ -39,6 +39,31 @@ export async function uploadImageToCloudinary(imageUrl: string) {
   }
 }
 
+/**
+ * Upload de captura de tela do widget de feedback (Spec 022).
+ * Usa crop 'limit' (preserva proporcao, nao distorce como o banner 1200x650).
+ */
+export async function uploadScreenshotToCloudinary(dataUri: string) {
+  try {
+    const result = await cloudinary.uploader.upload(dataUri, {
+      folder: 'mesas_rpg/dev_feedback',
+      resource_type: 'image',
+      transformation: [
+        { width: 1600, crop: 'limit' },
+        { quality: 'auto:eco', fetch_format: 'auto' },
+      ],
+    });
+
+    return {
+      secure_url: result.secure_url,
+      public_id: result.public_id,
+    };
+  } catch (error: any) {
+    console.error('[cloudinary] Screenshot upload failed:', error?.message || error);
+    throw error;
+  }
+}
+
 const MAX_REMOTE_IMAGE_BYTES = 5 * 1024 * 1024;
 const REMOTE_IMAGE_TIMEOUT_MS = 10000;
 const MAX_REMOTE_IMAGE_REDIRECTS = 3;
