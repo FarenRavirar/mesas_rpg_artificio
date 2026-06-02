@@ -9,32 +9,48 @@ const VALID_STATUS = new Set([
     'new', 'triaged', 'in_progress', 'resolved', 'wont_fix', 'duplicate',
 ]);
 const VALID_KIND = new Set(['bug', 'suggestion']);
-async function resolveActorName(userId) {
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/**
+ * Resolve nomes de varios reporters em lote (evita N+1):
+ * 1 query em profiles + 1 query em users (so para os sem display_name).
+ */
+async function resolveActorNames(userIds) {
+    const names = new Map();
+    const ids = Array.from(new Set(userIds.filter((id) => Boolean(id))));
+    if (ids.length === 0)
+        return names;
     try {
-        const profile = await db_1.db
+        const profiles = await db_1.db
             .selectFrom('profiles')
-            .select('display_name')
-            .where('user_id', '=', userId)
-            .executeTakeFirst();
-        if (profile?.display_name && profile.display_name.trim().length > 0) {
-            return profile.display_name.trim();
+            .select(['user_id', 'display_name'])
+            .where('user_id', 'in', ids)
+            .execute();
+        for (const p of profiles) {
+            if (p.display_name && p.display_name.trim().length > 0) {
+                names.set(p.user_id, p.display_name.trim());
+            }
         }
-        const user = await db_1.db
-            .selectFrom('users')
-            .select(['username', 'email'])
-            .where('id', '=', userId)
-            .executeTakeFirst();
-        if (user?.username && user.username.trim().length > 0) {
-            return user.username.trim();
-        }
-        if (user?.email) {
-            return user.email.split('@')[0];
+        const remaining = ids.filter((id) => !names.has(id));
+        if (remaining.length > 0) {
+            const users = await db_1.db
+                .selectFrom('users')
+                .select(['id', 'username', 'email'])
+                .where('id', 'in', remaining)
+                .execute();
+            for (const u of users) {
+                if (u.username && u.username.trim().length > 0) {
+                    names.set(u.id, u.username.trim());
+                }
+                else if (u.email) {
+                    names.set(u.id, u.email.split('@')[0]);
+                }
+            }
         }
     }
     catch (error) {
-        console.error('[devFeedbackAdmin][resolveActorName]', error);
+        console.error('[devFeedbackAdmin][resolveActorNames]', error);
     }
-    return 'Anonimo';
+    return names;
 }
 router.use(auth_1.authMiddleware, (0, auth_1.requireRole)('admin'));
 // GET /api/v1/admin/dev-feedback?status=&kind= - lista para triagem
@@ -50,10 +66,11 @@ router.get('/dev-feedback', async (req, res) => {
             query = query.where('kind', '=', kind);
         }
         const rows = await query.execute();
-        const data = await Promise.all(rows.map(async (row) => ({
+        const names = await resolveActorNames(rows.map((row) => row.user_id).filter((id) => Boolean(id)));
+        const data = rows.map((row) => ({
             ...row,
-            reporter_name: row.user_id ? await resolveActorName(row.user_id) : 'Anonimo',
-        })));
+            reporter_name: row.user_id ? (names.get(row.user_id) ?? 'Anonimo') : 'Anonimo',
+        }));
         return res.json({ data });
     }
     catch (error) {
@@ -69,6 +86,10 @@ router.patch('/dev-feedback/:id', async (req, res) => {
             return res.status(401).json({ error: 'Nao autenticado.' });
         }
         const { id } = req.params;
+        // Garante UUID valido: coluna `id` e UUID; entrada malformada retorna 400 em vez de 500.
+        if (!UUID_RE.test(id)) {
+            return res.status(400).json({ error: 'ID invalido.' });
+        }
         const body = (req.body && typeof req.body === 'object') ? req.body : {};
         const update = {
             reviewed_by: adminId,
