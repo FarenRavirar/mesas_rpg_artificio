@@ -1,105 +1,23 @@
 # ============================================================================
-# WORKFLOW: Preflight Prod Gate
-# RESPONSIBILITY: Continuous Integration (Production Gate)
-# TRIGGER: Pull request para branch main (paths: database/**, scripts/deploy/**)
-# SCOPE: Valida drift de migrations entre beta e produção
-# DEPENDENCIES: Nenhuma
-# CONSUMERS: Nenhum (gate de PR)
-# MAINTAINER: Equipe de operações
-# LAST UPDATED: 2026-04-23
-# NOTES: Bloqueia PR se migrations não estão sincronizadas entre ambientes
+# WORKFLOW: Preflight Prod Gate — DESATIVADO (mesas no monorepo artificio)
+# STATUS: Aposentado. O gate de migrations beta/prod do mesas agora vive no
+#         monorepo `artificio` (_enforce-migration-dir.yml / pr-checks.yml).
+# MOTIVO: validava drift contra a infra antiga (Fase 1 recriou a VM, D036).
+# DATA: 2026-06-07
+# NOTES: Sem trigger de pull_request (nao roda mais sozinho). Job if:false.
 # ============================================================================
 
-name: Preflight Prod Gate
+name: Preflight Prod Gate (DESATIVADO — mesas no monorepo artificio)
 
 on:
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'database/**'
-      - 'scripts/deploy/**'
-
-permissions:
-  contents: read
-  issues: write
-  pull-requests: write
+  workflow_dispatch:
 
 jobs:
-  preflight:
+  moved:
+    if: ${{ false }} # desativado: gate de migrations do mesas e pelo monorepo artificio
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Setup SSH Directory
-        run: mkdir -p ~/.ssh && chmod 700 ~/.ssh
-
-      - name: Setup SSH Config
+      - name: Aviso
         run: |
-          cat <<EOF > ~/.ssh/config
-          Host faren
-            HostName ${{ secrets.SERVER_HOST }}
-            User ${{ secrets.SERVER_USER }}
-            IdentityFile ~/.ssh/id_rsa
-            StrictHostKeyChecking no
-          EOF
-          chmod 600 ~/.ssh/config
-
-      - name: Configure SSH Key
-        run: |
-          echo "${{ secrets.SSH_PRIVATE_KEY_PROD }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-
-      - name: Copy config to C:\\projetos\\config mapping
-        # Since preflight_prod.sh assumes C:\projetos\config when run by the agent locally,
-        # we adjust the shell script dynamically here in the runner to use ~/.ssh/config
-        run: sed -i 's|C:\\\\projetos\\\\config|~/.ssh/config|g' scripts/deploy/preflight_prod.sh || true
-
-      - name: Run Preflight Check
-        id: run_preflight
-        env:
-          DB_CONTAINER_PROD: mesas-db
-          DB_CONTAINER_BETA: mesas-beta-db
-          DB_USER: admin
-          DB_NAME: mesas_rpg
-        run: |
-          bash scripts/deploy/preflight_prod.sh
-
-      - name: Read Report
-        id: read_report
-        if: always()
-        run: |
-          if [ -f /tmp/preflight_report.md ]; then
-            {
-              echo 'REPORT<<EOF'
-              cat /tmp/preflight_report.md
-              echo EOF
-            } >> "$GITHUB_OUTPUT"
-          else
-            {
-              echo 'REPORT<<EOF'
-              echo "Script preflight_prod.sh falhou antes de gerar relatorio ou relatorio nao foi encontrado."
-              echo "# :stop_sign: BLOCKED"
-              echo EOF
-            } >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Find Comment
-        if: always()
-        uses: peter-evans/find-comment@v4
-        id: fc
-        with:
-          issue-number: ${{ github.event.pull_request.number }}
-          comment-author: 'github-actions[bot]'
-          body-includes: Preflight Report
-
-      - name: Create or update comment
-        if: always()
-        uses: peter-evans/create-or-update-comment@v5
-        with:
-          comment-id: ${{ steps.fc.outputs.comment-id }}
-          issue-number: ${{ github.event.pull_request.number }}
-          body: |
-            ${{ steps.read_report.outputs.REPORT }}
-          edit-mode: replace
+          echo "O gate de preflight/migrations do mesas foi movido para o monorepo 'artificio'."
+          exit 1
