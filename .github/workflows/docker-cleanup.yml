@@ -1,51 +1,28 @@
 # ============================================================================
-# WORKFLOW: Docker Cleanup
-# RESPONSIBILITY: Maintenance
-# TRIGGER: Agendado (Sundays 3 AM UTC) ou manual
-# SCOPE: Limpeza periódica de recursos Docker no servidor
-# DEPENDENCIES: Nenhuma
-# CONSUMERS: Nenhum
-# MAINTAINER: Equipe de operações
-# LAST UPDATED: 2026-04-23
-# NOTES: Mantém apenas 3 imagens mais recentes por repositório
+# WORKFLOW: Docker Cleanup — DESATIVADO (movido)
+# STATUS: Aposentado. O projeto mesas foi unificado no monorepo `artificio`.
+#         A limpeza periódica de Docker da VM agora vive em:
+#         artificio/.github/workflows/docker-cleanup.yml
+# MOTIVO: VM única (mesma daemon Docker) — manter o cron aqui duplicaria a
+#         limpeza e usaria os secrets antigos (SERVER_*). Fonte única no
+#         monorepo, com os secrets canônicos (DEPLOY_*).
+# DATA: 2026-06-07
+# NOTES: Sem `schedule` (não roda mais sozinho). Job desabilitado por guard.
+#        Mantido só como marcador/redirect; pode ser removido no futuro.
 # ============================================================================
 
-name: Docker Cleanup
+name: Docker Cleanup (DESATIVADO — movido para artificio)
 
 on:
-  schedule:
-    - cron: '0 3 * * 0'
   workflow_dispatch:
 
 jobs:
-  cleanup:
+  moved:
+    if: ${{ false }} # desativado: limpeza agora no monorepo artificio
     runs-on: ubuntu-latest
-
     steps:
-      - name: Cleanup Docker on Server
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            docker image prune -f
-            docker container prune -f
-            docker builder prune -f
-            docker network prune -f
-            docker images --format "{{.Repository}}" | sort -u | while read repo; do
-              if [ "$repo" != "<none>" ]; then
-                docker images "$repo" --format "{{.ID}} {{.CreatedAt}}" | \
-                  sort -k2 -r | tail -n +4 | awk '{print $1}' | \
-                  xargs -r docker rmi -f 2>/dev/null || true
-              fi
-            done
-            df -h /var/lib/docker
-
-      - name: Notify Success
-        if: success()
-        run: echo "✅ Limpeza concluída!"
-
-      - name: Notify Failure
-        if: failure()
-        run: echo "❌ Limpeza falhou!"
+      - name: Aviso
+        run: |
+          echo "Este workflow foi movido para o monorepo 'artificio'."
+          echo "Veja: .github/workflows/docker-cleanup.yml no repositório artificio."
+          exit 1
